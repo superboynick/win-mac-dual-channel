@@ -1,0 +1,5 @@
+{
+  "mainRemote": "origin",
+  "backupRemote": "nas",
+  "branch": "main"
+}
