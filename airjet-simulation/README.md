@@ -1,20 +1,26 @@
 # AirJet 仿真论文项目
 
-本目录是 AirJet 仿真论文的跨机器工作台。先阅读 `AIRJET_SIMULATION_PROJECT.md`；它是研究问题、模型、算法、参数、验证、计算资源和论文交付的统一依据。
+本目录是 AirJet 仿真项目的跨机器工作台。**先阅读 `AIRJET_MINI_FULL_PRODUCT_MASTER_PLAN.md`**；它是当前主线：在没有实物拆解的条件下，用公开证据复原一颗完整 AirJet Mini 产品，而非只建立单个 cooling cell。
 
 ## 这一阶段的目标
 
-先做一个**可验证的等效微射流共轭传热（CHT）基线模型**，而不是直接反向复刻商业 AirJet 的完整 MEMS 结构或建立全阵列双向 FSI。
+先做一个**公开证据约束的 AirJet Mini 整机数字复原模型**。最终 CAD 和至少一个气动/CHT 算例必须覆盖完整外壳、全部内部单元、完整进排气流道和热结构。单 cell 高保真模型只用于校准膜片与流量边界。先校准至公开产品的封装与性能量级；优化设计是后续阶段，不是当前任务。
 
 ## 文件
 
-- `AIRJET_SIMULATION_PROJECT.md`：主项目文件，Windows 上也应优先阅读。
-- `parameters/baseline_parameters.csv`：首轮 Fluent/CFX/OpenFOAM 参数录入表；带有参数状态和来源。
-- `checklists/stage-gates.md`：每个阶段的完成判据，防止模型还未验证就进入优化。
+- `AIRJET_MINI_FULL_PRODUCT_MASTER_PLAN.md`：当前主项目文件；整机目标选择、多尺度模型、阶段、算法、算力和手册规划。
+- `AIRJET_RECONSTRUCTION_PLAN.md`：内部单元复原依据；现在是整机规划的子文档，不再是最终目标。
+- `OPERATION_MANUAL_00_EVIDENCE_TO_CAD.md`：早期单元证据到 CAD 草案；将扩写为完整产品 CAD 手册。
+- `MODEL_ANNOTATIONS.md`：仿真注释总表；每一个简化、设置和结果都必须在这里解释。
+- `evidence/airjet_reconstruction_ledger.csv`：可追溯参数账本，区分证实、范围、推断和未知。
+- `parameters/full_product_parameter_registry.csv`：完整产品尺寸、性能、结构、流体、控制和热参数注册表。
+- `manuals/01_FULL_PRODUCT_CAD.md`：完整产品 CAD 装配、流道和候选阵列操作规划。
+- `checklists/full_product_stage_gates.md`：P0–P6 的整机验收门槛。
+- `AIRJET_SIMULATION_PROJECT.md`：旧的“参数优化”蓝图，保留作未来阶段参考，不可作为当前建模任务。
 
 ## 本地资料位置（不纳入 Git）
 
-`/Users/zhangjianxiao/Downloads/AirJet_research/` 保存公开专利、Frore 官方资料和基础论文；其 `SIMULATION_READING_GUIDE.md` 是资料阅读顺序。Windows 上请解压之前交付的 `AirJet_simulation_bundle_2026-07-12_v2.zip`，再把解压目录路径填进主项目文件第 2 节的“本地证据库”。
+`/Users/zhangjianxiao/Downloads/AirJet_research/` 保存公开专利、Frore 官方资料和基础论文。Windows 上请解压之前交付的 `AirJet_simulation_bundle_2026-07-12_v2.zip`；复原阶段优先使用专利 `US12137540B2`、`US11978690B2`、Hot Chips 2024 教程和 AirJet Mini 数据表。
 
 ## 协作规则
 

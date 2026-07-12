@@ -1,5 +1,7 @@
 # AirJet 仿真阶段门槛
 
+> **状态：旧优化路线清单，当前停用。** 整机复原使用 `full_product_stage_gates.md`。
+
 ## Gate 0：立项
 
 - [ ] 本地 AirJet 资料目录可访问，且主项目文件已读完。

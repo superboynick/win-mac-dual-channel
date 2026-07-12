@@ -1,4 +1,5 @@
 group,parameter,symbol,baseline,unit,scan_or_allowed_range,status,source_or_rationale
+metadata,route_status,-,ARCHIVED,-,do not use for current reconstruction,archived,use full_product_parameter_registry.csv
 ambient,ambient_temperature,T_inf,25,degC,20-35,assumed,controlled lab/CFD condition
 ambient,ambient_pressure,p0,101325,Pa,90000-105000,assumed,standard atmosphere
 fluid,air_density,rho,1.184,kg/m3,temperature dependent,assumed,air at 25 degC 1 atm
