@@ -13,6 +13,8 @@
 - `OPERATION_MANUAL_00_EVIDENCE_TO_CAD.md`：早期单元证据到 CAD 草案；将扩写为完整产品 CAD 手册。
 - `MODEL_ANNOTATIONS.md`：仿真注释总表；每一个简化、设置和结果都必须在这里解释。
 - `evidence/airjet_reconstruction_ledger.csv`：可追溯参数账本，区分证实、范围、推断和未知。
+- `evidence/airjet_mini_performance_curve_digitized.csv`：Mini 官方功耗—净散热/流量曲线的近似数字化校准点。
+- `evidence/layout_candidate_constraints.md`：整机内部 Layout-L/M/S 的硬约束、搜索范围和淘汰顺序。
 - `parameters/full_product_parameter_registry.csv`：完整产品尺寸、性能、结构、流体、控制和热参数注册表。
 - `manuals/01_FULL_PRODUCT_CAD.md`：完整产品 CAD 装配、流道和候选阵列操作规划。
 - `manuals/02_ACTUATOR_STRUCTURAL.md`：执行片结构、压电谐响应、位移场和整机功耗约束。
