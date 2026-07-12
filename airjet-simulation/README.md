@@ -15,6 +15,12 @@
 - `evidence/airjet_reconstruction_ledger.csv`：可追溯参数账本，区分证实、范围、推断和未知。
 - `parameters/full_product_parameter_registry.csv`：完整产品尺寸、性能、结构、流体、控制和热参数注册表。
 - `manuals/01_FULL_PRODUCT_CAD.md`：完整产品 CAD 装配、流道和候选阵列操作规划。
+- `manuals/02_ACTUATOR_STRUCTURAL.md`：执行片结构、压电谐响应、位移场和整机功耗约束。
+- `manuals/03_CELL_TRANSIENT_CFD.md`：单 cell 可压缩动态网格校准与整机降阶接口。
+- `manuals/04_FULL_PRODUCT_AIRFLOW.md`：全部单元、相位、进排气歧管和整机气动验收。
+- `manuals/05_FULL_PRODUCT_CHT.md`：完整热结构、自热/芯片热账户和官方热工况校准。
+- `manuals/06_CALIBRATION_AND_UNCERTAINTY.md`：多指标参数识别、验证集与不可辨识性处理。
+- `manuals/07_RUN_LOG_AND_GIT.md`：每次算例注释、大文件索引和 Windows/Mac 交接。
 - `checklists/full_product_stage_gates.md`：P0–P6 的整机验收门槛。
 - `AIRJET_SIMULATION_PROJECT.md`：旧的“参数优化”蓝图，保留作未来阶段参考，不可作为当前建模任务。
 
