@@ -1,0 +1,27 @@
+group,parameter,symbol,baseline,unit,scan_or_allowed_range,status,source_or_rationale
+ambient,ambient_temperature,T_inf,25,degC,20-35,assumed,controlled lab/CFD condition
+ambient,ambient_pressure,p0,101325,Pa,90000-105000,assumed,standard atmosphere
+fluid,air_density,rho,1.184,kg/m3,temperature dependent,assumed,air at 25 degC 1 atm
+fluid,air_dynamic_viscosity,mu,1.85e-5,Pa s,temperature dependent,assumed,air at 25 degC
+fluid,air_thermal_conductivity,k_air,0.0262,W/m K,temperature dependent,assumed,air at 25 degC
+fluid,air_specific_heat,cp_air,1007,J/kg K,temperature dependent,assumed,air at 25 degC
+geometry,nozzle_diameter,D,0.30,mm,0.15-0.60,parameterized,AirJet-class research assumption
+geometry,nozzle_pitch,P,1.00,mm,2D-5D,parameterized,jet interaction study
+geometry,nozzle_to_plate_gap,H,1.20,mm,H/D 1-10,parameterized,primary research variable
+geometry,array_count,N,3x3,-,single 3x3 5x5,model choice,progressive complexity
+geometry,spreader_thickness,t_sp,0.50,mm,0.20-1.50,parameterized,thin-package constraint
+geometry,TIM_thickness,t_TIM,50,um,20-150,parameterized,interface sensitivity study
+solid,silicon_conductivity,k_Si,130,W/m K,temperature dependent optional,assumed,first-pass constant property
+solid,copper_conductivity,k_Cu,390,W/m K,350-400,reference material,first-pass constant property
+solid,aluminum_nitride_conductivity,k_AlN,170,W/m K,140-200,candidate material,first-pass constant property
+solid,TIM_conductivity,k_TIM,3,W/m K,1-8,parameterized,commercial TIM class range
+thermal,heater_area,L_h,5x5,mm2,3x3-10x10,parameterized,hotspot scale study
+thermal,heater_power,Q,5,W,2-15,parameterized,thermal load study
+flow,velocity_inlet,Uin,10,m/s,5 10 20 40,parameterized,equivalent steady-jet boundary
+flow,backpressure,p_back,0,Pa gauge,0-100,parameterized,packaging/exhaust sensitivity
+transient,membrane_frequency,f,20,kHz,5-40,unverified assumption,requires modal/public-data calibration
+transient,membrane_peak_amplitude,A,5,um,1-20,unverified assumption,requires modal/public-data calibration
+transient,time_steps_per_period,Nt,200,steps/period,100-400,numerical control,time-step independence required
+numerics,mass_imbalance_limit,-,0.5,percent,less than 0.5,acceptance criterion,project-defined
+numerics,energy_imbalance_limit,-,1,percent,less than 1,acceptance criterion,project-defined
+mesh,cells_across_nozzle,-,24,cells,20-30,initial target,mesh study required

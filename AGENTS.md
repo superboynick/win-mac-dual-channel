@@ -27,3 +27,5 @@ This repository is the user's safe GitHub-primary collaboration toolkit for Mac 
 ## Current task direction
 
 The GitHub setup is complete and both Mac and Windows were verified at the same initial commit. Future work should use this repository as the handoff point for cross-machine tasks.
+
+The active research handoff is `airjet-simulation/`. Its main file is `airjet-simulation/AIRJET_SIMULATION_PROJECT.md`; read it before changing the AirJet model, parameters, scripts, or result summaries. `PROJECT_ASSESSMENT_AND_PLAN.md` defines scope, stage gates and risks; its mandated first technical task is one single-nozzle steady laminar CHT case, not FSI. The local evidence library is deliberately outside Git at `Downloads/AirJet_research/` (or the matching directory extracted from the Windows research bundle). Do not add commercial PDFs, raw CFD case/data files, meshes, licenses, credentials, or large transient fields to Git.
