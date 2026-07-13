@@ -33,6 +33,19 @@ function Test-Close {
     }
 }
 
+function Get-CanonicalTextSha256 {
+    param([string]$Path)
+    $Text = Read-Utf8 $Path
+    $Canonical = $Text.Replace("`r`n", "`n").Replace("`r", "`n")
+    $Bytes = [System.Text.Encoding]::UTF8.GetBytes($Canonical)
+    $Sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return ([System.BitConverter]::ToString($Sha.ComputeHash($Bytes))).Replace('-', '').ToLowerInvariant()
+    } finally {
+        $Sha.Dispose()
+    }
+}
+
 $Required = @(
     'AGENTS.md',
     'airjet-simulation\README.md',
@@ -204,7 +217,7 @@ if (Test-Path -LiteralPath $ManifestPath) {
         $ProjectSkill = @($Skills | Where-Object { $_.name -eq 'airjet-product-reconstruction' })
         if ($ProjectSkill.Count -eq 1) {
             $Entry = Join-Path (Join-Path $RepoRoot $ProjectSkill[0].source) 'SKILL.md'
-            $ActualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $Entry).Hash.ToLowerInvariant()
+            $ActualHash = Get-CanonicalTextSha256 $Entry
             if ($ActualHash -ne $ProjectSkill[0].skill_md_sha256) {
                 Add-Failure 'project skill hash does not match manifest'
             }

@@ -12,7 +12,15 @@ function Get-SkillHash {
     param([string]$SkillPath)
     $Entry = Join-Path $SkillPath 'SKILL.md'
     if (-not (Test-Path -LiteralPath $Entry)) { return $null }
-    return (Get-FileHash -Algorithm SHA256 -LiteralPath $Entry).Hash.ToLowerInvariant()
+    $Text = [System.IO.File]::ReadAllText($Entry, [System.Text.Encoding]::UTF8)
+    $Canonical = $Text.Replace("`r`n", "`n").Replace("`r", "`n")
+    $Bytes = [System.Text.Encoding]::UTF8.GetBytes($Canonical)
+    $Sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return ([System.BitConverter]::ToString($Sha.ComputeHash($Bytes))).Replace('-', '').ToLowerInvariant()
+    } finally {
+        $Sha.Dispose()
+    }
 }
 
 function Sync-SkillDirectory {

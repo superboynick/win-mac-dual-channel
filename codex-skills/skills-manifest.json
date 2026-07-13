@@ -1,5 +1,6 @@
 {
   "schema_version": 1,
+  "hash_canonicalization": "UTF-8 text with CRLF and CR normalized to LF",
   "official_source": {
     "repository": "https://github.com/openai/skills.git",
     "commit": "49f948faa9258a0c61caceaf225e179651397431"

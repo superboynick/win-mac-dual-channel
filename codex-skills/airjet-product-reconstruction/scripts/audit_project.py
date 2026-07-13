@@ -192,7 +192,8 @@ def main() -> int:
             project_skill = skills.get("airjet-product-reconstruction")
             if project_skill:
                 skill_entry = repo / project_skill["source"] / "SKILL.md"
-                actual_hash = hashlib.sha256(skill_entry.read_bytes()).hexdigest()
+                canonical = read_text(skill_entry).replace("\r\n", "\n").replace("\r", "\n")
+                actual_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
                 if actual_hash != project_skill.get("skill_md_sha256"):
                     failures.append("project skill hash does not match skills manifest")
             install_sh = read_text(repo / "install-skills.sh") if (repo / "install-skills.sh").is_file() else ""
