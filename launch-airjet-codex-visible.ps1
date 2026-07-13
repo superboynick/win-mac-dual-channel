@@ -28,6 +28,9 @@ if (-not $Codex) { throw 'codex was not found on PATH.' }
 
 $EscapedRepo = $RepoRoot.Replace("'", "''")
 $EscapedCodex = $Codex.Source.Replace("'", "''")
+$BeforeCodexIds = @(Get-Process -Name codex -ErrorAction SilentlyContinue |
+    Where-Object { $_.SessionId -eq $CurrentSession } |
+    Select-Object -ExpandProperty Id)
 $ChildCommand = @"
 `$Host.UI.RawUI.WindowTitle = 'AirJet Codex'
 Set-Location -LiteralPath '$EscapedRepo'
@@ -42,6 +45,19 @@ $Process = Start-Process powershell.exe -ArgumentList @(
     '-EncodedCommand', $Encoded
 ) -WorkingDirectory $RepoRoot -PassThru
 
-Start-Sleep -Milliseconds 800
-$Process.Refresh()
-Write-Host "VISIBLE_CODEX_LAUNCHED pid=$($Process.Id) session=$CurrentSession repo=$RepoRoot"
+$NewCodex = $null
+for ($Attempt = 0; $Attempt -lt 40 -and $null -eq $NewCodex; $Attempt += 1) {
+    Start-Sleep -Milliseconds 250
+    $Process.Refresh()
+    if ($Process.HasExited) { break }
+    $NewCodex = Get-Process -Name codex -ErrorAction SilentlyContinue |
+        Where-Object { $_.SessionId -eq $CurrentSession -and $BeforeCodexIds -notcontains $_.Id } |
+        Select-Object -First 1
+}
+
+if ($null -eq $NewCodex) {
+    throw "An interactive shell was requested (pid=$($Process.Id)), but no new Codex process was observed in session $CurrentSession. Inspect the desktop window."
+}
+
+Write-Host "INTERACTIVE_CODEX_PROCESS_STARTED codex_pid=$($NewCodex.Id) shell_pid=$($Process.Id) session=$CurrentSession repo=$RepoRoot"
+Write-Host 'Visual confirmation and the AIRJET_CODEX_HANDSHAKE.txt project-reading report are still required.'

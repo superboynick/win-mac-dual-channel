@@ -15,12 +15,17 @@ REQUIRED = [
     "AGENTS.md",
     "airjet-simulation/README.md",
     "airjet-simulation/AIRJET_MINI_FULL_PRODUCT_MASTER_PLAN.md",
+    "airjet-simulation/PROJECT_STATUS.md",
     "airjet-simulation/DECISION_AND_REASONING_ARCHIVE.md",
     "airjet-simulation/MODEL_ANNOTATIONS.md",
     "airjet-simulation/WINDOWS_HANDOFF.md",
+    "airjet-simulation/WINDOWS_ENVIRONMENT_REPORT.md",
     "airjet-simulation/evidence/SOURCE_PROVENANCE.md",
     "airjet-simulation/evidence/product_selection_matrix.csv",
     "airjet-simulation/evidence/airjet_mini_performance_curve_digitized.csv",
+    "airjet-simulation/evidence/airjet_mini_curve_pixels.csv",
+    "airjet-simulation/evidence/CURVE_DIGITIZATION_METHOD.md",
+    "airjet-simulation/evidence/digitize_airjet_mini_curve.py",
     "airjet-simulation/parameters/full_product_parameter_registry.csv",
     "airjet-simulation/checklists/full_product_stage_gates.md",
     "airjet-simulation/SKILLS_AND_GIT_WORKFLOW.md",
@@ -108,7 +113,12 @@ def main() -> int:
         and path.suffix.lower() in {".md", ".csv"}
         and path.resolve() not in archived_paths
     ]
-    forbidden = ["delivered_airflow_chart_units", "功耗—流量曲线"]
+    forbidden = [
+        "delivered_airflow_chart_units",
+        "功耗—流量曲线",
+        "在 1750 Pa 目标背压下维持净流",
+        "30-60,m/s",
+    ]
     for path in active_paths:
         if not path.is_file():
             continue
@@ -143,6 +153,20 @@ def main() -> int:
         by_id = {row.get("id", ""): row for row in registry_rows}
         if len(by_id) != len(registry_rows):
             failures.append("full product parameter registry contains duplicate or blank ids")
+        required_columns = {
+            "evidence_class",
+            "uncertainty_or_range",
+            "derivation_or_parent",
+            "adjustable",
+        }
+        if registry_rows and not required_columns.issubset(registry_rows[0]):
+            failures.append("full product parameter registry lacks evidence/audit columns")
+        allowed_classes = {"D", "P", "I", "C", "U"}
+        for row in registry_rows:
+            if row.get("evidence_class") not in allowed_classes:
+                failures.append(f"invalid evidence class for {row.get('id')}")
+            if row.get("adjustable") not in {"true", "false"}:
+                failures.append(f"invalid adjustable flag for {row.get('id')}")
         direct_expected = {
             "D001": (27.5, "direct_product"),
             "D002": (41.5, "direct_product"),
@@ -158,7 +182,12 @@ def main() -> int:
             row = by_id.get(row_id)
             if row is None:
                 failures.append(f"parameter registry missing {row_id}")
-            elif not float_close(row.get("initial_value", ""), expected) or row.get("status") != status:
+            elif (
+                not float_close(row.get("initial_value", ""), expected)
+                or row.get("status") != status
+                or row.get("evidence_class") != "D"
+                or row.get("adjustable") != "false"
+            ):
                 failures.append(f"parameter registry changed locked product target {row_id}")
         try:
             heat_total = float(by_id["D005"]["initial_value"])
@@ -168,6 +197,57 @@ def main() -> int:
                 failures.append("heat accounting invariant failed: Q_net + P_airjet != Q_total")
         except (KeyError, TypeError, ValueError):
             failures.append("heat accounting invariant could not be evaluated")
+        for row_id in ("D007", "D008", "D009"):
+            if by_id.get(row_id, {}).get("evidence_class") != "I":
+                failures.append(f"{row_id} must remain an image-digitized I-class target")
+        for row in registry_rows:
+            if row.get("id", "").startswith("P") and row.get("evidence_class") != "P":
+                failures.append(f"patent registry row is not P-class: {row.get('id')}")
+        p011 = by_id.get("P011", {})
+        if p011.get("status") != "patent_lower_bound" or "no 60 m/s upper bound" not in p011.get(
+            "uncertainty_or_range", ""
+        ):
+            failures.append("P011 must preserve >=30 m/s lower bound with no 60 m/s upper bound")
+        if "not a known flow operating point" not in by_id.get("D011", {}).get(
+            "calibration_target", ""
+        ):
+            failures.append("1750 Pa must remain a pressure capability with unknown corresponding flow")
+
+    ledger = repo / "airjet-simulation/evidence/airjet_reconstruction_ledger.csv"
+    if ledger.is_file():
+        with ledger.open(newline="", encoding="utf-8") as handle:
+            ledger_rows = list(csv.DictReader(handle))
+        for row in ledger_rows:
+            if row.get("evidence_class") not in {"D", "P", "I", "C", "U"}:
+                failures.append(f"legacy ledger has invalid evidence class: {row.get('id')}")
+            if row.get("evidence_class") == "P" and "locked" in row.get("model_status", ""):
+                failures.append(f"patent ledger row is incorrectly locked: {row.get('id')}")
+
+    selection = repo / "airjet-simulation/evidence/product_selection_matrix.csv"
+    if selection.is_file():
+        with selection.open(newline="", encoding="utf-8") as handle:
+            selection_rows = list(csv.DictReader(handle))
+        g2_rows = [row for row in selection_rows if row.get("product") == "AirJet Mini G2"]
+        if len(g2_rows) != 1:
+            failures.append("product selection matrix must contain exactly one Mini G2 row")
+        else:
+            g2 = g2_rows[0]
+            expected_g2 = {
+                "external_dimensions_mm": "27.1x41.5x2.65",
+                "heat_dissipation_W": 7.5,
+                "max_power_W": 1.2,
+                "backpressure_Pa": 1750.0,
+                "noise_dBA": 21.0,
+                "weight_g": 7.0,
+            }
+            for key, expected in expected_g2.items():
+                actual = g2.get(key, "")
+                if isinstance(expected, str):
+                    valid = actual == expected
+                else:
+                    valid = float_close(actual, expected)
+                if not valid:
+                    failures.append(f"G2 direct specification changed: {key}")
 
     notebook = repo / "airjet-simulation/notebooks/airjet-mini-layout-baseline.ipynb"
     if notebook.is_file():
@@ -186,9 +266,68 @@ def main() -> int:
     if manifest.is_file():
         try:
             manifest_data = json.loads(read_text(manifest))
-            skills = {item["name"]: item for item in manifest_data.get("skills", [])}
-            if set(skills) != {"airjet-product-reconstruction", "jupyter-notebook", "pdf"}:
-                failures.append("skills manifest must lock exactly the three project-required skills")
+            skill_items = manifest_data.get("skills", [])
+            names = [item.get("name") for item in skill_items]
+            skills = {item["name"]: item for item in skill_items}
+            expected_manifest = {
+                "airjet-product-reconstruction": {
+                    "kind": "project",
+                    "source": "codex-skills/airjet-product-reconstruction",
+                    "required_files": [
+                        "SKILL.md",
+                        "agents/openai.yaml",
+                        "references/evidence-rules.md",
+                        "references/stage-routing.md",
+                        "references/windows-operation.md",
+                        "scripts/audit_project.py",
+                    ],
+                },
+                "jupyter-notebook": {
+                    "kind": "official",
+                    "source": "skills/.curated/jupyter-notebook",
+                    "required_files": [
+                        "LICENSE.txt",
+                        "SKILL.md",
+                        "agents/openai.yaml",
+                        "assets/experiment-template.ipynb",
+                        "assets/jupyter-small.svg",
+                        "assets/jupyter.png",
+                        "assets/tutorial-template.ipynb",
+                        "references/experiment-patterns.md",
+                        "references/notebook-structure.md",
+                        "references/quality-checklist.md",
+                        "references/tutorial-patterns.md",
+                        "scripts/new_notebook.py",
+                    ],
+                },
+                "pdf": {
+                    "kind": "official",
+                    "source": "skills/.curated/pdf",
+                    "required_files": ["LICENSE.txt", "SKILL.md", "agents/openai.yaml", "assets/pdf.png"],
+                },
+            }
+            if (
+                manifest_data.get("schema_version") != 1
+                or manifest_data.get("hash_canonicalization")
+                != "UTF-8 text with CRLF and CR normalized to LF"
+                or manifest_data.get("official_source", {}).get("repository")
+                != "https://github.com/openai/skills.git"
+                or manifest_data.get("official_source", {}).get("commit")
+                != "49f948faa9258a0c61caceaf225e179651397431"
+                or len(names) != 3
+                or len(set(names)) != 3
+                or set(skills) != set(expected_manifest)
+            ):
+                failures.append("skills manifest identity/schema/unique-name lock failed")
+            for name, expected in expected_manifest.items():
+                item = skills.get(name, {})
+                if (
+                    item.get("kind") != expected["kind"]
+                    or item.get("source") != expected["source"]
+                    or sorted(item.get("required_files", [])) != sorted(expected["required_files"])
+                    or len(item.get("required_files", [])) != len(set(item.get("required_files", [])))
+                ):
+                    failures.append(f"manifest kind/source/required files changed for {name}")
             project_skill = skills.get("airjet-product-reconstruction")
             if project_skill:
                 skill_entry = repo / project_skill["source"] / "SKILL.md"
@@ -200,6 +339,11 @@ def main() -> int:
             for item in skills.values():
                 if item.get("skill_md_sha256", "") not in install_sh:
                     failures.append(f"Mac installer does not lock manifest hash for {item['name']}")
+                for relative in item.get("required_files", []):
+                    if relative not in install_sh:
+                        failures.append(
+                            f"Mac installer lacks required-file check for {item['name']}: {relative}"
+                        )
         except (json.JSONDecodeError, KeyError, OSError) as exc:
             failures.append(f"skills manifest audit failed: {exc}")
 
@@ -212,6 +356,7 @@ def main() -> int:
         provenance_text = read_text(provenance)
         for marker in (
             "822fbb7e9735a5505734a291083fed7901c1fdfa01cb7de369679e4d41fd19bd",
+            "5f7042dfb2af4a9f37f5a26f792d305d0382b59175d1dfb545a21b96135107b1",
             "page 1",
             "Acoustics of AirJet Mini in system measured at 50 cm (dBA)",
         ):

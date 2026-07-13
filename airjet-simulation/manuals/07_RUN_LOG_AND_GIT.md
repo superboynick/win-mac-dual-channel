@@ -40,7 +40,9 @@
 
 ```powershell
 cd C:\Users\admin\win-mac-dual-channel
-git pull
+git status --short --branch
+git fetch origin
+git pull --ff-only
 git status
 ```
 

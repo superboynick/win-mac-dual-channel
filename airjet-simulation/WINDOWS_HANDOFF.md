@@ -13,11 +13,13 @@
 1. `AGENTS.md`
 2. `airjet-simulation/README.md`
 3. `airjet-simulation/AIRJET_MINI_FULL_PRODUCT_MASTER_PLAN.md`
-4. `airjet-simulation/DECISION_AND_REASONING_ARCHIVE.md`
-5. `airjet-simulation/evidence/SOURCE_PROVENANCE.md`
-6. `airjet-simulation/parameters/full_product_parameter_registry.csv`
-7. `airjet-simulation/checklists/full_product_stage_gates.md`
-8. `airjet-simulation/manuals/01_FULL_PRODUCT_CAD.md`
+4. `airjet-simulation/PROJECT_STATUS.md`
+5. `airjet-simulation/WINDOWS_ENVIRONMENT_REPORT.md`
+6. `airjet-simulation/DECISION_AND_REASONING_ARCHIVE.md`
+7. `airjet-simulation/evidence/SOURCE_PROVENANCE.md`
+8. `airjet-simulation/parameters/full_product_parameter_registry.csv`
+9. `airjet-simulation/checklists/full_product_stage_gates.md`
+10. `airjet-simulation/manuals/01_FULL_PRODUCT_CAD.md`
 
 先安装并核对固定 skills：
 
@@ -51,7 +53,7 @@ Expected SHA256:
 
 P0 产品证据冻结与完整布局候选。尚未进入 CAD 定版。Windows Codex 应先：
 
-1. 核实 Windows CPU、RAM、GPU、磁盘和 ANSYS/Fluent/Mechanical 版本与许可证；
+1. 阅读 `WINDOWS_ENVIRONMENT_REPORT.md`；硬件已实测，但仍须在安装后记录 ANSYS/Fluent/Mechanical 或替代软件的版本与许可证；
 2. 解压研究 ZIP；
 3. 复核 Mini 性能曲线数字化点；右轴已由原始 PDF 文字确认是系统内 50 cm 噪声 dBA，不是送风量；
 4. 从官方 Mini 顶视图/横截面提取活动区、进气和出口比例；

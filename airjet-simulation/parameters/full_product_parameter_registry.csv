@@ -1,39 +1,42 @@
-id,group,parameter,symbol,initial_value,unit,status,evidence_source,used_in,calibration_target
-D001,product,envelope_width,W_product,27.5,mm,direct_product,AirJet Mini Data Sheet page 1 metric table,CAD/CFD/CHT,exact geometry
-D002,product,envelope_length,L_product,41.5,mm,direct_product,AirJet Mini Data Sheet page 1 metric table,CAD/CFD/CHT,exact geometry
-D003,product,envelope_thickness,T_product,2.8,mm,direct_product,AirJet Mini Data Sheet page 1 metric table,CAD/CFD/CHT,exact geometry
-D004,performance,max_electrical_power,P_elec_max,1,W,direct_product,AirJet Mini Data Sheet page 1 metric table,structural/thermal,total power budget
-D005,performance,total_heat_dissipation,Q_total,5.25,W,direct_product,AirJet Mini Data Sheet page 1 metric table,CHT,85C die 25C ambient
-D006,performance,net_heat_removal,Q_net,4.25,W,direct_product,AirJet Mini Data Sheet page 1 metric table,CHT,Q_total minus device power definition
-D007,performance,curve_point_025W,Q_net_025,1.55,W,image_digitized,AirJet Mini Data Sheet page 1 performance chart,calibration,approximate plus or minus 0.10 W
-D008,performance,curve_point_050W,Q_net_050,2.95,W,image_digitized,AirJet Mini Data Sheet page 1 performance chart,calibration,approximate plus or minus 0.10 W
-D009,performance,curve_point_075W,Q_net_075,3.65,W,image_digitized,AirJet Mini Data Sheet page 1 performance chart,calibration,approximate plus or minus 0.10 W
-D010,performance,curve_point_100W,Q_net_100,4.25,W,direct_product_and_chart,AirJet Mini Data Sheet page 1 metric table plus performance chart,calibration,official endpoint
-D011,performance,back_pressure,Delta_p_max,1750,Pa,direct_product,AirJet Mini Data Sheet page 1 metric table,full-product CFD,official system target
-D012,performance,maximum_noise_at_50cm,Lp_50cm,21,dBA,direct_product,AirJet Mini Data Sheet page 1 metric table,acoustic proxy calibration,maximum inside device at 50 cm
-D013,product,weight,m_product,11,g,direct_product,AirJet Mini Data Sheet page 1 metric table,CAD/material budget,system mass target
-P001,actuator,effective_length,L_mem,8,mm,patent_range,US12137540B2,structural/layout,6-8 mm range
-P002,actuator,effective_thickness,t_mem_eff,0.275,mm,patent_range,US12137540B2,structural,0.2-0.35 mm range
-P003,actuator,frequency,f_drive,22,kHz,patent_range,US12137540B2,structural/CFD,20-25 kHz candidate
-P004,actuator,tip_amplitude,A_tip,30,um,patent_range,US12137540B2,structural/CFD,10-60 um range
-P005,chamber,top_chamber_height,h_top,0.25,mm,patent_range,US12137540B2,CAD/CFD,0.2-0.3 mm range
-P006,chamber,bottom_clearance_above_amplitude,h_bottom_margin,0.01,mm,patent_range,US12137540B2,CAD/CFD,5-10 um above max displacement
-P007,orifice,diameter,d_orifice,0.25,mm,patent_range,US12137540B2,CAD/CFD,0.2-0.3 mm range
-P008,orifice,pitch,p_orifice,0.50,mm,patent_range,US12137540B2,CAD/CFD,0.4-0.6 mm range
-P009,orifice,open_area_fraction,phi_open,10,percent,patent_range,US12137540B2,CAD/CFD,8-12 percent range
-P010,jet,impingement_gap,g_jet,0.25,mm,patent_range,US12137540B2,CAD/CFD,0.2-0.3 mm range
-P011,flow,jet_speed,U_jet,30-60,m/s,patent_observable,US12137540B2,CFD,flow calibration
-C001,layout,cell_count,N_cell,TBD,count,calibrate,product image plus envelope constraints,CAD/structural/power,layout and total performance
-C002,layout,array_rows,N_row,TBD,count,calibrate,product image plus envelope constraints,CAD,fit and active coverage
-C003,layout,array_columns,N_col,TBD,count,calibrate,product image plus envelope constraints,CAD,fit and active coverage
-C004,flow,intake_opening_geometry,intake_geom,TBD,-,image_inference,AirJet Mini official top view,CAD/CFD,image ratio plus CFD pressure-flow behavior
-C005,flow,exhaust_manifold_geometry,exhaust_geom,TBD,-,image_inference,AirJet Mini official flow diagram,CAD/CFD,pressure and flow distribution
-C006,structural,equivalent_damping,zeta,TBD,-,calibrate,modal/flow response,structural/CFD,resonant amplitude and power
-C007,structural,actuator_layer_stack,stack_TBD,TBD,-,unknown,patent material candidates,structural,frequency amplitude and power
-C008,control,cell_phase_map,phase_map,TBD,degree,calibrate,patent out-of-phase embodiments,full-product CFD,flow ripple and pressure
-C009,thermal,spreader_thickness,t_spreader,TBD,mm,calibrate,official cross-section image,CAD/CHT,product thickness and heat removal
-C010,thermal,spreader_conductivity,k_spreader,TBD,W/mK,calibrate,material candidate,CHT,temperature field
-C011,thermal,TIM_resistance,R_TIM,TBD,m2K/W,system_dependent,target integration,CHT,die temperature
-C012,power,device_self_heat_distribution,self_heat_map,TBD,-,calibrate,1 W total power budget,CHT,total energy balance
-C013,layout,active_area_fraction,phi_active,TBD,percent,image_inference,AirJet Mini official views,CAD/layout,image scaling
-C014,layout,intake_group_count,N_intake_group,TBD,count,image_inference,AirJet Mini official top view,CAD/flow,image scaling and flow distribution
+id,group,parameter,symbol,initial_value,unit,evidence_class,status,uncertainty_or_range,derivation_or_parent,adjustable,evidence_source,used_in,calibration_target
+D001,product,envelope_width,W_product,27.5,mm,D,direct_product,as reported,none,false,AirJet Mini Data Sheet page 1 metric table,CAD/CFD/CHT,exact geometry
+D002,product,envelope_length,L_product,41.5,mm,D,direct_product,as reported,none,false,AirJet Mini Data Sheet page 1 metric table,CAD/CFD/CHT,exact geometry
+D003,product,envelope_thickness,T_product,2.8,mm,D,direct_product,as reported,none,false,AirJet Mini Data Sheet page 1 metric table,CAD/CFD/CHT,exact geometry
+D004,performance,max_electrical_power,P_elec_max,1,W,D,direct_product,maximum as reported,none,false,AirJet Mini Data Sheet page 1 metric table,structural/thermal,total power budget
+D005,performance,total_heat_dissipation,Q_total,5.25,W,D,direct_product,as reported at 85C die and 25C ambient,Q_net plus P_airjet,false,AirJet Mini Data Sheet page 1 metric table,CHT,official total heat target
+D006,performance,net_heat_removal,Q_net,4.25,W,D,direct_product,as reported at 85C die and 25C ambient,Q_total minus P_airjet,false,AirJet Mini Data Sheet page 1 metric table,CHT,official net heat target
+D007,performance,curve_point_025W,Q_net_025,1.55,W,I,image_digitized,plus or minus 0.10 W,pixel calibration on Mini sheet page 1,false,AirJet Mini Data Sheet page 1 performance chart,calibration,temporary digitized target
+D008,performance,curve_point_050W,Q_net_050,2.95,W,I,image_digitized,plus or minus 0.10 W,pixel calibration on Mini sheet page 1,false,AirJet Mini Data Sheet page 1 performance chart,calibration,temporary digitized target
+D009,performance,curve_point_075W,Q_net_075,3.65,W,I,image_digitized,plus or minus 0.10 W,pixel calibration on Mini sheet page 1,false,AirJet Mini Data Sheet page 1 performance chart,calibration,temporary digitized target
+D010,performance,curve_point_100W,Q_net_100,4.25,W,D,direct_product_and_chart,official table endpoint plus chart,Q_net at P_airjet 1 W,false,AirJet Mini Data Sheet page 1 metric table plus performance chart,calibration,official endpoint
+D011,performance,back_pressure_capability,Delta_p_cap,1750,Pa,D,direct_product,reported capability; corresponding flow condition not public,none,false,AirJet Mini Data Sheet page 1 metric table,full-product CFD,pressure capability target not a known flow operating point
+D012,performance,maximum_noise_at_50cm,LpA_50cm,21,dBA,D,direct_product,inside-system A-weighted condition; installation details not public,none,false,AirJet Mini Data Sheet page 1 metric table,acoustic trend/conditional model,not a local CFD pressure target
+D013,product,weight,m_product,11,g,D,direct_product,as reported,none,false,AirJet Mini Data Sheet page 1 metric table,CAD/material budget,system mass target
+P001,actuator,effective_length,L_mem,8,mm,P,patent_range,4-10 mm broad; 6-8 mm preferred,midpoint of preferred embodiment,true,US12137540B2 paragraph 864,structural/layout,product candidate not exact Mini value
+P002,actuator,effective_thickness,t_mem_eff,0.275,mm,P,patent_range,0.2-0.35 mm for an 8 mm element,midpoint of embodiment,true,US12137540B2 paragraph 866,structural,frequency and power
+P003,actuator,frequency,f_drive,22,kHz,P,patent_range,20-25 kHz for an 8 mm example,midpoint of embodiment,true,US12137540B2 paragraph 866,structural/CFD,prior consistency only
+P004,actuator,tip_amplitude,A_tip,30,um,P,patent_range,10-60 um preferred range,interior exploratory value,true,US12137540B2 paragraph 262,structural/CFD,displacement and clearance
+P005,chamber,top_chamber_height,h_top,0.25,mm,P,patent_range,0.05-0.5 mm broad; 0.2-0.3 mm preferred,midpoint of preferred embodiment,true,US12137540B2 paragraphs 254-255,CAD/CFD,acoustic and pressure behavior
+P006,chamber,bottom_clearance_above_amplitude,h_bottom_margin,0.01,mm,P,patent_range,5-10 um above maximum displacement,A_tip plus clearance relationship,true,US12137540B2 paragraph 259,CAD/CFD,collision prevention and backflow
+P007,orifice,width_or_equivalent_diameter,d_orifice,0.25,mm,P,patent_range,0.1-0.5 mm broad; 0.2-0.3 mm preferred,midpoint of preferred embodiment,true,US12137540B2 paragraphs 880-881,CAD/CFD,orifice loss and open area
+P008,orifice,separation_s,s_orifice,0.50,mm,P,patent_range,0.1-1.0 mm broad; 0.4-0.6 mm preferred; center-versus-edge definition unresolved,midpoint of preferred embodiment,true,US12137540B2 paragraph 881 and figure definition,CAD/CFD,do not silently treat as center pitch
+P009,orifice,open_area_fraction,phi_open,10,percent,P,patent_range,5-15 percent broad; 8-12 percent preferred,midpoint of preferred embodiment,true,US12137540B2 paragraph 882,CAD/CFD,orifice count and area closure
+P010,jet,impingement_gap,g_jet,0.25,mm,P,patent_range,0.2-1.0 mm broad; 0.2-0.3 mm preferred,midpoint of preferred embodiment,true,US12137540B2 paragraph 235,CAD/CFD,impingement candidate
+P011,jet,minimum_jet_speed,U_jet_min,30,m/s,P,patent_lower_bound,at least 30 m/s; some embodiments at least 45 or at least 60; no 60 m/s upper bound,lowest disclosed threshold,true,US12137540B2 paragraphs 217-219,CFD,prior consistency only
+P012,actuator,anchor_width,w_anchor,2.25,mm,P,patent_range,0.5-4 mm broad; 2-2.5 mm preferred,midpoint of preferred embodiment,true,US12137540B2 paragraphs 859-860,CAD/structural,anchor candidate
+P013,flow,top_vent_width,w_vent,0.75,mm,P,patent_range,0.25-2.0 mm broad; 0.5-1.0 mm preferred,midpoint of preferred embodiment,true,US12137540B2 paragraphs 264-266,CAD/CFD,vent candidate
+P014,layout,membrane_wall_clearance,d_wall,0.25,mm,P,patent_range,0.1-0.5 mm broad; 0.2-0.3 mm preferred,midpoint of preferred embodiment,true,US12137540B2 paragraph 867,CAD/layout,cell envelope candidate
+C001,layout,cell_count,N_cell,TBD,count,C,calibrate,unidentified integer,layout and total power/flow closure,true,product image plus envelope constraints,CAD/structural/power,layout and total performance
+C002,layout,array_rows,N_row,TBD,count,C,calibrate,unidentified integer,layout fit,true,product image plus envelope constraints,CAD,fit and active coverage
+C003,layout,array_columns,N_col,TBD,count,C,calibrate,unidentified integer,layout fit,true,product image plus envelope constraints,CAD,fit and active coverage
+C004,flow,intake_opening_geometry,intake_geom,TBD,-,I,image_inference,pixel measurement uncertainty required,official-image coordinate extraction,true,AirJet Mini official top view,CAD/CFD,image ratio plus CFD pressure-flow behavior
+C005,flow,exhaust_manifold_geometry,exhaust_geom,TBD,-,I,image_inference,pixel measurement uncertainty required,official-image coordinate extraction,true,AirJet Mini official flow diagram,CAD/CFD,pressure and flow distribution
+C006,structural,equivalent_damping,zeta,TBD,-,C,calibrate,unknown,modal and flow response,true,structural response plus power closure,structural/CFD,resonant amplitude and power
+C007,structural,actuator_layer_stack,stack_TBD,TBD,-,U,unknown,not identifiable from public Mini evidence,retain material stack alternatives,true,patent material candidates,structural,frequency amplitude and power
+C008,control,cell_phase_map,phase_map,TBD,degree,C,calibrate,unknown discrete alternatives,compare in-phase and grouped anti-phase,true,patent out-of-phase embodiments,full-product CFD,flow ripple and pressure
+C009,thermal,spreader_thickness,t_spreader,TBD,mm,C,calibrate,unknown,image thickness budget plus product envelope,true,official cross-section image,CAD/CHT,product thickness and heat removal
+C010,thermal,spreader_conductivity,k_spreader,TBD,W/mK,C,calibrate,material candidates,system thermal response,true,material candidate,CHT,temperature field
+C011,thermal,TIM_resistance,R_TIM,TBD,m2K/W,C,system_dependent,target integration dependent,selected host stack,true,target integration,CHT,die temperature
+C012,power,device_self_heat_distribution,self_heat_map,TBD,-,C,calibrate,total integrates to 1 W at maximum power,partition driver/dielectric/structure,true,1 W total power budget,CHT,total energy balance
+C013,layout,active_area_fraction,phi_active,TBD,percent,I,image_inference,pixel measurement uncertainty required,official-image coordinate extraction,true,AirJet Mini official views,CAD/layout,image scaling
+C014,layout,intake_group_count,N_intake_group,TBD,count,I,image_inference,marketing drawing may be schematic,official-image coordinate extraction,true,AirJet Mini official top view,CAD/flow,image scaling and flow distribution

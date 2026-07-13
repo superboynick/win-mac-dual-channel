@@ -185,7 +185,7 @@ for row in feasible_sorted:
 
 - A geometry fit only proves that a hypothetical square-cell array fits inside the package envelope.
 - Patent values of 6-8 mm are stronger candidates than values outside that range, but still are not exact product dimensions.
-- Candidate ranking must next include official-image proportions, modal frequency/displacement, `N_cell x P_cell + P_driver <= 1 W`, operation against 1750 Pa back pressure, acoustic proxy, and the 4.25 W net/5.25 W total heat targets.
+- Candidate ranking must next include official-image proportions, modal frequency/displacement, `N_cell x P_cell + P_driver <= 1 W`, a separate pressure-capability scan up to the reported 1750 Pa, and the 4.25 W net/5.25 W total heat targets. The public sheet does not give the flow corresponding to 1750 Pa.
 - Public Mini material currently has no direct numeric airflow curve; do not invent one from the noise axis.
 
 Decision: keep Layout-L/M/S alive until the P0 image constraints and P2/P3 physics eliminate candidates.

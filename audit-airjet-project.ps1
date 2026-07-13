@@ -1,7 +1,8 @@
 [CmdletBinding()]
-param([string]$RepoRoot = $PSScriptRoot)
+param([string]$RepoRoot)
 
 $ErrorActionPreference = 'Stop'
+if ([string]::IsNullOrWhiteSpace($RepoRoot)) { $RepoRoot = $PSScriptRoot }
 $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
 $Failures = New-Object System.Collections.Generic.List[string]
 
@@ -50,13 +51,18 @@ $Required = @(
     'AGENTS.md',
     'airjet-simulation\README.md',
     'airjet-simulation\AIRJET_MINI_FULL_PRODUCT_MASTER_PLAN.md',
+    'airjet-simulation\PROJECT_STATUS.md',
     'airjet-simulation\DECISION_AND_REASONING_ARCHIVE.md',
     'airjet-simulation\MODEL_ANNOTATIONS.md',
     'airjet-simulation\WINDOWS_HANDOFF.md',
+    'airjet-simulation\WINDOWS_ENVIRONMENT_REPORT.md',
     'airjet-simulation\SKILLS_AND_GIT_WORKFLOW.md',
     'airjet-simulation\evidence\SOURCE_PROVENANCE.md',
     'airjet-simulation\evidence\product_selection_matrix.csv',
     'airjet-simulation\evidence\airjet_mini_performance_curve_digitized.csv',
+    'airjet-simulation\evidence\airjet_mini_curve_pixels.csv',
+    'airjet-simulation\evidence\CURVE_DIGITIZATION_METHOD.md',
+    'airjet-simulation\evidence\digitize_airjet_mini_curve.py',
     'airjet-simulation\parameters\full_product_parameter_registry.csv',
     'airjet-simulation\checklists\full_product_stage_gates.md',
     'airjet-simulation\notebooks\airjet-mini-layout-baseline.ipynb',
@@ -107,23 +113,34 @@ foreach ($Relative in $Archived) {
 }
 
 $CsvFiles = @(Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'airjet-simulation') -Filter '*.csv' -File -Recurse)
+Add-Type -AssemblyName Microsoft.VisualBasic
 foreach ($CsvFile in $CsvFiles) {
+    $Parser = $null
     try {
-        $Header = (Get-Content -LiteralPath $CsvFile.FullName -TotalCount 1)
-        if ([string]::IsNullOrWhiteSpace($Header)) {
-            Add-Failure "empty CSV: $($CsvFile.FullName)"
-            continue
-        }
-        $Rows = @(Import-Csv -LiteralPath $CsvFile.FullName)
-        $HeaderColumns = @((ConvertFrom-Csv -InputObject ($Header + "`n" + $Header))[0].PSObject.Properties).Count
-        foreach ($Row in $Rows) {
-            if (@($Row.PSObject.Properties).Count -ne $HeaderColumns) {
-                Add-Failure "CSV column mismatch: $($CsvFile.FullName)"
-                break
+        $Parser = [Microsoft.VisualBasic.FileIO.TextFieldParser]::new(
+            $CsvFile.FullName,
+            [System.Text.Encoding]::UTF8,
+            $true
+        )
+        $Parser.TextFieldType = [Microsoft.VisualBasic.FileIO.FieldType]::Delimited
+        $Parser.SetDelimiters(',')
+        $Parser.HasFieldsEnclosedInQuotes = $true
+        $ExpectedWidth = $null
+        $RowNumber = 0
+        while (-not $Parser.EndOfData) {
+            $Fields = $Parser.ReadFields()
+            $RowNumber += 1
+            if ($null -eq $ExpectedWidth) {
+                $ExpectedWidth = $Fields.Count
+                if ($ExpectedWidth -eq 0) { Add-Failure "empty CSV: $($CsvFile.FullName)" }
+            } elseif ($Fields.Count -ne $ExpectedWidth) {
+                Add-Failure "CSV width mismatch: $($CsvFile.FullName):$RowNumber expected $ExpectedWidth got $($Fields.Count)"
             }
         }
     } catch {
         Add-Failure "CSV parse failed: $($CsvFile.FullName): $($_.Exception.Message)"
+    } finally {
+        if ($null -ne $Parser) { $Parser.Close() }
     }
 }
 
@@ -160,12 +177,24 @@ if (Test-Path -LiteralPath $PerfPath) {
 $RegistryPath = Join-Path $RepoRoot 'airjet-simulation\parameters\full_product_parameter_registry.csv'
 if (Test-Path -LiteralPath $RegistryPath) {
     $RegistryRows = @(Import-Csv -LiteralPath $RegistryPath)
+    $RequiredRegistryColumns = @('evidence_class', 'uncertainty_or_range', 'derivation_or_parent', 'adjustable')
+    foreach ($Column in $RequiredRegistryColumns) {
+        if ($RegistryRows.Count -eq 0 -or -not ($RegistryRows[0].PSObject.Properties.Name -contains $Column)) {
+            Add-Failure "parameter registry lacks column: $Column"
+        }
+    }
     $ById = @{}
     foreach ($Row in $RegistryRows) {
         if ([string]::IsNullOrWhiteSpace($Row.id) -or $ById.ContainsKey($Row.id)) {
             Add-Failure 'parameter registry contains a blank or duplicate id'
         } else {
             $ById[$Row.id] = $Row
+        }
+        if ($Row.evidence_class -notin @('D', 'P', 'I', 'C', 'U')) {
+            Add-Failure "invalid evidence class for $($Row.id): $($Row.evidence_class)"
+        }
+        if ($Row.adjustable -notin @('true', 'false')) {
+            Add-Failure "invalid adjustable flag for $($Row.id): $($Row.adjustable)"
         }
     }
     $DirectExpected = @{
@@ -175,7 +204,10 @@ if (Test-Path -LiteralPath $RegistryPath) {
     foreach ($Id in $DirectExpected.Keys) {
         if (-not $ById.ContainsKey($Id)) {
             Add-Failure "parameter registry missing $Id"
-        } elseif (-not (Test-Close $ById[$Id].initial_value $DirectExpected[$Id]) -or $ById[$Id].status -ne 'direct_product') {
+        } elseif (-not (Test-Close $ById[$Id].initial_value $DirectExpected[$Id]) -or
+            $ById[$Id].status -ne 'direct_product' -or
+            $ById[$Id].evidence_class -ne 'D' -or
+            $ById[$Id].adjustable -ne 'false') {
             Add-Failure "locked product target changed: $Id"
         }
     }
@@ -186,6 +218,48 @@ if (Test-Path -LiteralPath $RegistryPath) {
         if ([math]::Abs($HeatError) -gt 1e-9) {
             Add-Failure 'heat accounting failed: Q_net + P_airjet != Q_total'
         }
+    }
+    foreach ($Id in @('D007', 'D008', 'D009')) {
+        if ($ById.ContainsKey($Id) -and $ById[$Id].evidence_class -ne 'I') {
+            Add-Failure "$Id must remain an image-digitized I-class target"
+        }
+    }
+    foreach ($Row in $RegistryRows | Where-Object { $_.id -like 'P*' }) {
+        if ($Row.evidence_class -ne 'P') { Add-Failure "patent row is not P-class: $($Row.id)" }
+    }
+    if ($ById.ContainsKey('P011') -and
+        ($ById['P011'].status -ne 'patent_lower_bound' -or $ById['P011'].uncertainty_or_range -notlike '*no 60 m/s upper bound*')) {
+        Add-Failure 'P011 must preserve a >=30 m/s lower bound and no 60 m/s upper bound'
+    }
+    if ($ById.ContainsKey('D011') -and $ById['D011'].calibration_target -notlike '*not a known flow operating point*') {
+        Add-Failure '1750 Pa must be recorded as pressure capability with unknown corresponding flow'
+    }
+}
+
+$LedgerPath = Join-Path $RepoRoot 'airjet-simulation\evidence\airjet_reconstruction_ledger.csv'
+if (Test-Path -LiteralPath $LedgerPath) {
+    $LedgerRows = @(Import-Csv -LiteralPath $LedgerPath)
+    foreach ($Row in $LedgerRows) {
+        if ($Row.evidence_class -notin @('D', 'P', 'I', 'C', 'U')) {
+            Add-Failure "legacy ledger has invalid evidence class: $($Row.id)"
+        }
+        if ($Row.evidence_class -eq 'P' -and $Row.model_status -like '*locked*') {
+            Add-Failure "patent ledger row is incorrectly locked: $($Row.id)"
+        }
+    }
+}
+
+$SelectionPath = Join-Path $RepoRoot 'airjet-simulation\evidence\product_selection_matrix.csv'
+if (Test-Path -LiteralPath $SelectionPath) {
+    $SelectionRows = @(Import-Csv -LiteralPath $SelectionPath)
+    $G2 = @($SelectionRows | Where-Object { $_.product -eq 'AirJet Mini G2' })
+    if ($G2.Count -ne 1 -or $G2[0].external_dimensions_mm -ne '27.1x41.5x2.65' -or
+        -not (Test-Close $G2[0].heat_dissipation_W 7.5) -or
+        -not (Test-Close $G2[0].max_power_W 1.2) -or
+        -not (Test-Close $G2[0].backpressure_Pa 1750) -or
+        -not (Test-Close $G2[0].noise_dBA 21) -or
+        -not (Test-Close $G2[0].weight_g 7)) {
+        Add-Failure 'G2 product row does not preserve page-2 direct specifications'
     }
 }
 
@@ -210,9 +284,33 @@ if (Test-Path -LiteralPath $ManifestPath) {
     try {
         $Manifest = (Read-Utf8 $ManifestPath) | ConvertFrom-Json
         $Skills = @($Manifest.skills)
-        $ExpectedNames = @('airjet-product-reconstruction', 'jupyter-notebook', 'pdf')
-        if ($Skills.Count -ne 3 -or @($Skills | Where-Object { $_.name -notin $ExpectedNames }).Count -gt 0) {
-            Add-Failure 'skills manifest must lock exactly the three project-required skills'
+        $ExpectedManifest = @{
+            'airjet-product-reconstruction' = [pscustomobject]@{ kind='project'; source='codex-skills/airjet-product-reconstruction'; required=@('SKILL.md','agents/openai.yaml','references/evidence-rules.md','references/stage-routing.md','references/windows-operation.md','scripts/audit_project.py') }
+            'jupyter-notebook' = [pscustomobject]@{ kind='official'; source='skills/.curated/jupyter-notebook'; required=@('LICENSE.txt','SKILL.md','agents/openai.yaml','assets/experiment-template.ipynb','assets/jupyter-small.svg','assets/jupyter.png','assets/tutorial-template.ipynb','references/experiment-patterns.md','references/notebook-structure.md','references/quality-checklist.md','references/tutorial-patterns.md','scripts/new_notebook.py') }
+            'pdf' = [pscustomobject]@{ kind='official'; source='skills/.curated/pdf'; required=@('LICENSE.txt','SKILL.md','agents/openai.yaml','assets/pdf.png') }
+        }
+        $Names = @($Skills | ForEach-Object { [string]$_.name })
+        if ($Manifest.schema_version -ne 1 -or
+            $Manifest.official_source.repository -ne 'https://github.com/openai/skills.git' -or
+            $Manifest.official_source.commit -ne '49f948faa9258a0c61caceaf225e179651397431' -or
+            $Manifest.hash_canonicalization -ne 'UTF-8 text with CRLF and CR normalized to LF' -or
+            $Names.Count -ne 3 -or @($Names | Select-Object -Unique).Count -ne 3) {
+            Add-Failure 'skills manifest identity/schema/unique-name lock failed'
+        }
+        foreach ($Skill in $Skills) {
+            $Name = [string]$Skill.name
+            if (-not $ExpectedManifest.ContainsKey($Name)) {
+                Add-Failure "unexpected skill in manifest: $Name"
+                continue
+            }
+            $Expected = $ExpectedManifest[$Name]
+            $ActualRequired = @($Skill.required_files | ForEach-Object { [string]$_ })
+            if ($Skill.kind -ne $Expected.kind -or $Skill.source -ne $Expected.source -or
+                $ActualRequired.Count -ne $Expected.required.Count -or
+                @($ActualRequired | Select-Object -Unique).Count -ne $Expected.required.Count -or
+                @(Compare-Object ($Expected.required | Sort-Object) ($ActualRequired | Sort-Object)).Count -gt 0) {
+                Add-Failure "manifest kind/source/required files changed for $Name"
+            }
         }
         $ProjectSkill = @($Skills | Where-Object { $_.name -eq 'airjet-product-reconstruction' })
         if ($ProjectSkill.Count -eq 1) {
@@ -227,6 +325,11 @@ if (Test-Path -LiteralPath $ManifestPath) {
             if (-not $MacInstaller.Contains([string]$Skill.skill_md_sha256)) {
                 Add-Failure "Mac installer lacks locked hash for $($Skill.name)"
             }
+            foreach ($Relative in @($Skill.required_files)) {
+                if (-not $MacInstaller.Contains([string]$Relative)) {
+                    Add-Failure "Mac installer lacks required-file check for $($Skill.name): $Relative"
+                }
+            }
         }
     } catch {
         Add-Failure "skills manifest audit failed: $($_.Exception.Message)"
@@ -238,6 +341,7 @@ if (Test-Path -LiteralPath $ProvenancePath) {
     $ProvenanceText = Read-Utf8 $ProvenancePath
     foreach ($Marker in @(
         '822fbb7e9735a5505734a291083fed7901c1fdfa01cb7de369679e4d41fd19bd',
+        '5f7042dfb2af4a9f37f5a26f792d305d0382b59175d1dfb545a21b96135107b1',
         'page 1',
         'Acoustics of AirJet Mini in system measured at 50 cm (dBA)'
     )) {
