@@ -13,6 +13,7 @@
 - `DECISION_AND_REASONING_ARCHIVE.md`：产品选择、参数来源、算法、替代方案、否决理由和未解决问题的可学习工程推理档案。
 - `WINDOWS_HANDOFF.md`：Windows Codex 的读取顺序、当前阶段和下一步。
 - `WINDOWS_ENVIRONMENT_REPORT.md`：Windows 实测硬件/软件、分阶段适用性和升级门槛。
+- `reports/AIRJET_MINI_PROJECT_REPORT_FOR_ADVISOR_2026-07-13.md`：可直接交导师审阅的完整项目描述与阶段汇报；PDF 构建方法见 `reports/README.md`。
 - `SKILLS_AND_GIT_WORKFLOW.md`：Git 作为 skill 源版本、一键安装和两机哈希验证方法。
 - `AIRJET_RECONSTRUCTION_PLAN.md`：已明确降级为 P2/P3 单元子模型历史参考；不得先于整机 P1 执行。
 - `OPERATION_MANUAL_00_EVIDENCE_TO_CAD.md`：早期单元 CAD 参考，同样只能在 P1 后使用；当前整机手册是 `manuals/01_FULL_PRODUCT_CAD.md`。

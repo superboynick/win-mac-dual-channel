@@ -1,3 +1,5 @@
 .dual-channel.json
 *.log
 .test-tmp/
+output/pdf/*.pdf
+tmp/pdfs/
