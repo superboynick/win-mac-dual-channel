@@ -1,6 +1,6 @@
 # Windows Codex 接手说明
 
-交接日期：2026-07-12  
+交接日期：2026-07-13
 目标机器：`LAPTOP-LCCLM2HI`，用户 `admin`  
 仓库：`C:\Users\admin\win-mac-dual-channel`
 
@@ -17,9 +17,14 @@
 5. `airjet-simulation/WINDOWS_ENVIRONMENT_REPORT.md`
 6. `airjet-simulation/DECISION_AND_REASONING_ARCHIVE.md`
 7. `airjet-simulation/evidence/SOURCE_PROVENANCE.md`
-8. `airjet-simulation/parameters/full_product_parameter_registry.csv`
-9. `airjet-simulation/checklists/full_product_stage_gates.md`
-10. `airjet-simulation/manuals/01_FULL_PRODUCT_CAD.md`
+8. `airjet-simulation/evidence/P0_EVIDENCE_FREEZE_RECORD.md`
+9. `airjet-simulation/evidence/OFFICIAL_IMAGE_COORDINATE_METHOD.md`
+10. `airjet-simulation/evidence/patent_product_component_map.csv`
+11. `airjet-simulation/evidence/layout_candidate_scores.csv`
+12. `airjet-simulation/parameters/full_product_parameter_registry.csv`
+13. `airjet-simulation/checklists/full_product_stage_gates.md`
+14. `airjet-simulation/manuals/01_FULL_PRODUCT_CAD.md`
+15. `airjet-simulation/windows-prompts/AJM_WIN_P1_READINESS_001.md`
 
 先安装并核对固定 skills：
 
@@ -29,7 +34,7 @@ powershell -ExecutionPolicy Bypass -File .\install-skills.ps1
 powershell -ExecutionPolicy Bypass -File .\audit-airjet-project.ps1
 ```
 
-只有两条命令均返回 `PASS` 后，才继续 P0 工作。审计通过表示交接文件与关键证据不变量一致，不表示任何物理阶段门已经通过。
+只有两条命令均返回 `PASS` 后，才继续工作。审计通过表示交接文件与关键证据不变量一致；P0 Gate 已有单独 PASS 记录，但 P1–P6 尚未通过。
 
 ## 研究资料
 
@@ -51,14 +56,14 @@ Expected SHA256:
 
 ## 当前工作阶段
 
-P0 产品证据冻结与完整布局候选。尚未进入 CAD 定版。Windows Codex 应先：
+`AJM-P0-v001` 公开证据冻结已通过；尚未进入 P1 CAD 定版。Windows Codex 应先：
 
-1. 阅读 `WINDOWS_ENVIRONMENT_REPORT.md`；硬件已实测，但仍须在安装后记录 ANSYS/Fluent/Mechanical 或替代软件的版本与许可证；
-2. 解压研究 ZIP；
-3. 复核 Mini 性能曲线数字化点；右轴已由原始 PDF 文字确认是系统内 50 cm 噪声 dBA，不是送风量；
-4. 从官方 Mini 顶视图/横截面提取活动区、进气和出口比例；
-5. 完善 Layout-L/M/S 候选约束；
-6. 在用户确认 CAD 软件后再开始完整产品 CAD。
+1. 阅读 `WINDOWS_ENVIRONMENT_REPORT.md`；硬件已实测，但仍须记录实际安装的 CAD/CAE 软件、版本、许可证和求解模块；
+2. 确认研究 ZIP 与 Mini PDF 哈希；不需要重做已经版本化的曲线、图像 homography、专利映射或 Layout 去重；
+3. 将 Windows Codex 默认 reasoning effort 设为 `high`；复杂故障/关键 Gate 审核可临时升 `xhigh`；Mac 证据协调端保持 `xhigh`；
+4. 选择 P1 CAD 路线后，用同一 27.5 x 41.5 x 2.8 mm 外壳建立 `M-3x4-7.0` 工作主候选、`M+S-3x5-6.0` 备选和两个 sentinel；
+5. 先完成 2.8 mm 厚度预算和完整入口-上下腔-孔板-冲击通道-歧管-spout 连通检查，再给任何布局正式图像/几何分；
+6. 不启动高保真单 cell 作为主线；只有 P1 Gate 通过后才进入 P2/P3。
 
 可见窗口启动使用仓库脚本：
 
@@ -67,6 +72,8 @@ powershell -ExecutionPolicy Bypass -File .\launch-airjet-codex-visible.ps1
 ```
 
 该脚本只允许在当前交互桌面会话启动；若从 SSH 运行会明确拒绝，防止产生用户看不见的后台 Codex。
+
+下一轮可直接粘贴的只读 P1 就绪提示保存在 `airjet-simulation/windows-prompts/AJM_WIN_P1_READINESS_001.md`。SSH/Git 可以可靠同步该文件；QQ 当前不是项目的自动化传输依赖。
 
 ## 安全规则
 

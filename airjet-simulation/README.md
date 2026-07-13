@@ -22,6 +22,11 @@
 - `evidence/airjet_mini_performance_curve_digitized.csv`：Mini 官方功耗—净散热/50 cm 系统噪声曲线的数字化校准点；它不是流量曲线。
 - `evidence/CURVE_DIGITIZATION_METHOD.md`、`airjet_mini_curve_pixels.csv`、`digitize_airjet_mini_curve.py`：原 PDF 哈希、渲染条件、点坐标、换算公式和自动复核。
 - `evidence/layout_candidate_constraints.md`：整机内部 Layout-L/M/S 的硬约束、搜索范围和淘汰顺序。
+- `evidence/P0_EVIDENCE_FREEZE_RECORD.md`：已通过的 `AJM-P0-v001` Gate、证据边界、仍未知参数和 P1 入口。
+- `evidence/OFFICIAL_IMAGE_COORDINATE_METHOD.md`：双透视图 homography、像素误差、Monte Carlo、跨视图差和剖面禁用规则。
+- `evidence/patent_product_component_map.csv`：专利 FIG./页/printed column-line 到整机部件的候选映射。
+- `evidence/layout_candidate_scores.csv`：去重后的唯一布局、硬门槛、pending 分数、P0 工作主/备选和评分覆盖率。
+- `windows-prompts/AJM_WIN_P1_READINESS_001.md`：Windows Codex 下一轮只读 P1 就绪核验提示。
 - `evidence/SOURCE_PROVENANCE.md`：每份产品卡、专利和论文能支持哪些参数，以及不能支持什么。
 - `parameters/full_product_parameter_registry.csv`：完整产品尺寸、性能、结构、流体、控制和热参数注册表。
 - `manuals/01_FULL_PRODUCT_CAD.md`：完整产品 CAD 装配、流道和候选阵列操作规划。
@@ -44,4 +49,4 @@
 
 在 Windows 或 Mac 继续之前，先执行 `git status`、`git fetch origin` 并检查 ahead/behind；只在工作树干净且未分叉时执行 `git pull --ff-only`。完成一小段可检查工作后再提交并 `git push`。不要把求解结果、网格、case/data、临时文件或许可证信息直接提交；应只提交脚本、参数表、图表源文件、日志摘要和小型后处理数据。
 
-交接前在 Mac 运行项目 skill 的 Python 审计器，在 Windows 运行仓库根目录的 `audit-airjet-project.ps1`。两者都通过只证明项目骨架和证据不变量一致，不代表 P0–P6 的物理仿真已经通过。实时进度以 `PROJECT_STATUS.md` 和 `checklists/full_product_stage_gates.md` 为准。
+交接前在 Mac 运行项目 skill 的 Python 审计器，在 Windows 运行仓库根目录的 `audit-airjet-project.ps1`。两者都通过只证明项目骨架和证据不变量一致。P0 证据 Gate 另有 `P0_EVIDENCE_FREEZE_RECORD.md`，已于 2026-07-13 通过；这仍不代表 P1–P6 的 CAD/物理仿真已经通过。实时进度以 `PROJECT_STATUS.md` 和 `checklists/full_product_stage_gates.md` 为准。

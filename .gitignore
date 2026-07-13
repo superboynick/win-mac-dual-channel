@@ -3,3 +3,4 @@
 .test-tmp/
 output/pdf/*.pdf
 tmp/pdfs/
+airjet-simulation/tmp/

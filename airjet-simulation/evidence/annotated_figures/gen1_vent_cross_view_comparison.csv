@@ -1,0 +1,5 @@
+feature_id,flow_center_x_mm,upper_center_x_mm,abs_center_x_difference_mm,flow_center_y_mm,upper_center_y_mm,abs_center_y_difference_mm,flow_length_mm,upper_length_mm,abs_length_difference_mm,interpretation
+V01,8.209,10.535,2.326,10.237,9.204,1.033,12.963,13.457,0.494,cross-view difference is model-form uncertainty and dominates simple endpoint-pixel precision
+V02,18.078,19.647,1.569,10.381,9.992,0.389,13.354,13.444,0.090,cross-view difference is model-form uncertainty and dominates simple endpoint-pixel precision
+V03,8.064,10.737,2.673,26.130,25.203,0.926,14.041,13.936,0.105,cross-view difference is model-form uncertainty and dominates simple endpoint-pixel precision
+V04,18.342,19.983,1.641,26.757,25.845,0.912,14.485,13.764,0.721,cross-view difference is model-form uncertainty and dominates simple endpoint-pixel precision

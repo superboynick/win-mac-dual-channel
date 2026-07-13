@@ -13,7 +13,7 @@
 ## AJM-P0-001：完整产品目标定义
 
 日期：2026-07-12  
-状态：规划中
+状态：P0 v1 已冻结；P1–P6 待执行
 
 **整机目标**：第一代 AirJet Mini，官方包络 27.5 × 41.5 × 2.8 mm。最终模型覆盖外壳、全部候选 cell、完整进气/排气流道、孔板、冲击通道、热扩散面、TIM 和芯片。
 
@@ -26,7 +26,7 @@
 ## AJM-P0-002：内部布局尚未锁定
 
 日期：2026-07-12  
-状态：待证据筛选
+状态：P0 v1 候选搜索完成；P1–P5 物理筛选待执行
 
 不能通过宣传图中的绿色波形数量直接认定执行单元数。先建立 Layout-L/M/S 三种满足产品外形和专利广义 4–10 mm 范围的候选；6–8 mm 优选实施例给予更高先验权重，再用活动面积、总功耗、压力/流量、质量和热均匀性共同淘汰。
 
@@ -43,4 +43,41 @@
 
 **尚不能做的事**：不设稳态入口速度代替膜片；不做热优化；不假定真实 PZT 层厚或驱动电压；不宣称“这是 AirJet 内部结构”。
 
-**下一步证据工作**：Mini 数据表已取得并锁定外包络/系统指标；下一步保存官方顶视图与横截面的像素坐标、缩放基准和误差，并用整机质量、功耗、压力能力与热目标淘汰候选。不得把专利 cell 参数升级为产品锁定值。
+**当前证据结果**：Mini 数据表已锁定外包络/系统指标；官方透视图、剖面、像素坐标、homography、像素误差和跨视图差已保存。现阶段只确定 P1 工作顺序，仍需用整机质量、功耗、压力能力与热目标淘汰候选。不得把专利 cell 参数升级为产品锁定值。
+
+## AJM-P0-003：官方图坐标化
+
+日期：2026-07-13
+状态：P0 v1 已冻结
+
+**方法**：对 Gen1 数据表中 636 x 387 和 547 x 257 两张嵌入产品图分别选择四个顶面角点，映射到 27.5 x 41.5 mm 矩形。角点 `+/-3 px`、vent PCA 端点 `+/-2 px` 通过每视图 10,000 次 Monte Carlo 传播。
+
+**结果能说明**：两张官方渲染都画出四个 elongated top vent objects；可用于第一版顶盖候选和投影比较。剖面直接支持多个膜片、脉冲射流、底部热扩散面和单侧 integrated spout 的定性拓扑。
+
+**结果不能说明**：四个画出 vent 不是已证实的真实进气组，更不等于四个 cell。两视图 vent 中心横向差约 1.57--2.67 mm，说明渲染系统误差大于纯像素误差。剖面绿色波形、黄色/蓝色/红色箭头和 Schlieren 图不能数 cell/孔、测喷速或求流量；内部层厚不能从 2.8 mm 示意剖面按比例锁定。
+
+**追溯**：`evidence/OFFICIAL_IMAGE_COORDINATE_METHOD.md`、`official_image_measurements.csv`、`annotated_figures/gen1_vent_homography_results.csv` 和生成脚本。
+
+## AJM-P0-004：专利到产品部件映射
+
+日期：2026-07-13
+状态：P0 v1 已冻结
+
+**决定**：中央锚定 + 上下腔 + 周边转移路径 + 孔板 + 冲击通道作为 R0 专利相容主候选；多 cell、共享板和相位驱动作为整机模型必须检查的候选机制。
+
+**限制**：专利证明的是 Frore 专利族实施方式，不证明 Mini/G2 量产结构。edge/adhesive/rotational anchor、分隔/共享腔和不同 outlet/duct 仍是替代方案。定位统一使用本地 PDF 页码 + FIG. + printed column/line；旧的网页行号 `paragraph 864/866` 已移除。
+
+**追溯**：`evidence/patent_product_component_map.csv`、`SOURCE_PROVENANCE.md`、registry P001--P014。
+
+## AJM-P0-005：布局工作主/备选
+
+日期：2026-07-13
+状态：P0 工作顺序已冻结，真实布局未识别
+
+**去重**：34 个 L/M/S family 组合对应 32 个唯一几何；A0 下 23 个可装入、9 个仅在 A0 下不装入。
+
+**工作顺序**：`M-3x4-7.0` 为 P1 工作主候选；唯一几何 `M+S-3x5-6.0` 为备选；`L-2x4-8.0` 与 `S-3x5-5.5` 保留为 model-form sentinels。
+
+**评分解释**：目前只打 geometry 与 cell-count complexity 代理，覆盖率 20%；image/modal/power/flow/thermal 为空，不重归一化。1750 Pa 只作压力能力扫描，另在较低背压检查非零净流和热输运；不得虚构 1750 Pa 对应流量。
+
+**追溯**：`evidence/build_layout_candidate_scores.py`、`layout_candidate_scores.csv`、`layout_candidate_constraints.md`。

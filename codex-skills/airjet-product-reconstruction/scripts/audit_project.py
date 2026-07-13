@@ -7,6 +7,7 @@ import argparse
 import csv
 import hashlib
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -26,6 +27,19 @@ REQUIRED = [
     "airjet-simulation/evidence/airjet_mini_curve_pixels.csv",
     "airjet-simulation/evidence/CURVE_DIGITIZATION_METHOD.md",
     "airjet-simulation/evidence/digitize_airjet_mini_curve.py",
+    "airjet-simulation/evidence/P0_EVIDENCE_FREEZE_RECORD.md",
+    "airjet-simulation/evidence/OFFICIAL_IMAGE_COORDINATE_METHOD.md",
+    "airjet-simulation/evidence/patent_product_component_map.csv",
+    "airjet-simulation/evidence/layout_candidate_scores.csv",
+    "airjet-simulation/windows-prompts/AJM_WIN_P1_READINESS_001.md",
+    "airjet-simulation/evidence/build_layout_candidate_scores.py",
+    "airjet-simulation/evidence/extract_official_image_geometry.py",
+    "airjet-simulation/evidence/analyze_official_vent_views.py",
+    "airjet-simulation/evidence/official_image_measurements.csv",
+    "airjet-simulation/evidence/annotated_figures/gen1_vent_homography_results.csv",
+    "airjet-simulation/evidence/annotated_figures/gen1_vent_cross_view_comparison.csv",
+    "airjet-simulation/evidence/annotated_figures/gen1_top_render_quad_annotated.png",
+    "airjet-simulation/evidence/annotated_figures/gen1_cross_section_annotated.png",
     "airjet-simulation/parameters/full_product_parameter_registry.csv",
     "airjet-simulation/checklists/full_product_stage_gates.md",
     "airjet-simulation/SKILLS_AND_GIT_WORKFLOW.md",
@@ -208,10 +222,17 @@ def main() -> int:
             "uncertainty_or_range", ""
         ):
             failures.append("P011 must preserve >=30 m/s lower bound with no 60 m/s upper bound")
+        for row in registry_rows:
+            if row.get("evidence_class") == "P" and "printed col." not in row.get("evidence_source", ""):
+                failures.append(f"patent registry row lacks local printed-column locator: {row.get('id')}")
         if "not a known flow operating point" not in by_id.get("D011", {}).get(
             "calibration_target", ""
         ):
             failures.append("1750 Pa must remain a pressure capability with unknown corresponding flow")
+        if by_id.get("C004", {}).get("initial_value") != "candidate_v1_dual_view_homography":
+            failures.append("C004 must preserve the dual-view P0 intake candidate")
+        if by_id.get("C014", {}).get("initial_value") != "4_drawn_vent_objects_not_confirmed_groups":
+            failures.append("C014 must distinguish drawn vents from confirmed intake groups")
 
     ledger = repo / "airjet-simulation/evidence/airjet_reconstruction_ledger.csv"
     if ledger.is_file():
@@ -222,6 +243,10 @@ def main() -> int:
                 failures.append(f"legacy ledger has invalid evidence class: {row.get('id')}")
             if row.get("evidence_class") == "P" and "locked" in row.get("model_status", ""):
                 failures.append(f"patent ledger row is incorrectly locked: {row.get('id')}")
+            if row.get("evidence_class") == "P" and "paragraph " in row.get("source", ""):
+                failures.append(
+                    f"patent ledger row uses a webpage line as a patent paragraph: {row.get('id')}"
+                )
 
     selection = repo / "airjet-simulation/evidence/product_selection_matrix.csv"
     if selection.is_file():
@@ -248,6 +273,108 @@ def main() -> int:
                     valid = float_close(actual, expected)
                 if not valid:
                     failures.append(f"G2 direct specification changed: {key}")
+
+    patent_map = repo / "airjet-simulation/evidence/patent_product_component_map.csv"
+    if patent_map.is_file():
+        with patent_map.open(newline="", encoding="utf-8") as handle:
+            patent_rows = list(csv.DictReader(handle))
+        if len(patent_rows) != 10:
+            failures.append(f"patent-product component map must contain 10 rows, got {len(patent_rows)}")
+        if any(row.get("evidence_class") != "P" for row in patent_rows):
+            failures.append("patent-product component map must remain P-class")
+        if any("col." not in row.get("exact_locator", "") or "FIG" not in row.get("exact_locator", "") for row in patent_rows):
+            failures.append("patent-product component map lacks FIG and printed-column locators")
+
+    layout_scores = repo / "airjet-simulation/evidence/layout_candidate_scores.csv"
+    if layout_scores.is_file():
+        with layout_scores.open(newline="", encoding="utf-8") as handle:
+            layout_rows = list(csv.DictReader(handle))
+        if len(layout_rows) != 32 or len({row.get("geometry_key") for row in layout_rows}) != 32:
+            failures.append("layout score table must contain 32 unique geometries")
+        fit_rows = [row for row in layout_rows if row.get("hard_envelope") == "PASS_CONFIG_A0"]
+        if len(fit_rows) != 23:
+            failures.append(f"layout score table must preserve 23 A0-fit geometries, got {len(fit_rows)}")
+        primary = [row for row in layout_rows if row.get("rank_tier") == "PRIMARY-P0"]
+        alternate = [row for row in layout_rows if row.get("rank_tier") == "ALTERNATE-P0"]
+        if len(primary) != 1 or primary[0].get("candidate_id") != "M-3x4-7.0":
+            failures.append("layout score table changed the P0 working primary")
+        if len(alternate) != 1 or alternate[0].get("candidate_id") != "M+S-3x5-6.0":
+            failures.append("layout score table changed the P0 working alternate")
+        for row in fit_rows:
+            if row.get("score_coverage_pct") != "20":
+                failures.append(f"layout P0 score coverage must remain 20 percent: {row.get('candidate_id')}")
+            for pending in ("S_image", "S_modal", "S_power", "S_flow", "S_thermal"):
+                if row.get(pending):
+                    failures.append(f"layout P0 pending score was populated: {row.get('candidate_id')} {pending}")
+
+    vent_results = repo / "airjet-simulation/evidence/annotated_figures/gen1_vent_homography_results.csv"
+    if vent_results.is_file():
+        with vent_results.open(newline="", encoding="utf-8") as handle:
+            vent_rows = list(csv.DictReader(handle))
+        view_counts = {view_id: sum(row.get("view_id") == view_id for row in vent_rows) for view_id in ("flow_636", "upper_547")}
+        feature_counts = {
+            view_id: len({row.get("feature_id") for row in vent_rows if row.get("view_id") == view_id})
+            for view_id in ("flow_636", "upper_547")
+        }
+        if (
+            len(vent_rows) != 8
+            or view_counts != {"flow_636": 4, "upper_547": 4}
+            or feature_counts != {"flow_636": 4, "upper_547": 4}
+        ):
+            failures.append("vent homography table must contain four features in each of two views")
+        if any(row.get("evidence_class") != "I" for row in vent_rows):
+            failures.append("vent homography results must remain I-class")
+
+    cross_view = repo / "airjet-simulation/evidence/annotated_figures/gen1_vent_cross_view_comparison.csv"
+    if cross_view.is_file():
+        with cross_view.open(newline="", encoding="utf-8") as handle:
+            comparison_rows = list(csv.DictReader(handle))
+        differences = []
+        try:
+            differences = [float(row["abs_center_x_difference_mm"]) for row in comparison_rows]
+        except (KeyError, TypeError, ValueError):
+            failures.append("vent cross-view comparison contains a non-numeric difference")
+        if len(comparison_rows) != 4 or len({row.get("feature_id") for row in comparison_rows}) != 4:
+            failures.append("vent cross-view comparison must contain four matched features")
+        elif len(differences) != 4 or not all(math.isfinite(value) for value in differences):
+            failures.append("vent cross-view comparison contains a non-finite difference")
+        elif max(differences) < 2.5:
+            failures.append("vent cross-view model-form discrepancy was lost or understated")
+
+    p0_record = repo / "airjet-simulation/evidence/P0_EVIDENCE_FREEZE_RECORD.md"
+    if p0_record.is_file():
+        p0_text = read_text(p0_record)
+        for marker in ("PASS - P0 evidence freeze v1", "P1–P6", "四个 elongated top vent objects"):
+            if marker not in p0_text:
+                failures.append(f"P0 evidence-freeze record lacks boundary marker {marker!r}")
+
+    windows_prompt = repo / "airjet-simulation/windows-prompts/AJM_WIN_P1_READINESS_001.md"
+    if windows_prompt.is_file():
+        prompt_text = read_text(windows_prompt)
+        for marker in (
+            "HANDSHAKE_STATUS=P1_HANDOFF_READY",
+            "HANDSHAKE_STATUS=P1_BLOCKED",
+            "P1_CAD_STATUS=READY",
+            "P1_CAD_STATUS=BLOCKED",
+            "ACTION_BOUNDARY=DO_NOT_CREATE_CAD",
+            "MODEL_BOUNDARY=WORKING_CANDIDATES_NOT_PRODUCT_FACT",
+            "P0_GATE_BOUNDARY=P0_EVIDENCE_ONLY_P1_P6_NOT_PASSED",
+            "PRESSURE_BOUNDARY=1750_PA_CAPABILITY_FLOW_UNKNOWN",
+            "AIRJET_P1_READINESS_REPORT.txt",
+            "git status --porcelain",
+            "git remote get-url origin",
+            "git rev-list --left-right --count HEAD...origin/main",
+            "https://github.com/superboynick/win-mac-dual-channel.git",
+            "M-3x4-7.0",
+            "M+S-3x5-6.0",
+            'model_reasoning_effort = "high"',
+            "96f65ca6e5c8b8d4bc2b4acdeeb78d9917cf3c5ec2c159055daf88fa3ea261a4",
+            "822fbb7e9735a5505734a291083fed7901c1fdfa01cb7de369679e4d41fd19bd",
+        ):
+            if marker not in prompt_text:
+                failures.append(f"Windows P1 prompt lacks invariant {marker!r}")
+        if "HANDSHAKE_STATUS=P1_READY" in prompt_text:
+            failures.append("Windows P1 prompt uses an ambiguous P1_READY status")
 
     notebook = repo / "airjet-simulation/notebooks/airjet-mini-layout-baseline.ipynb"
     if notebook.is_file():

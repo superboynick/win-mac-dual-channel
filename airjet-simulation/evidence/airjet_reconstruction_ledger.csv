@@ -1,19 +1,19 @@
 id,feature,R0_value_or_range,unit,evidence_class,source,interpretation,model_status
 E01,architecture,top plate plus top chamber plus central-anchor candidate plus bottom chamber plus orifice plate plus jet channel,-,P,US12137540B2 figures 1 and description,Use as R0-A patent-bounded candidate architecture,bounded_candidate
-E02,cooling_element_length,4-10 broad and 6-8 preferred,mm,P,US12137540B2 paragraph 864,Use 8 mm as preferred-family initial value only,bounded_candidate
-E03,operating_frequency,20-25,kHz,P,US12137540B2 paragraph 866,Applies to an 8 mm example; use 22 kHz as initial target,bounded_candidate
-E04,cooling_element_thickness,200-350,um,P,US12137540B2 paragraph 866,Composite effective thickness for an 8 mm example; not a product layer stack,bounded_candidate
-E05,top_chamber_height,200-300 preferred,um,P,US12137540B2 paragraphs 254-255,Use 250 um as preferred-family initial value only,bounded_candidate
-E06,membrane_tip_amplitude,10-60,um,P,US12137540B2 paragraphs 260-262,Use 30 um only as initial calibration candidate,calibrate
-E07,bottom_chamber_height,amplitude plus 5-10,um,P,US12137540B2 paragraph 259,Derived candidate after amplitude is selected,derived_candidate
-E08,top_vent_width,500-1000 preferred,um,P,US12137540B2 paragraphs 263-266,Use 750 um initial candidate,bounded_candidate
-E09,orifice_width,200-300 preferred,um,P,US12137540B2 paragraphs 324-325,Use 250 um initial equivalent diameter candidate,bounded_candidate
-E10,orifice_separation_s,400-600 preferred,um,P,US12137540B2 paragraphs 324-325,Do not assume center pitch until figure definition is resolved,bounded_candidate
-E11,orifice_open_area_fraction,8-12 preferred,percent,P,US12137540B2 paragraphs 326-328,Use 10 percent initial candidate,bounded_candidate
-E12,orifice_to_heat_surface_gap,200-300 preferred,um,P,US12137540B2 paragraphs 235 and 198,Use 250 um initial candidate,bounded_candidate
-E13,jet_speed,at least 30 with examples at least 45 and at least 60,m/s,P,US12137540B2 paragraphs 197-198 and 217-219,Lower-bound prior only; 60 m/s is not an upper bound,prior_check
-E14,anchor_width,2-2.5 preferred,mm,P,US12137540B2 paragraphs 859-860,Use 2.25 mm initial candidate,bounded_candidate
-E15,side_clearance_membrane_to_wall,200-300 preferred,um,P,US12137540B2 paragraph 867,Use 250 um initial candidate,bounded_candidate
+E02,cooling_element_length,4-10 broad and 6-8 preferred,mm,P,US12137540B2 local PDF p.19 printed col.4 lines1-6 and p.21 col.7 lines43-49,Use 8 mm as preferred-family initial value only,bounded_candidate
+E03,operating_frequency,20-25,kHz,P,US12137540B2 local PDF p.21 printed col.7 lines56-59,Applies to an 8 mm example; use 22 kHz as initial target,bounded_candidate
+E04,cooling_element_thickness,200-350,um,P,US12137540B2 local PDF p.21 printed col.7 lines53-59,Composite effective thickness for an 8 mm example; not a product layer stack,bounded_candidate
+E05,top_chamber_height,200-300 preferred,um,P,US12137540B2 local PDF p.20 printed col.6 lines21-26,Use 250 um as preferred-family initial value only,bounded_candidate
+E06,membrane_tip_amplitude,10-60,um,P,US12137540B2 local PDF p.20 printed col.6 lines34-41,Use 30 um only as initial calibration candidate,calibrate
+E07,bottom_chamber_height,amplitude plus 5-10,um,P,US12137540B2 local PDF p.20 printed col.6 lines34-36,Derived candidate after amplitude is selected,derived_candidate
+E08,top_vent_width,500-1000 preferred,um,P,US12137540B2 local PDF p.20 printed col.6 lines49-56,Use 750 um initial candidate,bounded_candidate
+E09,orifice_width,200-300 preferred,um,P,US12137540B2 local PDF p.22 printed col.9 lines26-32,Use 250 um initial equivalent diameter candidate,bounded_candidate
+E10,orifice_separation_s,400-600 preferred,um,P,US12137540B2 local PDF p.22 printed col.9 lines32-36,Do not assume center pitch until figure definition is resolved,bounded_candidate
+E11,orifice_open_area_fraction,8-12 preferred,percent,P,US12137540B2 local PDF p.22 printed col.9 lines36-44,Use 10 percent initial candidate,bounded_candidate
+E12,orifice_to_heat_surface_gap,200-300 preferred,um,P,US12137540B2 local PDF p.20 printed col.5 lines47-55,Use 250 um initial candidate,bounded_candidate
+E13,jet_speed,at least 30 with examples at least 45 and at least 60,m/s,P,US12137540B2 local PDF p.19 printed col.4 lines6-8 and p.20 col.5 lines1-8,Lower-bound prior only; 60 m/s is not an upper bound,prior_check
+E14,anchor_width,2-2.5 preferred,mm,P,US12137540B2 local PDF p.21 printed col.7 lines17-23,Use 2.25 mm initial candidate,bounded_candidate
+E15,side_clearance_membrane_to_wall,200-300 preferred,um,P,US12137540B2 local PDF p.21 printed col.7 lines61-65 and following continuation,Use 250 um initial candidate,bounded_candidate
 E16,actuator_material_stack,unknown,-,U,not publicly fixed for AirJet Mini,Retain material-stack alternatives; do not claim a product stack,unresolved
 E17,cell_count_and_layout,unknown,-,U,product-specific layout not publicly fixed,Enumerate full-product candidate layouts before selecting a cell,unresolved
 E18,system_package_dimensions,27.5x41.5x2.8,mm,D,AirJet Mini Data Sheet page 1 metric table,Lock the Mini Gen1 external envelope,locked_product

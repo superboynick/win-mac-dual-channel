@@ -63,6 +63,19 @@ $Required = @(
     'airjet-simulation\evidence\airjet_mini_curve_pixels.csv',
     'airjet-simulation\evidence\CURVE_DIGITIZATION_METHOD.md',
     'airjet-simulation\evidence\digitize_airjet_mini_curve.py',
+    'airjet-simulation\evidence\P0_EVIDENCE_FREEZE_RECORD.md',
+    'airjet-simulation\evidence\OFFICIAL_IMAGE_COORDINATE_METHOD.md',
+    'airjet-simulation\evidence\patent_product_component_map.csv',
+    'airjet-simulation\evidence\layout_candidate_scores.csv',
+    'airjet-simulation\windows-prompts\AJM_WIN_P1_READINESS_001.md',
+    'airjet-simulation\evidence\build_layout_candidate_scores.py',
+    'airjet-simulation\evidence\extract_official_image_geometry.py',
+    'airjet-simulation\evidence\analyze_official_vent_views.py',
+    'airjet-simulation\evidence\official_image_measurements.csv',
+    'airjet-simulation\evidence\annotated_figures\gen1_vent_homography_results.csv',
+    'airjet-simulation\evidence\annotated_figures\gen1_vent_cross_view_comparison.csv',
+    'airjet-simulation\evidence\annotated_figures\gen1_top_render_quad_annotated.png',
+    'airjet-simulation\evidence\annotated_figures\gen1_cross_section_annotated.png',
     'airjet-simulation\parameters\full_product_parameter_registry.csv',
     'airjet-simulation\checklists\full_product_stage_gates.md',
     'airjet-simulation\notebooks\airjet-mini-layout-baseline.ipynb',
@@ -137,6 +150,7 @@ foreach ($CsvFile in $CsvFiles) {
                 Add-Failure "CSV width mismatch: $($CsvFile.FullName):$RowNumber expected $ExpectedWidth got $($Fields.Count)"
             }
         }
+        if ($RowNumber -eq 0) { Add-Failure "empty CSV: $($CsvFile.FullName)" }
     } catch {
         Add-Failure "CSV parse failed: $($CsvFile.FullName): $($_.Exception.Message)"
     } finally {
@@ -149,18 +163,21 @@ foreach ($Relative in $Archived) {
     $ArchivedFullPaths[(Join-Path $RepoRoot $Relative).ToLowerInvariant()] = $true
 }
 $ObsoleteChinese = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('5Yqf6ICX4oCU5rWB6YeP5puy57q/'))
+$ObsoletePressureClaim = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('5ZyoIDE3NTAgUGEg55uu5qCH6IOM5Y6L5LiL57u05oyB5YeA5rWB'))
+$DrawnVentMarker = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('5Zub5LiqIGVsb25nYXRlZCB0b3AgdmVudCBvYmplY3Rz'))
 $ActiveFiles = Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'airjet-simulation') -File -Recurse |
     Where-Object { $_.Extension -in @('.md', '.csv') -and -not $ArchivedFullPaths.ContainsKey($_.FullName.ToLowerInvariant()) }
 foreach ($File in $ActiveFiles) {
     $Text = Read-Utf8 $File.FullName
-    if ($Text.Contains('delivered_airflow_chart_units') -or $Text.Contains($ObsoleteChinese)) {
-        Add-Failure "obsolete airflow interpretation in $($File.FullName)"
+    if ($Text.Contains('delivered_airflow_chart_units') -or $Text.Contains($ObsoleteChinese) -or
+        $Text.Contains('30-60,m/s') -or $Text.Contains($ObsoletePressureClaim)) {
+        Add-Failure "obsolete evidence interpretation in $($File.FullName)"
     }
 }
 
 $PerfPath = Join-Path $RepoRoot 'airjet-simulation\evidence\airjet_mini_performance_curve_digitized.csv'
 if (Test-Path -LiteralPath $PerfPath) {
-    $PerfRows = @(Import-Csv -LiteralPath $PerfPath)
+    $PerfRows = @(Import-Csv -LiteralPath $PerfPath -Encoding UTF8)
     if ($PerfRows.Count -ne 4) { Add-Failure "performance curve must contain four rows, got $($PerfRows.Count)" }
     if ($PerfRows.Count -gt 0 -and -not ($PerfRows[0].PSObject.Properties.Name -contains 'system_noise_at_50cm_dBA')) {
         Add-Failure 'performance curve right axis is not identified as 50 cm system noise'
@@ -176,7 +193,7 @@ if (Test-Path -LiteralPath $PerfPath) {
 
 $RegistryPath = Join-Path $RepoRoot 'airjet-simulation\parameters\full_product_parameter_registry.csv'
 if (Test-Path -LiteralPath $RegistryPath) {
-    $RegistryRows = @(Import-Csv -LiteralPath $RegistryPath)
+    $RegistryRows = @(Import-Csv -LiteralPath $RegistryPath -Encoding UTF8)
     $RequiredRegistryColumns = @('evidence_class', 'uncertainty_or_range', 'derivation_or_parent', 'adjustable')
     foreach ($Column in $RequiredRegistryColumns) {
         if ($RegistryRows.Count -eq 0 -or -not ($RegistryRows[0].PSObject.Properties.Name -contains $Column)) {
@@ -220,25 +237,32 @@ if (Test-Path -LiteralPath $RegistryPath) {
         }
     }
     foreach ($Id in @('D007', 'D008', 'D009')) {
-        if ($ById.ContainsKey($Id) -and $ById[$Id].evidence_class -ne 'I') {
+        if (-not $ById.ContainsKey($Id) -or $ById[$Id].evidence_class -ne 'I') {
             Add-Failure "$Id must remain an image-digitized I-class target"
         }
     }
     foreach ($Row in $RegistryRows | Where-Object { $_.id -like 'P*' }) {
         if ($Row.evidence_class -ne 'P') { Add-Failure "patent row is not P-class: $($Row.id)" }
+        if ($Row.evidence_source -notlike '*printed col.*') { Add-Failure "patent row lacks local printed-column locator: $($Row.id)" }
     }
-    if ($ById.ContainsKey('P011') -and
-        ($ById['P011'].status -ne 'patent_lower_bound' -or $ById['P011'].uncertainty_or_range -notlike '*no 60 m/s upper bound*')) {
+    if (-not $ById.ContainsKey('P011') -or $ById['P011'].status -ne 'patent_lower_bound' -or
+        $ById['P011'].uncertainty_or_range -notlike '*no 60 m/s upper bound*') {
         Add-Failure 'P011 must preserve a >=30 m/s lower bound and no 60 m/s upper bound'
     }
     if ($ById.ContainsKey('D011') -and $ById['D011'].calibration_target -notlike '*not a known flow operating point*') {
         Add-Failure '1750 Pa must be recorded as pressure capability with unknown corresponding flow'
     }
+    if (-not $ById.ContainsKey('C004') -or $ById['C004'].initial_value -ne 'candidate_v1_dual_view_homography') {
+        Add-Failure 'C004 must preserve the dual-view P0 intake candidate'
+    }
+    if (-not $ById.ContainsKey('C014') -or $ById['C014'].initial_value -ne '4_drawn_vent_objects_not_confirmed_groups') {
+        Add-Failure 'C014 must distinguish drawn vents from confirmed intake groups'
+    }
 }
 
 $LedgerPath = Join-Path $RepoRoot 'airjet-simulation\evidence\airjet_reconstruction_ledger.csv'
 if (Test-Path -LiteralPath $LedgerPath) {
-    $LedgerRows = @(Import-Csv -LiteralPath $LedgerPath)
+    $LedgerRows = @(Import-Csv -LiteralPath $LedgerPath -Encoding UTF8)
     foreach ($Row in $LedgerRows) {
         if ($Row.evidence_class -notin @('D', 'P', 'I', 'C', 'U')) {
             Add-Failure "legacy ledger has invalid evidence class: $($Row.id)"
@@ -246,12 +270,15 @@ if (Test-Path -LiteralPath $LedgerPath) {
         if ($Row.evidence_class -eq 'P' -and $Row.model_status -like '*locked*') {
             Add-Failure "patent ledger row is incorrectly locked: $($Row.id)"
         }
+        if ($Row.evidence_class -eq 'P' -and $Row.source -like '*paragraph *') {
+            Add-Failure "patent ledger row uses a webpage line as a patent paragraph: $($Row.id)"
+        }
     }
 }
 
 $SelectionPath = Join-Path $RepoRoot 'airjet-simulation\evidence\product_selection_matrix.csv'
 if (Test-Path -LiteralPath $SelectionPath) {
-    $SelectionRows = @(Import-Csv -LiteralPath $SelectionPath)
+    $SelectionRows = @(Import-Csv -LiteralPath $SelectionPath -Encoding UTF8)
     $G2 = @($SelectionRows | Where-Object { $_.product -eq 'AirJet Mini G2' })
     if ($G2.Count -ne 1 -or $G2[0].external_dimensions_mm -ne '27.1x41.5x2.65' -or
         -not (Test-Close $G2[0].heat_dissipation_W 7.5) -or
@@ -260,6 +287,112 @@ if (Test-Path -LiteralPath $SelectionPath) {
         -not (Test-Close $G2[0].noise_dBA 21) -or
         -not (Test-Close $G2[0].weight_g 7)) {
         Add-Failure 'G2 product row does not preserve page-2 direct specifications'
+    }
+}
+
+$PatentMapPath = Join-Path $RepoRoot 'airjet-simulation\evidence\patent_product_component_map.csv'
+if (Test-Path -LiteralPath $PatentMapPath) {
+    $PatentRows = @(Import-Csv -LiteralPath $PatentMapPath -Encoding UTF8)
+    if ($PatentRows.Count -ne 10) { Add-Failure "patent-product map must contain 10 rows, got $($PatentRows.Count)" }
+    foreach ($Row in $PatentRows) {
+        if ($Row.evidence_class -ne 'P' -or $Row.exact_locator -notlike '*FIG*' -or $Row.exact_locator -notlike '*col.*') {
+            Add-Failure "patent-product map row lacks P/FIG/column evidence: $($Row.product_component_id)"
+        }
+    }
+}
+
+$LayoutScorePath = Join-Path $RepoRoot 'airjet-simulation\evidence\layout_candidate_scores.csv'
+if (Test-Path -LiteralPath $LayoutScorePath) {
+    $LayoutRows = @(Import-Csv -LiteralPath $LayoutScorePath -Encoding UTF8)
+    $UniqueGeometry = @($LayoutRows | ForEach-Object { $_.geometry_key } | Select-Object -Unique)
+    $FitRows = @($LayoutRows | Where-Object { $_.hard_envelope -eq 'PASS_CONFIG_A0' })
+    $Primary = @($LayoutRows | Where-Object { $_.rank_tier -eq 'PRIMARY-P0' })
+    $Alternate = @($LayoutRows | Where-Object { $_.rank_tier -eq 'ALTERNATE-P0' })
+    if ($LayoutRows.Count -ne 32 -or $UniqueGeometry.Count -ne 32) { Add-Failure 'layout score table must contain 32 unique geometries' }
+    if ($FitRows.Count -ne 23) { Add-Failure "layout score table must preserve 23 A0-fit geometries, got $($FitRows.Count)" }
+    if ($Primary.Count -ne 1 -or $Primary[0].candidate_id -ne 'M-3x4-7.0') { Add-Failure 'layout score table changed the P0 working primary' }
+    if ($Alternate.Count -ne 1 -or $Alternate[0].candidate_id -ne 'M+S-3x5-6.0') { Add-Failure 'layout score table changed the P0 working alternate' }
+    foreach ($Row in $FitRows) {
+        if ($Row.score_coverage_pct -ne '20') { Add-Failure "layout score coverage changed: $($Row.candidate_id)" }
+        foreach ($Pending in @('S_image','S_modal','S_power','S_flow','S_thermal')) {
+            if (-not [string]::IsNullOrWhiteSpace($Row.$Pending)) { Add-Failure "layout pending score was populated: $($Row.candidate_id) $Pending" }
+        }
+    }
+}
+
+$VentResultsPath = Join-Path $RepoRoot 'airjet-simulation\evidence\annotated_figures\gen1_vent_homography_results.csv'
+if (Test-Path -LiteralPath $VentResultsPath) {
+    $VentRows = @(Import-Csv -LiteralPath $VentResultsPath -Encoding UTF8)
+    $FlowRows = @($VentRows | Where-Object { $_.view_id -eq 'flow_636' })
+    $UpperRows = @($VentRows | Where-Object { $_.view_id -eq 'upper_547' })
+    $FlowFeatures = @($FlowRows | ForEach-Object { $_.feature_id } | Select-Object -Unique)
+    $UpperFeatures = @($UpperRows | ForEach-Object { $_.feature_id } | Select-Object -Unique)
+    if ($VentRows.Count -ne 8 -or $FlowRows.Count -ne 4 -or $UpperRows.Count -ne 4 -or
+        $FlowFeatures.Count -ne 4 -or $UpperFeatures.Count -ne 4) {
+        Add-Failure 'vent homography table must contain four features in each of two views'
+    }
+    if (@($VentRows | Where-Object { $_.evidence_class -ne 'I' }).Count -gt 0) { Add-Failure 'vent homography results must remain I-class' }
+}
+
+$CrossViewPath = Join-Path $RepoRoot 'airjet-simulation\evidence\annotated_figures\gen1_vent_cross_view_comparison.csv'
+if (Test-Path -LiteralPath $CrossViewPath) {
+    $CrossRows = @(Import-Csv -LiteralPath $CrossViewPath -Encoding UTF8)
+    $CrossFeatures = @($CrossRows | ForEach-Object { $_.feature_id } | Select-Object -Unique)
+    $CrossDifferences = New-Object System.Collections.Generic.List[double]
+    foreach ($Row in $CrossRows) {
+        try {
+            $Value = Convert-InvariantDouble $Row.abs_center_x_difference_mm
+            if ([double]::IsNaN($Value) -or [double]::IsInfinity($Value)) { throw 'non-finite value' }
+            $CrossDifferences.Add($Value)
+        } catch {
+            Add-Failure "vent cross-view difference is not finite: $($Row.feature_id)"
+        }
+    }
+    if ($CrossRows.Count -ne 4 -or $CrossFeatures.Count -ne 4) {
+        Add-Failure 'vent cross-view comparison must contain four matched features'
+    } elseif ($CrossDifferences.Count -eq 4) {
+        $MaxDifference = ($CrossDifferences | Measure-Object -Maximum).Maximum
+        if ($MaxDifference -lt 2.5) { Add-Failure 'vent cross-view model-form discrepancy was lost or understated' }
+    }
+}
+
+$P0RecordPath = Join-Path $RepoRoot 'airjet-simulation\evidence\P0_EVIDENCE_FREEZE_RECORD.md'
+if (Test-Path -LiteralPath $P0RecordPath) {
+    $P0Text = Read-Utf8 $P0RecordPath
+    if (-not $P0Text.Contains('PASS - P0 evidence freeze v1') -or
+        -not $P0Text.Contains('P1 CAD') -or -not $P0Text.Contains('P6') -or
+        -not $P0Text.Contains($DrawnVentMarker)) {
+        Add-Failure 'P0 evidence-freeze record lacks the PASS/boundary markers'
+    }
+}
+
+$WindowsPromptPath = Join-Path $RepoRoot 'airjet-simulation\windows-prompts\AJM_WIN_P1_READINESS_001.md'
+if (Test-Path -LiteralPath $WindowsPromptPath) {
+    $WindowsPromptText = Read-Utf8 $WindowsPromptPath
+    foreach ($Marker in @(
+        'HANDSHAKE_STATUS=P1_HANDOFF_READY',
+        'HANDSHAKE_STATUS=P1_BLOCKED',
+        'P1_CAD_STATUS=READY',
+        'P1_CAD_STATUS=BLOCKED',
+        'ACTION_BOUNDARY=DO_NOT_CREATE_CAD',
+        'MODEL_BOUNDARY=WORKING_CANDIDATES_NOT_PRODUCT_FACT',
+        'P0_GATE_BOUNDARY=P0_EVIDENCE_ONLY_P1_P6_NOT_PASSED',
+        'PRESSURE_BOUNDARY=1750_PA_CAPABILITY_FLOW_UNKNOWN',
+        'AIRJET_P1_READINESS_REPORT.txt',
+        'git status --porcelain',
+        'git remote get-url origin',
+        'git rev-list --left-right --count HEAD...origin/main',
+        'https://github.com/superboynick/win-mac-dual-channel.git',
+        'M-3x4-7.0',
+        'M+S-3x5-6.0',
+        'model_reasoning_effort = "high"',
+        '96f65ca6e5c8b8d4bc2b4acdeeb78d9917cf3c5ec2c159055daf88fa3ea261a4',
+        '822fbb7e9735a5505734a291083fed7901c1fdfa01cb7de369679e4d41fd19bd'
+    )) {
+        if (-not $WindowsPromptText.Contains($Marker)) { Add-Failure "Windows P1 prompt lacks invariant: $Marker" }
+    }
+    if ($WindowsPromptText.Contains('HANDSHAKE_STATUS=P1_READY')) {
+        Add-Failure 'Windows P1 prompt uses an ambiguous P1_READY status'
     }
 }
 

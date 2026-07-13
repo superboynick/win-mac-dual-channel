@@ -28,4 +28,4 @@ pdftoppm -png -r 110 \
   tmp/pdfs/advisor-render/page
 ```
 
-The PDF is a stage report. Its automated PASS statements concern repository integrity and handoff only; they must not be interpreted as P0-P6 physical Gate results.
+The PDF is a stage report. `P0 PASS` means that the evidence freeze and its uncertainty boundaries passed; it must not be interpreted as a P1-P6 CAD or physical-simulation result.

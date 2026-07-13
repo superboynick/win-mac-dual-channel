@@ -2,11 +2,13 @@
 
 ## P0 产品证据冻结
 
-- [ ] Mini 数据表所有尺寸、功耗、散热和曲线已数字化。
-- [ ] 官方图的比例测量保留原图、标尺和误差。
-- [ ] 核心专利图与产品图建立部件对应表。
-- [ ] 所有输入参数进入 full product registry，且 `evidence_class` 明确为 D/P/I/C/U，并记录范围/不确定度、推导父项和是否可调。
-- [ ] Mini、G2、PAK 的用途边界已写清。
+- [x] Mini 数据表所有可直接获得的尺寸、功耗、散热和曲线已数字化。
+- [x] 官方图的比例测量保留原始对象哈希、角点/端点、homography、像素误差、Monte Carlo 和跨视图系统差。
+- [x] 核心专利图与产品图建立部件对应表，并以本地 PDF 页码 + FIG. + printed column/line 定位。
+- [x] 所有当前求解器输入参数进入 full product registry，且 `evidence_class` 明确为 D/P/I/C/U，并记录范围/不确定度、推导父项和是否可调。
+- [x] Mini、G2、PAK 的用途边界已写清。
+
+P0 Gate 记录：`evidence/P0_EVIDENCE_FREEZE_RECORD.md`。P0 PASS 仅表示公开证据 v1 已冻结；内部未知量仍保留候选，不代表任何 CAD 或物理仿真 Gate 通过。
 
 ## P1 完整产品 CAD
 

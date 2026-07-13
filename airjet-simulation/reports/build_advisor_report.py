@@ -244,7 +244,7 @@ class AdvisorDocTemplate(BaseDocTemplate):
             canvas.setFont("CJK", 7.2)
             canvas.setFillColor(MID_GRAY)
             canvas.drawString(18 * mm, A4[1] - 10.5 * mm, "AirJet Mini 整机数字复原 - 导师审阅版")
-            canvas.drawRightString(A4[0] - 18 * mm, A4[1] - 10.5 * mm, "技术基线 0c1c0de")
+            canvas.drawRightString(A4[0] - 18 * mm, A4[1] - 10.5 * mm, "P0 evidence freeze v1")
         canvas.setStrokeColor(colors.HexColor("#C7D2DA"))
         canvas.line(18 * mm, 12 * mm, A4[0] - 18 * mm, 12 * mm)
         canvas.setFont("CJK", 7.2)
@@ -575,9 +575,9 @@ def build_cover(styles: dict[str, ParagraphStyle]) -> list:
         leftIndent=36 * mm,
     )
     status_data = [
-        [Paragraph("当前阶段", styles["TableHead"]), Paragraph("P0 产品证据冻结进行中", styles["Table"])],
-        [Paragraph("已完成", styles["TableHead"]), Paragraph("规划、证据框架、审计与跨机交接", styles["Table"])],
-        [Paragraph("未完成", styles["TableHead"]), Paragraph("P0-P6 物理 Gate、CAD、CFD、CHT", styles["Table"])],
+        [Paragraph("当前阶段", styles["TableHead"]), Paragraph("P0 证据冻结 PASS；准备进入 P1", styles["Table"])],
+        [Paragraph("已完成", styles["TableHead"]), Paragraph("P0 图像、专利、参数和布局候选冻结", styles["Table"])],
+        [Paragraph("未完成", styles["TableHead"]), Paragraph("P1-P6 CAD、结构、CFD、CHT 与标定", styles["Table"])],
     ]
     status_table = Table(status_data, colWidths=[30 * mm, 92 * mm], hAlign="CENTER")
     status_table.setStyle(
@@ -607,8 +607,8 @@ def build_cover(styles: dict[str, ParagraphStyle]) -> list:
         Spacer(1, 8 * mm),
         Paragraph("汇报人：____________", meta_style),
         Paragraph("汇报日期：2026-07-13", meta_style),
-        Paragraph("报告版本：v1.0", meta_style),
-        Paragraph("技术基线：Git commit 0c1c0de", meta_style),
+        Paragraph("报告版本：v1.1", meta_style),
+        Paragraph("技术基线：P0 evidence freeze v1", meta_style),
         Spacer(1, 10 * mm),
         status_table,
         Spacer(1, 12 * mm),
