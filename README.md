@@ -1,5 +1,7 @@
 # Windows-Mac dual-channel Git safety tool
 
+AirJet project skills are versioned under `codex-skills/`. After pulling, run `install-skills.ps1` on Windows or `install-skills.sh` on macOS. Use `audit-airjet-project.ps1` for a Python-independent Windows handoff check and `launch-airjet-codex-visible.ps1` from the logged-in Windows desktop for a visible project session. Do not Git-sync the entire `.codex` directory.
+
 GitHub is the authoritative remote (`origin`); NAS is the backup (`nas`). The tool always fetches both channels before comparison or push, calculates commit relationships, and stops on divergent history. It never stashes, merges, rebases, resets, cleans, force-pushes, or stores credentials.
 
 ## Setup per repository

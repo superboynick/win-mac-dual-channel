@@ -7,16 +7,25 @@
 Mac：`/Users/zhangjianxiao/Downloads/AirJet_research/official/AirJet_Mini_Data_Sheet.pdf`  
 Windows：研究 ZIP 解压后的 `AirJet_research/official/AirJet_Mini_Data_Sheet.pdf`
 
+文件身份：
+
+- PDF 共 1 个纵向长页，文件大小 250263 bytes；
+- SHA256：`822fbb7e9735a5505734a291083fed7901c1fdfa01cb7de369679e4d41fd19bd`；
+- 研究包内完整逐文件校验表：`AirJet_research/metadata/SHA256SUMS`；该校验表自身 SHA256 为 `091d1534bfe18697323a079a9db254bd8dc74f60ac224b4796fd0bf217b352f8`。
+
+页内定位：上半部横截面支持膜片、脉冲射流、热扩散面、处理器与侧向 spout 的定性关系；下半部 `Metric / AirJet Mini` 表支持尺寸、重量、功耗、背压、噪声和 5.25/4.25 W 工况；最下部 `AirJet Mini Performance` 图支持功耗—净热与功耗—50 cm 系统噪声的数字化点。因 PDF 只有一页，以上均记为 `page 1`，同时使用区块标题定位。
+
 支持：
 
 - 外形 27.5 × 41.5 × 2.8 mm；
 - 最大功耗 1 W；
 - 总热耗散 5.25 W、净热移除 4.25 W；
 - 85 °C die / 25 °C ambient 工况；
-- 功耗—净热/送风量曲线；
+- 功耗—净热/系统内 50 cm 噪声曲线；
+- 最大背压 1750 Pa、最大噪声 21 dBA、重量 11 g；
 - 产品横截面、膜片、脉冲射流、热扩散面和排气方向。
 
-限制：横截面是官方示意，不可直接当制造图；曲线数字化存在读图误差。
+限制：横截面是官方示意，不可直接当制造图；曲线数字化存在读图误差。Poppler 提取出的右轴标题明确为 `Acoustics of AirJet Mini in system measured at 50 cm (dBA)`，因此不得把 12/15/18/21 一列解释为送风量。
 
 ### AirJet Mini G2 Product Card EN
 

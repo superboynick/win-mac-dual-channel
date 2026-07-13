@@ -19,6 +19,16 @@
 7. `airjet-simulation/checklists/full_product_stage_gates.md`
 8. `airjet-simulation/manuals/01_FULL_PRODUCT_CAD.md`
 
+先安装并核对固定 skills：
+
+```powershell
+cd C:\Users\admin\win-mac-dual-channel
+powershell -ExecutionPolicy Bypass -File .\install-skills.ps1
+powershell -ExecutionPolicy Bypass -File .\audit-airjet-project.ps1
+```
+
+只有两条命令均返回 `PASS` 后，才继续 P0 工作。审计通过表示交接文件与关键证据不变量一致，不表示任何物理阶段门已经通过。
+
 ## 研究资料
 
 Windows Downloads 应有：
@@ -31,16 +41,30 @@ Expected SHA256:
 
 解压后将得到 `AirJet_research`，包含产品数据表、Hot Chips 教程、专利和基础 CFD 论文。PDF 不提交 Git。
 
+解压后的 `official\AirJet_Mini_Data_Sheet.pdf` 还应为：
+
+`822fbb7e9735a5505734a291083fed7901c1fdfa01cb7de369679e4d41fd19bd`
+
+完整逐文件哈希在 `AirJet_research\metadata\SHA256SUMS`；先验证 ZIP，再用该表定位任何单文件损坏或版本差异。
+
 ## 当前工作阶段
 
 P0 产品证据冻结与完整布局候选。尚未进入 CAD 定版。Windows Codex 应先：
 
 1. 核实 Windows CPU、RAM、GPU、磁盘和 ANSYS/Fluent/Mechanical 版本与许可证；
 2. 解压研究 ZIP；
-3. 确认 Mini 性能曲线送风量轴单位；
+3. 复核 Mini 性能曲线数字化点；右轴已由原始 PDF 文字确认是系统内 50 cm 噪声 dBA，不是送风量；
 4. 从官方 Mini 顶视图/横截面提取活动区、进气和出口比例；
 5. 完善 Layout-L/M/S 候选约束；
 6. 在用户确认 CAD 软件后再开始完整产品 CAD。
+
+可见窗口启动使用仓库脚本：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\launch-airjet-codex-visible.ps1
+```
+
+该脚本只允许在当前交互桌面会话启动；若从 SSH 运行会明确拒绝，防止产生用户看不见的后台 Codex。
 
 ## 安全规则
 

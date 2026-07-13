@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "official_source": {
+    "repository": "https://github.com/openai/skills.git",
+    "commit": "49f948faa9258a0c61caceaf225e179651397431"
+  },
+  "skills": [
+    {
+      "name": "airjet-product-reconstruction",
+      "kind": "project",
+      "source": "codex-skills/airjet-product-reconstruction",
+      "skill_md_sha256": "cb9fd3c78c09aed5cfb95d04194791f1a8f8799f20ad42cddc03f20f0281386c"
+    },
+    {
+      "name": "jupyter-notebook",
+      "kind": "official",
+      "source": "skills/.curated/jupyter-notebook",
+      "skill_md_sha256": "62f102e8554b25716dccef0ffab4572d4e3eaf05ccc76562d33a065bc9c521fb"
+    },
+    {
+      "name": "pdf",
+      "kind": "official",
+      "source": "skills/.curated/pdf",
+      "skill_md_sha256": "d108cf2b36355ab37eb5962933f4d09785ec002f3105c506129320209306b9d2"
+    }
+  ]
+}

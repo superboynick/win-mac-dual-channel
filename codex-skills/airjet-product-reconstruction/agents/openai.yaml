@@ -1,0 +1,4 @@
+interface:
+  display_name: "AirJet Product Reconstruction"
+  short_description: "Evidence-led full-product AirJet reconstruction"
+  default_prompt: "Use $airjet-product-reconstruction to audit and advance the full-product AirJet Mini digital reconstruction."

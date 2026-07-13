@@ -1,5 +1,5 @@
-power_W,net_heat_dissipation_W,delivered_airflow_chart_units,heat_uncertainty_W,airflow_uncertainty_chart_units,status,source
+power_W,net_heat_dissipation_W,system_noise_at_50cm_dBA,heat_uncertainty_W,noise_uncertainty_dBA,status,source
 0.25,1.55,12.0,0.10,0.7,image_digitized_approximate,AirJet_Mini_Data_Sheet performance chart
 0.50,2.95,15.0,0.10,0.7,image_digitized_approximate,AirJet_Mini_Data_Sheet performance chart
 0.75,3.65,18.0,0.10,0.7,image_digitized_approximate,AirJet_Mini_Data_Sheet performance chart
-1.00,4.25,21.0,0.10,0.7,image_digitized_approximate,AirJet_Mini_Data_Sheet performance chart
+1.00,4.25,21.0,0.10,0.7,direct_endpoint_plus_image_digitized,AirJet_Mini_Data_Sheet table and performance chart

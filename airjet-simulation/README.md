@@ -11,11 +11,12 @@
 - `AIRJET_MINI_FULL_PRODUCT_MASTER_PLAN.md`：当前主项目文件；整机目标选择、多尺度模型、阶段、算法、算力和手册规划。
 - `DECISION_AND_REASONING_ARCHIVE.md`：产品选择、参数来源、算法、替代方案、否决理由和未解决问题的可学习工程推理档案。
 - `WINDOWS_HANDOFF.md`：Windows Codex 的读取顺序、当前阶段和下一步。
+- `SKILLS_AND_GIT_WORKFLOW.md`：Git 作为 skill 源版本、一键安装和两机哈希验证方法。
 - `AIRJET_RECONSTRUCTION_PLAN.md`：内部单元复原依据；现在是整机规划的子文档，不再是最终目标。
 - `OPERATION_MANUAL_00_EVIDENCE_TO_CAD.md`：早期单元证据到 CAD 草案；将扩写为完整产品 CAD 手册。
 - `MODEL_ANNOTATIONS.md`：仿真注释总表；每一个简化、设置和结果都必须在这里解释。
 - `evidence/airjet_reconstruction_ledger.csv`：可追溯参数账本，区分证实、范围、推断和未知。
-- `evidence/airjet_mini_performance_curve_digitized.csv`：Mini 官方功耗—净散热/流量曲线的近似数字化校准点。
+- `evidence/airjet_mini_performance_curve_digitized.csv`：Mini 官方功耗—净散热/50 cm 系统噪声曲线的数字化校准点；它不是流量曲线。
 - `evidence/layout_candidate_constraints.md`：整机内部 Layout-L/M/S 的硬约束、搜索范围和淘汰顺序。
 - `evidence/SOURCE_PROVENANCE.md`：每份产品卡、专利和论文能支持哪些参数，以及不能支持什么。
 - `parameters/full_product_parameter_registry.csv`：完整产品尺寸、性能、结构、流体、控制和热参数注册表。
@@ -26,6 +27,8 @@
 - `manuals/05_FULL_PRODUCT_CHT.md`：完整热结构、自热/芯片热账户和官方热工况校准。
 - `manuals/06_CALIBRATION_AND_UNCERTAINTY.md`：多指标参数识别、验证集与不可辨识性处理。
 - `manuals/07_RUN_LOG_AND_GIT.md`：每次算例注释、大文件索引和 Windows/Mac 交接。
+- `notebooks/airjet-mini-layout-baseline.ipynb`：可执行的产品指标核对与 Layout-L/M/S 几何候选枚举；几何可装入不等于真实内部布局。
+- `notebooks/build_layout_baseline.py`：可重复生成上述 notebook 的标准库脚本。
 - `checklists/full_product_stage_gates.md`：P0–P6 的整机验收门槛。
 - `AIRJET_SIMULATION_PROJECT.md`：旧的“参数优化”蓝图，保留作未来阶段参考，不可作为当前建模任务。
 
@@ -36,3 +39,5 @@
 ## 协作规则
 
 在 Windows 或 Mac 继续之前，先执行 `git pull`；完成一小段可检查工作后，提交并 `git push`。不要把求解结果、网格、case/data、临时文件或许可证信息直接提交；应只提交脚本、参数表、图表源文件、日志摘要和小型后处理数据。
+
+交接前在 Mac 运行项目 skill 的 Python 审计器，在 Windows 运行仓库根目录的 `audit-airjet-project.ps1`。两者都通过只证明项目骨架和证据不变量一致，不代表 P0–P6 的物理仿真已经通过。
