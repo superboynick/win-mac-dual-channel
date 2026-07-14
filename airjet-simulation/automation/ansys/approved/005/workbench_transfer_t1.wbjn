@@ -32,12 +32,14 @@ result = {
     "p1_cad_hard_gate": "BLOCKED_UPSTREAM_NATIVE_PARAMETERIZATION",
     "license_arguments_added": False,
     "assertions": dict((name, False) for name in assertion_names),
-    "geometry_route": "INDEPENDENT_GEOMETRY_SOURCE_COMPONENTS_TO_SHARE",
+    "geometry_route": "EXPLICIT_SPACECLAIM_EDIT_COMPONENTS_TO_SHARE",
     "update_route": "MODEL_CONTAINER_REFRESH_AFTER_COMPONENTS_SHARE",
     "execution_reach": {
         "predecessor_identity": "NOT_REACHED",
         "source_geometry_system": "NOT_REACHED",
         "source_geometry_set_file": "NOT_REACHED",
+        "source_geometry_edit_spaceclaim": "NOT_REACHED",
+        "source_geometry_exit": "NOT_REACHED",
         "static_system_with_components_share": "NOT_REACHED",
         "source_geometry_file_and_save_data": "NOT_REACHED",
         "model_update_all_dependencies": "NOT_CALLED_BY_ROUTE",
@@ -110,6 +112,13 @@ try:
     result["execution_reach"]["source_geometry_set_file"] = "CALLED"
     source_geometry.SetFile(FilePath=native_path)
     result["execution_reach"]["source_geometry_set_file"] = "RETURNED"
+
+    result["execution_reach"]["source_geometry_edit_spaceclaim"] = "CALLED"
+    source_geometry.Edit(Interactive=False, IsSpaceClaimGeometry=True)
+    result["execution_reach"]["source_geometry_edit_spaceclaim"] = "RETURNED"
+    result["execution_reach"]["source_geometry_exit"] = "CALLED"
+    source_geometry.Exit()
+    result["execution_reach"]["source_geometry_exit"] = "RETURNED"
     source_component = source_system.GetComponent(Name="Geometry")
 
     result["execution_reach"]["static_system_with_components_share"] = "CALLED"
