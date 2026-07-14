@@ -1,5 +1,9 @@
 # AirJet 双端 Git watcher 实现记录
 
+> 历史状态说明：本文件记录最初的 runtime-disabled 实现边界。2026-07-14 后续的
+> 手动常驻启用状态以 `AIRJET_DUAL_ENDPOINT_WATCHER_MANUAL_RUNTIME_2026-07-14.md`
+> 为准；下方测试输出和禁用结论保留为当时记录，不应改写为新结果。
+
 日期：2026-07-14
 任务：让 Mac 与 Windows 在用户不持续值守时，通过 GitHub `main` 安全同步并按
 签名任务唤醒各自 Codex。

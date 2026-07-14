@@ -5,7 +5,7 @@ ACTION=${1:-status}
 [ "$#" -eq 0 ] || shift
 POLL_SECONDS=180
 FORCE=0
-RUNTIME_STATUS=DISABLED_PENDING_END_TO_END
+RUNTIME_STATUS=ENABLED_AFTER_REVIEW
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --poll-seconds)

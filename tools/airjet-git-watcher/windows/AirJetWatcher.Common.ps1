@@ -2,7 +2,7 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $script:ExpectedRemote = 'ssh://git@ssh.github.com:443/superboynick/win-mac-dual-channel.git'
-$script:RuntimeStatus = 'DISABLED_PENDING_END_TO_END'
+$script:RuntimeStatus = 'ENABLED_AFTER_END_TO_END'
 $script:TaskEnvelopeRel = 'airjet-simulation/collaboration/WINDOWS_TASK.env'
 $script:OtherTaskEnvelopeRel = 'airjet-simulation/collaboration/MAC_TASK.env'
 $script:CriticalPaths = @('.gitattributes', '.gitmodules', 'tools/airjet-git-watcher')

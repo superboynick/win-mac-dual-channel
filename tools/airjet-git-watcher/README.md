@@ -1,9 +1,9 @@
 # AirJet signed dual-endpoint Git watcher
 
-> Runtime status: `DISABLED_PENDING_END_TO_END`（2026-07-14）。Mac 端 80 项与
-> Windows 端 50 项隔离行为测试通过，但真实双端 Codex 窗口和登录启动尚未完成。
-> 在用户观察真实可见唤醒以前，不得把 runtime 常量改为 enabled，也不得注册
-> LaunchAgent 或 Scheduled Task。
+> Runtime status: `ENABLED_MANUAL_NO_AUTOSTART`（2026-07-14）。Mac 端 80 项与
+> Windows 端 50 项隔离行为测试用于持续回归；真实双端可见唤醒仍需分别观察记录。
+> 用户已授权手动常驻轮询，但未授权开机启动，因此不得注册 LaunchAgent 或
+> Scheduled Task。
 
 本工具让 Mac 与 Windows 通过 GitHub `main` 同步 AirJet 仓库，并只对对端专用
 签名 key 授权的任务启动 Codex。没有更新时不调用模型。普通 signed commit 只
@@ -99,7 +99,7 @@ sh tools/airjet-git-watcher/tests/test-watch-airjet-git.sh
 ```text
 CORE_CASES_PASS=80
 EXPECTED_PASS_COUNT=80
-OVERALL=PASS_CORE_RUNTIME_DISABLED
+OVERALL=PASS_CORE_RUNTIME_ENABLED_MANUAL
 ```
 
 Windows：
@@ -114,27 +114,29 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\airjet-git-watcher\t
 ```text
 WINDOWS_CORE_CASES_PASS=50
 EXPECTED_PASS_COUNT=50
-OVERALL=PASS_CORE_RUNTIME_DISABLED
+OVERALL=PASS_CORE_RUNTIME_ENABLED_MANUAL
 ```
 
-## 当前安全命令
+## 当前手动运行命令
 
-runtime locked 时只允许 status 和真实仓库的单次 no-wake 同步：
+手动常驻不会注册登录启动项。Mac 从仓库 manager 启动：
 
 ```sh
 sh tools/airjet-git-watcher/mac/manage-airjet-watcher.sh status
 sh tools/airjet-git-watcher/mac/manage-airjet-watcher.sh once
+sh tools/airjet-git-watcher/mac/manage-airjet-watcher.sh start --poll-seconds 180
 ```
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy RemoteSigned -File .\tools\airjet-git-watcher\windows\Manage-AirJetWatcher.ps1 -Action status
 powershell -NoProfile -ExecutionPolicy RemoteSigned -File .\tools\airjet-git-watcher\windows\Manage-AirJetWatcher.ps1 -Action once
+powershell -NoProfile -ExecutionPolicy RemoteSigned -File .\tools\airjet-git-watcher\windows\Manage-AirJetWatcher.ps1 -Action start -PollSeconds 180
 ```
 
-`start`、`retry`、真实 wake 和 startup registration 当前均由 manager、watcher、
-runner/installer 多层拒绝，不能通过直接调用子脚本绕过。
+`start`、`retry` 和目标任务 wake 已启用；测试模式仍硬拒绝真实启动。startup
+registration 仍未获授权，本轮不得调用下节中的登录启动安装命令。
 
-## E2E 通过后的登录启动
+## 另行授权后的登录启动
 
 Mac 使用当前可见用户的 LaunchAgent；Windows 使用当前登录用户、
 `InteractiveToken`、`Limited` 的 AtLogOn Scheduled Task。两者是“用户登录后启动”，
@@ -150,6 +152,6 @@ sh tools/airjet-git-watcher/mac/install-mac-watcher.sh install --poll-seconds 18
 powershell -NoProfile -ExecutionPolicy RemoteSigned -File .\tools\airjet-git-watcher\windows\Install-AirJetWatcher.ps1 -RegisterAtLogOn
 ```
 
-installer 默认不注册；只有代码中的 runtime gate 已在 E2E 后显式变更，注册分支
-才会通过。Windows installer 还要求预先 bootstrap 且哈希正确的 Git 外 trust，
+Windows installer 默认不注册；只有用户另行明确授权，才能使用注册分支。Windows
+installer 还要求预先 bootstrap 且哈希正确的 Git 外 trust，
 不会从仓库自动导入任何公钥。

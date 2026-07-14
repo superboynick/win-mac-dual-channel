@@ -84,7 +84,7 @@ next_task_id=NONE
 watcher 只在工作树干净、`main` 正确、远端固定、历史可 fast-forward、签名链
 有效且远端 OID 在 runner 启动前仍未变化时唤醒 Codex。runner 从签名 commit
 重新读取信封和 instruction，不把本地 pending 文件当作授权来源。Codex 明确
-使用 `workspace-write` 与 `on-request`，不得继承 Windows 当前可能更宽的默认
+使用 `workspace-write` 与 `approval_policy=never`，不得继承 Windows 当前可能更宽的默认
 sandbox。
 
 包含 watcher、`.gitattributes` 或 `.gitmodules` 的更新永远需要人工复核和

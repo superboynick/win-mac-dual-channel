@@ -354,12 +354,12 @@ try {
     try { $output=@(& $PowerShell -NoProfile -ExecutionPolicy Bypass -File $Manager -Action start 2>&1 | ForEach-Object { $_.ToString() }); $code=$LASTEXITCODE }
     finally { $ErrorActionPreference=$savedPreference }
     if ($code -eq 0) { Fail 'manager_start_guard' }
-    Assert-Contains 'manager_start_guard' ($output -join "`n") 'START_RESULT=REFUSED_DISABLED_PENDING_END_TO_END'
+    Assert-Contains 'manager_start_guard' ($output -join "`n") 'START_RESULT=REFUSED_TEST_MODE'
     $savedPreference=$ErrorActionPreference; $ErrorActionPreference='Continue'
     try { $output=@(& $PowerShell -NoProfile -ExecutionPolicy Bypass -File $Manager -Action retry 2>&1 | ForEach-Object { $_.ToString() }); $code=$LASTEXITCODE }
     finally { $ErrorActionPreference=$savedPreference }
     if ($code -eq 0) { Fail 'manager_retry_guard' }
-    Assert-Contains 'manager_retry_guard' ($output -join "`n") 'RETRY_RESULT=REFUSED_DISABLED_PENDING_END_TO_END'
+    Assert-Contains 'manager_retry_guard' ($output -join "`n") 'RETRY_RESULT=REFUSED_TEST_MODE'
 
     Assert-Contains 'fixed_remote' ([IO.File]::ReadAllText($Common)) 'ssh://git@ssh.github.com:443/superboynick/win-mac-dual-channel.git'
     Assert-Contains 'fixed_allowed_hash' ([IO.File]::ReadAllText($Common)) 'DB1ADA7DBB7472C43CF32405A3C02F755AE5D291F4348E01C35C60C8EB2A79A6'
@@ -379,8 +379,9 @@ try {
     Write-Output 'SIGNED_CHAIN=BEHAVIOR_TESTED'
     Write-Output 'MAC_ONLY_TASK_TIP=BEHAVIOR_TESTED'
     Write-Output 'RETRY_REBUILD=BEHAVIOR_TESTED'
+    Write-Output 'RUNTIME_TEST_MODE_GUARD=BEHAVIOR_TESTED'
     Write-Output 'VISIBLE_WAKE=SKIPPED_BY_DESIGN'
-    Write-Output 'OVERALL=PASS_CORE_RUNTIME_DISABLED'
+    Write-Output 'OVERALL=PASS_CORE_RUNTIME_ENABLED_MANUAL'
 } finally {
     foreach ($name in @('AIRJET_WATCHER_TEST_MODE','AIRJET_REPO_ROOT','AIRJET_WATCHER_STATE_ROOT','AIRJET_TEST_EXPECTED_REMOTE','AIRJET_TEST_ALLOWED_SIGNERS_FILE','AIRJET_TEST_MAC_SIGNERS_FILE','AIRJET_TEST_KRL_FILE','AIRJET_TEST_SSH_KEYGEN','AIRJET_TEST_ALLOWED_HASH','AIRJET_TEST_MAC_HASH','AIRJET_TEST_KRL_HASH','GIT_CONFIG_COUNT','GIT_CONFIG_KEY_0','GIT_CONFIG_VALUE_0')) {
         Remove-Item "Env:$name" -ErrorAction SilentlyContinue

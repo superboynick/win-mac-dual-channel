@@ -5,7 +5,7 @@ set -eu
 PROMPT_HANDLE=$1
 OLD_COMMIT=$2
 NEW_COMMIT=$3
-RUNTIME_STATUS=DISABLED_PENDING_END_TO_END
+RUNTIME_STATUS=ENABLED_AFTER_REVIEW
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/../../.." && pwd -P)
 STATE_ROOT="$HOME/Library/Application Support/AirJetGitWatcher"

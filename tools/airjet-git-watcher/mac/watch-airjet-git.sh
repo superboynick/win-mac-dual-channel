@@ -9,7 +9,7 @@ VALIDATE_TASK=0
 VALIDATE_OLD=
 VALIDATE_NEW=
 VALIDATE_TASK_ID=
-RUNTIME_STATUS=DISABLED_PENDING_END_TO_END
+RUNTIME_STATUS=ENABLED_AFTER_REVIEW
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -882,7 +882,7 @@ fi
 while :; do
   if stop_requested; then STOP_REASON=manual_stop_request; break; fi
   poll_once
-  if [ "$UPDATE_FOUND" -eq 1 ] || [ "$ONCE" -eq 1 ]; then break; fi
+  if [ "$ONCE" -eq 1 ]; then break; fi
   waited=0
   while [ "$waited" -lt "$POLL_SECONDS" ]; do
     if stop_requested; then STOP_REASON=manual_stop_request; break 2; fi

@@ -6,7 +6,7 @@ param(
 
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
-$RuntimeStatus = 'DISABLED_PENDING_END_TO_END'
+$RuntimeStatus = 'ENABLED_AFTER_END_TO_END'
 $watcher = Join-Path $PSScriptRoot 'Watch-AirJetGit.ps1'
 . (Join-Path $PSScriptRoot 'AirJetWatcher.Common.ps1')
 
@@ -60,6 +60,10 @@ function Show-AirJetWatcherStatus {
 
 try {
     Initialize-AirJetWatcherContext
+    if ($script:TestMode -and (($Action -eq 'start') -or ($Action -eq 'retry'))) {
+        [Console]::Error.WriteLine("$($Action.ToUpperInvariant())_RESULT=REFUSED_TEST_MODE")
+        exit 1
+    }
     switch ($Action) {
         'status' { Show-AirJetWatcherStatus }
         'once' {

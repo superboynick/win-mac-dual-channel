@@ -21,12 +21,13 @@ This repository is the user's safe GitHub-primary collaboration toolkit for Mac 
 5. Stop on divergence, dirty worktrees, missing authentication, or ambiguous ownership. Do not auto-merge, rebase, force-push, reset, clean, or overwrite changes.
 6. Preserve user files and existing changes. Never store passwords, tokens, or private keys in repository files.
 7. For genuinely long or multi-part work, the task-owning Codex agent should use 1-2 bounded subagents for independent research, audit, or testing when parallel work is useful. That agent must read required skills itself, retain ownership of that task, integrate and verify subagent results, and stop all subagents before handoff. Do not use subagents merely to simulate idle persistence or to bypass stage gates, approvals, or repository safety rules.
+8. Claude CLI may be used as a second-model, read-only reviewer through `tools/claude-cli/`. Use the exact configured model names `deepseek-v4-pro` or `deepseek-v4-flash`, not the informal alias `dsv4pro`. Codex remains task and Git owner, verifies every Claude finding, and prevents concurrent edits to the same files. Never commit or print Claude credentials, gateway URLs, local settings, sessions, or caches.
 
 ## Toolkit scope
 
 `dual-channel.ps1` exposes safe operations including status, fetch, compare, sync-check, push-main, and backup-nas. It is designed to fetch before comparison/push and block unsafe states.
 
-The macOS manual Git watcher source is synchronized under `tools/airjet-git-watcher/`. Its isolated core matrix now passes, and ordinary updates cannot wake Codex without a changed, valid `target=mac` task envelope; repository-internal state roots and critical watcher updates fail closed. Runtime remains `DISABLED_PENDING_HARDENING` until commit-authentication policy and a user-observed visible-wake test are reviewed. `start`/`retry` are code-locked; do not bypass them. It must never install a LaunchAgent, cron job, login item, or shell-profile startup entry. Machine state remains outside Git.
+The signed dual-endpoint Git watcher source is synchronized under `tools/airjet-git-watcher/`. Its isolated core matrices pass, and ordinary updates cannot wake Codex without a changed, valid target task envelope; repository-internal state roots and critical watcher updates fail closed. Runtime is enabled for explicit manual long-running starts only. Do not register a LaunchAgent, Scheduled Task, cron job, login item, or shell-profile startup entry unless the user separately reauthorizes startup registration. Automatic reciprocal relay remains disabled; each wake is a separately signed root task. Machine state remains outside Git.
 
 ## Current task direction
 

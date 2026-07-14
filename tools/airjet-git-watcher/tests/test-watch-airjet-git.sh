@@ -168,9 +168,9 @@ commit_writer_file() {
 /bin/sh -n "$RUNNER"
 /bin/sh -n "$INSTALLER"
 pass shell_syntax
-[ "$(grep -c '^RUNTIME_STATUS=DISABLED_PENDING_END_TO_END$' "$WATCHER")" -eq 1 ] || fail watcher_runtime_guard_missing
-[ "$(grep -c '^RUNTIME_STATUS=DISABLED_PENDING_END_TO_END$' "$MANAGER")" -eq 1 ] || fail manager_runtime_guard_missing
-[ "$(grep -c '^RUNTIME_STATUS=DISABLED_PENDING_END_TO_END$' "$RUNNER")" -eq 1 ] || fail runner_runtime_guard_missing
+[ "$(grep -c '^RUNTIME_STATUS=ENABLED_AFTER_REVIEW$' "$WATCHER")" -eq 1 ] || fail watcher_runtime_status_missing
+[ "$(grep -c '^RUNTIME_STATUS=ENABLED_AFTER_REVIEW$' "$MANAGER")" -eq 1 ] || fail manager_runtime_status_missing
+[ "$(grep -c '^RUNTIME_STATUS=ENABLED_AFTER_REVIEW$' "$RUNNER")" -eq 1 ] || fail runner_runtime_status_missing
 grep -q 'INSTALL_RESULT=REFUSED_DISABLED_PENDING_END_TO_END' "$INSTALLER" || fail installer_runtime_guard_missing
 pass runtime_guard_source
 
@@ -800,13 +800,13 @@ MANAGER_START_CODE=$?
 MANAGER_RETRY_OUTPUT=$(env AIRJET_WATCHER_TEST_MODE=1 AIRJET_WATCHER_STATE_ROOT="$MANAGER_STATE" /bin/sh "$MANAGER" retry 2>&1)
 MANAGER_RETRY_CODE=$?
 set -e
-[ "$MANAGER_START_CODE" -ne 0 ] || fail manager_start_was_not_disabled
-assert_contains manager_start_disabled "$MANAGER_START_OUTPUT" START_RESULT=REFUSED_DISABLED_PENDING_END_TO_END
-[ "$MANAGER_RETRY_CODE" -ne 0 ] || fail manager_retry_was_not_disabled
-assert_contains manager_retry_disabled "$MANAGER_RETRY_OUTPUT" RETRY_RESULT=REFUSED_DISABLED_PENDING_END_TO_END
+[ "$MANAGER_START_CODE" -ne 0 ] || fail manager_start_test_mode_was_not_blocked
+assert_contains manager_start_test_mode_guard "$MANAGER_START_OUTPUT" START_RESULT=REFUSED_TEST_MODE
+[ "$MANAGER_RETRY_CODE" -ne 0 ] || fail manager_retry_test_mode_was_not_blocked
+assert_contains manager_retry_test_mode_guard "$MANAGER_RETRY_OUTPUT" RETRY_RESULT=REFUSED_TEST_MODE
 
 TARGET_ENVELOPE_GATE=BEHAVIOR_TESTED
-RUNTIME_DISABLE_GUARD=BEHAVIOR_TESTED
+RUNTIME_TEST_MODE_GUARD=BEHAVIOR_TESTED
 STATE_ROOT_REPO_BOUNDARY=BEHAVIOR_TESTED
 REPORT_ROOT_BOUNDARY=BEHAVIOR_TESTED
 EXPECTED_PASS_COUNT=80
@@ -815,8 +815,8 @@ EXPECTED_PASS_COUNT=80
 printf 'CORE_CASES_PASS=%s\n' "$PASS_COUNT"
 printf 'EXPECTED_PASS_COUNT=%s\n' "$EXPECTED_PASS_COUNT"
 printf 'TARGET_ENVELOPE_GATE=%s\n' "$TARGET_ENVELOPE_GATE"
-printf 'RUNTIME_DISABLE_GUARD=%s\n' "$RUNTIME_DISABLE_GUARD"
+printf 'RUNTIME_TEST_MODE_GUARD=%s\n' "$RUNTIME_TEST_MODE_GUARD"
 printf 'STATE_ROOT_REPO_BOUNDARY=%s\n' "$STATE_ROOT_REPO_BOUNDARY"
 printf 'REPORT_ROOT_BOUNDARY=%s\n' "$REPORT_ROOT_BOUNDARY"
 printf '%s\n' 'VISIBLE_WAKE_TEST=SKIPPED_BY_DESIGN'
-printf '%s\n' 'OVERALL=PASS_CORE_RUNTIME_DISABLED'
+printf '%s\n' 'OVERALL=PASS_CORE_RUNTIME_ENABLED_MANUAL'

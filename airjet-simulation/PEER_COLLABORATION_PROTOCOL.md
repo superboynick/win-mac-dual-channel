@@ -64,6 +64,6 @@ relay、receipt 驱动接力和循环执行均未启用。一个 Codex 可以正
 但不能仅因为“任务完成”就自动改写对端信封；新的唤醒必须由主协调会话建立新的
 签名根任务。这样可在 receipt 亲子验证器完成以前保持 fail-closed。
 
-测试模式永远不能启动真实 Codex。生产运行在 Mac manager/watcher/runner 和
-Windows manager/watcher/runner 三层同时锁定；只有双端隔离测试、真实可见唤醒
-和用户观察通过后，才允许修改 runtime 状态并注册登录启动项。
+测试模式永远不能启动真实 Codex。Mac 与 Windows runtime 已启用为用户显式启动的
+手动常驻模式；真实可见唤醒结果仍须如实记录。登录启动项没有获得授权，不得注册。
+root task、签名、clean/fast-forward、防重复 claim 和 relay 禁令继续适用。
