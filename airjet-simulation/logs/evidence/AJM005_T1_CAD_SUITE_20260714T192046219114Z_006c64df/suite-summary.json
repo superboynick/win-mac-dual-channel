@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "task": "AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
+  "suite": "cad_and_workbench_transfer_t1",
+  "suite_status": "FAIL_CAD_TRANSFER_SET",
+  "git_head": "74e855733613baa80d7d821b961c629268f4ba59",
+  "case_id": "ajm005-cad-xfer-20260714t192046219114z_006c64df",
+  "started_at": "2026-07-14T19:20:46.219114+00:00",
+  "ended_at": "2026-07-14T19:21:13.313617+00:00",
+  "external_result_path": "C:\\Users\\admin\\Downloads\\AIRJET_ANSYS_STUDENT_SMOKE_005\\AJM005_T1_CAD_SUITE_20260714T192046219114Z_006c64df.json",
+  "external_result_sha256": "d0abda66ef330b3a5e742e674e7abd07cb36e82a80465ab4098ccd7688c4f900",
+  "external_mcp_stderr_sha256": "224ba0e83c60418b25577548b620ed783a3c6cf6b4cc37833078684f574718ad",
+  "runner_sha256": "406747086ddf9cb8bc01a97f3d574d981cc95805d37de7e9b4c8f94e71936559",
+  "license_arguments_added": false,
+  "visibility": "NOT_USER_OBSERVED",
+  "p1_cad_toolchain_readiness": "BLOCKED",
+  "p1_cad_blocker": "NATIVE_PARAMETERIZATION_NOT_RUN",
+  "p1_p6_gates": "NOT_RUN",
+  "post_suite_process_observation": {
+    "observed_at_utc": "2026-07-14T19:21:43.0648840Z",
+    "count": 0,
+    "method": "PowerShell Get-Process name allowlist piped to Measure-Object"
+  },
+  "runs": [
+    {
+      "profile_id": "ajm005-spaceclaim-cad-t1-v1",
+      "job_id": "ajm005-cad-xfer-20260714t192046219114z_006c64df-ad5b474ac3ed",
+      "script_sha256": "591678b3bf8a0582f2d9f037983dfbd5c42d6ae4194fc4251149c06a2e1e191a",
+      "started_at": "2026-07-14T19:20:48.814997+00:00",
+      "ended_at": "2026-07-14T19:21:12.774436+00:00",
+      "duration_seconds": 23.959439,
+      "phase": "PROCESS_EXITED_0",
+      "exit_code": 0,
+      "report_status": "FAIL_DIRECT",
+      "engineering_capability": "FAIL_DIRECT",
+      "error_type": "AttributeError",
+      "error": "'TrimmedSpace' object has no attribute 'PieceCount'",
+      "volume_extract_api": "NOT_RUN",
+      "volume_extract_route": "DIRECT_NEGATIVE_VOLUME_BOOLEAN_UNION_EQUIVALENT",
+      "observed_geometry": {
+        "raw_inlet_construction_ok": true,
+        "raw_inlet_expected_volume_mm3": 3.455751918948773,
+        "raw_inlet_actual_volume_mm3": 3.455751918948766,
+        "expected_union_volume_mm3": 203.14159265358978,
+        "actual_union_volume_mm3": 203.14159265358984,
+        "bbox_min_mm": [2.0, 2.0, 0.0],
+        "bbox_max_mm": [20.0, 8.0, 3.0],
+        "piece_count": 1,
+        "is_closed": true,
+        "named_selection_counts": {
+          "INLET": 1,
+          "OUTLET": 1,
+          "WALLS": 11
+        }
+      },
+      "native_reopen": {
+        "body_count": 1,
+        "actual_volume_mm3": 203.14159265358978,
+        "piece_count": 1,
+        "is_closed": true,
+        "named_selection_counts": {
+          "INLET": 1,
+          "OUTLET": 1,
+          "WALLS": 11
+        }
+      },
+      "step_reimport": {
+        "all_body_count": 1,
+        "all_body_count_provenance": "control flow reached body_fingerprint only when len(GetAllBodies()) == 1",
+        "shape_type": "TrimmedSpace",
+        "root_body_count": "NOT_RECORDED_BEFORE_EXCEPTION",
+        "component_count": "NOT_RECORDED_BEFORE_EXCEPTION",
+        "step_geometry_validity": "INDETERMINATE",
+        "failure": "PieceCount is not exposed by the imported ITrimmedSpace implementation"
+      },
+      "assertions": {
+        "script_parameterization_equivalent": true,
+        "named_selections": true,
+        "volume_extract_or_equivalent": true,
+        "fluid_connectivity": true,
+        "native_save": true,
+        "native_reopen": true,
+        "step_export_reimport": false
+      },
+      "artifacts": {
+        "full_native": {
+          "size": 38200,
+          "sha256": "7191605d13878f27e75eb92e6e6b8499a1ac908c28a338efe5eb944d744ea0e1"
+        },
+        "transfer_native": {
+          "size": 32140,
+          "sha256": "d49ed4d22dc0b69882e618fad13522d2708c04342d562f7fbbe50806d65b928e"
+        },
+        "step": {
+          "size": 17207,
+          "sha256": "ea3fce9bf63a061bc8263446ebb8c6b071cb3ab8a3aad7b30be317be78e94bda"
+        }
+      },
+      "declared_report_sha256": "c7ba37fc8e314dcd43bc59a7882c6b64d99d00aa1cb317edab85c35c6c6f9717",
+      "job_state_sha256": "38743e4c6db543ea335878e08892fc55a7e5bd202530431e3b02e19cfba57bbb",
+      "stdout_sha256": "d6031b638d8dc50e919c774f3f28f0210f55f49e7d6d7ce733a81472ed758851",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "profile_id": "ajm005-workbench-transfer-t1-v1",
+      "status": "BLOCKED_UPSTREAM",
+      "job_id": null,
+      "engineering_capability": "NOT_RUN"
+    }
+  ]
+}

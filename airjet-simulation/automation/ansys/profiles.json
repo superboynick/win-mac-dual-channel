@@ -53,7 +53,7 @@
       "profile_id": "ajm005-spaceclaim-cad-t1-v1",
       "engine": "spaceclaim",
       "script": "005/spaceclaim_cad_t1.py",
-      "sha256": "591678b3bf8a0582f2d9f037983dfbd5c42d6ae4194fc4251149c06a2e1e191a",
+      "sha256": "44d2a671a4ccf8853484abf726c4bcc121a7ad5d9a53a81bb0f94750d70794a5",
       "timeout_seconds": 900,
       "output_root_id": "student_smoke_005",
       "reports": [

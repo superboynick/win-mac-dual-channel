@@ -307,4 +307,6 @@ terminal SC job
 7. predecessor 还要核对 probe、required assertions、P1 Gate 和许可参数标记。
 
 静态 policy/audit PASS 只证明这些规则在代码和配置中存在。Windows 负向测试已通过，真实 CAD
-探针两轮 FAIL 已保留；第三版仍需新签名 job，不能因修复逻辑看起来合理而提前写能力 PASS。
+探针三轮 FAIL 已保留；第三轮逐项通过 union、命名面和 native reopen，但 STEP
+`TrimmedSpace` type adapter 失败。第四版仍需新签名 job，不能因修复逻辑看起来合理而提前写
+aggregate 能力 PASS。

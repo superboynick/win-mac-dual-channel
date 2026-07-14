@@ -62,8 +62,26 @@ def mm3_value(value_in_cubic_meters):
 
 
 def body_fingerprint(body):
-    box = body.Shape.GetBoundingBox(Matrix.Identity)
+    # GetAllBodies returns IDesignBody occurrences. The occurrence Shape is
+    # only ITrimmedSpace (placed bbox/volume); Master.Shape is Modeler.Body
+    # and carries topology-specific PieceCount/IsClosed/IsManifold.
+    occurrence_shape = body.Shape
+    master = getattr(body, "Master", None)
+    master_shape = getattr(master, "Shape", None) if master is not None else None
+    topology_shape = (
+        master_shape if master_shape is not None else occurrence_shape
+    )
+    box = occurrence_shape.GetBoundingBox(Matrix.Identity)
+    piece_count = getattr(topology_shape, "PieceCount", None)
+    is_closed = getattr(topology_shape, "IsClosed", None)
+    is_manifold = getattr(topology_shape, "IsManifold", None)
     return {
+        "shape_type": type(occurrence_shape).__name__,
+        "occurrence_shape_type": type(occurrence_shape).__name__,
+        "topology_shape_type": type(topology_shape).__name__,
+        "topology_shape_source": (
+            "MASTER_SHAPE" if master_shape is not None else "OCCURRENCE_SHAPE"
+        ),
         "bbox_min_mm": [
             mm_value(box.MinCorner.X),
             mm_value(box.MinCorner.Y),
@@ -74,10 +92,11 @@ def body_fingerprint(body):
             mm_value(box.MaxCorner.Y),
             mm_value(box.MaxCorner.Z),
         ],
-        "volume_mm3": mm3_value(body.Shape.Volume),
+        "volume_mm3": mm3_value(occurrence_shape.Volume),
         "face_count": int(body.Faces.Count),
-        "piece_count": int(body.Shape.PieceCount),
-        "is_closed": bool(body.Shape.IsClosed),
+        "piece_count": int(piece_count) if piece_count is not None else None,
+        "is_closed": bool(is_closed) if is_closed is not None else None,
+        "is_manifold": bool(is_manifold) if is_manifold is not None else None,
     }
 
 
@@ -221,6 +240,7 @@ try:
     connectivity_ok = (
         fluid_fingerprint["piece_count"] == 1
         and fluid_fingerprint["is_closed"]
+        and fluid_fingerprint["is_manifold"]
     )
 
     inlet_faces, outlet_faces, wall_faces, face_details = find_boundary_faces(fluid)
@@ -276,10 +296,30 @@ try:
         and os.path.isfile(full_native_path)
         and os.path.isfile(native_path)
         and os.path.isfile(step_path)
+        and os.path.getsize(full_native_path) > 0
         and os.path.getsize(native_path) > 0
         and os.path.getsize(step_path) > 0
     )
     result_data["assertions"]["native_save"] = native_files_ok
+    # Record artifact identity immediately after save so later reopen/type
+    # failures cannot erase evidence that the files were actually produced.
+    result_data["files"] = {
+        "full_native": {
+            "path": full_native_path,
+            "size": os.path.getsize(full_native_path),
+            "sha256": sha256_file(full_native_path),
+        },
+        "transfer_native": {
+            "path": native_path,
+            "size": os.path.getsize(native_path),
+            "sha256": sha256_file(native_path),
+        },
+        "step": {
+            "path": step_path,
+            "size": os.path.getsize(step_path),
+            "sha256": sha256_file(step_path),
+        },
+    }
 
     DocumentHelper.CloseDocument()
     DocumentOpen.Execute(native_path)
@@ -294,6 +334,7 @@ try:
         and native_body.Name == "AJM005_T1_FLUID"
         and native_fingerprint["piece_count"] == 1
         and native_fingerprint["is_closed"]
+        and native_fingerprint["is_manifold"]
         and close_enough(native_fingerprint["volume_mm3"], expected_volume_mm3, 0.05)
         and native_groups == group_counts
     )
@@ -314,8 +355,10 @@ try:
     step_fingerprint = body_fingerprint(step_body) if step_body is not None else None
     step_reimport_ok = (
         step_body is not None
+        and step_fingerprint["face_count"] > 0
         and step_fingerprint["piece_count"] == 1
         and step_fingerprint["is_closed"]
+        and step_fingerprint["is_manifold"]
         and close_enough(step_fingerprint["volume_mm3"], expected_volume_mm3, 0.10)
         and all(
             close_enough(actual, expected, 0.02)
@@ -335,28 +378,24 @@ try:
         "root_body_count": step_root_body_count,
         "component_count": step_component_count,
         "all_body_count": len(step_bodies),
+        "topology_check_route": "IDESIGNBODY_OCCURRENCE_GEOMETRY_MASTER_TOPOLOGY",
+        "piece_count_available": (
+            step_fingerprint is not None
+            and step_fingerprint["piece_count"] is not None
+        ),
+        "is_closed_available": (
+            step_fingerprint is not None
+            and step_fingerprint["is_closed"] is not None
+        ),
+        "is_manifold_available": (
+            step_fingerprint is not None
+            and step_fingerprint["is_manifold"] is not None
+        ),
         "fingerprint": step_fingerprint,
         "named_selections_expected_to_persist": False,
     }
     result_data["assertions"]["step_export_reimport"] = step_reimport_ok
 
-    result_data["files"] = {
-        "full_native": {
-            "path": full_native_path,
-            "size": os.path.getsize(full_native_path),
-            "sha256": sha256_file(full_native_path),
-        },
-        "transfer_native": {
-            "path": native_path,
-            "size": os.path.getsize(native_path),
-            "sha256": sha256_file(native_path),
-        },
-        "step": {
-            "path": step_path,
-            "size": os.path.getsize(step_path),
-            "sha256": sha256_file(step_path),
-        },
-    }
     if all(result_data["assertions"].values()):
         result_data["status"] = "PASS_PARTIAL_CAD_CAPABILITY"
         result_data["engineering_capability"] = "PASS_PARTIAL_CAD_CAPABILITY"

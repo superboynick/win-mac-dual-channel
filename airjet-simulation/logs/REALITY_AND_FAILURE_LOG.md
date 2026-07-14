@@ -268,8 +268,9 @@
   同机官方 `space_claim_geometry.py` 后确认实际向量语义是 `p1→p2` 为轴线、`p2→p3` 为半径；
   XML 的 `centerPoint/startPoint/endPoint` 短标签不足以单独确定几何。正确的 z 轴点组是
   `(10,5,0)`、`(10,5,1.1)`、`(11,5,1.1)`。旧判断不删除，作为“文档短描述必须被官方实例和
-  实跑几何共同验证”的反例；完整运行证据见 REAL-20260714-022。
-- 状态：REOPENED_AND_CORRECTED_PENDING_SIGNED_RETRY
+  实跑几何共同验证”的反例；完整运行证据见 REAL-20260714-022。第三次签名运行的 raw inlet
+  `1.1π mm³`、union、bbox 和入口面断言均通过，确认纠正后的向量语义。
+- 状态：CLOSED_BY_SIGNED_RETRY_FIRST_MISREAD_PRESERVED
 
 ## REAL-20260714-019：脚本重建参数变化不等于原生参数化
 
@@ -366,7 +367,44 @@
   Workbench；不把 Workbench 的 `BLOCKED_UPSTREAM` 写成执行失败。
 - 对 Gate/论文主张的影响：本轮最多证明几何指纹成功阻止错误模型下传。三段 union、完整 Named
   Selections、STEP 可移植性、CAD→Workbench 传递均未通过；P1 readiness BLOCKED，P1–P6 NOT_RUN。
-- 状态：OPEN_SIGNED_RETRY_REQUIRED_FIRST_FAILURE_PRESERVED
+- 后续签名结果：commit `74e855733613baa80d7d821b961c629268f4ba59` 的第三轮确认正确 raw
+  inlet、`192+π+8` union、`INLET/OUTLET/WALLS=1/1/11` 和原生重开全部通过；几何问题关闭。
+  STEP `GetAllBodies()` 进入唯一候选后暴露新的 `TrimmedSpace.PieceCount` 类型假设，转入
+  REAL-20260714-023，不把它倒写成本轮 STEP PASS。
+- 状态：CLOSED_GEOMETRY_BY_SIGNED_RETRY_STEP_SUPERSEDED_BY_REAL023
+
+## REAL-20260714-023：STEP 导入返回 TrimmedSpace，通用指纹错误假设 PieceCount
+
+- UTC：2026-07-14T19:20:46Z
+- Stage/task：005 T1 / 第三次 SC-CAD-T1 实跑
+- Machine/operator：LAPTOP-LCCLM2HI / Mac Codex via SSH and fixed MCP
+- run/job/profile：`AJM005_T1_CAD_SUITE_20260714T192046219114Z_006c64df` /
+  `...-ad5b474ac3ed` / `ajm005-spaceclaim-cad-t1-v1`
+- 已关闭的上一轮问题：raw inlet 为 `3.455751918948766 mm³ ≈ 1.1π`，bbox 为
+  `[9,4,0]→[11,6,1.1] mm`；union 为 `203.14159265358984 mm³ ≈ 192+π+8`，bbox
+  `[2,2,0]→[20,8,3] mm`、`PieceCount=1`、`IsClosed=true`；Named Selections 为
+  `INLET/OUTLET/WALLS=1/1/11`。原生重开得到相同体积、bbox、拓扑和 group cardinality。
+- 实际失败：STEP `GetAllBodies()` 已进入唯一候选分支，候选 `Shape` 的运行时类型为
+  `TrimmedSpace`；通用 `body_fingerprint` 随后访问 `.PieceCount`，抛
+  `AttributeError: 'TrimmedSpace' object has no attribute 'PieceCount'`。因此 STEP 指纹未完成，
+  declared report 仍为 `FAIL_DIRECT`，Workbench 仍 `BLOCKED_UPSTREAM`。
+- 根因及置信度：同一个 DesignBody 风格对象的 `Shape` 并不保证是 native `Modeler.Body`；本机
+  v261 API 将通用 `ITrimmedSpace` 定义为有限三维区域并保证 Volume/SurfaceArea 等属性，但没有
+  `PieceCount/IsClosed`。代码把类型特定属性当成通用属性是高置信度根因；没有证据证明 STEP
+  几何损坏或导入失败。
+- 最小修正：同版本 API/反射确认 `GetAllBodies()` 返回 `IDesignBody`；occurrence `body.Shape`
+  只保证 `ITrimmedSpace`，适合放置后的 bbox/volume，而 `body.Master.Shape` 是提供
+  `PieceCount/IsClosed/IsManifold` 的 `Modeler.Body`。第四版分别从 occurrence 和 master 取得
+  几何/拓扑，仍硬性要求单片、闭合、manifold，不因类型适配而降低 STEP Gate。artifact size/SHA
+  也移到保存后立即写入，避免后续重开异常丢失已生成文件的身份。
+- 原始证据：suite JSON SHA-256
+  `d0abda66ef330b3a5e742e674e7abd07cb36e82a80465ab4098ccd7688c4f900`；report SHA-256
+  `c7ba37fc8e314dcd43bc59a7882c6b64d99d00aa1cb317edab85c35c6c6f9717`；STEP SHA-256
+  `ea3fce9bf63a061bc8263446ebb8c6b071cb3ab8a3aad7b30be317be78e94bda`。19:21:43Z 现场
+  ANSYS 相关进程数为 0。
+- 对 Gate/论文主张的影响：本轮允许记录“解析 union、Named Selections 和原生重开通过”；不能
+  写 STEP 可移植性、CAD transfer、Volume Extract API、原生 driving parameter 或 005/P1 PASS。
+- 状态：OPEN_TYPE_ADAPTER_FIX_PENDING_SIGNED_RETRY_FIRST_FAILURE_PRESERVED
 
 ## 新条目模板
 

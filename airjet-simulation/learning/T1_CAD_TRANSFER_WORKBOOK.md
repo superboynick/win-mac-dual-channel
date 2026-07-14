@@ -1,8 +1,9 @@
 # 005 T1 CAD→Workbench 学习工作簿
 
 更新时间：2026-07-14  
-当前状态：**两次签名运行均已保留为 FAIL；第三版几何/STEP 区分修复待签名运行，任何 partial
-CAD/transfer 能力字段都不能写 PASS。**
+当前状态：**三次签名运行均已保留；第三次解析 union、Named Selections 和原生重开已逐项
+通过，但 STEP shape type adapter 失败，第四版待签名运行，aggregate partial CAD/transfer 仍不能
+写 PASS。**
 
 这份工作簿随实作同步更新。它记录的不只是最后命令，还包括为什么这样建、哪些 API 只在
 本机 v261 证据中出现、第一次尝试可能在哪里失败，以及一次结果最多能支持论文中的哪句话。
@@ -73,8 +74,9 @@ CylinderBody.Create(
 )
 ```
 
-第三版会在 Boolean 前直接断言 raw cylinder 为 `1.1π mm³`，bbox 为
-`[9,4,0]→[11,6,1.1] mm`。这个例子比“静态审查发现错误”更有学习价值：即使使用了同版本 XML，
+第三版在 Boolean 前直接断言 raw cylinder 为 `1.1π mm³`，bbox 为
+`[9,4,0]→[11,6,1.1] mm`；第三次签名运行已确认该断言通过。这个例子比“静态审查发现错误”
+更有学习价值：即使使用了同版本 XML，
 短参数名仍可能被人错误解释；必须让同版本官方实例和运行后的体积/bbox/面共同约束语义。旧的
 错误判断保留在现实日志中，不能把被实跑推翻的推理从项目历史里删除。
 
@@ -287,9 +289,65 @@ Array 类型修复
 STEP 的 15137-byte 文件已确认以 `ISO-10303-21` 开头，并含一个
 `MANIFOLD_SOLID_BREP('AJM005_T1_FLUID', ...)`，因此它不是零字节或无 B-rep 记录的导出；这不
 证明实体图完整或可导入，“root bodies 为零”也不能代表全层 body 为零。本机官方
-脚本使用 `GetRootPart().GetAllBodies()` 遍历当前 part 与子组件。第三版保持相同 open，仅同时
-记录 `root_body_count/component_count/all_body_count`；这样下一次结果能区分层级假设。若全层仍为
-零，再以另一新 job 检验显式 `ImportOptions.Create()`，不在一次重试中改变两个 STEP 变量。
+脚本使用 `GetRootPart().GetAllBodies()` 遍历当前 part 与子组件。第三版保持相同 open 并改用
+`GetAllBodies()`；第三次运行进入单候选分支，随后在 `TrimmedSpace.PieceCount` 处失败，详见 §15。
 
 本轮最多可以写：解析几何指纹成功阻止了一个 API 返回成功但缺入口的模型进入 Workbench。不能写
 三段 union、完整 Named Selections、STEP 可移植性、CAD transfer 或 P1 readiness 已通过。
+
+## 15. 实跑记录 3：逐项 PASS 不等于 aggregate PASS
+
+第三次签名运行使用 commit `74e855733613baa80d7d821b961c629268f4ba59`。第二轮的圆柱语义
+纠正被独立数值证据确认：raw inlet、解析 union、bbox、入口圆面、三组 Named Selections 和
+原生重开全部通过。关键值是：
+
+```text
+raw inlet     = 3.455751918948766 mm³ ≈ 1.1π
+union         = 203.14159265358984 mm³ ≈ 192 + π + 8
+bbox          = [2,2,0] -> [20,8,3] mm
+piece/closed  = 1 / true
+groups        = INLET 1 / OUTLET 1 / WALLS 11
+native reopen = same volume, bbox, topology and group counts
+```
+
+STEP 路线随后用 `GetAllBodies()` 进入唯一候选分支，证明根层 `Bodies.Count` 不是可靠的跨格式
+遍历方式。新的失败是：候选 `Shape` 为 `TrimmedSpace`，而通用 fingerprint 假定所有 shape 都有
+native `Modeler.Body.PieceCount`：
+
+```text
+AttributeError: 'TrimmedSpace' object has no attribute 'PieceCount'
+```
+
+本机 v261 API 把 occurrence `IDesignBody.Shape` 定义成 `ITrimmedSpace`：它提供
+Volume/SurfaceArea/bbox，却不把 PieceCount/IsClosed/IsManifold 作为通用成员。同版本反射和 XML
+同时确认 `IDesignBody.Master.Shape` 是 `Modeler.Body`，才提供这些拓扑属性。第四版因此把字段
+来源拆开：
+
+```text
+body.Shape        -> occurrence bbox / volume
+body.Master.Shape -> PieceCount / IsClosed / IsManifold
+body.Faces        -> face count
+```
+
+STEP 仍要求全层唯一 DesignBody、正确 volume/bbox、非零 faces、`PieceCount=1`、
+`IsClosed=true` 和 `IsManifold=true`。类型适配只改读取路径，不降低验收条件；报告还会保存
+occurrence/master 的 runtime type，防止以后再次把接口层级混为一谈。
+
+这次的因果链是：
+
+```text
+正确圆柱 axis/radius 语义
+-> Boolean 前 raw inlet 指纹 PASS
+-> 三段解析 union PASS
+-> INLET/OUTLET/WALLS PASS
+-> 原生保存与重开 PASS
+-> STEP GetAllBodies 进入单候选分支
+-> runtime shape = TrimmedSpace
+-> 通用 fingerprint 访问 PieceCount 失败
+-> SC aggregate FAIL
+-> Workbench BLOCKED_UPSTREAM
+```
+
+前面的几何/原生断言是真实逐项 PASS，不因后面的异常而删除；但 profile status 是这些必要条件的
+合取，STEP 未完成就不能发出 `PASS_PARTIAL_CAD_CAPABILITY`，Workbench 也不允许消费该 predecessor。
+这正是“保存局部证据，同时严格执行总体 Gate”的工程习惯。
