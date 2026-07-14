@@ -4,3 +4,5 @@
 output/pdf/*.pdf
 tmp/pdfs/
 airjet-simulation/tmp/
+__pycache__/
+*.py[cod]
