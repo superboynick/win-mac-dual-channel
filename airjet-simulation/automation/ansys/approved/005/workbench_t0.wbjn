@@ -17,19 +17,21 @@ result = {
 
 try:
     template_results = {}
-    for template_name in (
-        "Static Structural",
-        "Modal",
-        "Harmonic Response",
-        "Fluid Flow (Fluent)",
+    for display_name, template_name, solver in (
+        ("Static Structural", "Static Structural", "ANSYS"),
+        ("Modal", "Modal", "ANSYS"),
+        ("Harmonic Response", "Harmonic Response", "ANSYS"),
+        ("Fluid Flow (Fluent)", "Fluid Flow", None),
     ):
         try:
-            template_results[template_name] = GetTemplate(
-                TemplateName=template_name
-            ) is not None
+            if solver is None:
+                template = GetTemplate(TemplateName=template_name)
+            else:
+                template = GetTemplate(TemplateName=template_name, Solver=solver)
+            template_results[display_name] = template is not None
         except Exception as template_error:
-            template_results[template_name] = False
-            template_results[template_name + "_error"] = str(template_error)
+            template_results[display_name] = False
+            template_results[display_name + "_error"] = str(template_error)
     static_template = GetTemplate(TemplateName="Static Structural", Solver="ANSYS")
     static_system = static_template.CreateSystem()
     Save(FilePath=project_path)

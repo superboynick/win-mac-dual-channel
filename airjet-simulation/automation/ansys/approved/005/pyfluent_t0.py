@@ -36,22 +36,24 @@ try:
         dimension=pyfluent.Dimension.THREE,
         processor_count=1,
         ui_mode=pyfluent.UIMode.NO_GUI_OR_GRAPHICS,
-        cleanup_on_exit=False,
+        cleanup_on_exit=True,
         cwd=str(JOB_DIR),
     )
     health_status = solver.health_check.check_health()
     health_is_serving = bool(solver.health_check.is_serving)
-    version = str(solver.get_fluent_version())
+    fluent_version = solver.get_fluent_version()
     result.update(
         {
             "health_status": getattr(health_status, "name", str(health_status)),
             "health_is_serving": health_is_serving,
-            "fluent_version": version,
+            "fluent_version": str(fluent_version),
+            "fluent_version_value": fluent_version.value,
+            "fluent_version_is_v261": fluent_version == pyfluent.FluentVersion.v261,
             "settings_api_present": hasattr(solver, "settings"),
             "tui_api_present": hasattr(solver, "tui"),
         }
     )
-    if health_is_serving and ("26.1" in version or "261" in version):
+    if health_is_serving and fluent_version == pyfluent.FluentVersion.v261:
         result["status"] = "PASS_CONTROL"
     else:
         result["error"] = "CONTROL_ASSERTION_FAILED"
@@ -62,8 +64,9 @@ except Exception as exc:  # noqa: BLE001 - evidence must preserve unexpected API
 finally:
     if solver is not None:
         try:
-            solver.exit()
+            solver.exit(timeout=30, timeout_force=True, wait=60)
             result["clean_exit_requested"] = True
+            result["clean_exit_wait_seconds"] = 60
         except Exception as exc:  # noqa: BLE001
             result["clean_exit_requested"] = False
             result["exit_error"] = f"{type(exc).__name__}: {exc}"

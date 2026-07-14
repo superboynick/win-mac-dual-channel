@@ -171,6 +171,40 @@
   因此实际跨 session acquire/release 仍记为未直接观察。
 - 状态：CODE_AND_CROSS_PROCESS_PASS_CROSS_SESSION_NOT_DIRECTLY_OBSERVED
 
+## REAL-20260714-014：Fluent 版本显示与异步退出造成首次 T0 误判和长尾进程
+
+- Stage/task：PyFluent T0 / 首次 deterministic suite
+- 实际：health=`SERVING`，settings/TUI 均存在，`get_fluent_version()` 返回类型为官方
+  `FluentVersion`，其字符串显示为 `Ansys Fluent 2026 R1`。旧断言在显示字符串里搜索
+  `26.1/261`，因此写出 `FAIL_DIRECT / CONTROL_ASSERTION_FAILED`。`solver.exit()` 默认
+  `wait=False`，返回后 Fluent/Cortex/MPI 子进程仍存活；Job Object 正确保持 RUNNING，没有把
+  Python 根进程退出 0 误报为终态。
+- 区分实验：Windows 实际 SDK 源码确认 `get_fluent_version() -> FluentVersion`，
+  `FluentConnection.exit(timeout=None, timeout_force=True, wait=False)`；`wait` 可给秒数并在超时
+  后 force exit。
+- 根因：把人类显示文本当版本协议；同时没有为本地 Fluent 退出设置 bounded wait。高置信度。
+- 处置：版本断言改为对象等于 `pyfluent.FluentVersion.v261`，同时记录 `.value`；launch 使用
+  `cleanup_on_exit=True`，finally 使用 `exit(timeout=30, timeout_force=True, wait=60)`。MCP
+  watchdog 与 Job Object 仍是外层 600 秒兜底。
+- 对 Gate/论文主张的影响：首次 PyFluent 为真实 FAIL_CONTROL，不得改写；前三个 profile 的
+  独立报告不受影响。修复后必须新 job ID 重跑，不能覆盖首次证据。
+- 状态：OPEN_PENDING_SIGNED_RETRY
+
+## REAL-20260714-015：Workbench 显示名不等于完整模板键
+
+- Stage/task：Workbench T0 / 首次 deterministic suite
+- 实际：`GetTemplate(TemplateName="Static Structural")` 等无 solver 查询均提示模板不存在，
+  但同一脚本随后用 `TemplateName="Static Structural", Solver="ANSYS"` 成功创建 `SYS` 并保存
+  `.wbpj`。因此安装和结构模块存在，失败来自查询键。Fluent 的 UI 显示名是
+  `Fluid Flow (Fluent)`，官方 ACT 示例的脚本键却是 `TemplateName="Fluid Flow"`。
+- 证据：官方 Workbench 2026 R1 Scripting Guide 的结构示例明确给出 `Solver="ANSYS"`；官方
+  ACT Workbench 示例使用 `GetTemplate(TemplateName="Fluid Flow")`。
+- 处置：结构、Modal、Harmonic Response 使用 `Solver="ANSYS"`；Fluent 使用内部模板名
+  `Fluid Flow`，报告仍用用户可读的 `Fluid Flow (Fluent)`。首次 FAIL_DIRECT 不改写，新 SHA
+  profile 必须重跑。
+- 对 Gate/论文主张的影响：只修正控制面键，不证明任何静力、模态、谐响应或 CFD 求解能力。
+- 状态：OPEN_PENDING_SIGNED_RETRY
+
 ## 新条目模板
 
 ```text

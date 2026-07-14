@@ -16,7 +16,7 @@
       "profile_id": "ajm005-workbench-t0-v1",
       "engine": "workbench",
       "script": "005/workbench_t0.wbjn",
-      "sha256": "f15f7eea188e433bdeb042a46b6d6142517067b0f6358a3c649982d42689a115",
+      "sha256": "d6d47fb5be553d363d0f781b9c708c5a4e9e86cf9c22b7c519f53a40eae0915a",
       "timeout_seconds": 600,
       "output_root_id": "student_smoke_005",
       "reports": [
@@ -38,7 +38,7 @@
       "profile_id": "ajm005-pyfluent-t0-v1",
       "engine": "pyfluent",
       "script": "005/pyfluent_t0.py",
-      "sha256": "270a1600906b936fa23fd7f7911920bcb3e44bf361e89ea035b91806f011d266",
+      "sha256": "fd5a1c09fd7ecf7710fa4963d8e5aac2fbb7c63f7d7248c2d5e41f5c804d41be",
       "timeout_seconds": 600,
       "output_root_id": "student_smoke_005",
       "reports": [
