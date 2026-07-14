@@ -20,8 +20,8 @@
   Windows 已完成安装、签名/依赖/并发等负向检查；commit
   `6265043003dfb44b2b694ef3e91cfd84d7cc832b` 的确定性重试四路均为
   `PROCESS_EXITED_0 / PASS_CONTROL`，suite 为 `PASS_CONTROL_SET`，结束后相关进程数为 0。
-  这只证明官方控制接口可控；005 T1 partial CAD 已运行三次但尚未 aggregate 通过，其他工程小模型仍为
-  `NOT_RUN`。
+  这只证明官方控制接口可控；005 T1 partial CAD 的 SpaceClaim 子集已在第四次签名运行通过，
+  但 SpaceClaim→Workbench transfer set 仍失败，其他工程小模型仍为 `NOT_RUN`。
 - 005 T1 的第一条 SpaceClaim→Workbench 小模型已完成脚本、固定 profile、冻结 predecessor
   manifest 和确定性 runner。commit `96f0799e...` 首轮已实跑：5/6 mm 脚本参数重建通过，但
   普通 Python list 不能传给 `CreateByGroups(System.String[])`。commit `aa914a6...` 第二轮越过
@@ -30,11 +30,13 @@
   `MANIFOLD_SOLID_BREP` 记录，但有效可导入实体及层级尚未证实，根层 body query 为 0。
   同机官方例子随后纠正了圆柱三点语义。commit `74e8557...` 第三轮确认 raw inlet、解析 union、
   `INLET/OUTLET/WALLS=1/1/11` 以及原生保存重开全部通过；STEP `GetAllBodies()` 进入唯一候选，
-  但其 runtime shape 为通用 `TrimmedSpace`，旧指纹错误访问不存在的 `PieceCount`，因此 STEP
-  仍 FAIL、Workbench 仍 `BLOCKED_UPSTREAM`。第四版已拆分 occurrence geometry 与 master
-  topology 字段，继续要求 STEP 单片、闭合且 manifold，并把 artifact identity 提前写入，正等待
-  新签名运行。
-  三轮证据和哈希均已保留。审查同时确认脚本
+  但其 runtime shape 为通用 `TrimmedSpace`，旧指纹错误访问不存在的 `PieceCount`。commit
+  `9652054...` 的第四轮用 occurrence geometry 与 master topology 分层检查关闭了这一问题：
+  STEP 为全层唯一 body、单片、闭合、manifold，体积/bbox/13 个 faces 与原生模型一致，SpaceClaim
+  首次报告 `PASS_PARTIAL_CAD_CAPABILITY`。Workbench 随后验证精确 predecessor 身份，但当前
+  `.scdocx → Geometry.SetFile → Model.Refresh` 路线无法附加 geometry structure；因此
+  Named Selection inspection、粗网格和 project save 都未到达，完整 CAD transfer set 仍 FAIL。
+  四轮证据和哈希均已保留。审查同时确认脚本
   两次重建只能证明等效参数驱动，
   不能证明 `.scdocx` 原生 driving parameter；因此即使本轮
   CAD/Named Selection/粗网格传递全过，也只允许写 `PASS_CAD_TRANSFER_SET`，
@@ -56,7 +58,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 partial CAD 三轮 FAIL 均已保留，第四版 STEP type adapter 待签名重跑） | 已实测脚本参数变化、完整三段 union、Named Selections 与原生重开；STEP 全层 trimmed-space 指纹和 Workbench 粗网格传递仍待新 job，原生 driving parameter 仍是硬阻塞，关闭后才可按 006 建立完整装配/流体负体积并独立审核 |
+| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD PASS；Workbench `.scdocx` attach FAIL 已保留） | 已实测脚本参数变化、完整三段 union、Named Selections、原生重开与 STEP occurrence/master 全层指纹；仍需关闭 Workbench attach、Named Selection/粗网格传递以及原生 driving parameter 硬阻塞，之后才可按 006 建立完整装配/流体负体积并独立审核 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -67,9 +69,10 @@
 
 ## 3. 下一步执行顺序
 
-1. 以已通过的 T0 控制集为边界，在 Windows 运行 005 T1：先做 SpaceClaim 等效参数驱动流体域及
-   原生重开，再用该精确冻结 SHA 的产物完成 Workbench/Mechanical 粗网格与 Named Selection
-   传递；本轮只形成 partial capability，不解除原生参数化硬阻塞。随后分别
+1. 以已通过的 T0 控制集和 SpaceClaim partial CAD 为边界，在 Windows 继续 005 T1：先按同机
+   v261 官方证据对 `.scdocx` attach 路线做单变量修正，再用精确冻结 SHA 的产物完成
+   Workbench/Mechanical 粗网格与 Named Selection 传递；这仍只形成 partial capability，不解除
+   原生参数化硬阻塞。随后分别
    做 Mechanical 与 Fluent 可删除小模型。所有运行写 `VISIBILITY=NOT_USER_OBSERVED`，无头
    结果不得代填 GUI visible 字段。
 2. 只有 005 的 P1 CAD 必要字段全部通过后，才执行

@@ -307,6 +307,32 @@ terminal SC job
 7. predecessor 还要核对 probe、required assertions、P1 Gate 和许可参数标记。
 
 静态 policy/audit PASS 只证明这些规则在代码和配置中存在。Windows 负向测试已通过，真实 CAD
-探针三轮 FAIL 已保留；第三轮逐项通过 union、命名面和 native reopen，但 STEP
-`TrimmedSpace` type adapter 失败。第四版仍需新签名 job，不能因修复逻辑看起来合理而提前写
-aggregate 能力 PASS。
+探针前三轮 FAIL 均已保留；第四次签名运行已用 occurrence/master 分层指纹通过 STEP 几何回读，
+SpaceClaim profile 首次得到 `PASS_PARTIAL_CAD_CAPABILITY`。但 Workbench 在
+`model_component.Refresh()` 直接失败，完整 transfer set 仍 FAIL；局部修复通过不能倒写前三轮，
+也不能提前写 aggregate 能力 PASS。
+
+## 18. 第四次实跑怎样区分 direct fail 与 not reached
+
+Workbench 的固定 report schema 会为后续断言预置 false。第四次运行中：
+
+```text
+predecessor identity   = PASS
+geometry attach        = FAIL_DIRECT at Model.Refresh
+named-selection inspect= NOT_REACHED
+mesh generation        = NOT_REACHED
+project save           = NOT_REACHED
+```
+
+这里不能把四个 false 当成四个并列失败。判断规则是：先沿 traceback 找第一个异常，再结合脚本控制流
+判断异常后的操作是否曾被调用。固定 schema 方便机器校验，但机器字段必须配合 phase、traceback 和
+到达标记解释。下一版脚本会显式记录 `SetFile`、`UpdateUpstreamComponents` 和 `Refresh` 三个边界，
+让“在哪一步失败”不再只依赖 traceback。
+
+这轮还揭示了 CAD 链常见的四层证据边界：
+
+```text
+SHA 身份正确 -> 生产软件可重开 -> 下游软件可附加 -> 语义/网格实际通过
+```
+
+每一箭头都需要新的运行证据。前一步 PASS 只是排除一类原因，不能替代后一步。

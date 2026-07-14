@@ -404,7 +404,50 @@
   ANSYS 相关进程数为 0。
 - 对 Gate/论文主张的影响：本轮允许记录“解析 union、Named Selections 和原生重开通过”；不能
   写 STEP 可移植性、CAD transfer、Volume Extract API、原生 driving parameter 或 005/P1 PASS。
-- 状态：OPEN_TYPE_ADAPTER_FIX_PENDING_SIGNED_RETRY_FIRST_FAILURE_PRESERVED
+- 后续签名结果：commit `9652054cf6d84467dce877342eb032df12c375a6` 的第四轮用
+  occurrence/master 分层指纹确认 STEP 为唯一全层 body、单片、闭合、manifold，且体积/bbox/面数
+  与原生模型一致；STEP 类型适配问题关闭。新的 Workbench attach 失败转入 REAL-20260714-024。
+- 状态：CLOSED_BY_SIGNED_RETRY_WORKBENCH_ATTACH_MOVED_TO_REAL024
+
+## REAL-20260714-024：SpaceClaim partial CAD 首次通过，Workbench 无法附加原生 geometry structure
+
+- UTC：2026-07-14T19:33:05Z
+- Stage/task：005 T1 / 第四次 CAD transfer suite
+- Machine/operator：LAPTOP-LCCLM2HI / Mac Codex via SSH and fixed MCP
+- run/jobs/profiles：`AJM005_T1_CAD_SUITE_20260714T193305538549Z_ff27aa8a`；SpaceClaim
+  `...-e4a23016e42d` / `ajm005-spaceclaim-cad-t1-v1`；Workbench `...-c8c7b3931516` /
+  `ajm005-workbench-transfer-t1-v1`。
+- 已关闭的上一轮问题：SpaceClaim 七项断言全部为 true。STEP 回读得到 `root bodies=0`、
+  `components=1`、`all bodies=1`；occurrence `TrimmedSpace` 提供 `203.14159265358984 mm³` 和
+  `[2,2,0]→[20,8,3] mm`，`Master.Shape` 的 `Body` 提供 `PieceCount=1`、`IsClosed=true`、
+  `IsManifold=true`，faces=13。SC declared report 首次为 `PASS_PARTIAL_CAD_CAPABILITY`。
+- 实际失败：MCP 把精确 predecessor report、`.scdocx` 与 STEP 冻结复制给 Workbench；commit、
+  job、profile、report/native SHA 全部匹配，`predecessor_identity=true`。脚本调用
+  `Geometry.SetFile` 与 `UpdateUpstreamComponents()` 后，在 `model_component.Refresh()` 报“无法附加
+  geometry structure”。Workbench phase=`FAILED_PROCESS`、exit=2、declared report=`FAIL_DIRECT`。
+- 控制流解释：直接失败只有 geometry attach。Named Selection inspection、Mechanical 粗网格和
+  project save 都没有开始；报告中的三个 false 布尔字段应解释成 `NOT_REACHED`，不能伪造为三次
+  独立功能测试失败。
+- 原始证据：外部 suite JSON SHA-256
+  `049d78b5c30db084857dd332094a1d1855dfe0f3828a23ec5a8a95cdaeff51d9`；MCP stderr SHA-256
+  `9dcedb2085c4705915d2e9aee012219f11e07614cac2bd250175d11abf405cca`；SC report SHA-256
+  `e15d108f72807014f84f363b700682888c0dd02bc9bbdccaf7961ef6c6da47ac`；WB report SHA-256
+  `83c00e77bf21a227cc1a0a074bdfcac346a282ba7c498dc22e2a3862d6c16dae`；结束后
+  2026-07-14T19:39:38.4726831Z 现场相关进程数为 0。
+- 已排除/未排除：高置信度排除“拿错 predecessor”与“SC 自己不能重开该原生文件”；高置信度定位
+  失败到 `Model.Refresh()`。尚不能区分 `.scdocx` 是否不是该 Workbench Geometry attach 路线的
+  支持格式、是否需要不同 geometry container/transfer 路线，或 update/refresh 次序是否错误；也
+  不能据此宣称文件损坏或 Mechanical 缺少能力。
+- 最小区分实验：先核对同机 v261 官方 journal/API；每个新签名 suite 只改变一个 attach/import
+  假设，并把 `SetFile`、`UpdateUpstreamComponents`、`Refresh` 的到达状态分别写入 declared report。
+  STEP 可用来诊断 Workbench 是否能消费几何，但 STEP 不承诺 Named Selections，不能单独关闭最终
+  transfer Gate。
+- 现实教学：`文件身份正确 ≠ 生产者能重开 ≠ 消费者能附加 ≠ 下游语义和网格通过`。suite 是这些
+  必要条件的合取；保留 SC partial PASS 不会让整套 suite 变成 PASS。
+- 对 Gate/论文主张的影响：允许写 SpaceClaim 签名小模型已通过脚本重建、解析 union、命名边界、
+  原生重开和 STEP 几何回读；不得写 Workbench transfer、Named Selection transfer、Mechanical
+  inspection、粗网格、project save、Volume Extract API、原生 driving parameter、005 或 P1 PASS。
+- 状态：OPEN_WORKBENCH_GEOMETRY_ATTACH_ROUTE_PENDING_SIGNED_RETRY_SC_PASS_PRESERVED
 
 ## 新条目模板
 
