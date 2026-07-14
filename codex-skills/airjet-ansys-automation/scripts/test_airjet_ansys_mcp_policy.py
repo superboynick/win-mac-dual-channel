@@ -130,6 +130,9 @@ for invariant in (
     "PARTIAL_CAD_TRANSFER_ONLY",
     'WB_PROFILE = "ajm005-workbench-transfer-t1-v1"',
     'case_id = "a5n-" + uuid4().hex[:12]',
+    '"input/stagingcopy/spaceclaim_cad_t1.scdocx": "working_native"',
+    'declared_path.endswith(',
+    '"/" + artifact_path',
     "NATIVE_PARAMETERIZATION_NOT_RUN",
     "predecessor_job_id",
     "artifact_manifest",
@@ -203,6 +206,40 @@ for profile in policy["profiles"]:
         fail(f"invalid declared reports for {profile_id}")
 
 by_profile_id = {profile["profile_id"]: profile for profile in policy["profiles"]}
+native_profile = by_profile_id.get("ajm005-workbench-transfer-t1-v1")
+if not isinstance(native_profile, dict):
+    fail("missing native T1 Workbench transfer profile")
+native_script = (APPROVED / native_profile["script"]).read_text(encoding="utf-8")
+for invariant in (
+    'staging_dir = os.path.join(job_dir, "input", "stagingcopy")',
+    "shutil.copyfile(native_path, working_native_path)",
+    "os.chmod(working_native_path, stat.S_IREAD | stat.S_IWRITE)",
+    "len(native_path) == len(working_native_path)",
+    "source_geometry.SetFile(FilePath=working_native_path)",
+    '"working_copy_mutated_by_editor"',
+    '"working_copy_exists_after_run"',
+    '"working_copy_changed_or_missing_after_run"',
+    '"immutable_source_bytes_unchanged_after"',
+    '"immutable_source_read_only_after"',
+    '"immutable_source_unchanged_after"',
+    '"working_native"',
+    '"IMMUTABLE_PREDECESSOR_CHANGED"',
+    '"WORKING_COPY_MISSING_AFTER_RUN"',
+    '"WRITABLE_STAGING_EXPLICIT_SPACECLAIM_EDIT_COMPONENTS_TO_SHARE"',
+):
+    if invariant not in native_script:
+        fail(f"native Workbench staging route lacks invariant: {invariant}")
+if "source_geometry.SetFile(FilePath=native_path)" in native_script:
+    fail("native Workbench route must not edit the frozen predecessor directly")
+if native_script.index("working_copy_exists_after_run = os.path.isfile") > native_script.index(
+    "with open(report_path, \"w\") as report_handle:"
+):
+    fail("native Workbench finalizer must run before report write")
+try:
+    compile(native_script, "workbench_transfer_t1.wbjn", "exec")
+except SyntaxError as exc:
+    fail(f"native Workbench staging journal is invalid: {exc}")
+
 semantic_profile = by_profile_id.get(
     "ajm005-workbench-semantic-reconstruction-t1-v1"
 )

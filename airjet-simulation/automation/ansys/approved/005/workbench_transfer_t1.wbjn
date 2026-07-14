@@ -2,6 +2,8 @@
 import hashlib
 import json
 import os
+import shutil
+import stat
 import traceback
 
 
@@ -11,6 +13,8 @@ report_path = os.path.join(job_dir, "workbench_transfer_t1.json")
 inspection_path = os.path.join(job_dir, "workbench_model_inspection.json")
 project_path = os.path.join(job_dir, "workbench_transfer_t1.wbpj")
 native_path = os.path.join(predecessor_dir, "spaceclaim_cad_t1.scdocx")
+staging_dir = os.path.join(job_dir, "input", "stagingcopy")
+working_native_path = os.path.join(staging_dir, "spaceclaim_cad_t1.scdocx")
 upstream_report_path = os.path.join(predecessor_dir, "spaceclaim_cad_t1.json")
 upstream_manifest_path = os.path.join(predecessor_dir, "predecessor-manifest.json")
 
@@ -32,10 +36,11 @@ result = {
     "p1_cad_hard_gate": "BLOCKED_UPSTREAM_NATIVE_PARAMETERIZATION",
     "license_arguments_added": False,
     "assertions": dict((name, False) for name in assertion_names),
-    "geometry_route": "EXPLICIT_SPACECLAIM_EDIT_COMPONENTS_TO_SHARE",
+    "geometry_route": "WRITABLE_STAGING_EXPLICIT_SPACECLAIM_EDIT_COMPONENTS_TO_SHARE",
     "update_route": "MODEL_CONTAINER_REFRESH_AFTER_COMPONENTS_SHARE",
     "execution_reach": {
         "predecessor_identity": "NOT_REACHED",
+        "working_copy_stage": "NOT_REACHED",
         "source_geometry_system": "NOT_REACHED",
         "source_geometry_set_file": "NOT_REACHED",
         "source_geometry_edit_spaceclaim": "NOT_REACHED",
@@ -47,8 +52,35 @@ result = {
         "model_container": "NOT_REACHED",
         "mechanical_inspection": "NOT_REACHED",
         "project_save": "NOT_REACHED",
+        "immutable_predecessor_recheck": "NOT_REACHED",
+    },
+    "staging_invariants": {
+        "immutable_source_role": "FROZEN_READ_ONLY_EVIDENCE",
+        "working_copy_role": "JOB_LOCAL_WRITABLE_DERIVATIVE",
+        "equal_path_length_control": None,
+        "immutable_source_read_only_before": None,
+        "working_copy_writable_before_edit": None,
+        "immutable_source_size_before": None,
+        "immutable_source_sha256_before": None,
+        "working_copy_size_before_edit": None,
+        "working_copy_sha256_before_edit": None,
+        "working_copy_size_after_edit": None,
+        "working_copy_sha256_after_edit": None,
+        "working_copy_mutated_by_editor": None,
+        "working_copy_exists_after_run": None,
+        "working_copy_size_after_run": None,
+        "working_copy_sha256_after_run": None,
+        "working_copy_changed_or_missing_after_run": None,
+        "immutable_source_bytes_unchanged_after": None,
+        "immutable_source_read_only_after": None,
+        "immutable_source_unchanged_after": None,
     },
 }
+
+immutable_source_size_before = None
+immutable_source_sha256_before = None
+working_copy_size_before_edit = None
+working_copy_sha256_before_edit = None
 
 
 def sha256_file(path):
@@ -99,6 +131,50 @@ try:
         raise Exception("PREDECESSOR_IDENTITY_ASSERTION_FAILED")
     result["execution_reach"]["predecessor_identity"] = "PASS"
 
+    result["execution_reach"]["working_copy_stage"] = "CALLED"
+    immutable_source_size_before = os.path.getsize(native_path)
+    immutable_source_sha256_before = native_sha256
+    immutable_source_read_only_before = not bool(
+        os.stat(native_path).st_mode & stat.S_IWRITE
+    )
+    if not os.path.isdir(staging_dir):
+        os.makedirs(staging_dir)
+    shutil.copyfile(native_path, working_native_path)
+    os.chmod(working_native_path, stat.S_IREAD | stat.S_IWRITE)
+    working_copy_size_before_edit = os.path.getsize(working_native_path)
+    working_copy_sha256_before_edit = sha256_file(working_native_path)
+    working_copy_writable_before_edit = bool(
+        os.stat(working_native_path).st_mode & stat.S_IWRITE
+    ) and os.access(working_native_path, os.W_OK)
+    normalized_job_dir = os.path.normcase(os.path.abspath(job_dir)) + os.sep
+    normalized_working_path = os.path.normcase(os.path.abspath(working_native_path))
+    staged_inside_job = normalized_working_path.startswith(normalized_job_dir)
+    equal_path_length_control = len(native_path) == len(working_native_path)
+    result["staging_invariants"].update(
+        {
+            "immutable_source_path": native_path,
+            "working_copy_path": working_native_path,
+            "immutable_source_read_only_before": immutable_source_read_only_before,
+            "working_copy_writable_before_edit": working_copy_writable_before_edit,
+            "equal_path_length_control": equal_path_length_control,
+            "immutable_source_size_before": immutable_source_size_before,
+            "immutable_source_sha256_before": immutable_source_sha256_before,
+            "working_copy_size_before_edit": working_copy_size_before_edit,
+            "working_copy_sha256_before_edit": working_copy_sha256_before_edit,
+        }
+    )
+    if not (
+        immutable_source_read_only_before
+        and working_copy_writable_before_edit
+        and staged_inside_job
+        and equal_path_length_control
+        and os.path.normcase(os.path.abspath(native_path)) != normalized_working_path
+        and working_copy_size_before_edit == immutable_source_size_before
+        and working_copy_sha256_before_edit == immutable_source_sha256_before
+    ):
+        raise Exception("WRITABLE_STAGING_INVARIANT_FAILED")
+    result["execution_reach"]["working_copy_stage"] = "RETURNED"
+
     Reset()
     result["execution_reach"]["source_geometry_system"] = "CALLED"
     source_template = GetTemplate(TemplateName="Geometry")
@@ -110,7 +186,7 @@ try:
     result["execution_reach"]["source_geometry_system"] = "RETURNED"
 
     result["execution_reach"]["source_geometry_set_file"] = "CALLED"
-    source_geometry.SetFile(FilePath=native_path)
+    source_geometry.SetFile(FilePath=working_native_path)
     result["execution_reach"]["source_geometry_set_file"] = "RETURNED"
 
     result["execution_reach"]["source_geometry_edit_spaceclaim"] = "CALLED"
@@ -119,6 +195,18 @@ try:
     result["execution_reach"]["source_geometry_exit"] = "CALLED"
     source_geometry.Exit()
     result["execution_reach"]["source_geometry_exit"] = "RETURNED"
+    working_copy_size_after_edit = os.path.getsize(working_native_path)
+    working_copy_sha256_after_edit = sha256_file(working_native_path)
+    result["staging_invariants"].update(
+        {
+            "working_copy_size_after_edit": working_copy_size_after_edit,
+            "working_copy_sha256_after_edit": working_copy_sha256_after_edit,
+            "working_copy_mutated_by_editor": (
+                working_copy_size_after_edit != working_copy_size_before_edit
+                or working_copy_sha256_after_edit != working_copy_sha256_before_edit
+            ),
+        }
+    )
     source_component = source_system.GetComponent(Name="Geometry")
 
     result["execution_reach"]["static_system_with_components_share"] = "CALLED"
@@ -214,6 +302,16 @@ with open(inspection_path, "w") as handle:
     project_save_ok = os.path.isfile(project_path) and os.path.getsize(project_path) > 0
     result["inspection"] = inspection
     result["files"] = {
+        "working_native": {
+            "path": working_native_path,
+            "exists": os.path.isfile(working_native_path),
+            "size": os.path.getsize(working_native_path)
+            if os.path.isfile(working_native_path)
+            else 0,
+            "sha256": sha256_file(working_native_path)
+            if os.path.isfile(working_native_path)
+            else None,
+        },
         "project": {
             "path": project_path,
             "exists": os.path.isfile(project_path),
@@ -240,6 +338,93 @@ except Exception as error:
     result["error_type"] = type(error).__name__
     result["error"] = str(error)
     result["traceback"] = traceback.format_exc()
+
+try:
+    working_copy_exists_after_run = os.path.isfile(working_native_path)
+    working_copy_size_after_run = (
+        os.path.getsize(working_native_path) if working_copy_exists_after_run else 0
+    )
+    working_copy_sha256_after_run = (
+        sha256_file(working_native_path) if working_copy_exists_after_run else None
+    )
+    working_copy_changed_or_missing_after_run = None
+    if working_copy_sha256_before_edit is not None:
+        working_copy_changed_or_missing_after_run = (
+            not working_copy_exists_after_run
+            or working_copy_size_after_run != working_copy_size_before_edit
+            or working_copy_sha256_after_run != working_copy_sha256_before_edit
+        )
+    result["staging_invariants"].update(
+        {
+            "working_copy_exists_after_run": working_copy_exists_after_run,
+            "working_copy_size_after_run": working_copy_size_after_run,
+            "working_copy_sha256_after_run": working_copy_sha256_after_run,
+            "working_copy_changed_or_missing_after_run": (
+                working_copy_changed_or_missing_after_run
+            ),
+        }
+    )
+    files = result.get("files")
+    if not isinstance(files, dict):
+        files = {}
+        result["files"] = files
+    files["working_native"] = {
+        "path": working_native_path,
+        "exists": working_copy_exists_after_run,
+        "size": working_copy_size_after_run,
+        "sha256": working_copy_sha256_after_run,
+    }
+    if working_copy_sha256_before_edit is not None and not working_copy_exists_after_run:
+        result["status"] = "FAIL_DIRECT"
+        result["engineering_capability"] = "FAIL_DIRECT"
+        result["post_run_working_copy_error"] = "WORKING_COPY_MISSING_AFTER_RUN"
+except Exception as working_copy_integrity_error:
+    result["status"] = "FAIL_DIRECT"
+    result["engineering_capability"] = "FAIL_DIRECT"
+    result["post_run_working_copy_error"] = (
+        "WORKING_COPY_FINALIZATION_FAILED:" + str(working_copy_integrity_error)
+    )
+
+try:
+    if immutable_source_size_before is not None and immutable_source_sha256_before:
+        result["execution_reach"]["immutable_predecessor_recheck"] = "CALLED"
+        immutable_source_size_after = os.path.getsize(native_path)
+        immutable_source_sha256_after = sha256_file(native_path)
+        immutable_source_read_only_after = not bool(
+            os.stat(native_path).st_mode & stat.S_IWRITE
+        )
+        immutable_source_bytes_unchanged_after = (
+            immutable_source_size_after == immutable_source_size_before
+            and immutable_source_sha256_after == immutable_source_sha256_before
+        )
+        immutable_source_unchanged_after = (
+            immutable_source_bytes_unchanged_after
+            and immutable_source_read_only_after
+        )
+        result["staging_invariants"].update(
+            {
+                "immutable_source_size_after": immutable_source_size_after,
+                "immutable_source_sha256_after": immutable_source_sha256_after,
+                "immutable_source_bytes_unchanged_after": (
+                    immutable_source_bytes_unchanged_after
+                ),
+                "immutable_source_read_only_after": immutable_source_read_only_after,
+                "immutable_source_unchanged_after": immutable_source_unchanged_after,
+            }
+        )
+        result["execution_reach"]["immutable_predecessor_recheck"] = "RETURNED"
+        if not immutable_source_unchanged_after:
+            result["status"] = "FAIL_DIRECT"
+            result["engineering_capability"] = "FAIL_DIRECT"
+            result["assertions"]["predecessor_identity"] = False
+            result["post_run_predecessor_error"] = "IMMUTABLE_PREDECESSOR_CHANGED"
+except Exception as predecessor_integrity_error:
+    result["status"] = "FAIL_DIRECT"
+    result["engineering_capability"] = "FAIL_DIRECT"
+    result["assertions"]["predecessor_identity"] = False
+    result["post_run_predecessor_error"] = (
+        "PREDECESSOR_FINALIZATION_FAILED:" + str(predecessor_integrity_error)
+    )
 
 with open(report_path, "w") as report_handle:
     json.dump(result, report_handle, indent=2, sort_keys=True)

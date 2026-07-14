@@ -68,7 +68,9 @@ scope, while this skill owns deterministic Windows execution.
   `P1_CAD_TOOLCHAIN_READINESS`, but it must keep the overall 005 result partial and P1-P6 NOT_RUN.
   Its deliberately short `a5n-<12 hex>` case ID is a v261 legacy path-budget control established
   after the longer semantic job path failed before Mechanical attach; do not lengthen it without a
-  separate path-sensitivity experiment.
+  separate path-sensitivity experiment. The MCP-frozen predecessor must remain read-only; when a
+  native editor requires a working document, use a hash-equal job-local writable staging copy and
+  recheck the immutable predecessor after the run.
 - Use `scripts/run_t1_semantic_reconstruction_suite.py` only for the independent STEP + hash-bound
   sidecar diagnostic. A PASS proves deterministic solver-side boundary reconstruction on the
   disposable fixture; it must keep native attach, native Named Selection transfer, native

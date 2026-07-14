@@ -83,6 +83,7 @@ PROFILE_RULES = {
         "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
         "report": "workbench_transfer_t1.json",
         "artifacts": {
+            "input/stagingcopy/spaceclaim_cad_t1.scdocx": "working_native",
             "workbench_transfer_t1.wbpj": "project",
             "workbench_model_inspection.json": "model_inspection",
         },
@@ -240,6 +241,15 @@ async def run_profile(
         for artifact, report_key in rule["artifacts"].items():
             entry = manifest_file(manifest, artifact)
             declared = report_files.get(report_key)
+            declared_path = (
+                str(declared.get("path", "")).replace("\\", "/").rstrip("/")
+                if isinstance(declared, dict)
+                else ""
+            )
+            artifact_path = artifact.replace("\\", "/").rstrip("/")
+            declared_path_matches = declared_path == artifact_path or declared_path.endswith(
+                "/" + artifact_path
+            )
             artifacts_ok = (
                 isinstance(entry, dict)
                 and isinstance(declared, dict)
@@ -248,8 +258,7 @@ async def run_profile(
                 and entry.get("size") == declared.get("size")
                 and isinstance(entry.get("sha256"), str)
                 and entry.get("sha256") == declared.get("sha256")
-                and str(declared.get("path", "")).replace("\\", "/").rsplit("/", 1)[-1]
-                == artifact
+                and declared_path_matches
             )
             if not artifacts_ok:
                 break
