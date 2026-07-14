@@ -1,0 +1,586 @@
+# AJM-005 Workbench STEP semantic reconstruction diagnostic; disposable model.
+import hashlib
+import json
+import os
+import traceback
+
+
+job_dir = os.environ["AIRJET_JOB_DIR"]
+predecessor_dir = os.environ["AIRJET_PREDECESSOR_DIR"]
+report_path = os.path.join(job_dir, "workbench_semantic_reconstruction_t1.json")
+inspection_path = os.path.join(
+    job_dir, "workbench_semantic_reconstruction_inspection.json"
+)
+project_path = os.path.join(
+    job_dir, "workbench_semantic_reconstruction_t1.wbpj"
+)
+geometry_path = os.path.join(predecessor_dir, "spaceclaim_cad_t1.step")
+upstream_report_path = os.path.join(predecessor_dir, "spaceclaim_cad_t1.json")
+upstream_manifest_path = os.path.join(predecessor_dir, "predecessor-manifest.json")
+semantic_sidecar_path = os.path.join(
+    predecessor_dir, "spaceclaim_semantic_sidecar.json"
+)
+
+result = {
+    "schema_version": 1,
+    "task": "AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
+    "probe": "workbench_semantic_reconstruction_t1",
+    "status": "FAIL_DIRECT",
+    "engineering_capability": "FAIL_DIRECT",
+    "p1_stage_gate": "NOT_RUN",
+    "visibility": "NOT_USER_OBSERVED",
+    "p1_cad_hard_gate": (
+        "BLOCKED_NATIVE_PARAMETERIZATION_AND_NATIVE_TRANSFER_NOT_PROVEN"
+    ),
+    "license_arguments_added": False,
+    "canonical_native_claims": {
+        "geometry_transfer": False,
+        "named_selection_transfer": False,
+        "native_attach": False,
+        "native_parameterization": False,
+        "p1_cad_toolchain_readiness": False,
+    },
+    "geometry_route": "STEP_SEMANTIC_RECONSTRUCTION_COMPONENTS_TO_SHARE",
+    "geometry_source_format": "STEP",
+    "diagnostic_only": True,
+    "native_named_selection_transfer_gate": "NOT_CLOSABLE_BY_STEP_ROUTE",
+    "semantic_route_claim": "SOLVER_SIDE_RECONSTRUCTION_NOT_NATIVE_TRANSFER",
+    "diagnostic_assertions": {
+        "predecessor_identity": False,
+        "semantic_sidecar_identity": False,
+        "body_geometry_available": False,
+        "semantic_reconstruction": False,
+        "negative_controls": False,
+        "mesh_generation": False,
+        "project_save": False,
+    },
+    "update_route": "MODEL_CONTAINER_REFRESH_AFTER_COMPONENTS_SHARE",
+    "execution_reach": {
+        "predecessor_identity": "NOT_REACHED",
+        "semantic_sidecar_identity": "NOT_REACHED",
+        "source_geometry_system": "NOT_REACHED",
+        "source_geometry_set_file": "NOT_REACHED",
+        "source_geometry_edit_spaceclaim": "NOT_CALLED_BY_STEP_ROUTE",
+        "source_geometry_exit": "NOT_CALLED_BY_STEP_ROUTE",
+        "static_system_with_components_share": "NOT_REACHED",
+        "source_geometry_file_and_save_data": "NOT_REACHED",
+        "model_update_all_dependencies": "NOT_CALLED_BY_ROUTE",
+        "model_refresh": "NOT_REACHED",
+        "model_container": "NOT_REACHED",
+        "mechanical_inspection": "NOT_REACHED",
+        "semantic_reconstruction": "NOT_REACHED",
+        "project_save": "NOT_REACHED",
+    },
+}
+
+
+def sha256_file(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        while True:
+            chunk = handle.read(1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+try:
+    with open(upstream_report_path, "r") as handle:
+        upstream_report = json.load(handle)
+    with open(upstream_manifest_path, "r") as handle:
+        upstream_manifest = json.load(handle)
+    with open(semantic_sidecar_path, "r") as handle:
+        semantic_sidecar = json.load(handle)
+    manifest_artifacts = dict(
+        (item["relative_path"], item)
+        for item in upstream_manifest.get("artifacts", [])
+    )
+    geometry_sha256 = sha256_file(geometry_path)
+    report_sha256 = sha256_file(upstream_report_path)
+    semantic_sidecar_sha256 = sha256_file(semantic_sidecar_path)
+    expected_geometry_sha256 = upstream_report["files"]["step"]["sha256"]
+    expected_sidecar_sha256 = upstream_report["files"]["semantic_sidecar"][
+        "sha256"
+    ]
+    sidecar_boundaries = semantic_sidecar.get("boundaries", {})
+    semantic_sidecar_identity_ok = (
+        semantic_sidecar.get("schema_version") == 1
+        and semantic_sidecar.get("contract_id")
+        == "AJM005_T1_STEP_SEMANTIC_RECONSTRUCTION_V1"
+        and semantic_sidecar.get("scope")
+        == "DISPOSABLE_CAPABILITY_FIXTURE_ONLY"
+        and semantic_sidecar.get("role")
+        == "SOLVER_SIDE_SEMANTIC_RECONSTRUCTION_INPUT"
+        and semantic_sidecar.get("claim_boundary")
+        == "NOT_NATIVE_NAMED_SELECTION_TRANSFER"
+        and semantic_sidecar.get("source_geometry", {}).get("relative_path")
+        == "spaceclaim_cad_t1.step"
+        and semantic_sidecar.get("source_geometry", {}).get("format") == "STEP"
+        and semantic_sidecar.get("source_geometry", {}).get("size")
+        == os.path.getsize(geometry_path)
+        and semantic_sidecar.get("source_geometry", {}).get("sha256")
+        == geometry_sha256
+        and semantic_sidecar.get("producer", {}).get("profile_id")
+        == upstream_manifest.get("predecessor_profile_id")
+        and semantic_sidecar.get("producer", {}).get("case_id")
+        == os.environ["AIRJET_CASE_ID"]
+        and semantic_sidecar.get("producer", {}).get("probe")
+        == "spaceclaim_cad_t1"
+        and semantic_sidecar.get("expected_body_count") == 1
+        and semantic_sidecar.get("expected_face_count") == 13
+        and all(
+            sidecar_boundaries.get(name, {}).get("expected_count") == expected
+            and len(sidecar_boundaries.get(name, {}).get("face_signatures", []))
+            == expected
+            for name, expected in (("INLET", 1), ("OUTLET", 1), ("WALLS", 11))
+        )
+        and manifest_artifacts.get("spaceclaim_semantic_sidecar.json", {}).get(
+            "sha256"
+        )
+        == semantic_sidecar_sha256
+        and semantic_sidecar_sha256 == expected_sidecar_sha256
+        and semantic_sidecar.get("partition_invariants", {}).get(
+            "pairwise_disjoint"
+        )
+        is True
+        and semantic_sidecar.get("partition_invariants", {}).get(
+            "full_face_coverage"
+        )
+        is True
+    )
+    predecessor_identity_ok = (
+        upstream_report.get("status") == "PASS_PARTIAL_CAD_CAPABILITY"
+        and upstream_report.get("engineering_capability") == "PASS_PARTIAL_CAD_CAPABILITY"
+        and upstream_report.get("license_arguments_added") is False
+        and upstream_manifest.get("required_status")
+        == "PASS_PARTIAL_CAD_CAPABILITY"
+        and manifest_artifacts.get("spaceclaim_cad_t1.step", {}).get("sha256")
+        == geometry_sha256
+        and manifest_artifacts.get("spaceclaim_cad_t1.json", {}).get("sha256")
+        == report_sha256
+        and geometry_sha256 == expected_geometry_sha256
+        and semantic_sidecar_identity_ok
+    )
+    result["predecessor"] = {
+        "job_id": upstream_manifest.get("predecessor_job_id"),
+        "profile_id": upstream_manifest.get("predecessor_profile_id"),
+        "git_head": upstream_manifest.get("git_head"),
+        "geometry_source_file": "spaceclaim_cad_t1.step",
+        "geometry_sha256": geometry_sha256,
+        "semantic_sidecar_sha256": semantic_sidecar_sha256,
+        "report_sha256": report_sha256,
+    }
+    result["predecessor_job_id"] = upstream_manifest.get("predecessor_job_id")
+    result["diagnostic_assertions"]["predecessor_identity"] = (
+        predecessor_identity_ok
+    )
+    result["diagnostic_assertions"]["semantic_sidecar_identity"] = (
+        semantic_sidecar_identity_ok
+    )
+    if not predecessor_identity_ok:
+        raise Exception("PREDECESSOR_IDENTITY_ASSERTION_FAILED")
+    result["execution_reach"]["predecessor_identity"] = "PASS"
+    result["execution_reach"]["semantic_sidecar_identity"] = "PASS"
+
+    Reset()
+    result["execution_reach"]["source_geometry_system"] = "CALLED"
+    source_template = GetTemplate(TemplateName="Geometry")
+    source_system = source_template.CreateSystem()
+    source_geometry = source_system.GetContainer(ComponentName="Geometry")
+    source_properties = source_geometry.GetGeometryProperties()
+    source_properties.GeometryImportNamedSelections = True
+    source_properties.GeometryImportNamedSelectionsFilter = ""
+    result["execution_reach"]["source_geometry_system"] = "RETURNED"
+
+    result["execution_reach"]["source_geometry_set_file"] = "CALLED"
+    source_geometry.SetFile(FilePath=geometry_path)
+    result["execution_reach"]["source_geometry_set_file"] = "RETURNED"
+    source_component = source_system.GetComponent(Name="Geometry")
+
+    result["execution_reach"]["static_system_with_components_share"] = "CALLED"
+    static_template = GetTemplate(TemplateName="Static Structural", Solver="ANSYS")
+    static_system = static_template.CreateSystem(
+        ComponentsToShare=[source_component]
+    )
+    target_geometry = static_system.GetContainer(ComponentName="Geometry")
+    target_properties = target_geometry.GetGeometryProperties()
+    target_properties.GeometryImportNamedSelections = True
+    target_properties.GeometryImportNamedSelectionsFilter = ""
+    result["execution_reach"]["static_system_with_components_share"] = "RETURNED"
+
+    result["execution_reach"]["source_geometry_file_and_save_data"] = "CALLED"
+    source_geometry.GetGeometryFileAndSaveData()
+    result["execution_reach"]["source_geometry_file_and_save_data"] = "RETURNED"
+
+    result["execution_reach"]["model_container"] = "CALLED"
+    model_container = static_system.GetContainer(ComponentName="Model")
+    result["execution_reach"]["model_container"] = "RETURNED"
+    result["execution_reach"]["model_refresh"] = "CALLED"
+    model_container.Refresh()
+    result["execution_reach"]["model_refresh"] = "RETURNED"
+
+    model_script = """
+import json
+import traceback
+
+inspection_path = %r
+semantic_sidecar_path = %r
+inspection = {
+    "schema_version": 1,
+    "semantic_route": "SOLVER_SIDE_RECONSTRUCTION_NOT_NATIVE_TRANSFER",
+    "semantic_reconstruction": False,
+    "native_named_selection_transfer_claim": False,
+}
+
+try:
+    with open(semantic_sidecar_path, "r") as handle:
+        sidecar = json.load(handle)
+    geo = ExtAPI.DataModel.GeoData
+    model = ExtAPI.DataModel.Project.Model
+    convert = Ansys.Core.Units.UnitsManager.ConvertUnit
+    cad_unit = str(geo.Unit)
+
+    def to_mm(value):
+        return float(convert(value, cad_unit, "mm"))
+
+    def to_mm2(value):
+        return float(convert(value, cad_unit + "^2", "mm^2"))
+
+    def centroid_match(actual, expected, tolerance):
+        return all(
+            abs(float(actual[index]) - float(expected[index])) <= tolerance
+            for index in range(3)
+        )
+
+    def entity_count(obj):
+        try:
+            return int(obj.TotalSelection)
+        except Exception:
+            ids = obj.Location.Ids
+            try:
+                return int(ids.Count)
+            except Exception:
+                return len(list(ids))
+
+    def add_named_selection(name, ids):
+        selection = ExtAPI.SelectionManager.CreateSelectionInfo(
+            SelectionTypeEnum.GeometryEntities
+        )
+        selection.Ids = sorted(ids)
+        named_selection = model.AddNamedSelection()
+        named_selection.Name = name
+        named_selection.Location = selection
+        return named_selection
+
+    def validate_partition(expected_face_count, expected_counts, groups):
+        actual_counts = dict((name, len(groups[name])) for name in groups)
+        if actual_counts != expected_counts:
+            raise Exception(
+                "SEMANTIC_RECONSTRUCTION_CLASS_COUNT_MISMATCH:%%s"
+                %% actual_counts
+            )
+        classified_ids = (
+            groups["INLET"] + groups["OUTLET"] + groups["WALLS"]
+        )
+        if len(classified_ids) != expected_face_count:
+            raise Exception("SEMANTIC_RECONSTRUCTION_COVERAGE_INCOMPLETE")
+        if len(set(classified_ids)) != expected_face_count:
+            raise Exception("SEMANTIC_RECONSTRUCTION_LABEL_OVERLAP")
+
+    def negative_partition_control(groups):
+        try:
+            validate_partition(
+                13, {"INLET": 1, "OUTLET": 1, "WALLS": 11}, groups
+            )
+            return False
+        except Exception:
+            return True
+
+    bodies = []
+    for assembly in geo.Assemblies:
+        for part in assembly.AllParts:
+            for body in part.Bodies:
+                if not body.Suppressed:
+                    bodies.append(body)
+    if len(bodies) != int(sidecar["expected_body_count"]):
+        raise Exception(
+            "SEMANTIC_RECONSTRUCTION_BODY_COUNT_MISMATCH:%%d" %% len(bodies)
+        )
+
+    tolerances = sidecar["tolerances"]
+    centroid_tolerance_mm = float(tolerances["centroid_mm"])
+    area_tolerance_mm2 = float(tolerances["area_mm2"])
+    inlet_signature = sidecar["boundaries"]["INLET"]["face_signatures"][0]
+    outlet_signature = sidecar["boundaries"]["OUTLET"]["face_signatures"][0]
+    inlet_ids = []
+    outlet_ids = []
+    wall_ids = []
+    face_details = []
+
+    for face in bodies[0].Faces:
+        centroid_mm = [
+            to_mm(face.Centroid[0]),
+            to_mm(face.Centroid[1]),
+            to_mm(face.Centroid[2]),
+        ]
+        area_mm2 = to_mm2(face.Area)
+        label = "WALLS"
+        if (
+            centroid_match(
+                centroid_mm,
+                inlet_signature["center_mm"],
+                centroid_tolerance_mm,
+            )
+            and abs(area_mm2 - float(inlet_signature["area_mm2"]))
+            <= area_tolerance_mm2
+        ):
+            inlet_ids.append(int(face.Id))
+            label = "INLET"
+        elif (
+            centroid_match(
+                centroid_mm,
+                outlet_signature["center_mm"],
+                centroid_tolerance_mm,
+            )
+            and abs(area_mm2 - float(outlet_signature["area_mm2"]))
+            <= area_tolerance_mm2
+        ):
+            outlet_ids.append(int(face.Id))
+            label = "OUTLET"
+        else:
+            wall_ids.append(int(face.Id))
+        face_details.append(
+            {
+                "id": int(face.Id),
+                "centroid_mm": centroid_mm,
+                "area_mm2": area_mm2,
+                "reconstructed_label": label,
+            }
+        )
+
+    expected_face_count = int(sidecar["expected_face_count"])
+    expected_counts = dict(
+        (name, int(sidecar["boundaries"][name]["expected_count"]))
+        for name in ("INLET", "OUTLET", "WALLS")
+    )
+    if len(face_details) != expected_face_count:
+        raise Exception(
+            "SEMANTIC_RECONSTRUCTION_FACE_COUNT_MISMATCH:%%d" %% len(face_details)
+        )
+    negative_controls = {
+        "zero_inlet_rejected": negative_partition_control(
+            {"INLET": [], "OUTLET": [2], "WALLS": list(range(3, 14))}
+        ),
+        "multiple_inlet_rejected": negative_partition_control(
+            {"INLET": [1, 2], "OUTLET": [3], "WALLS": list(range(4, 15))}
+        ),
+        "overlap_rejected": negative_partition_control(
+            {"INLET": [1], "OUTLET": [1], "WALLS": list(range(2, 13))}
+        ),
+        "incomplete_coverage_rejected": negative_partition_control(
+            {"INLET": [1], "OUTLET": [2], "WALLS": list(range(3, 13))}
+        ),
+    }
+    if not all(negative_controls.values()):
+        raise Exception("SEMANTIC_RECONSTRUCTION_NEGATIVE_CONTROL_FAILED")
+    validate_partition(
+        expected_face_count,
+        expected_counts,
+        {"INLET": inlet_ids, "OUTLET": outlet_ids, "WALLS": wall_ids},
+    )
+    preexisting_named_selection_object_counts = dict(
+        (name, int(DataModel.GetObjectsByName(name).Count))
+        for name in ("INLET", "OUTLET", "WALLS")
+    )
+    for name in ("INLET", "OUTLET", "WALLS"):
+        if preexisting_named_selection_object_counts[name] != 0:
+            raise Exception("SEMANTIC_RECONSTRUCTION_DUPLICATE_NAME:%%s" %% name)
+
+    add_named_selection("INLET", inlet_ids)
+    add_named_selection("OUTLET", outlet_ids)
+    add_named_selection("WALLS", wall_ids)
+
+    named_object_counts = {}
+    named_entity_counts = {}
+    for name in ("INLET", "OUTLET", "WALLS"):
+        objects = DataModel.GetObjectsByName(name)
+        named_object_counts[name] = int(objects.Count)
+        named_entity_counts[name] = (
+            entity_count(objects[0]) if objects.Count == 1 else 0
+        )
+    if named_object_counts != {"INLET": 1, "OUTLET": 1, "WALLS": 1}:
+        raise Exception("SEMANTIC_RECONSTRUCTION_OBJECT_COUNT_MISMATCH")
+    if named_entity_counts != expected_counts:
+        raise Exception("SEMANTIC_RECONSTRUCTION_ENTITY_COUNT_MISMATCH")
+
+    body_objects = Model.GetChildren(DataModelObjectCategory.Body, True)
+    Model.Mesh.ElementSize = Quantity("1 [mm]")
+    Model.Mesh.GenerateMesh()
+    node_count = 0
+    element_count = 0
+    body_names = []
+    for body in body_objects:
+        body_names.append(str(body.Name))
+        node_count += int(body.Nodes)
+        element_count += int(body.Elements)
+
+    inspection.update(
+        {
+            "cad_unit": cad_unit,
+            "body_count": int(body_objects.Count),
+            "body_names": body_names,
+            "face_count": len(face_details),
+            "face_details": face_details,
+            "reconstructed_face_ids": {
+                "INLET": inlet_ids,
+                "OUTLET": outlet_ids,
+                "WALLS": wall_ids,
+            },
+            "preexisting_named_selection_object_counts": (
+                preexisting_named_selection_object_counts
+            ),
+            "named_selection_object_counts": named_object_counts,
+            "named_selection_entity_counts": named_entity_counts,
+            "negative_controls": negative_controls,
+            "mesh_node_count": node_count,
+            "mesh_element_count": element_count,
+            "semantic_reconstruction": True,
+        }
+    )
+except Exception as error:
+    inspection["error_type"] = type(error).__name__
+    inspection["error"] = str(error)
+    inspection["traceback"] = traceback.format_exc()
+    with open(inspection_path, "w") as handle:
+        json.dump(inspection, handle, indent=2, sort_keys=True)
+    raise
+
+with open(inspection_path, "w") as handle:
+    json.dump(inspection, handle, indent=2, sort_keys=True)
+""" % (inspection_path, semantic_sidecar_path)
+    result["execution_reach"]["mechanical_inspection"] = "CALLED"
+    result["execution_reach"]["semantic_reconstruction"] = "CALLED"
+    model_container.SendCommand(Language="Python", Command=model_script)
+    result["execution_reach"]["mechanical_inspection"] = "RETURNED"
+    result["execution_reach"]["semantic_reconstruction"] = "RETURNED"
+
+    if not os.path.isfile(inspection_path):
+        raise Exception("WORKBENCH_MODEL_INSPECTION_MISSING")
+    with open(inspection_path, "r") as handle:
+        inspection = json.load(handle)
+    body_count = int(inspection.get("body_count", 0))
+    object_counts = inspection.get("named_selection_object_counts", {})
+    entity_counts = inspection.get("named_selection_entity_counts", {})
+    preexisting_counts = inspection.get(
+        "preexisting_named_selection_object_counts", {}
+    )
+    expected_counts = {"INLET": 1, "OUTLET": 1, "WALLS": 11}
+    geometry_available_ok = (
+        body_count == 1 and int(inspection.get("face_count", 0)) == 13
+    )
+    semantic_reconstruction_ok = (
+        inspection.get("semantic_reconstruction") is True
+        and inspection.get("native_named_selection_transfer_claim") is False
+        and all(preexisting_counts.get(name) == 0 for name in expected_counts)
+        and all(object_counts.get(name) == 1 for name in expected_counts)
+        and entity_counts == expected_counts
+        and len(
+            set(
+                sum(
+                    (
+                        inspection.get("reconstructed_face_ids", {}).get(name, [])
+                        for name in ("INLET", "OUTLET", "WALLS")
+                    ),
+                    [],
+                )
+            )
+        )
+        == 13
+    )
+    negative_controls_ok = (
+        isinstance(inspection.get("negative_controls"), dict)
+        and all(inspection["negative_controls"].values())
+        and set(inspection["negative_controls"])
+        == {
+            "zero_inlet_rejected",
+            "multiple_inlet_rejected",
+            "overlap_rejected",
+            "incomplete_coverage_rejected",
+        }
+    )
+    mesh_ok = (
+        int(inspection.get("mesh_node_count", 0)) > 0
+        and int(inspection.get("mesh_element_count", 0)) > 0
+    )
+
+    result["execution_reach"]["project_save"] = "CALLED"
+    Save(FilePath=project_path, Overwrite=True)
+    result["execution_reach"]["project_save"] = "RETURNED"
+    project_save_ok = os.path.isfile(project_path) and os.path.getsize(project_path) > 0
+    result["diagnostic_assertions"]["body_geometry_available"] = (
+        geometry_available_ok
+    )
+    result["diagnostic_assertions"]["semantic_reconstruction"] = (
+        semantic_reconstruction_ok
+    )
+    result["diagnostic_assertions"]["negative_controls"] = negative_controls_ok
+    result["diagnostic_assertions"]["mesh_generation"] = mesh_ok
+    result["diagnostic_assertions"]["project_save"] = project_save_ok
+    result["inspection"] = inspection
+    result["files"] = {
+        "project": {
+            "path": project_path,
+            "exists": os.path.isfile(project_path),
+            "size": os.path.getsize(project_path) if os.path.isfile(project_path) else 0,
+            "sha256": sha256_file(project_path) if os.path.isfile(project_path) else None,
+        },
+        "model_inspection": {
+            "path": inspection_path,
+            "exists": os.path.isfile(inspection_path),
+            "size": os.path.getsize(inspection_path) if os.path.isfile(inspection_path) else 0,
+            "sha256": sha256_file(inspection_path) if os.path.isfile(inspection_path) else None,
+        },
+    }
+    result["diagnostic_result"] = {
+        "body_geometry_available": geometry_available_ok,
+        "preexisting_upstream_labels_observed": any(
+            preexisting_counts.get(name, 0) > 0 for name in expected_counts
+        ),
+        "semantic_reconstruction": semantic_reconstruction_ok,
+        "negative_controls": negative_controls_ok,
+        "semantic_reconstruction_route": (
+            "HASH_BOUND_SIDECAR_GEOMETRIC_UNIQUE_MATCH"
+        ),
+        "mesh_generated": mesh_ok,
+        "project_saved": project_save_ok,
+        "native_named_selection_transfer_claim": False,
+    }
+    diagnostic_pass = (
+        semantic_sidecar_identity_ok
+        and geometry_available_ok
+        and semantic_reconstruction_ok
+        and negative_controls_ok
+        and mesh_ok
+        and project_save_ok
+    )
+    if diagnostic_pass:
+        result["status"] = "PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC"
+        result["engineering_capability"] = (
+            "PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC"
+        )
+        result["error"] = (
+            "DIAGNOSTIC_PASS_CANNOT_CLOSE_NATIVE_TRANSFER_GATE"
+        )
+    else:
+        result["error"] = "STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC_FAILED"
+except Exception as error:
+    result["error_type"] = type(error).__name__
+    result["error"] = str(error)
+    result["traceback"] = traceback.format_exc()
+
+with open(report_path, "w") as report_handle:
+    json.dump(result, report_handle, indent=2, sort_keys=True)
+
+if result["status"] != "PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC":
+    raise Exception("AJM005_WORKBENCH_SEMANTIC_RECONSTRUCTION_T1_DIAGNOSTIC_ONLY")

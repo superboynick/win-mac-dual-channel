@@ -17,6 +17,9 @@ POLICY = REPO / "airjet-simulation" / "automation" / "ansys" / "profiles.json"
 APPROVED = REPO / "airjet-simulation" / "automation" / "ansys" / "approved"
 T0_RUNNER = SKILL_ROOT / "scripts" / "run_t0_suite.py"
 T1_CAD_RUNNER = SKILL_ROOT / "scripts" / "run_t1_cad_suite.py"
+T1_SEMANTIC_RUNNER = (
+    SKILL_ROOT / "scripts" / "run_t1_semantic_reconstruction_suite.py"
+)
 T1_PREDECESSOR_NEGATIVE = (
     SKILL_ROOT / "scripts" / "test_t1_predecessor_negative.py"
 )
@@ -132,6 +135,20 @@ for invariant in (
     if invariant.upper() not in t1_cad_runner_source.upper():
         fail(f"T1 CAD suite runner lacks invariant: {invariant}")
 
+t1_semantic_runner_source = T1_SEMANTIC_RUNNER.read_text(encoding="utf-8")
+for invariant in (
+    "BLOCKED_T1_SEMANTIC_RUNNER_COPY_MISMATCH",
+    "PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC",
+    "NATIVE_PARAMETERIZATION_AND_NATIVE_TRANSFER_NOT_PROVEN",
+    "native_named_selection_transfer_claim",
+    "spaceclaim_semantic_sidecar.json",
+    "p1_p6_gates",
+):
+    if invariant not in t1_semantic_runner_source:
+        fail(f"T1 semantic suite runner lacks invariant: {invariant}")
+if "PASS_CAD_TRANSFER_SET" in t1_semantic_runner_source:
+    fail("T1 semantic suite must not claim native CAD transfer pass")
+
 t1_negative_source = T1_PREDECESSOR_NEGATIVE.read_text(encoding="utf-8")
 for invariant in (
     "BLOCKED_REQUIRED_PREDECESSOR_ID",
@@ -177,6 +194,60 @@ for profile in policy["profiles"]:
         fail(f"invalid declared reports for {profile_id}")
 
 by_profile_id = {profile["profile_id"]: profile for profile in policy["profiles"]}
+semantic_profile = by_profile_id.get(
+    "ajm005-workbench-semantic-reconstruction-t1-v1"
+)
+if not isinstance(semantic_profile, dict):
+    fail("missing independent T1 semantic reconstruction profile")
+semantic_predecessor = semantic_profile.get("predecessor") or {}
+if "spaceclaim_cad_t1.scdocx" in semantic_predecessor.get("artifacts", []):
+    fail("semantic reconstruction profile must not consume native CAD")
+for required in (
+    "spaceclaim_cad_t1.step",
+    "spaceclaim_semantic_sidecar.json",
+):
+    if required not in semantic_predecessor.get("artifacts", []):
+        fail(f"semantic reconstruction predecessor lacks {required}")
+semantic_script = (
+    APPROVED / semantic_profile["script"]
+).read_text(encoding="utf-8")
+for invariant in (
+    '"native_named_selection_transfer_claim": False',
+    '"native_attach": False',
+    '"native_parameterization": False',
+    '"p1_cad_toolchain_readiness": False',
+    "PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC",
+):
+    if invariant not in semantic_script:
+        fail(f"semantic reconstruction script lacks claim boundary: {invariant}")
+semantic_tree = ast.parse(semantic_script)
+model_script_assignments = [
+    node
+    for node in ast.walk(semantic_tree)
+    if isinstance(node, ast.Assign)
+    and any(
+        isinstance(target, ast.Name) and target.id == "model_script"
+        for target in node.targets
+    )
+]
+if len(model_script_assignments) != 1:
+    fail("semantic reconstruction must define exactly one embedded model_script")
+model_script_value = model_script_assignments[0].value
+if not (
+    isinstance(model_script_value, ast.BinOp)
+    and isinstance(model_script_value.op, ast.Mod)
+    and isinstance(model_script_value.left, ast.Constant)
+    and isinstance(model_script_value.left.value, str)
+):
+    fail("semantic reconstruction model_script must use audited literal formatting")
+try:
+    rendered_model_script = model_script_value.left.value % (
+        r"C:\AirJetAudit\inspection.json",
+        r"C:\AirJetAudit\semantic-sidecar.json",
+    )
+    compile(rendered_model_script, "embedded_mechanical_model_script.py", "exec")
+except (SyntaxError, TypeError, ValueError) as exc:
+    fail(f"semantic reconstruction embedded model_script is invalid: {exc}")
 for profile in policy["profiles"]:
     predecessor = profile["predecessor"]
     if predecessor is None:

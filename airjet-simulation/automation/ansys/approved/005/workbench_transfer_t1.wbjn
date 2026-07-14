@@ -10,7 +10,7 @@ predecessor_dir = os.environ["AIRJET_PREDECESSOR_DIR"]
 report_path = os.path.join(job_dir, "workbench_transfer_t1.json")
 inspection_path = os.path.join(job_dir, "workbench_model_inspection.json")
 project_path = os.path.join(job_dir, "workbench_transfer_t1.wbpj")
-geometry_path = os.path.join(predecessor_dir, "spaceclaim_cad_t1.step")
+native_path = os.path.join(predecessor_dir, "spaceclaim_cad_t1.scdocx")
 upstream_report_path = os.path.join(predecessor_dir, "spaceclaim_cad_t1.json")
 upstream_manifest_path = os.path.join(predecessor_dir, "predecessor-manifest.json")
 
@@ -32,17 +32,14 @@ result = {
     "p1_cad_hard_gate": "BLOCKED_UPSTREAM_NATIVE_PARAMETERIZATION",
     "license_arguments_added": False,
     "assertions": dict((name, False) for name in assertion_names),
-    "geometry_route": "STEP_DIAGNOSTIC_COMPONENTS_TO_SHARE",
-    "geometry_source_format": "STEP",
-    "diagnostic_only": True,
-    "native_named_selection_transfer_gate": "NOT_CLOSABLE_BY_STEP_ROUTE",
+    "geometry_route": "EXPLICIT_SPACECLAIM_EDIT_COMPONENTS_TO_SHARE",
     "update_route": "MODEL_CONTAINER_REFRESH_AFTER_COMPONENTS_SHARE",
     "execution_reach": {
         "predecessor_identity": "NOT_REACHED",
         "source_geometry_system": "NOT_REACHED",
         "source_geometry_set_file": "NOT_REACHED",
-        "source_geometry_edit_spaceclaim": "NOT_CALLED_BY_STEP_ROUTE",
-        "source_geometry_exit": "NOT_CALLED_BY_STEP_ROUTE",
+        "source_geometry_edit_spaceclaim": "NOT_REACHED",
+        "source_geometry_exit": "NOT_REACHED",
         "static_system_with_components_share": "NOT_REACHED",
         "source_geometry_file_and_save_data": "NOT_REACHED",
         "model_update_all_dependencies": "NOT_CALLED_BY_ROUTE",
@@ -74,27 +71,26 @@ try:
         (item["relative_path"], item)
         for item in upstream_manifest.get("artifacts", [])
     )
-    geometry_sha256 = sha256_file(geometry_path)
+    native_sha256 = sha256_file(native_path)
     report_sha256 = sha256_file(upstream_report_path)
-    expected_geometry_sha256 = upstream_report["files"]["step"]["sha256"]
+    expected_native_sha256 = upstream_report["files"]["transfer_native"]["sha256"]
     predecessor_identity_ok = (
         upstream_report.get("status") == "PASS_PARTIAL_CAD_CAPABILITY"
         and upstream_report.get("engineering_capability") == "PASS_PARTIAL_CAD_CAPABILITY"
         and upstream_report.get("license_arguments_added") is False
         and upstream_manifest.get("required_status")
         == "PASS_PARTIAL_CAD_CAPABILITY"
-        and manifest_artifacts.get("spaceclaim_cad_t1.step", {}).get("sha256")
-        == geometry_sha256
+        and manifest_artifacts.get("spaceclaim_cad_t1.scdocx", {}).get("sha256")
+        == native_sha256
         and manifest_artifacts.get("spaceclaim_cad_t1.json", {}).get("sha256")
         == report_sha256
-        and geometry_sha256 == expected_geometry_sha256
+        and native_sha256 == expected_native_sha256
     )
     result["predecessor"] = {
         "job_id": upstream_manifest.get("predecessor_job_id"),
         "profile_id": upstream_manifest.get("predecessor_profile_id"),
         "git_head": upstream_manifest.get("git_head"),
-        "geometry_source_file": "spaceclaim_cad_t1.step",
-        "geometry_sha256": geometry_sha256,
+        "native_sha256": native_sha256,
         "report_sha256": report_sha256,
     }
     result["predecessor_job_id"] = upstream_manifest.get("predecessor_job_id")
@@ -114,8 +110,15 @@ try:
     result["execution_reach"]["source_geometry_system"] = "RETURNED"
 
     result["execution_reach"]["source_geometry_set_file"] = "CALLED"
-    source_geometry.SetFile(FilePath=geometry_path)
+    source_geometry.SetFile(FilePath=native_path)
     result["execution_reach"]["source_geometry_set_file"] = "RETURNED"
+
+    result["execution_reach"]["source_geometry_edit_spaceclaim"] = "CALLED"
+    source_geometry.Edit(Interactive=False, IsSpaceClaimGeometry=True)
+    result["execution_reach"]["source_geometry_edit_spaceclaim"] = "RETURNED"
+    result["execution_reach"]["source_geometry_exit"] = "CALLED"
+    source_geometry.Exit()
+    result["execution_reach"]["source_geometry_exit"] = "RETURNED"
     source_component = source_system.GetComponent(Name="Geometry")
 
     result["execution_reach"]["static_system_with_components_share"] = "CALLED"
@@ -224,14 +227,15 @@ with open(inspection_path, "w") as handle:
             "sha256": sha256_file(inspection_path) if os.path.isfile(inspection_path) else None,
         },
     }
-    result["diagnostic_result"] = {
-        "body_geometry_available": geometry_transfer_ok,
-        "names_matching_upstream_labels_observed": named_transfer_ok,
-        "mesh_generated": mesh_ok,
-        "project_saved": project_save_ok,
-        "native_named_selection_transfer_claim": False,
-    }
-    result["error"] = "STEP_DIAGNOSTIC_ROUTE_CANNOT_CLOSE_NATIVE_TRANSFER_GATE"
+    result["assertions"]["geometry_transfer"] = geometry_transfer_ok
+    result["assertions"]["named_selection_transfer"] = named_transfer_ok
+    result["assertions"]["mesh_generation"] = mesh_ok
+    result["assertions"]["project_save"] = project_save_ok
+    if all(result["assertions"].values()):
+        result["status"] = "PASS_PARTIAL_CAD_CAPABILITY"
+        result["engineering_capability"] = "PASS_PARTIAL_CAD_CAPABILITY"
+    else:
+        result["error"] = "CAPABILITY_ASSERTION_FAILED"
 except Exception as error:
     result["error_type"] = type(error).__name__
     result["error"] = str(error)

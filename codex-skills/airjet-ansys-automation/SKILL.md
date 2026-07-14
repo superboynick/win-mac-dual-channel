@@ -66,6 +66,11 @@ scope, while this skill owns deterministic Windows execution.
   The downstream profile may receive only server-copied artifacts from its exact terminal
   predecessor job in the same case, Git commit, output root, and MCP process. The runner may mark
   `P1_CAD_TOOLCHAIN_READINESS`, but it must keep the overall 005 result partial and P1-P6 NOT_RUN.
+- Use `scripts/run_t1_semantic_reconstruction_suite.py` only for the independent STEP + hash-bound
+  sidecar diagnostic. A PASS proves deterministic solver-side boundary reconstruction on the
+  disposable fixture; it must keep native attach, native Named Selection transfer, native
+  parameterization and `P1_CAD_TOOLCHAIN_READINESS` false/BLOCKED. Never merge this status into
+  `PASS_CAD_TRANSFER_SET`.
 - Before the first T1 CAD run after an MCP change, use
   `scripts/test_t1_predecessor_negative.py`. It starts no ANSYS engine and verifies that missing,
   unexpected and unknown predecessor IDs leave auditable `FAILED_START` states with no PID.

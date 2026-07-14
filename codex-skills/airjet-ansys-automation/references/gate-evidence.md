@@ -22,6 +22,10 @@ Use these automation result states consistently:
 - `PASS_PARTIAL_CAD_CAPABILITY`: the fixed script-rebuild, geometry, save/reopen or transfer
   assertions for the declared partial CAD profile passed; native driving parameters and the full
   005 CAD readiness contract remain blocked unless separately proven.
+- `PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC`: a frozen STEP plus hash-bound producer sidecar
+  was uniquely mapped to solver-side boundary objects and its diagnostic mesh/project checks
+  passed. This is reconstruction, not native attach or Named Selection transfer; it never unlocks
+  P1 readiness by itself.
 - `PASS_005_CAPABILITY`: the corresponding 005 geometry, transfer, solve, or conservation
   assertions and required artifacts passed.
 - `FAIL_DIRECT`: the tested route itself failed.

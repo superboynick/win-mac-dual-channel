@@ -13,8 +13,9 @@ report_path = os.path.join(job_dir, "spaceclaim_cad_t1.json")
 full_native_path = os.path.join(job_dir, "spaceclaim_cad_t1_full.scdocx")
 native_path = os.path.join(job_dir, "spaceclaim_cad_t1.scdocx")
 step_path = os.path.join(job_dir, "spaceclaim_cad_t1.step")
+semantic_sidecar_path = os.path.join(job_dir, "spaceclaim_semantic_sidecar.json")
 
-assertion_names = (
+capability_assertion_names = (
     "script_parameterization_equivalent",
     "named_selections",
     "volume_extract_or_equivalent",
@@ -22,6 +23,9 @@ assertion_names = (
     "native_save",
     "native_reopen",
     "step_export_reimport",
+)
+assertion_names = capability_assertion_names + (
+    "semantic_sidecar",
 )
 result_data = {
     "schema_version": 1,
@@ -118,8 +122,7 @@ def find_boundary_faces(body):
         center = box.Center
         center_mm = [mm_value(center.X), mm_value(center.Y), mm_value(center.Z)]
         area_mm2 = float(face.Area) * 1000000.0
-        entry = {"center_mm": center_mm, "area_mm2": area_mm2}
-        details.append(entry)
+        entry = {"center_mm": center_mm, "area_mm2": area_mm2, "label": "WALLS"}
         if (
             close_enough(center_mm[0], 10.0, 0.05)
             and close_enough(center_mm[1], 5.0, 0.05)
@@ -127,6 +130,7 @@ def find_boundary_faces(body):
             and close_enough(area_mm2, math.pi, 0.05)
         ):
             inlet.append(face)
+            entry["label"] = "INLET"
         elif (
             close_enough(center_mm[0], 20.0, 0.05)
             and close_enough(center_mm[1], 5.0, 0.05)
@@ -134,6 +138,8 @@ def find_boundary_faces(body):
             and close_enough(area_mm2, 4.0, 0.05)
         ):
             outlet.append(face)
+            entry["label"] = "OUTLET"
+        details.append(entry)
     walls = [face for face in body.Faces if face not in inlet and face not in outlet]
     return inlet, outlet, walls, details
 
@@ -300,7 +306,76 @@ try:
         and os.path.getsize(native_path) > 0
         and os.path.getsize(step_path) > 0
     )
+    step_sha256 = sha256_file(step_path)
+    semantic_sidecar = {
+        "schema_version": 1,
+        "contract_id": "AJM005_T1_STEP_SEMANTIC_RECONSTRUCTION_V1",
+        "scope": "DISPOSABLE_CAPABILITY_FIXTURE_ONLY",
+        "role": "SOLVER_SIDE_SEMANTIC_RECONSTRUCTION_INPUT",
+        "claim_boundary": "NOT_NATIVE_NAMED_SELECTION_TRANSFER",
+        "producer": {
+            "profile_id": os.environ["AIRJET_PROFILE_ID"],
+            "case_id": os.environ["AIRJET_CASE_ID"],
+            "probe": "spaceclaim_cad_t1",
+        },
+        "source_geometry": {
+            "relative_path": "spaceclaim_cad_t1.step",
+            "format": "STEP",
+            "size": os.path.getsize(step_path),
+            "sha256": step_sha256,
+        },
+        "coordinate_unit": "mm",
+        "area_unit": "mm^2",
+        "expected_body_count": 1,
+        "expected_face_count": 13,
+        "body_invariants": {
+            "bbox_min_mm": fluid_fingerprint["bbox_min_mm"],
+            "bbox_max_mm": fluid_fingerprint["bbox_max_mm"],
+            "volume_mm3": fluid_fingerprint["volume_mm3"],
+            "piece_count": fluid_fingerprint["piece_count"],
+            "is_closed": fluid_fingerprint["is_closed"],
+            "is_manifold": fluid_fingerprint["is_manifold"],
+        },
+        "classification_method": "INLET_OUTLET_ANCHORS_WALLS_COMPLEMENT",
+        "tolerances": {"centroid_mm": 0.02, "area_mm2": 0.02},
+        "boundaries": dict(
+            (
+                name,
+                {
+                    "expected_count": group_counts[name],
+                    "face_signatures": [
+                        item for item in face_details if item["label"] == name
+                    ],
+                },
+            )
+            for name in ("INLET", "OUTLET", "WALLS")
+        ),
+        "partition_invariants": {
+            "pairwise_disjoint": True,
+            "full_face_coverage": True,
+        },
+    }
+    with open(semantic_sidecar_path, "w") as sidecar_handle:
+        json.dump(semantic_sidecar, sidecar_handle, indent=2, sort_keys=True)
+    semantic_sidecar_ok = (
+        os.path.isfile(semantic_sidecar_path)
+        and os.path.getsize(semantic_sidecar_path) > 0
+        and semantic_sidecar["source_geometry"]["sha256"] == step_sha256
+        and semantic_sidecar["expected_face_count"] == len(face_details)
+        and group_counts == {"INLET": 1, "OUTLET": 1, "WALLS": 11}
+        and all(
+            semantic_sidecar["boundaries"][name]["expected_count"]
+            == group_counts[name]
+            and len(
+                semantic_sidecar["boundaries"][name]["face_signatures"]
+            )
+            == group_counts[name]
+            for name in ("INLET", "OUTLET", "WALLS")
+        )
+    )
     result_data["assertions"]["native_save"] = native_files_ok
+    result_data["assertions"]["semantic_sidecar"] = semantic_sidecar_ok
+    result_data["semantic_sidecar_contract"] = semantic_sidecar
     # Record artifact identity immediately after save so later reopen/type
     # failures cannot erase evidence that the files were actually produced.
     result_data["files"] = {
@@ -317,7 +392,12 @@ try:
         "step": {
             "path": step_path,
             "size": os.path.getsize(step_path),
-            "sha256": sha256_file(step_path),
+            "sha256": step_sha256,
+        },
+        "semantic_sidecar": {
+            "path": semantic_sidecar_path,
+            "size": os.path.getsize(semantic_sidecar_path),
+            "sha256": sha256_file(semantic_sidecar_path),
         },
     }
 
@@ -396,7 +476,10 @@ try:
     }
     result_data["assertions"]["step_export_reimport"] = step_reimport_ok
 
-    if all(result_data["assertions"].values()):
+    if all(
+        result_data["assertions"][name]
+        for name in capability_assertion_names
+    ):
         result_data["status"] = "PASS_PARTIAL_CAD_CAPABILITY"
         result_data["engineering_capability"] = "PASS_PARTIAL_CAD_CAPABILITY"
     else:

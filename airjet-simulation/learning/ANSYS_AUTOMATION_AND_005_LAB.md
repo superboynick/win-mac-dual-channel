@@ -379,3 +379,21 @@ suite                              = FAIL_CAD_TRANSFER_SET
 STEP + semantic sidecar 的确定性重建：绑定 source SHA，按面几何与邻接唯一匹配，检查三组互斥和全
 覆盖，再 mesh、保存、重开复核。该路线的报告名、字段名和论文措辞都必须使用 reconstruction，不能
 把 solver-side 重建写成 native CAD transfer。
+
+## 20. 第十一次实验的操作边界与 Windows 入口
+
+为了避免混淆，native transfer 和 STEP semantic reconstruction 现在是两个 profile/runner。Windows
+只在工作树干净、签名 commit 精确同步、skills 重新安装且静态 policy PASS 后运行：
+
+```powershell
+$Python = 'C:\Users\admin\AppData\Local\AirJetAnsysAutomation\.venv\Scripts\python.exe'
+$Runner = "$HOME\.codex\skills\airjet-ansys-automation\scripts\run_t1_semantic_reconstruction_suite.py"
+& $Python -I -B $Runner
+```
+
+允许的成功输出只有 `PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC`。它要求 producer sidecar 与
+STEP/report/MCP manifest 哈希链一致、Mechanical 面唯一分类为 1/1/11、负向 partition controls 全部
+拒绝、Named Selection 创建后实体数仍为 1/1/11、mesh 和 project 有非空 SHA 产物。
+
+无论诊断是否 PASS，native runner 的历史/当前状态不被改写，P1 readiness 保持 BLOCKED。操作人员
+不能把新 runner 的 exit 0 转录成 `PASS_CAD_TRANSFER_SET`；这是两个不同的问题。

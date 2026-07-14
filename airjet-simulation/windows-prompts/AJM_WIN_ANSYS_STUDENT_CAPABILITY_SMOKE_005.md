@@ -66,6 +66,17 @@ powershell -ExecutionPolicy Bypass -File .\audit-airjet-project.ps1
 
 本节只判定 P1 CAD 工具链就绪度，不判定 P1 整机阶段 Gate。开始正式 P1 的工具链硬门槛是原生参数化、命名面、流体体积、连通、原生保存、Workbench/网格传递以及 Named Selections 传递全部通过。STEP 是重要交接能力，但不是唯一硬门槛；STEP 失败而上述必要项全部通过时写 `P1_CAD_TOOLCHAIN_READINESS=PASS_WITH_TRANSFER_LIMITATION`。正式 AirJet 整机尚未建立，所以 `P1_STAGE_GATE` 始终为 `NOT_RUN`。
 
+### 3.1 STEP 语义重建是独立诊断，不是原生传递
+
+签名 runner `run_t1_semantic_reconstruction_suite.py` 使用同一 SpaceClaim producer 生成的 STEP 与
+hash-bound semantic sidecar，在 Mechanical 按 centroid/area 唯一匹配并创建 solver-side
+`INLET/OUTLET/WALLS`。它必须使用独立 profile
+`ajm005-workbench-semantic-reconstruction-t1-v1`，不能复用 native transfer profile 的 PASS 字段。
+
+即使得到 `PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC`，也只能证明可删除 fixture 的下游语义
+重建、粗网格和项目保存；`native_attach`、`native_named_selection_transfer`、
+`native_parameterization` 与 `P1_CAD_TOOLCHAIN_READINESS` 仍为 false/BLOCKED，P1--P6 仍 NOT_RUN。
+
 ## 4. Workbench / Mechanical 烟雾测试
 
 1. 通过 GUI 或官方脚本接口确认 Static Structural、Modal、Harmonic Response、Fluid Flow (Fluent) 模板；

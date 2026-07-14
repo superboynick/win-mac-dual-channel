@@ -614,3 +614,70 @@ normal、surface type、adjacency 与容差做唯一匹配，再创建三组 sol
 这条路线重建的是求解器侧语义，不是从 `.scdocx` 原生传过来的语义。即使它通过，也只能写
 `PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC`；`named_selection_transfer`、native attach、native
 parameterization 和 P1 readiness 仍必须保持 false/BLOCKED，除非未来另立合同并经独立审核。
+
+## 23. 第十一次实验设计：先分离合同，再写重建算法
+
+状态：**IMPLEMENTED; SIGNING AND RUNTIME NOT YET RUN**。
+
+最初可以在现有 native transfer profile 里加一个 `diagnostic_result`，但这仍有命名层面的污染。
+最终设计把执行对象拆开：
+
+| 合同 | profile / runner | 唯一允许的成功含义 |
+|---|---|---|
+| native transfer | `ajm005-workbench-transfer-t1-v1` / `run_t1_cad_suite.py` | 原生 attach、上游 Named Selection 传递、mesh、project 的完整 partial CAD transfer |
+| STEP semantic reconstruction | `ajm005-workbench-semantic-reconstruction-t1-v1` / `run_t1_semantic_reconstruction_suite.py` | frozen STEP + sidecar 在求解器侧确定性重建边界，仅诊断 |
+
+semantic runner 的源代码静态禁止出现 `PASS_CAD_TRANSFER_SET`。它即使 exit 0，也同时固定：
+
+```text
+p1_cad_toolchain_readiness = BLOCKED
+p1_cad_blocker = NATIVE_PARAMETERIZATION_AND_NATIVE_TRANSFER_NOT_PROVEN
+p1_p6_gates = NOT_RUN
+canonical_native_claims = all false
+```
+
+### 23.1 Sidecar 为什么不是“另一个手工参数文件”
+
+producer 先保存 STEP，再形成单向哈希链：
+
+```text
+STEP bytes + size + SHA
+  -> semantic sidecar 引用 STEP SHA、producer/case、body/face 指纹和 1/1/11 规则
+    -> producer report 引用 sidecar size/SHA
+      -> MCP predecessor manifest 再冻结 report、STEP、sidecar 三者
+        -> Workbench 在 Reset 前重新计算并比较全部身份
+```
+
+sidecar 不保存跨导入稳定的 face ID。它保存 producer 已验证的几何语义：坐标/面积单位、13-face
+fixture、INLET/OUTLET 的 centroid/area 指纹、WALLS complement 和分区互斥/全覆盖要求。Mechanical
+导入后才读取本次 transient face IDs。
+
+### 23.2 Mechanical 算法和单位风险
+
+同机 v261 官方脚本确认的最小路线是：
+
+```text
+GeoData.Unit
+GeoData.Assemblies -> assembly.AllParts -> part.Bodies -> body.Faces
+face.Id / face.Centroid / face.Area
+UnitsManager.ConvertUnit(CAD unit -> mm / mm^2)
+CreateSelectionInfo(GeometryEntities) -> Ids
+Model.AddNamedSelection() -> Name / Location
+```
+
+几何值按 CAD unit 报告，不能假定天然是 mm。第十一次实跑若发现 `ConvertUnit`、`AllParts`、
+`body.Suppressed` 或 list→`selection.Ids` 在 v261 host 不兼容，应直接 fail closed 并保存完整 face map，
+不能用 `×1000` 或 GUI 点选悄悄绕过。
+
+### 23.3 创建树对象前先跑哪些拒绝测试
+
+实际 face 分类和任何 Named Selection 创建之前，脚本先执行四个纯 partition 负向 control：
+
+- `INLET=0` 必须拒绝；
+- `INLET>1` 必须拒绝；
+- inlet/outlet ID 重叠必须拒绝；
+- 三组覆盖不全必须拒绝。
+
+真实输入还要检查 sidecar/STEP/report/manifest SHA 链、13 个唯一 face IDs、实际 1/1/11、同名对象
+不存在、创建后 entity counts 精确等于 1/1/11。任何一项失败都保留 report/inspection，不生成
+diagnostic PASS。

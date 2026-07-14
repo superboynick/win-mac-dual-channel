@@ -631,6 +631,31 @@
   P1–P6 NOT_RUN。
 - 状态：CLOSED_STEP_PIPELINE_DIAGNOSTIC_SEMANTIC_RECONSTRUCTION_PENDING
 
+## REAL-20260714-031：运行前审查阻止 semantic reconstruction 污染 native transfer 合同
+
+- UTC：2026-07-14T21:00Z（设计/静态审查阶段）
+- Stage/task：005 T1 / 第十一次实验实现前审查
+- 发现的问题：最初的最小改法是在既有 `ajm005-workbench-transfer-t1-v1` 与
+  `run_t1_cad_suite.py` 内加入 solver-side semantic reconstruction，同时把 canonical native
+  assertions 保持 false。字段层面虽没有伪报，但 profile 身份和 runner 名称仍会把两类合同混在一起。
+- 风险：未来只看 profile/run 名或聚合脚本的人可能把 reconstruction 的局部 PASS 误读为 native
+  transfer 的进展；更严重时，后续维护者可能为“让 suite 变绿”而改写原生 transfer assertion。
+- 采取的修正：保留/恢复 native profile 与 native runner；新增独立
+  `ajm005-workbench-semantic-reconstruction-t1-v1`、独立 Workbench journal 和独立
+  `run_t1_semantic_reconstruction_suite.py`。新 runner 的唯一成功态是
+  `PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC`，且静态测试禁止其中出现
+  `PASS_CAD_TRANSFER_SET`。
+- 二次审查又发现 producer 的统一 `all(assertions)` 会让 sidecar 故障反向阻塞 native suite。现已把
+  producer status 只绑定原有七项 CAD capability assertions，同时仍在 report 中记录第八项
+  `semantic_sidecar`，并只让 semantic predecessor 强制要求它为 true。这样两条合同不仅名字分开，
+  上游判定也不再反向耦合。
+- 另一实现现实：Workbench journal 外层用 `%` 注入路径，Mechanical 内嵌脚本也用 `%d/%s` 格式化。
+  若不把内层百分号写成 `%%`，外层会提前消费占位符。当前用 AST 提取、真实格式化并再次 compile
+  内嵌脚本，避免等到 ANSYS 启动后才发现字符串插值错误。
+- 证据边界：本条只证明合同和静态实现经过 fail-closed 审查；Windows/ANSYS 第十一次实跑仍
+  `NOT_RUN`，不能写 semantic reconstruction PASS。
+- 状态：CLOSED_BY_INDEPENDENT_PROFILE_AND_RUNNER_SPLIT_RUNTIME_PENDING
+
 ## 新条目模板
 
 ```text

@@ -53,7 +53,7 @@
       "profile_id": "ajm005-spaceclaim-cad-t1-v1",
       "engine": "spaceclaim",
       "script": "005/spaceclaim_cad_t1.py",
-      "sha256": "44d2a671a4ccf8853484abf726c4bcc121a7ad5d9a53a81bb0f94750d70794a5",
+      "sha256": "4fdaf2f1f5ae2063f79b99adc8ac6ae91a147032c1386fc4119b5abd4ceff17e",
       "timeout_seconds": 900,
       "output_root_id": "student_smoke_005",
       "reports": [
@@ -65,7 +65,7 @@
       "profile_id": "ajm005-workbench-transfer-t1-v1",
       "engine": "workbench",
       "script": "005/workbench_transfer_t1.wbjn",
-      "sha256": "c7f6716699e332acbc117c5ce817c3e85d107c8025707a51f1b36693baed87b4",
+      "sha256": "162a7e13485f3ed31c270c7c40c47f378e7f1bac3b17217a06d40f52ad1200fb",
       "timeout_seconds": 1200,
       "output_root_id": "student_smoke_005",
       "reports": [
@@ -90,6 +90,39 @@
           "spaceclaim_cad_t1.json",
           "spaceclaim_cad_t1.scdocx",
           "spaceclaim_cad_t1.step"
+        ]
+      }
+    },
+    {
+      "profile_id": "ajm005-workbench-semantic-reconstruction-t1-v1",
+      "engine": "workbench",
+      "script": "005/workbench_semantic_reconstruction_t1.wbjn",
+      "sha256": "b713083ecadc83816d05e289bc48bf1ce038bd4ec9b7a0d7280e7e470144361a",
+      "timeout_seconds": 1200,
+      "output_root_id": "student_smoke_005",
+      "reports": [
+        "workbench_semantic_reconstruction_t1.json",
+        "workbench_semantic_reconstruction_inspection.json"
+      ],
+      "predecessor": {
+        "profile_id": "ajm005-spaceclaim-cad-t1-v1",
+        "report": "spaceclaim_cad_t1.json",
+        "required_probe": "spaceclaim_cad_t1",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
+        "required_assertions": [
+          "script_parameterization_equivalent",
+          "named_selections",
+          "volume_extract_or_equivalent",
+          "fluid_connectivity",
+          "native_save",
+          "native_reopen",
+          "step_export_reimport",
+          "semantic_sidecar"
+        ],
+        "artifacts": [
+          "spaceclaim_cad_t1.json",
+          "spaceclaim_cad_t1.step",
+          "spaceclaim_semantic_sidecar.json"
         ]
       }
     }

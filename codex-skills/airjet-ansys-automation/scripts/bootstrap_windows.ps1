@@ -31,6 +31,7 @@ $Server = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\airjet_
 $PolicyTest = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\test_airjet_ansys_mcp_policy.py'
 $T0Suite = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\run_t0_suite.py'
 $T1CadSuite = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\run_t1_cad_suite.py'
+$T1SemanticSuite = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\run_t1_semantic_reconstruction_suite.py'
 $T1PredecessorNegative = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\test_t1_predecessor_negative.py'
 [void](New-Item -ItemType Directory -Path $Root -Force)
 
@@ -49,8 +50,9 @@ if (-not (Test-Path -LiteralPath $Server -PathType Leaf)) { throw 'BLOCKED_MCP_S
 if (-not (Test-Path -LiteralPath $PolicyTest -PathType Leaf)) { throw 'BLOCKED_MCP_POLICY_TEST_MISSING' }
 if (-not (Test-Path -LiteralPath $T0Suite -PathType Leaf)) { throw 'BLOCKED_T0_SUITE_MISSING' }
 if (-not (Test-Path -LiteralPath $T1CadSuite -PathType Leaf)) { throw 'BLOCKED_T1_CAD_SUITE_MISSING' }
+if (-not (Test-Path -LiteralPath $T1SemanticSuite -PathType Leaf)) { throw 'BLOCKED_T1_SEMANTIC_SUITE_MISSING' }
 if (-not (Test-Path -LiteralPath $T1PredecessorNegative -PathType Leaf)) { throw 'BLOCKED_T1_PREDECESSOR_NEGATIVE_MISSING' }
-& $Python -m py_compile $Server $PolicyTest $T0Suite $T1CadSuite $T1PredecessorNegative
+& $Python -m py_compile $Server $PolicyTest $T0Suite $T1CadSuite $T1SemanticSuite $T1PredecessorNegative
 if ($LASTEXITCODE -ne 0) { throw 'BLOCKED_MCP_PYTHON_SYNTAX' }
 & $Python -I -B $PolicyTest
 if ($LASTEXITCODE -ne 0) { throw 'BLOCKED_MCP_STATIC_POLICY' }
