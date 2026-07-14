@@ -65,7 +65,7 @@
       "profile_id": "ajm005-workbench-transfer-t1-v1",
       "engine": "workbench",
       "script": "005/workbench_transfer_t1.wbjn",
-      "sha256": "96b1ce638afc61a731a5dcac730204503dd000355215384b91bce7b8b208a76e",
+      "sha256": "6c69ae9481e0b974b3d2fe38e4263cf499dc4c5465f8f4709a39495d6ee31733",
       "timeout_seconds": 1200,
       "output_root_id": "student_smoke_005",
       "reports": [

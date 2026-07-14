@@ -32,6 +32,16 @@ result = {
     "p1_cad_hard_gate": "BLOCKED_UPSTREAM_NATIVE_PARAMETERIZATION",
     "license_arguments_added": False,
     "assertions": dict((name, False) for name in assertion_names),
+    "update_route": "MODEL_COMPONENT_UPDATE_ALL_DEPENDENCIES",
+    "execution_reach": {
+        "predecessor_identity": "NOT_REACHED",
+        "geometry_set_file": "NOT_REACHED",
+        "model_update_all_dependencies": "NOT_REACHED",
+        "model_refresh": "NOT_CALLED_BY_ROUTE",
+        "model_container": "NOT_REACHED",
+        "mechanical_inspection": "NOT_REACHED",
+        "project_save": "NOT_REACHED",
+    },
 }
 
 
@@ -81,6 +91,7 @@ try:
     result["assertions"]["predecessor_identity"] = predecessor_identity_ok
     if not predecessor_identity_ok:
         raise Exception("PREDECESSOR_IDENTITY_ASSERTION_FAILED")
+    result["execution_reach"]["predecessor_identity"] = "PASS"
 
     Reset()
     static_template = GetTemplate(TemplateName="Static Structural", Solver="ANSYS")
@@ -89,12 +100,16 @@ try:
     geometry_properties = geometry.GetGeometryProperties()
     geometry_properties.GeometryImportNamedSelections = True
     geometry_properties.GeometryImportNamedSelectionsFilter = ""
+    result["execution_reach"]["geometry_set_file"] = "CALLED"
     geometry.SetFile(FilePath=native_path)
+    result["execution_reach"]["geometry_set_file"] = "RETURNED"
 
     model_component = static_system.GetComponent(Name="Model")
-    model_component.UpdateUpstreamComponents()
-    model_component.Refresh()
+    result["execution_reach"]["model_update_all_dependencies"] = "CALLED"
+    model_component.Update(AllDependencies=True)
+    result["execution_reach"]["model_update_all_dependencies"] = "RETURNED"
     model_container = static_system.GetContainer(ComponentName="Model")
+    result["execution_reach"]["model_container"] = "RETURNED"
 
     model_script = """
 import json
@@ -140,7 +155,9 @@ inspection = {
 with open(inspection_path, "w") as handle:
     json.dump(inspection, handle, indent=2, sort_keys=True)
 """ % inspection_path
+    result["execution_reach"]["mechanical_inspection"] = "CALLED"
     model_container.SendCommand(Language="Python", Command=model_script)
+    result["execution_reach"]["mechanical_inspection"] = "RETURNED"
 
     if not os.path.isfile(inspection_path):
         raise Exception("WORKBENCH_MODEL_INSPECTION_MISSING")
@@ -159,7 +176,9 @@ with open(inspection_path, "w") as handle:
         and int(inspection.get("mesh_element_count", 0)) > 0
     )
 
+    result["execution_reach"]["project_save"] = "CALLED"
     Save(FilePath=project_path, Overwrite=True)
+    result["execution_reach"]["project_save"] = "RETURNED"
     project_save_ok = os.path.isfile(project_path) and os.path.getsize(project_path) > 0
     result["inspection"] = inspection
     result["files"] = {
