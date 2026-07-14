@@ -147,3 +147,96 @@ submit 失败
 
 所有新问题先进入 [`REALITY_AND_FAILURE_LOG.md`](../logs/REALITY_AND_FAILURE_LOG.md)，再做最小
 区分实验。禁止用降低整机 cell/孔数、修改授权、无限重试或手工改报告来“通过”。
+
+## 10. 2026-07-14 实战复盘：第一次 suite 为什么失败
+
+第一次确定性 suite 在 commit `1777d25c...` 上串行运行四个 T0 profile：
+
+| engine | 终态 | 当时观察 | 真正问题 |
+|---|---|---|---|
+| SpaceClaim | `PROCESS_EXITED_0 / PASS_CONTROL` | 建成一个命名方块，`.scdocx` 落盘 | `.scdoc` 调用成功但文件不存在，说明返回值不等于落盘 |
+| Workbench | `FAILED_PROCESS / FAIL_CONTROL` | 项目与 `SYS` 保存了，模板查询失败 | UI 显示名不是完整内部模板键；结构模板还需 `Solver=ANSYS` |
+| PyMechanical | `PROCESS_EXITED_0 / PASS_CONTROL` | v261 连接、算术和退出正常 | 只是控制面，还没有 FEA |
+| PyFluent | `TIMED_OUT / FAIL_CONTROL` | health=`SERVING`、settings/TUI 存在 | 把显示文本当版本协议；`exit()` 默认异步，子进程树仍活着 |
+
+这里最重要的不是“API 名字写错了”，而是四类证据不能混用：
+
+- **显示层**：界面名称、日志中的产品名称，适合给人读；
+- **协议层**：内部 template key、Enum、schema 字段，适合稳定判断；
+- **进程层**：根进程退出码，只描述某个 process；
+- **任务层**：整个 Job Object 中所有子进程退出后才是完整终态。
+
+如果脚本只检查“窗口打开”或根 Python 返回 0，Workbench 内部查询错误和 Fluent 长尾进程都
+可能被错误写成 PASS。
+
+## 11. 怎样做一次不篡改历史的修复
+
+这次采取的顺序是：
+
+1. 不修改首轮 job、report 或 suite JSON；先记录 SHA-256。
+2. 查本机 v261 API 类型和官方示例，分别识别 display name/internal key、display string/Enum。
+3. Workbench 结构模板加入 `Solver="ANSYS"`，Fluent 模板改用内部键 `Fluid Flow`。
+4. PyFluent 版本改为与 `FluentVersion.v261` 比较，同时记录 `.value=26.1.0`。
+5. PyFluent 退出改为有界等待；Job Object/watchdog 仍作为外层兜底。
+6. 重新计算脚本 SHA，签名提交并让 Windows fast-forward 到精确 commit。
+7. 用新 case/job ID 重跑，而不是覆盖旧目录。
+8. suite 4/4 通过后，再检查相关进程数为 0。
+
+成功轮 commit 为 `6265043003dfb44b2b694ef3e91cfd84d7cc832b`。完整结果 JSON SHA-256
+为 `4e3973828e3b99c88dd65d6429901f2b5656c704fb702eca2bc2a674c241ba38`。失败轮与成功轮都在
+`logs/evidence/` 留有凝练摘要；每个 job 在 `logs/run-index.csv` 独立登记。
+
+## 12. 为什么 4/4 PASS 仍不能开始声称仿真完成
+
+T0 只回答“我们能否用确定方式控制软件”。005 T1 才回答“这套安装能否完成计划所需的
+最小工程动作”。当前没有做：
+
+- 带腔体、入口、出口的参数化流体几何；
+- `INLET/OUTLET/WALLS` 及其跨 Workbench/Meshing 传递；
+- Mechanical 网格、静力、模态、谐响应、压电求解；
+- Fluent 网格、至少 20 次实际迭代、质量守恒、case/data 重开；
+- transient/dynamic mesh/CHT 的实际小模型；
+- 4/8 solver process 的实际限制测试。
+
+所以此刻正确状态是：
+
+```text
+PASS_CONTROL_SET
+engineering_capability=NOT_RUN
+P1_STAGE_GATE=NOT_RUN
+```
+
+## 13. T1 能力探针为什么要拆开
+
+一个巨型“全功能脚本”一旦失败，很难区分是几何、传递、求解、Student 限制还是退出清理。
+因此按最小因果链拆分：
+
+| probe | 最小工程动作 | 通过后可以说 | 仍不能说 |
+|---|---|---|---|
+| `SC-CAD-T1` | 参数变化、腔体/孔/出口、命名面、单连通流体体、原生重开、STEP 回读 | SpaceClaim CAD 必要能力在小模型上通过 | 已建立 AirJet 整机 CAD |
+| `WB-XFER-T1` | 只接收上一步有 SHA 的产物，核对体积/名称/面数并生成粗网格 | 几何与 Named Selections 可传入 Workbench/Meshing | P1 Gate 通过 |
+| `MECH-STATIC-T1` | 10×10×1 mm 块实际网格/求解/导出/重开 | 最小静力路线可运行 | AirJet 执行片模型成立 |
+| `MECH-MH-T1` | 至少三阶模态和一次谐响应扫频 | modal/harmonic API 实际求解可用 | 找到产品 20–25 kHz 模态 |
+| `MECH-PZ-T1` | 最小压电耦合模型及电压反号检查 | 至少一条压电路线实际可用 | 压电材料栈或 1 W 功耗闭合 |
+| `FL-WT-FLOW-T1` | 三维流道网格、20+ iterations、质量平衡、case/data 重开 | 小型稳态 CFD 路线可运行 | AirJet 动态喷流成立 |
+| `FL-ET-T1` | Energy/ideal gas/transient 实际推进时间步 | 对应模型组合在小模型可运行 | 高频瞬态已收敛 |
+| `FL-DM-T1` | 运动边界、smoothing/remeshing、多时间步 | dynamic mesh 在小模型实际执行 | 膜片真实位移场已经耦合 |
+| `FL-CHT-T1` | 流固区、热界面、能量方程、热流闭合 | 小型 CHT 路线可运行 | 5.25/4.25 W 整机热账户闭合 |
+| `FL-P4/P8-T1` | 分别用 4/8 solver processes 实际读 case 并迭代 | 记录本机 Student 实际并行能力 | 获得任何额外授权或整机性能 |
+
+有前后依赖的探针不能读取“最近生成的文件”。上一步产物必须通过固定 job ID 或服务器端
+artifact linkage 传递，并校验 SHA；否则调用期间文件可能被替换，运行证据就失去身份。
+
+## 14. 每次运行后你应学会问的九个问题
+
+1. 输入对应哪个 commit、profile 和 script SHA？
+2. 这是产品证据、专利候选、文献方法、推导值还是未知假设？
+3. process terminal state 与工程断言是否分开？
+4. 原生产物是否真正落盘、能否关闭后重开？
+5. 报告中的数量、单位、面/体 identity 能否由机器复算？
+6. 失败是直接失败、上游阻塞还是根本没有运行？
+7. workaround 是否改变了物理问题、产品完整性或许可边界？
+8. 这项结果最多能支持论文中的哪一句话？
+9. 它明确不能支持什么？
+
+只要第 8、9 题没有写清，运行就还没有形成可安全用于论文的方法证据。

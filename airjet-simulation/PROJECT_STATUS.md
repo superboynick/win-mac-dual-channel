@@ -16,9 +16,11 @@
 - Windows 硬件、软件、研究 ZIP 和 Python 已实测，结果写入 `WINDOWS_ENVIRONMENT_REPORT.md`。
 - Windows 已完成第三方 PLE 清理并保留纯净官方 Ansys Student 2026 R1；核心程序签名、旧 1055/环境变量清理经 Mac SSH 复核。Workbench/Fluent 基础 Student checkout 已由 Windows 可见会话报告，但完整 P1–P5 能力仍待 005；详见 `reports/AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md`。
 - 为避免通用 GUI 代理只输出摘要而不执行软件，已建立 `airjet-ansys-automation` skill、
-  hash-pinned 本地 MCP 和 SpaceClaim/Workbench/PyMechanical/PyFluent 四路 T0 脚本；
-  005 现允许官方无头 API 产物支持技术字段，同时把可见性单独记录。实现仍需在 Windows
-  通过安装、负向安全测试和实际 T0/T1 探针，不能仅凭代码存在判定工具链 PASS。
+  hash-pinned 本地 MCP 和 SpaceClaim/Workbench/PyMechanical/PyFluent 四路 T0 脚本。
+  Windows 已完成安装、签名/依赖/并发等负向检查；commit
+  `6265043003dfb44b2b694ef3e91cfd84d7cc832b` 的确定性重试四路均为
+  `PROCESS_EXITED_0 / PASS_CONTROL`，suite 为 `PASS_CONTROL_SET`，结束后相关进程数为 0。
+  这只证明官方控制接口可控；005 T1 工程小模型仍为 `NOT_RUN`。
 - 已新增学习入口、ANSYS/005 实验手册、现实失败日志、run index 和论文方法—证据映射；
   后续每次运行会同步保留小型脱敏机器证据和 Git 外大产物哈希。
 - Gen1 两张官方产品透视图已分别做 homography、10,000 次像素误差 Monte Carlo 和跨视图差比较；四个画出 vent 只作为 `I` 类顶盖候选，不用于推断 cell 数。
@@ -36,7 +38,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 输入合同完成，CAD 未开始（Student 工具链待 005） | 先验证参数化、Named Selections、Volume Extract 和 Workbench 传递；通过后按 006 建立完整装配/流体负体积并独立审核 |
+| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 工程能力待跑） | 先验证参数化、Named Selections、Volume Extract、原生重开和 Workbench/Meshing 传递；通过后按 006 建立完整装配/流体负体积并独立审核 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -47,10 +49,14 @@
 
 ## 3. 下一步执行顺序
 
-1. 在 Windows 先安装并负向测试 `airjet-ansys` MCP，再用官方 ANSYS batch/API 执行
-   `windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`。用户本轮不要求观察 GUI，
-   所以写 `VISIBILITY=NOT_USER_OBSERVED`；无头结果不得代填 GUI visible 字段。
-2. 005 的 P1 CAD 工具链就绪度通过后，执行 `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：同一母版生成 4 个整机配置、6 个交付/残差变体和主配置 3 个有独立 ID/Gate 的单因素派生变体。006 最多写 `PENDING_PEER_REVIEW`，不能由生成模型的同一会话自评 P1 PASS。
+1. 以已通过的 T0 控制集为边界，在 Windows 运行 005 T1：先做 SpaceClaim 参数化流体域及
+   原生重开，再用该精确有 SHA 的产物完成 Workbench/Meshing/Named Selection 传递；随后分别
+   做 Mechanical 与 Fluent 可删除小模型。所有运行写 `VISIBILITY=NOT_USER_OBSERVED`，无头
+   结果不得代填 GUI visible 字段。
+2. 只有 005 的 P1 CAD 必要字段全部通过后，才执行
+   `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：同一母版生成 4 个整机配置、
+   6 个交付/残差变体和主配置 3 个有独立 ID/Gate 的单因素派生变体。006 最多写
+   `PENDING_PEER_REVIEW`，不能由生成模型的同一会话自评 P1 PASS。
 3. 已提交的 Ansys 30 天官方试用申请继续等待；只有 entitlement 实际激活后才执行 004，不让等待阻塞 Student 可完成的 P1 工作。
 4. 先闭合 2.8 mm 厚度预算、四个候选顶盖 vent、单侧 spout 和全流路连通，再允许给 `S_image`/`S_geometry` 正式评分。
 5. P1 Gate 通过后，才按 P2 → P3 → P4 → P5 → P6 顺序推进；不以高保真单 cell 替代整机主线。

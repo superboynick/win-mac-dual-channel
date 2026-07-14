@@ -66,8 +66,11 @@
 - 判断：文件关联不是 SpaceClaim API 保存/重开能力证据。
 - 处置：T0 同时调用 `DocumentSave.Execute` 保存两种格式；005 T1 再由 SpaceClaim 重开并
   核对 body、包络和名称。
+- T0 实测：两轮中 `.scdocx` 都实际存在并进入 artifact manifest；`.scdoc` 的保存调用返回
+  success，但文件均不存在。因此命令返回值不是文件落盘证据，T1 以 `.scdocx` 重开为当前
+  原生格式主路线，并继续把 `.scdoc` 记为观察到的限制。
 - 对论文的影响：方法章节只报告实测成功的原生格式，不使用“应该支持”的措辞。
-- 状态：OPEN_UNTIL_T0_T1
+- 状态：T0_SC_DOCX_PASS_SCDOC_LIMITATION_OPEN_UNTIL_T1_REOPEN
 
 ## REAL-20260714-007：共享 Git 在长补丁期间前进了一次
 
@@ -169,6 +172,9 @@
   SSH/Python 进程同时竞争时第二个也被拒绝。现场进程显示 SSH 为 Session 0、可见 Codex 为
   Session 1；代码已使用 `Global`，但没有为测试临时注册 Scheduled Task 或注入 GUI 进程，
   因此实际跨 session acquire/release 仍记为未直接观察。
+- T0 suite 后检查：签名重试结束后 SpaceClaim/Workbench/Mechanical/Fluent 自动化相关进程
+  数量为 0，说明本次四任务串行运行没有留下长尾进程；这不替代尚未直接观察的 Session 0/1
+  跨 session 竞争测试。
 - 状态：CODE_AND_CROSS_PROCESS_PASS_CROSS_SESSION_NOT_DIRECTLY_OBSERVED
 
 ## REAL-20260714-014：Fluent 版本显示与异步退出造成首次 T0 误判和长尾进程
@@ -188,7 +194,11 @@
   watchdog 与 Job Object 仍是外层 600 秒兜底。
 - 对 Gate/论文主张的影响：首次 PyFluent 为真实 FAIL_CONTROL，不得改写；前三个 profile 的
   独立报告不受影响。修复后必须新 job ID 重跑，不能覆盖首次证据。
-- 状态：OPEN_PENDING_SIGNED_RETRY
+- 签名重试：commit `6265043003dfb44b2b694ef3e91cfd84d7cc832b` 上的新 job
+  `ajm005-pyfluent-suite-20260714t175525010049z_2b301826-9e8a5ce26c8b` 返回
+  `PROCESS_EXITED_0 / PASS_CONTROL`；类型化版本等于 `FluentVersion.v261`，`.value=26.1.0`，
+  bounded exit wait=60 s；suite 后相关进程数为 0。
+- 状态：CLOSED_BY_SIGNED_RETRY_FIRST_FAILURE_PRESERVED
 
 ## REAL-20260714-015：Workbench 显示名不等于完整模板键
 
@@ -203,7 +213,28 @@
   `Fluid Flow`，报告仍用用户可读的 `Fluid Flow (Fluent)`。首次 FAIL_DIRECT 不改写，新 SHA
   profile 必须重跑。
 - 对 Gate/论文主张的影响：只修正控制面键，不证明任何静力、模态、谐响应或 CFD 求解能力。
-- 状态：OPEN_PENDING_SIGNED_RETRY
+- 签名重试：commit `6265043003dfb44b2b694ef3e91cfd84d7cc832b` 上的新 job
+  `ajm005-workbench-suite-20260714t175525010049z_2b301826-cf2bdb7d6029` 返回
+  `PROCESS_EXITED_0 / PASS_CONTROL`；四个模板映射为 true 且 `.wbpj` 保存。仍未执行实际结构或
+  CFD 求解。
+- 状态：CLOSED_BY_SIGNED_RETRY_FIRST_FAILURE_PRESERVED
+
+## REAL-20260714-016：T0 四路全绿仍不能写 005 工程能力通过
+
+- UTC：2026-07-14T17:56:49Z
+- Stage/task：005 / T0 signed retry
+- 期望：先证明四个官方自动化入口可控，再开始工程小模型。
+- 实际观察：SpaceClaim、Workbench、PyMechanical、PyFluent 四个固定 profile 全部
+  `PROCESS_EXITED_0 / PASS_CONTROL`；完整 suite 为 `PASS_CONTROL_SET`。但 SpaceClaim 只建了
+  一个方块，Mechanical 只做连接与算术，Fluent 只做 health/API 检查。
+- 风险：若把“软件能启动、API 存在”直接写成 `PASS_005_CAPABILITY`，会跳过参数化/命名/传递、
+  真实 FEA/CFD 求解、质量守恒和保存重开这些技术断言，并错误解锁正式整机 CAD。
+- 处置：suite、run index、论文映射和项目状态统一保留
+  `engineering_capability=NOT_RUN`、`P1_STAGE_GATE=NOT_RUN`；T1 拆成可独立终止和判定的 CAD、
+  transfer、Mechanical、Fluent 能力探针。
+- 对论文的影响：当前只允许写“验证了四个官方接口的确定性可控性”；不能写“验证了 AirJet
+  模型或 ANSYS 工程求解能力”。
+- 状态：CLOSED_BY_EVIDENCE_SEMANTICS_T1_REQUIRED
 
 ## 新条目模板
 
