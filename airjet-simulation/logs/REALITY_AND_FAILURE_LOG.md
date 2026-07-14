@@ -656,6 +656,47 @@
   `NOT_RUN`，不能写 semantic reconstruction PASS。
 - 状态：CLOSED_BY_INDEPENDENT_PROFILE_AND_RUNNER_SPLIT_RUNTIME_PENDING
 
+## REAL-20260714-032：sidecar 身份通过，但 Workbench 在算法执行前无法保存/附加 Mechanical 数据库
+
+- UTC：2026-07-14T21:09:52Z
+- Stage/task：005 T1 / 第十一次 STEP semantic reconstruction 真实运行
+- run/jobs：`AJM005_T1_SEMANTIC_RECON_SUITE_20260714T210952085661Z_4c81dce0`；SC
+  `...-22072d808273`；WB `...-fafc99fff120`；签名 commit
+  `4f80fc6aa461163635fb7c4d9e0fece008ac0e66`。
+- 期望：冻结 STEP、producer report、semantic sidecar 与 MCP manifest 身份一致后，在 Mechanical
+  枚举 13 个面，执行四项负向 partition controls，唯一重建 `INLET/OUTLET/WALLS=1/1/11`，再生成
+  粗网格并保存 project。
+- producer 实际结果：SpaceClaim 19.954 秒正常退出。原有七项 partial CAD assertions 与新增
+  `semantic_sidecar` 都为 true；STEP 为 17219 bytes、SHA-256
+  `64b012aae023ca273e9c0de4bf308dff5f7900b6f346c8c134d48ea75ddd7662`；sidecar 为 4075 bytes、
+  SHA-256 `00632d1dc50af445a7e286c9fd348b30b2f4299dc843f2b6a85ffb98b9ded7cd`。
+- consumer 实际到达：predecessor identity、semantic sidecar identity、source `SetFile`、
+  `ComponentsToShare`、save-data 与 Model container 都通过；`Model.Refresh()` 已调用。
+- 原始错误短摘：Workbench 报告无法保存临时
+  `...\\temp\\WB_admin_45360_3\\wbnew_files\\dp0\\global\\MECH\\SYS.mechdb` 的 Mechanical 数据库，
+  并“无法附加几何结构”。WB 77.704 秒后 exit 2 / `FAIL_DIRECT`。
+- 关键边界：Mechanical inspection、face enumeration、semantic reconstruction、negative controls、
+  mesh 与 project save 全部 `NOT_REACHED`。所以本轮不是“算法分类失败”，而是 host 在算法入口前
+  失败；不能依据 false assertions 评价面匹配规则本身。
+- 原始证据：suite/MCP SHA-256 分别为
+  `947b320ae0d1dd5bd4e05a4dae1e4cf4dcd8946580f24050d590d1c741a6683a` 和
+  `59e96bf6b923a7ae0f89497cde9bc50dcd11a2df5fccf0347b17546d134d1894`；SC/WB report SHA-256
+  分别为 `9613af45b8b7dfcd2eea77e7c21ce3f6f327df05c55e7e5056980ecfbc5c985c` 和
+  `8b2a93c67c665f0474f12bfe7ac6b287786a5de931997914c179189de4e53574`；
+  2026-07-14T21:14:35.8301194Z 相关进程数为 0。
+- 路径检查：成功的第十次 WB job root 长 164，第十一次长 176；失败消息中的 `SYS.mechdb` 路径长
+  237。Windows `LongPathsEnabled=1`，而第十次成功 job 内可观察到 253-character 文件，所以“超过
+  Windows 260 字符”不是已证实根因。但某个 legacy Mechanical/Workbench 子组件仍可能使用更低的
+  内部预算，且第十一次 case ID 在 job root 中出现两次；该假设置信度为低到中，必须单变量复测。
+- 下一最小实验：只把 semantic runner case prefix 从 `ajm005-semantic-recon-` 缩为
+  `ajm005-sem-`；profile、journal、STEP route、sidecar、assertions 和成功合同全部不变。若到达
+  Mechanical，再评价单位转换、face API、负向 controls 和 1/1/11；若同点失败，关闭路径假设并
+  转查项目名/临时目录/Workbench project materialization。
+- 对 Gate/论文主张的影响：suite 为
+  `FAIL_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC`；所有 canonical native claims 为 false；P1
+  readiness BLOCKED，P1–P6 NOT_RUN。
+- 状态：OPEN_SHORT_CASE_ID_SINGLE_VARIABLE_RETEST
+
 ## 新条目模板
 
 ```text

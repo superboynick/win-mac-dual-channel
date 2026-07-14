@@ -51,6 +51,11 @@
   `INLET/OUTLET/WALLS` 对象和实体全为 0。脚本按设计把 native canonical assertions 保持 false，
   suite 仍为 FAIL。这证明通用 WB→Mechanical→mesh→project 管线可用，并把当前故障收窄到 native
   `.scdocx` attach/semantic bridge；不能把 STEP 几何可达伪报为 native Named Selection transfer。
+  commit `4f80fc6...` 随后把 semantic reconstruction 拆为独立 profile/runner 并首次实跑：
+  SpaceClaim producer、STEP/sidecar/report/manifest 身份链全部通过；Workbench source/share/save-data
+  通过，但 `Model.Refresh()` 保存/附加临时 `SYS.mechdb` 失败，Mechanical 面枚举、负向 controls、
+  1/1/11 重建、mesh 和 project 全部未到达。当前只能写 host attach 前置失败，不能写重建算法失败。
+  下一单变量实验仅缩短 case ID；P1 readiness 与 native claims 均未改变。
   审查同时确认脚本两次重建只能证明等效参数驱动，
   不能证明 `.scdocx` 原生 driving parameter；因此即使本轮
   CAD/Named Selection/粗网格传递全过，也只允许写 `PASS_CAD_TRANSFER_SET`，
@@ -72,7 +77,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP 诊断已证实 WB→Mechanical body/mesh/project；native `.scdocx` attach 与 semantic transfer 仍 FAIL/BLOCKED） | 已实测脚本参数变化、完整三段 union、Named Selections、原生重开与 STEP occurrence/master 全层指纹；下一实验用 frozen STEP + hash-bound semantic sidecar 在 Mechanical 确定性重建三组边界。这是 reconstruction，不是 native transfer；native attach、Named Selection transfer 与原生 driving parameter 硬阻塞仍需分别关闭，之后才可按 006 建立完整装配/流体负体积并独立审核 |
+| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP 诊断已证实 WB→Mechanical body/mesh/project；首次 semantic reconstruction 在 `Model.Refresh` 前置 attach 处 FAIL；native `.scdocx` attach 与 semantic transfer 仍 FAIL/BLOCKED） | 已实测脚本参数变化、完整三段 union、Named Selections、原生重开与 STEP occurrence/master 全层指纹；frozen STEP + hash-bound sidecar 输入身份已通过，但 Mechanical 面重建尚未到达。先做短 case ID 单变量复测；这是 reconstruction，不是 native transfer。native attach、Named Selection transfer 与原生 driving parameter 硬阻塞仍需分别关闭，之后才可按 006 建立完整装配/流体负体积并独立审核 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -84,7 +89,8 @@
 ## 3. 下一步执行顺序
 
 1. 以已通过的 T0、SpaceClaim partial CAD 和 STEP body/mesh/project 诊断为边界，在 Windows 继续
-   005 T1：输出 frozen STEP 与 hash-bound semantic sidecar，在 Mechanical 按面几何、邻接和容差
+   005 T1：先只缩短 semantic runner 的 case ID，复测 `Model.Refresh` 前置 attach；若进入 Mechanical，
+   再用已通过身份检查的 frozen STEP 与 hash-bound semantic sidecar，按面几何、邻接和容差
    唯一匹配并重建 `INLET/OUTLET/WALLS`；必须验证 1/1/11、互斥、全覆盖，并做 SHA 错、0 match、
    multiple match、重叠和覆盖不全的负向测试。报告明确写 semantic reconstruction，不得写 native
    transfer。随后继续独立排查 `.scdocx` attach、原生 Named Selection transfer 与原生 driving

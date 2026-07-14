@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "task": "AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
+  "suite": "step_semantic_reconstruction_t1",
+  "suite_status": "FAIL_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC",
+  "semantic_reconstruction_diagnostic": "FAIL",
+  "git_head": "4f80fc6aa461163635fb7c4d9e0fece008ac0e66",
+  "case_id": "ajm005-semantic-recon-20260714t210952085661z_4c81dce0",
+  "started_at": "2026-07-14T21:09:52.085661+00:00",
+  "ended_at": "2026-07-14T21:11:34.100956+00:00",
+  "external_result_path": "C:\\Users\\admin\\Downloads\\AIRJET_ANSYS_STUDENT_SMOKE_005\\AJM005_T1_SEMANTIC_RECON_SUITE_20260714T210952085661Z_4c81dce0.json",
+  "external_result_size": 62252,
+  "external_result_sha256": "947b320ae0d1dd5bd4e05a4dae1e4cf4dcd8946580f24050d590d1c741a6683a",
+  "external_mcp_stderr_size": 4533,
+  "external_mcp_stderr_sha256": "59e96bf6b923a7ae0f89497cde9bc50dcd11a2df5fccf0347b17546d134d1894",
+  "runner_sha256": "1f77c51d5814948b219576ce1a29332e49ebd1b01941c327f82920d3bc64d0e9",
+  "license_arguments_added": false,
+  "visibility": "NOT_USER_OBSERVED",
+  "p1_cad_toolchain_readiness": "BLOCKED",
+  "p1_cad_blocker": "NATIVE_PARAMETERIZATION_AND_NATIVE_TRANSFER_NOT_PROVEN",
+  "p1_p6_gates": "NOT_RUN",
+  "post_suite_process_observation": {
+    "observed_at_utc": "2026-07-14T21:14:35.8301194Z",
+    "count": 0,
+    "method": "PowerShell Get-Process name allowlist counted after suite completion"
+  },
+  "runs": [
+    {
+      "profile_id": "ajm005-spaceclaim-cad-t1-v1",
+      "job_id": "ajm005-semantic-recon-20260714t210952085661z_4c81dce0-22072d808273",
+      "script_sha256": "4fdaf2f1f5ae2063f79b99adc8ac6ae91a147032c1386fc4119b5abd4ceff17e",
+      "started_at": "2026-07-14T21:09:54.633911+00:00",
+      "ended_at": "2026-07-14T21:10:14.588372+00:00",
+      "duration_seconds": 19.954461,
+      "phase": "PROCESS_EXITED_0",
+      "exit_code": 0,
+      "report_status": "PASS_PARTIAL_CAD_CAPABILITY",
+      "engineering_capability": "PASS_PARTIAL_CAD_CAPABILITY",
+      "assertions": {
+        "script_parameterization_equivalent": true,
+        "named_selections": true,
+        "volume_extract_or_equivalent": true,
+        "fluid_connectivity": true,
+        "native_save": true,
+        "native_reopen": true,
+        "step_export_reimport": true,
+        "semantic_sidecar": true
+      },
+      "artifacts": {
+        "full_native": {"size": 38204, "sha256": "62457cc42049b31ddafe7dcffaf3147a9a62ed1ecfe811b90558f3e5c3f638dc"},
+        "transfer_native": {"size": 32146, "sha256": "5fb41fe202cf01406bcee54e85239474837f650a948f3ad000fbd7e1e1900742"},
+        "step": {"size": 17219, "sha256": "64b012aae023ca273e9c0de4bf308dff5f7900b6f346c8c134d48ea75ddd7662"},
+        "semantic_sidecar": {"size": 4075, "sha256": "00632d1dc50af445a7e286c9fd348b30b2f4299dc843f2b6a85ffb98b9ded7cd"}
+      },
+      "declared_report_sha256": "9613af45b8b7dfcd2eea77e7c21ce3f6f327df05c55e7e5056980ecfbc5c985c",
+      "job_state_sha256": "6b5ffd1451d8a589c0cfa564fb37c4c5e4b5bbde587a7c05132cb0bc01bcb203",
+      "stdout_sha256": "4573bbf8d0816e4ba31bf599987b8a3ab3c807d51ebcdc5ac3025d8c150a3983",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "profile_id": "ajm005-workbench-semantic-reconstruction-t1-v1",
+      "job_id": "ajm005-semantic-recon-20260714t210952085661z_4c81dce0-fafc99fff120",
+      "predecessor_job_id": "ajm005-semantic-recon-20260714t210952085661z_4c81dce0-22072d808273",
+      "script_sha256": "b713083ecadc83816d05e289bc48bf1ce038bd4ec9b7a0d7280e7e470144361a",
+      "started_at": "2026-07-14T21:10:16.002681+00:00",
+      "ended_at": "2026-07-14T21:11:33.706653+00:00",
+      "duration_seconds": 77.703972,
+      "phase": "FAILED_PROCESS",
+      "exit_code": 2,
+      "report_status": "FAIL_DIRECT",
+      "engineering_capability": "FAIL_DIRECT",
+      "error_type": "Exception",
+      "error_normalized": "Workbench could not save the Mechanical database SYS.mechdb and could not attach the geometry structure during Model.Refresh",
+      "execution_reach": {
+        "predecessor_identity": "PASS",
+        "semantic_sidecar_identity": "PASS",
+        "source_geometry_system": "RETURNED",
+        "source_geometry_set_file": "RETURNED",
+        "source_geometry_edit_spaceclaim": "NOT_CALLED_BY_STEP_ROUTE",
+        "source_geometry_exit": "NOT_CALLED_BY_STEP_ROUTE",
+        "static_system_with_components_share": "RETURNED",
+        "source_geometry_file_and_save_data": "RETURNED",
+        "model_update_all_dependencies": "NOT_CALLED_BY_ROUTE",
+        "model_container": "RETURNED",
+        "model_refresh": "CALLED",
+        "mechanical_inspection": "NOT_REACHED",
+        "semantic_reconstruction": "NOT_REACHED",
+        "project_save": "NOT_REACHED"
+      },
+      "diagnostic_assertions": {
+        "predecessor_identity": true,
+        "semantic_sidecar_identity": true,
+        "body_geometry_available": false,
+        "semantic_reconstruction": false,
+        "negative_controls": false,
+        "mesh_generation": false,
+        "project_save": false
+      },
+      "canonical_native_claims": {
+        "geometry_transfer": false,
+        "named_selection_transfer": false,
+        "native_attach": false,
+        "native_parameterization": false,
+        "p1_cad_toolchain_readiness": false
+      },
+      "predecessor_manifest_total_size": 92020,
+      "declared_report_sha256": "8b2a93c67c665f0474f12bfe7ac6b287786a5de931997914c179189de4e53574",
+      "job_state_sha256": "fe3a40a2aa077b8364bed5442d215e8bb51750aa9af0ee94344f4f6b2de592e8",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

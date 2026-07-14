@@ -322,7 +322,7 @@ async def run_suite() -> int:
         + "_"
         + uuid4().hex[:8]
     )
-    case_id = f"ajm005-semantic-recon-{stamp.lower()}"
+    case_id = f"ajm005-sem-{stamp.lower()}"
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
     result_path = OUTPUT_ROOT / f"AJM005_T1_SEMANTIC_RECON_SUITE_{stamp}.json"
     stderr_path = (
