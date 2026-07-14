@@ -7,6 +7,21 @@
   },
   "skills": [
     {
+      "name": "airjet-ansys-automation",
+      "kind": "project",
+      "source": "codex-skills/airjet-ansys-automation",
+      "skill_md_sha256": "675fbc4425f395bde170b9cb391d55cfa81cf75734491ac1b6c0994791a8ae02",
+      "required_files": [
+        "SKILL.md",
+        "agents/openai.yaml",
+        "references/official-automation-routes.md",
+        "references/gate-evidence.md",
+        "scripts/bootstrap_windows.ps1",
+        "scripts/airjet_ansys_mcp.py",
+        "scripts/test_airjet_ansys_mcp_policy.py"
+      ]
+    },
+    {
       "name": "airjet-product-reconstruction",
       "kind": "project",
       "source": "codex-skills/airjet-product-reconstruction",

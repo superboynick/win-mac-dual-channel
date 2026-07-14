@@ -67,7 +67,9 @@ Expected SHA256:
 1. 阅读 `WINDOWS_ENVIRONMENT_REPORT.md`、`reports/AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md` 和历史 `AJM_WIN_ANSYS_CAPABILITY_SMOKE_003_SUMMARY.md`；
 2. 确认研究 ZIP 与 Mini PDF 哈希；不需要重做已经版本化的曲线、图像 homography、专利映射或 Layout 去重；
 3. 将 Windows Codex 默认 reasoning effort 设为 `high`；复杂故障/关键 Gate 审核可临时升 `xhigh`；承担复杂证据协调或关键 Gate 复核的任一端建议使用 `xhigh`；
-4. 当前先执行 `windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`；不等待 30 天试用审批；
+4. 当前先安装/验证 `airjet-ansys-automation` skill 与 MCP，再用官方 batch/API 执行
+   `windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`；不等待 30 天试用审批，
+   也不把无头结果写成 GUI visible PASS；
 5. 005 的 P1 CAD 工具链就绪度通过后，执行 006；用同一 27.5 x 41.5 x 2.8 mm 母版建立全部 9 个正式 variant。输入由两个 P1 生成器、9 条 internal R0 和 `geometry/contracts/` 锁定，不能由 Windows 临场猜测；006 必须保留真实 005 副本、固定角色 manifest、机器检查和 252 行 evidence；
 6. 先完成 2.8 mm 厚度预算和完整入口-上下腔-孔板-冲击通道-歧管-spout 连通检查，再给任何布局正式图像/几何分；
 7. 006 只能到 `PENDING_PEER_REVIEW`；由独立于生成会话的 peer 执行 007 preparation/finalize，6 项原生文件可见抽查必须在可用 Windows GUI 的会话完成，随后仍需单独审核提交才能记录 P1 Gate；不启动高保真单 cell 作为主线。

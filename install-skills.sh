@@ -5,11 +5,14 @@ repo_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 target_root=${CODEX_HOME:-"$HOME/.codex"}/skills
 source_skill="$repo_root/codex-skills/airjet-product-reconstruction"
 target_skill="$target_root/airjet-product-reconstruction"
+source_ansys_skill="$repo_root/codex-skills/airjet-ansys-automation"
+target_ansys_skill="$target_root/airjet-ansys-automation"
 manifest="$repo_root/codex-skills/skills-manifest.json"
 official_commit=49f948faa9258a0c61caceaf225e179651397431
 
-mkdir -p "$target_root" "$target_skill"
+mkdir -p "$target_root" "$target_skill" "$target_ansys_skill"
 rsync -a --delete "$source_skill/" "$target_skill/"
+rsync -a --delete "$source_ansys_skill/" "$target_ansys_skill/"
 
 if ! grep -Fq "\"commit\": \"$official_commit\"" "$manifest"; then
   printf 'MANIFEST_LOCK_MISMATCH official commit\n' >&2
@@ -37,6 +40,7 @@ has_required() {
 
 jupyter_expected=62f102e8554b25716dccef0ffab4572d4e3eaf05ccc76562d33a065bc9c521fb
 pdf_expected=d108cf2b36355ab37eb5962933f4d09785ec002f3105c506129320209306b9d2
+ansys_expected=675fbc4425f395bde170b9cb391d55cfa81cf75734491ac1b6c0994791a8ae02
 jupyter_actual=$(skill_hash "$target_root/jupyter-notebook/SKILL.md" || true)
 pdf_actual=$(skill_hash "$target_root/pdf/SKILL.md" || true)
 official_needed=0
@@ -96,12 +100,17 @@ check_required() {
 }
 
 check_skill airjet-product-reconstruction 56a977a9723b0b53158f93b21674308accc51937baacfdb55b00c29e3356a63f
+check_skill airjet-ansys-automation "$ansys_expected"
 check_skill jupyter-notebook "$jupyter_expected"
 check_skill pdf "$pdf_expected"
 
 check_required airjet-product-reconstruction \
   SKILL.md agents/openai.yaml references/evidence-rules.md references/stage-routing.md \
   references/windows-operation.md scripts/audit_project.py
+check_required airjet-ansys-automation \
+  SKILL.md agents/openai.yaml references/official-automation-routes.md \
+  references/gate-evidence.md scripts/bootstrap_windows.ps1 \
+  scripts/airjet_ansys_mcp.py scripts/test_airjet_ansys_mcp_policy.py
 check_required jupyter-notebook \
   LICENSE.txt SKILL.md agents/openai.yaml assets/experiment-template.ipynb \
   assets/jupyter-small.svg assets/jupyter.png assets/tutorial-template.ipynb \
@@ -110,4 +119,5 @@ check_required jupyter-notebook \
 check_required pdf LICENSE.txt SKILL.md agents/openai.yaml assets/pdf.png
 
 printf 'Installed project skill to %s\n' "$target_skill"
+printf 'Installed ANSYS automation skill to %s\n' "$target_ansys_skill"
 printf 'Start a fresh Codex session to load newly installed skills.\n'

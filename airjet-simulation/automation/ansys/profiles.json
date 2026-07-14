@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "profile_id": "ajm005-spaceclaim-t0-v1",
+      "engine": "spaceclaim",
+      "script": "005/spaceclaim_t0.py",
+      "sha256": "9ce3d2e38711cbcf4cdf23fce5bfc44e02212022d41c46809929189a6f6d9044",
+      "timeout_seconds": 300,
+      "output_root_id": "student_smoke_005",
+      "reports": [
+        "spaceclaim_probe.json"
+      ]
+    },
+    {
+      "profile_id": "ajm005-workbench-t0-v1",
+      "engine": "workbench",
+      "script": "005/workbench_t0.wbjn",
+      "sha256": "f15f7eea188e433bdeb042a46b6d6142517067b0f6358a3c649982d42689a115",
+      "timeout_seconds": 600,
+      "output_root_id": "student_smoke_005",
+      "reports": [
+        "workbench_probe.json"
+      ]
+    },
+    {
+      "profile_id": "ajm005-pymechanical-t0-v1",
+      "engine": "pymechanical",
+      "script": "005/pymechanical_t0.py",
+      "sha256": "bd4630e9fde57ce75045f38471559e32e363eeafcd1740a16f6ef60405923b55",
+      "timeout_seconds": 600,
+      "output_root_id": "student_smoke_005",
+      "reports": [
+        "pymechanical_probe.json"
+      ]
+    },
+    {
+      "profile_id": "ajm005-pyfluent-t0-v1",
+      "engine": "pyfluent",
+      "script": "005/pyfluent_t0.py",
+      "sha256": "270a1600906b936fa23fd7f7911920bcb3e44bf361e89ea035b91806f011d266",
+      "timeout_seconds": 600,
+      "output_root_id": "student_smoke_005",
+      "reports": [
+        "pyfluent_probe.json"
+      ]
+    }
+  ]
+}

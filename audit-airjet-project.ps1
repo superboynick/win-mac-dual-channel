@@ -78,6 +78,17 @@ $Required = @(
     'airjet-simulation\windows-prompts\AJM_WIN_ANSYS_OFFICIAL_TRIAL_INSTALL_AND_SMOKE_004.md',
     'airjet-simulation\windows-prompts\AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md',
     'airjet-simulation\windows-prompts\AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md',
+    'airjet-simulation\automation\ansys\profiles.json',
+    'airjet-simulation\automation\ansys\approved\005\spaceclaim_t0.py',
+    'airjet-simulation\automation\ansys\approved\005\workbench_t0.wbjn',
+    'airjet-simulation\automation\ansys\approved\005\pymechanical_t0.py',
+    'airjet-simulation\automation\ansys\approved\005\pyfluent_t0.py',
+    'airjet-simulation\learning\README.md',
+    'airjet-simulation\learning\ANSYS_AUTOMATION_AND_005_LAB.md',
+    'airjet-simulation\learning\PAPER_METHOD_EVIDENCE_MAP.md',
+    'airjet-simulation\logs\REALITY_AND_FAILURE_LOG.md',
+    'airjet-simulation\logs\run-index.csv',
+    'airjet-simulation\logs\evidence\README.md',
     'airjet-simulation\reports\AJM_WIN_ANSYS_CAPABILITY_SMOKE_003_SUMMARY.md',
     'airjet-simulation\reports\AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md',
     'airjet-simulation\reports\AIRJET_DUAL_ENDPOINT_WATCHER_IMPLEMENTATION_2026-07-14.md',
@@ -116,6 +127,13 @@ $Required = @(
     'airjet-simulation\notebooks\airjet-mini-layout-baseline.ipynb',
     'airjet-simulation\notebooks\build_layout_baseline.py',
     'codex-skills\airjet-product-reconstruction\SKILL.md',
+    'codex-skills\airjet-ansys-automation\SKILL.md',
+    'codex-skills\airjet-ansys-automation\agents\openai.yaml',
+    'codex-skills\airjet-ansys-automation\references\official-automation-routes.md',
+    'codex-skills\airjet-ansys-automation\references\gate-evidence.md',
+    'codex-skills\airjet-ansys-automation\scripts\bootstrap_windows.ps1',
+    'codex-skills\airjet-ansys-automation\scripts\airjet_ansys_mcp.py',
+    'codex-skills\airjet-ansys-automation\scripts\test_airjet_ansys_mcp_policy.py',
     'codex-skills\skills-manifest.json',
     'install-skills.ps1',
     'install-skills.sh',
@@ -1270,6 +1288,7 @@ if (Test-Path -LiteralPath $ManifestPath) {
         $Manifest = (Read-Utf8 $ManifestPath) | ConvertFrom-Json
         $Skills = @($Manifest.skills)
         $ExpectedManifest = @{
+            'airjet-ansys-automation' = [pscustomobject]@{ kind='project'; source='codex-skills/airjet-ansys-automation'; required=@('SKILL.md','agents/openai.yaml','references/official-automation-routes.md','references/gate-evidence.md','scripts/bootstrap_windows.ps1','scripts/airjet_ansys_mcp.py','scripts/test_airjet_ansys_mcp_policy.py') }
             'airjet-product-reconstruction' = [pscustomobject]@{ kind='project'; source='codex-skills/airjet-product-reconstruction'; required=@('SKILL.md','agents/openai.yaml','references/evidence-rules.md','references/stage-routing.md','references/windows-operation.md','scripts/audit_project.py') }
             'jupyter-notebook' = [pscustomobject]@{ kind='official'; source='skills/.curated/jupyter-notebook'; required=@('LICENSE.txt','SKILL.md','agents/openai.yaml','assets/experiment-template.ipynb','assets/jupyter-small.svg','assets/jupyter.png','assets/tutorial-template.ipynb','references/experiment-patterns.md','references/notebook-structure.md','references/quality-checklist.md','references/tutorial-patterns.md','scripts/new_notebook.py') }
             'pdf' = [pscustomobject]@{ kind='official'; source='skills/.curated/pdf'; required=@('LICENSE.txt','SKILL.md','agents/openai.yaml','assets/pdf.png') }
@@ -1279,7 +1298,7 @@ if (Test-Path -LiteralPath $ManifestPath) {
             $Manifest.official_source.repository -ne 'https://github.com/openai/skills.git' -or
             $Manifest.official_source.commit -ne '49f948faa9258a0c61caceaf225e179651397431' -or
             $Manifest.hash_canonicalization -ne 'UTF-8 text with CRLF and CR normalized to LF' -or
-            $Names.Count -ne 3 -or @($Names | Select-Object -Unique).Count -ne 3) {
+            $Names.Count -ne 4 -or @($Names | Select-Object -Unique).Count -ne 4) {
             Add-Failure 'skills manifest identity/schema/unique-name lock failed'
         }
         foreach ($Skill in $Skills) {
@@ -1297,12 +1316,11 @@ if (Test-Path -LiteralPath $ManifestPath) {
                 Add-Failure "manifest kind/source/required files changed for $Name"
             }
         }
-        $ProjectSkill = @($Skills | Where-Object { $_.name -eq 'airjet-product-reconstruction' })
-        if ($ProjectSkill.Count -eq 1) {
-            $Entry = Join-Path (Join-Path $RepoRoot $ProjectSkill[0].source) 'SKILL.md'
+        foreach ($ProjectSkill in @($Skills | Where-Object { $_.kind -eq 'project' })) {
+            $Entry = Join-Path (Join-Path $RepoRoot $ProjectSkill.source) 'SKILL.md'
             $ActualHash = Get-CanonicalTextSha256 $Entry
-            if ($ActualHash -ne $ProjectSkill[0].skill_md_sha256) {
-                Add-Failure 'project skill hash does not match manifest'
+            if ($ActualHash -ne $ProjectSkill.skill_md_sha256) {
+                Add-Failure "project skill hash does not match manifest: $($ProjectSkill.name)"
             }
         }
         $MacInstaller = Read-Utf8 (Join-Path $RepoRoot 'install-skills.sh')
@@ -1318,6 +1336,50 @@ if (Test-Path -LiteralPath $ManifestPath) {
         }
     } catch {
         Add-Failure "skills manifest audit failed: $($_.Exception.Message)"
+    }
+}
+
+$AnsysProfilesPath = Join-Path $RepoRoot 'airjet-simulation\automation\ansys\profiles.json'
+if (Test-Path -LiteralPath $AnsysProfilesPath) {
+    try {
+        $ProfileData = (Read-Utf8 $AnsysProfilesPath) | ConvertFrom-Json
+        $Entries = @($ProfileData.profiles)
+        $ProfileIds = @($Entries | ForEach-Object { [string]$_.profile_id })
+        $RequiredProfileFields = @('profile_id','engine','script','sha256','timeout_seconds','output_root_id','reports')
+        $RootFields = @($ProfileData.PSObject.Properties.Name)
+        if ($ProfileData.schema_version -ne 1 -or
+            @(Compare-Object @('profiles','schema_version') ($RootFields | Sort-Object)).Count -gt 0 -or
+            $Entries.Count -ne 4 -or @($ProfileIds | Select-Object -Unique).Count -ne $Entries.Count) {
+            Add-Failure 'ANSYS profile policy identity/schema/unique-name lock failed'
+        }
+        $ApprovedRoot = Join-Path $RepoRoot 'airjet-simulation\automation\ansys\approved'
+        foreach ($Entry in $Entries) {
+            $Fields = @($Entry.PSObject.Properties.Name)
+            if (@(Compare-Object ($RequiredProfileFields | Sort-Object) ($Fields | Sort-Object)).Count -gt 0) {
+                Add-Failure "ANSYS profile fields changed: $($Entry.profile_id)"
+                continue
+            }
+            $Relative = [string]$Entry.script
+            if ([IO.Path]::IsPathRooted($Relative) -or $Relative.Contains('..') -or $Relative.Contains('\')) {
+                Add-Failure "unsafe ANSYS profile script path: $Relative"
+                continue
+            }
+            $Script = Join-Path $ApprovedRoot ($Relative.Replace('/', '\'))
+            if (-not (Test-Path -LiteralPath $Script -PathType Leaf)) {
+                Add-Failure "missing ANSYS profile script: $Relative"
+                continue
+            }
+            $ActualHash = (Get-FileHash -LiteralPath $Script -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($ActualHash -ne [string]$Entry.sha256) {
+                Add-Failure "ANSYS profile hash mismatch: $($Entry.profile_id)"
+            }
+            $Reports = @($Entry.reports)
+            if ($Reports.Count -eq 0 -or @($Reports | Where-Object { -not ([string]$_).EndsWith('.json') }).Count -gt 0) {
+                Add-Failure "invalid ANSYS declared reports: $($Entry.profile_id)"
+            }
+        }
+    } catch {
+        Add-Failure "ANSYS profile policy audit failed: $($_.Exception.Message)"
     }
 }
 

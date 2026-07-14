@@ -39,6 +39,17 @@ REQUIRED = [
     "airjet-simulation/windows-prompts/AJM_WIN_ANSYS_OFFICIAL_TRIAL_INSTALL_AND_SMOKE_004.md",
     "airjet-simulation/windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md",
     "airjet-simulation/windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md",
+    "airjet-simulation/automation/ansys/profiles.json",
+    "airjet-simulation/automation/ansys/approved/005/spaceclaim_t0.py",
+    "airjet-simulation/automation/ansys/approved/005/workbench_t0.wbjn",
+    "airjet-simulation/automation/ansys/approved/005/pymechanical_t0.py",
+    "airjet-simulation/automation/ansys/approved/005/pyfluent_t0.py",
+    "airjet-simulation/learning/README.md",
+    "airjet-simulation/learning/ANSYS_AUTOMATION_AND_005_LAB.md",
+    "airjet-simulation/learning/PAPER_METHOD_EVIDENCE_MAP.md",
+    "airjet-simulation/logs/REALITY_AND_FAILURE_LOG.md",
+    "airjet-simulation/logs/run-index.csv",
+    "airjet-simulation/logs/evidence/README.md",
     "airjet-simulation/reports/AJM_WIN_ANSYS_CAPABILITY_SMOKE_003_SUMMARY.md",
     "airjet-simulation/reports/AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md",
     "airjet-simulation/reports/AIRJET_DUAL_ENDPOINT_WATCHER_IMPLEMENTATION_2026-07-14.md",
@@ -78,6 +89,13 @@ REQUIRED = [
     "airjet-simulation/notebooks/airjet-mini-layout-baseline.ipynb",
     "airjet-simulation/notebooks/build_layout_baseline.py",
     "codex-skills/skills-manifest.json",
+    "codex-skills/airjet-ansys-automation/SKILL.md",
+    "codex-skills/airjet-ansys-automation/agents/openai.yaml",
+    "codex-skills/airjet-ansys-automation/references/official-automation-routes.md",
+    "codex-skills/airjet-ansys-automation/references/gate-evidence.md",
+    "codex-skills/airjet-ansys-automation/scripts/bootstrap_windows.ps1",
+    "codex-skills/airjet-ansys-automation/scripts/airjet_ansys_mcp.py",
+    "codex-skills/airjet-ansys-automation/scripts/test_airjet_ansys_mcp_policy.py",
     "install-skills.ps1",
     "install-skills.sh",
     "audit-airjet-project.ps1",
@@ -1295,6 +1313,19 @@ def main() -> int:
             names = [item.get("name") for item in skill_items]
             skills = {item["name"]: item for item in skill_items}
             expected_manifest = {
+                "airjet-ansys-automation": {
+                    "kind": "project",
+                    "source": "codex-skills/airjet-ansys-automation",
+                    "required_files": [
+                        "SKILL.md",
+                        "agents/openai.yaml",
+                        "references/official-automation-routes.md",
+                        "references/gate-evidence.md",
+                        "scripts/bootstrap_windows.ps1",
+                        "scripts/airjet_ansys_mcp.py",
+                        "scripts/test_airjet_ansys_mcp_policy.py",
+                    ],
+                },
                 "airjet-product-reconstruction": {
                     "kind": "project",
                     "source": "codex-skills/airjet-product-reconstruction",
@@ -1339,8 +1370,8 @@ def main() -> int:
                 != "https://github.com/openai/skills.git"
                 or manifest_data.get("official_source", {}).get("commit")
                 != "49f948faa9258a0c61caceaf225e179651397431"
-                or len(names) != 3
-                or len(set(names)) != 3
+                or len(names) != 4
+                or len(set(names)) != 4
                 or set(skills) != set(expected_manifest)
             ):
                 failures.append("skills manifest identity/schema/unique-name lock failed")
@@ -1353,13 +1384,16 @@ def main() -> int:
                     or len(item.get("required_files", [])) != len(set(item.get("required_files", [])))
                 ):
                     failures.append(f"manifest kind/source/required files changed for {name}")
-            project_skill = skills.get("airjet-product-reconstruction")
-            if project_skill:
+            for project_skill in (
+                item for item in skills.values() if item.get("kind") == "project"
+            ):
                 skill_entry = repo / project_skill["source"] / "SKILL.md"
                 canonical = read_text(skill_entry).replace("\r\n", "\n").replace("\r", "\n")
                 actual_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
                 if actual_hash != project_skill.get("skill_md_sha256"):
-                    failures.append("project skill hash does not match skills manifest")
+                    failures.append(
+                        f"project skill hash does not match skills manifest: {project_skill['name']}"
+                    )
             install_sh = read_text(repo / "install-skills.sh") if (repo / "install-skills.sh").is_file() else ""
             for item in skills.values():
                 if item.get("skill_md_sha256", "") not in install_sh:
@@ -1371,6 +1405,52 @@ def main() -> int:
                         )
         except (json.JSONDecodeError, KeyError, OSError) as exc:
             failures.append(f"skills manifest audit failed: {exc}")
+
+    ansys_profiles = repo / "airjet-simulation/automation/ansys/profiles.json"
+    if ansys_profiles.is_file():
+        try:
+            profile_data = json.loads(read_text(ansys_profiles))
+            entries = profile_data.get("profiles", [])
+            profile_ids = [entry.get("profile_id") for entry in entries]
+            required_profile_fields = {
+                "profile_id",
+                "engine",
+                "script",
+                "sha256",
+                "timeout_seconds",
+                "output_root_id",
+                "reports",
+            }
+            if (
+                set(profile_data) != {"schema_version", "profiles"}
+                or profile_data.get("schema_version") != 1
+                or len(entries) != 4
+                or len(profile_ids) != len(set(profile_ids))
+            ):
+                failures.append("ANSYS profile policy identity/schema/unique-name lock failed")
+            approved_root = repo / "airjet-simulation/automation/ansys/approved"
+            for entry in entries:
+                if set(entry) != required_profile_fields:
+                    failures.append(f"ANSYS profile fields changed: {entry.get('profile_id')}")
+                    continue
+                relative = Path(entry["script"])
+                if relative.is_absolute() or ".." in relative.parts or "\\" in entry["script"]:
+                    failures.append(f"unsafe ANSYS profile script path: {entry['script']}")
+                    continue
+                script = approved_root / relative
+                if not script.is_file():
+                    failures.append(f"missing ANSYS profile script: {entry['script']}")
+                    continue
+                actual = hashlib.sha256(script.read_bytes()).hexdigest()
+                if actual != entry["sha256"]:
+                    failures.append(f"ANSYS profile hash mismatch: {entry['profile_id']}")
+                if not entry["reports"] or any(
+                    not isinstance(report, str) or not report.endswith(".json")
+                    for report in entry["reports"]
+                ):
+                    failures.append(f"invalid ANSYS declared reports: {entry['profile_id']}")
+        except (AttributeError, json.JSONDecodeError, KeyError, OSError, TypeError) as exc:
+            failures.append(f"ANSYS profile policy audit failed: {exc}")
 
     agents = repo / "AGENTS.md"
     if agents.is_file() and "AIRJET_MINI_FULL_PRODUCT_MASTER_PLAN.md" not in read_text(agents):

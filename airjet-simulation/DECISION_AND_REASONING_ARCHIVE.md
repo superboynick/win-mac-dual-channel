@@ -290,3 +290,38 @@ R0 顶部配气空间取“选定四个 vent polygon 与完整 cell tile footpri
 原先把膜片中心、中央锚、底腔和分区压在一个 cell rule 中，仍会让 CAD 操作者猜中央锚形状、底腔平面和 partition 的实体含义。现拆成 9 条显式 R0：底腔是每 cell 的 `P001` 方形流体体；中央锚是 `P012` 方形、膜片 Z 区间内的非物理 datum；partition 是只用于 ownership/naming 的内部零厚度中面，不做 Boolean、不占据已经由 perimeter-gap 流体使用的空间。它们都是 C 类候选闭合，不是产品事实。
 
 追溯：`parameters/P1_CAD_CONTRACT_METHOD.md`、`parameters/p1_internal_geometry_rules.csv`、`parameters/p1_model_form_variants.csv`、`checklists/p1_cad_gate_matrix.csv`、`windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`、`checklists/P1_CAD_INDEPENDENT_REVIEW_METHOD.md`。
+
+## 17. 为什么 ANSYS 执行改为官方 API + hash-pinned MCP
+
+三次通用 Codex 005 尝试在不同 sandbox 权限下都只完成 Git/审计摘要，没有启动 ANSYS 或
+生成必需报告。提高模型 effort 或提示语强度不能解决“没有确定执行接口和完成协议”的问题。
+因此执行层改为 SpaceClaim `/RunScript`、Workbench `RunWB2 -B -R`、PyMechanical 和
+PyFluent 四个官方接口。
+
+MCP 不接受 engine、脚本路径、命令行、cwd、环境变量或脚本文本，只接受固定
+`profile_id` 与 `case_id`。profile 把引擎、脚本 Git 路径、SHA-256、timeout、输出根 ID
+和 declared report 一起冻结；真正执行的字节来自已验签的精确 commit blob。这样，
+“Codex 想运行什么”被转换成“从有限、预审 profile 中选择哪一个”，避免 prompt injection
+扩大成本机 shell。
+
+### 为什么还要分 T0 和 005 工程能力
+
+T0 只证明官方控制接口可用。例如 Fluent health `SERVING`、Mechanical `2+3=5`、
+SpaceClaim 能保存一个方块，都不能证明参数化流体体、静力结果、Dynamic Mesh、CHT 或质量
+守恒。工程字段只有在对应小模型的原生产物、保存/重开、求解和数值断言完整通过后才可 PASS。
+005 通过仍只允许开始 P1，不能改变 `P1_STAGE_GATE=NOT_RUN`。
+
+### 为什么无头结果可以支持技术字段但不能支持 GUI visible
+
+GUI 可见性是观察方式，原生文件、API 返回、重开结果、求解结果和守恒指标是技术证据。
+用户本轮明确不要求亲眼观看 GUI，因此批处理/API 可作为技术能力证据，但统一写
+`VISIBILITY=NOT_USER_OBSERVED`，不能把它翻译成 `GUI_VISIBLE=PASS`。这保留了证据内容，
+也不虚构观察过程。
+
+### 为什么同时建立学习和失败档案
+
+论文方法的可信度不只来自成功结果，还来自输入来源、失败实验、版本、脚本、阈值和产物哈希。
+机器事实进入 `logs/run-index.csv`/`logs/evidence`，现实障碍进入
+`logs/REALITY_AND_FAILURE_LOG.md`，跨运行决策留在本文件，论文方法映射进入
+`learning/PAPER_METHOD_EVIDENCE_MAP.md`。这让用户能学习真实工程过程，同时避免把单次日志、
+长期判断和论文措辞混在一个不断冲突的文档里。

@@ -15,6 +15,12 @@
 - 项目 Python 审计、Windows PowerShell 审计、skill 安装和曲线复算都有自动化入口。
 - Windows 硬件、软件、研究 ZIP 和 Python 已实测，结果写入 `WINDOWS_ENVIRONMENT_REPORT.md`。
 - Windows 已完成第三方 PLE 清理并保留纯净官方 Ansys Student 2026 R1；核心程序签名、旧 1055/环境变量清理经 Mac SSH 复核。Workbench/Fluent 基础 Student checkout 已由 Windows 可见会话报告，但完整 P1–P5 能力仍待 005；详见 `reports/AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md`。
+- 为避免通用 GUI 代理只输出摘要而不执行软件，已建立 `airjet-ansys-automation` skill、
+  hash-pinned 本地 MCP 和 SpaceClaim/Workbench/PyMechanical/PyFluent 四路 T0 脚本；
+  005 现允许官方无头 API 产物支持技术字段，同时把可见性单独记录。实现仍需在 Windows
+  通过安装、负向安全测试和实际 T0/T1 探针，不能仅凭代码存在判定工具链 PASS。
+- 已新增学习入口、ANSYS/005 实验手册、现实失败日志、run index 和论文方法—证据映射；
+  后续每次运行会同步保留小型脱敏机器证据和 Git 外大产物哈希。
 - Gen1 两张官方产品透视图已分别做 homography、10,000 次像素误差 Monte Carlo 和跨视图差比较；四个画出 vent 只作为 `I` 类顶盖候选，不用于推断 cell 数。
 - 官方剖面已标注：只锁总厚度和定性流路，不缩放内部层厚或数绿色波形。
 - 核心专利已建立产品部件映射表，定位改为本地 PDF 页码 + FIG. + printed column/line；中央锚定仍是候选，不是量产事实。
@@ -41,7 +47,9 @@
 
 ## 3. 下一步执行顺序
 
-1. 在 Windows 可见桌面执行 `windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`；不在 SSH 后台判定 GUI PASS。
+1. 在 Windows 先安装并负向测试 `airjet-ansys` MCP，再用官方 ANSYS batch/API 执行
+   `windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`。用户本轮不要求观察 GUI，
+   所以写 `VISIBILITY=NOT_USER_OBSERVED`；无头结果不得代填 GUI visible 字段。
 2. 005 的 P1 CAD 工具链就绪度通过后，执行 `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：同一母版生成 4 个整机配置、6 个交付/残差变体和主配置 3 个有独立 ID/Gate 的单因素派生变体。006 最多写 `PENDING_PEER_REVIEW`，不能由生成模型的同一会话自评 P1 PASS。
 3. 已提交的 Ansys 30 天官方试用申请继续等待；只有 entitlement 实际激活后才执行 004，不让等待阻塞 Student 可完成的 P1 工作。
 4. 先闭合 2.8 mm 厚度预算、四个候选顶盖 vent、单侧 spout 和全流路连通，再允许给 `S_image`/`S_geometry` 正式评分。

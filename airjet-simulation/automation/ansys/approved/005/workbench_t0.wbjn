@@ -1,0 +1,57 @@
+# AJM-005 Workbench batch control-plane probe; no engineering Gate is claimed.
+import json
+import os
+import traceback
+
+job_dir = os.environ["AIRJET_JOB_DIR"]
+report_path = os.path.join(job_dir, "workbench_probe.json")
+project_path = os.path.join(job_dir, "workbench_probe.wbpj")
+result = {
+    "schema_version": 1,
+    "task": "AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
+    "probe": "workbench_t0",
+    "status": "FAIL_DIRECT",
+    "engineering_capability": "NOT_RUN",
+    "license_arguments_added": False,
+}
+
+try:
+    template_results = {}
+    for template_name in (
+        "Static Structural",
+        "Modal",
+        "Harmonic Response",
+        "Fluid Flow (Fluent)",
+    ):
+        try:
+            template_results[template_name] = GetTemplate(
+                TemplateName=template_name
+            ) is not None
+        except Exception as template_error:
+            template_results[template_name] = False
+            template_results[template_name + "_error"] = str(template_error)
+    static_template = GetTemplate(TemplateName="Static Structural", Solver="ANSYS")
+    static_system = static_template.CreateSystem()
+    Save(FilePath=project_path)
+    result["templates"] = template_results
+    result["system_name"] = static_system.Name
+    result["project_saved"] = os.path.isfile(project_path)
+    if all(template_results.get(name, False) for name in (
+        "Static Structural",
+        "Modal",
+        "Harmonic Response",
+        "Fluid Flow (Fluent)",
+    )) and result["project_saved"]:
+        result["status"] = "PASS_CONTROL"
+    else:
+        result["error"] = "CONTROL_ASSERTION_FAILED"
+except Exception as error:
+    result["error_type"] = type(error).__name__
+    result["error"] = str(error)
+    result["traceback"] = traceback.format_exc()
+
+with open(report_path, "w") as report_handle:
+    json.dump(result, report_handle, indent=2, sort_keys=True)
+
+if result["status"] != "PASS_CONTROL":
+    raise Exception("AJM005_WORKBENCH_T0_FAILED")

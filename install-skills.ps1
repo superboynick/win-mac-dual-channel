@@ -7,6 +7,11 @@ $ManifestPath = Join-Path $RepoRoot 'codex-skills\skills-manifest.json'
 $Manifest = Get-Content -Raw -LiteralPath $ManifestPath | ConvertFrom-Json
 
 $ExpectedSkills = @{
+    'airjet-ansys-automation' = [pscustomobject]@{
+        kind = 'project'
+        source = 'codex-skills/airjet-ansys-automation'
+        required = @('SKILL.md', 'agents/openai.yaml', 'references/official-automation-routes.md', 'references/gate-evidence.md', 'scripts/bootstrap_windows.ps1', 'scripts/airjet_ansys_mcp.py', 'scripts/test_airjet_ansys_mcp_policy.py')
+    }
     'airjet-product-reconstruction' = [pscustomobject]@{
         kind = 'project'
         source = 'codex-skills/airjet-product-reconstruction'
@@ -40,7 +45,7 @@ if ($Commit -ne '49f948faa9258a0c61caceaf225e179651397431') {
 $Skills = @($Manifest.skills)
 $Names = @($Skills | ForEach-Object { [string]$_.name })
 if ($Names.Count -ne $ExpectedSkills.Count -or @($Names | Select-Object -Unique).Count -ne $ExpectedSkills.Count) {
-    throw 'Skills manifest must contain exactly three unique skills.'
+    throw "Skills manifest must contain exactly $($ExpectedSkills.Count) unique skills."
 }
 foreach ($Skill in $Skills) {
     $Name = [string]$Skill.name

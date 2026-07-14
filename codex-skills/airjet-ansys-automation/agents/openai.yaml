@@ -1,0 +1,4 @@
+interface:
+  display_name: "AirJet ANSYS Automation"
+  short_description: "Drive AirJet CAD and simulation through official ANSYS APIs"
+  default_prompt: "Use $airjet-ansys-automation to run the next gated AirJet ANSYS workflow through audited scripts."

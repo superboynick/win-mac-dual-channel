@@ -1,6 +1,17 @@
 # Windows Codex 任务：AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005
 
-目标：在已经清理第三方授权、只保留官方 Ansys Student 2026 R1 的 Windows 可见桌面上，验证 AirJet Mini P1--P5 所需实际技术能力。只做可删除的小模型；不建立正式 AirJet CAD。
+目标：在已经清理第三方授权、只保留官方 Ansys Student 2026 R1 的 Windows 上，通过可复核的 GUI 操作或官方批处理/API 验证 AirJet Mini P1--P5 所需实际技术能力。只做可删除的小模型；不建立正式 AirJet CAD。
+
+## 0. 2026-07-14 执行修订：官方 API 路线
+
+用户已明确表示本轮不要求亲眼观察 GUI。允许使用仓库审计后的 `airjet-ansys-automation`
+skill、固定 `profile_id` MCP 和 ANSYS 官方接口执行：SpaceClaim `/RunScript`、Workbench
+`RunWB2 -B -R`、PyMechanical 和 PyFluent。无头结果记录
+`VISIBILITY=NOT_USER_OBSERVED`，不能写成 `GUI_VISIBLE=PASS`。
+
+`PASS_CONTROL` 只表示官方接口可控；只有实际完成本任务要求的小几何、传递、求解、
+保存/重开和守恒断言，并产生规定的原生文件与报告，才允许相应技术字段写 `PASS`。
+任何纯菜单/API 节点存在性检查均不能冒充实际工程能力通过。
 
 仓库：`C:\Users\admin\win-mac-dual-channel`
 
@@ -11,7 +22,9 @@
 3. 不执行官方修复安装；`python_site_syscplg/cuDSS` 只记录警告。
 4. 所有临时文件只放在 `C:\Users\admin\Downloads\AIRJET_ANSYS_STUDENT_SMOKE_005\`。
 5. 不修改、提交或推送 Git。
-6. GUI PASS 必须由可见桌面实际观察和操作支持；后台进程存在不算 PASS。
+6. GUI 可见性字段的 PASS 必须由可见桌面实际观察支持；但官方批处理/API 产生的确定性
+   原生产物、重开结果、求解结果和数值断言可独立支持技术能力字段 PASS。后台进程仅存在、
+   进程退出码为 0 或菜单/API 节点仅存在均不算技术能力 PASS。
 7. 失败后记录原始错误，不反复盲试，不修改许可绕过限制。
 
 ## 2. Git 与纯净 Student 基线
@@ -38,7 +51,7 @@ powershell -ExecutionPolicy Bypass -File .\audit-airjet-project.ps1
 
 ## 3. SpaceClaim / P1 CAD 烟雾测试
 
-在可见 SpaceClaim 中建立：
+在 SpaceClaim GUI 或审计后的 `/RunScript` 中建立：
 
 1. `20 x 10 x 4 mm` 外块；
 2. 内部 `16 x 6 x 2 mm` 腔体；
@@ -55,11 +68,11 @@ powershell -ExecutionPolicy Bypass -File .\audit-airjet-project.ps1
 
 ## 4. Workbench / Mechanical 烟雾测试
 
-1. 确认 Static Structural、Modal、Harmonic Response、Fluid Flow (Fluent) 模板；
+1. 通过 GUI 或官方脚本接口确认 Static Structural、Modal、Harmonic Response、Fluid Flow (Fluent) 模板；
 2. 用 `10 x 10 x 1 mm` 线弹性块完成固定端 + 小载荷的最小静力求解；
 3. 确认结果表/CSV 导出；
 4. 检查 Modal 与 Harmonic 入口；
-5. 检查压电 GUI、Coupled Field 或 Mechanical APDL coupled-field 路线，分别记录，未看到就写 `NOT_VISIBLE`；
+5. 分开检查压电 GUI、Mechanical API、Coupled Field 或 Mechanical APDL coupled-field 路线；未观察 GUI 就写 `NOT_VISIBLE`，但若官方 API 路线经确定性小模型验证，可另写相应 API 字段 `PASS`；
 6. 不测试 System Coupling，不测试 cuDSS/GPU 稀疏求解，把安装警告保留为 `UNVERIFIED_WARNING`。
 
 ## 5. Fluent 烟雾测试
@@ -93,6 +106,12 @@ GIT_AHEAD_BEHIND=
 PROJECT_AUDIT=
 OFFICIAL_EXE_SIGNATURES=
 OLD_PLE_BASELINE=CLEAN/CONTAMINATED
+EXECUTION_ROUTE=GUI/OFFICIAL_API/MIXED
+VISIBILITY=USER_OBSERVED/NOT_USER_OBSERVED
+SPACECLAIM_AUTOMATION_CONTROL=PASS/FAIL/NOT_RUN
+WORKBENCH_AUTOMATION_CONTROL=PASS/FAIL/NOT_RUN
+PYMECHANICAL_CONTROL=PASS/FAIL/NOT_RUN
+PYFLUENT_CONTROL=PASS/FAIL/NOT_RUN
 
 SPACECLAIM_LAUNCH=PASS/FAIL
 PARAMETRIC_GEOMETRY=PASS/FAIL
@@ -108,6 +127,9 @@ STATIC_STRUCTURAL_SOLVE=PASS/FAIL
 MODAL_VISIBLE=PASS/FAIL
 HARMONIC_VISIBLE=PASS/FAIL
 PIEZOELECTRIC_GUI_ROUTE=PASS/FAIL/NOT_VISIBLE
+MODAL_API_ROUTE=PASS/FAIL/NOT_RUN
+HARMONIC_API_ROUTE=PASS/FAIL/NOT_RUN
+PIEZOELECTRIC_API_ROUTE=PASS/FAIL/NOT_RUN
 APDL_COUPLED_FIELD_ROUTE=PASS/FAIL/NOT_CHECKED
 RESULT_TABLE_EXPORT=PASS/FAIL
 SYSTEM_COUPLING_STATUS=UNVERIFIED_WARNING
@@ -156,7 +178,7 @@ STUDENT_TOOLCHAIN_STATUS=BLOCKED_CONTAMINATED_BASELINE
 
 判定规则：
 
-- `PASS_START_P1`：P1 工具链全部必要项（原生参数化、Named Selections、Volume Extract、连通、原生保存、Workbench 几何传递、Named Selections 传递）以及 STEP、Mechanical 最小求解/导出、至少一条可用压电路线、Fluent 全部模型检查、最小流动求解和 1/4/8 核测试均通过，且没有观察到阻塞计划路线的 Student 限制。
+- `PASS_START_P1`：P1 工具链全部必要项（原生参数化、Named Selections、Volume Extract、连通、原生保存、Workbench 几何传递、Named Selections 传递）以及 STEP、Mechanical 最小求解/导出、至少一条经实际小模型验证的压电路线、Fluent 全部模型检查、最小流动求解和 1/4/8 核测试均通过，且没有观察到阻塞计划路线的 Student 限制。GUI 或官方 API 均可提供技术证据，但 `VISIBLE` 字段不得由无头结果代填。
 - `PASS_START_P1_WITH_LIMITATIONS`：P1 工具链全部必要项通过，但 STEP 或 P2--P5/并行中的至少一项失败、受限或未验证；必须把限制映射到相应后续阶段。
 - `BLOCKED_TECHNICAL_FAILURE`：Git/fetch/audit 失败，或任一 P1 工具链必要项失败。此时不得开始正式 P1。
 - `BLOCKED_CONTAMINATED_BASELINE`：旧 PLE/1055/已知污染环境变量重新出现。
