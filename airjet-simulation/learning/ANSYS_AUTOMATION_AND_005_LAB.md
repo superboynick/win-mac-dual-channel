@@ -500,3 +500,15 @@ PowerShell 的期望清单却仍停在旧版本。
 再比较审计器期望与 canonical 配置；最后只同步审计期望，不为了让审计变绿而删除合法 profile。
 审计器修复也必须重新在其原生平台运行。一个审计器 PASS 只能证明它覆盖的规则，没有“全项目绝对
 正确”的含义。
+
+## 21. 第十六次实验：负结果怎样关闭一个看似合理的修复
+
+native runner 的短 case ID 让输入路径从长路径降到 145 characters，但 `Model.Refresh()` 仍在同一点
+失败。执行 reach 很重要：SetFile、SpaceClaim Edit/Exit、ComponentsToShare 和 save-data 都返回，
+Mechanical script 却没有被调用。因此这轮只关闭“路径长度是 native attach 的充分解释”，不把后续
+false assertions误写成 Named Selection、mesh 和 project 各自失败。
+
+下一个变量是 working-copy writability。MCP 的 frozen predecessor 继续保持只读；journal 在 job root
+另建 hash-equal staged `.scdocx`，然后验证它可写。若 Edit/Exit 修改了 staged file，报告应保存修改前
+和修改后 SHA，但不能把修改后文件倒写成 predecessor。若 staging 仍无法 attach，就用真实运行关闭
+这个假设，而不是继续叠加更多 workaround。

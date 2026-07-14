@@ -875,6 +875,42 @@
   `PASS / required_files=105 / manuals=7 / csv_files=28`。
 - 状态：CLOSED_WINDOWS_ROOT_AUDIT_POLICY_SYNCHRONIZED
 
+## REAL-20260714-038：145-character native input path 仍无法附加，关闭“仅缩短路径即可修复”假设
+
+- UTC：2026-07-14T22:08:50Z
+- Stage/task：005 T1 / 第十六次 native `.scdocx` transfer 短路径单变量复测
+- run/jobs：`AJM005_T1_CAD_SUITE_20260714T220850149839Z_51a1f815`；SC
+  `a5n-8bc3059cd345-399b0f417639`；WB `a5n-8bc3059cd345-f75ab60f6014`；签名 commit
+  `41fa4a604dc04b3a32590a996a29fab7810c6d36`。
+- 唯一有意的 runner 行为变量：case ID 从长 `ajm005-cad-xfer-...` 缩为 16-character
+  `a5n-<12 hex>`。producer profile/几何构造、native 格式、Workbench journal、五项 assertions、
+  `PASS_CAD_TRANSFER_SET` 合同和 Gate 未改。producer 在本轮重新生成 32148-byte `.scdocx`，不主张
+  它与历史 native control 在字节层相同。
+- 路径观测：SC/WB job directory 均为 102 characters；失败消息中的 frozen native input 完整路径为
+  145 characters，显著短于此前长 job。不能再把本轮失败主要归因于 case/job path 太长。
+- producer：SpaceClaim 21.456 秒正常退出，八项 assertions 全 true；transfer `.scdocx` 32148 bytes，
+  SHA-256 `babdfbee836512c1a6ba602727e7946495b4070538ef26065220305a1e527dcb`；report SHA-256
+  `813df1c46d7047d75a8cc0900eb0649ea391fe92eb16a52e603a81f46bba93fd`。
+- consumer：predecessor identity、SetFile、显式 SpaceClaim Edit/Exit、ComponentsToShare、
+  GetGeometryFileAndSaveData 和 Model container 全部 RETURNED；`Model.Refresh()` 在 280.347 秒后仍
+  报告“无法附加几何结构”。geometry transfer 为 direct FAIL；Mechanical inspection、native Named
+  Selection transfer、mesh 和 project save 均 `NOT_REACHED`。
+- 原始证据：suite/MCP SHA-256 分别为
+  `68109b722d0a2fe08b2bb6cb42c2276312659138f4226dca1976f9866d472d0f` 和
+  `8b0cf6d7392dbfa2bb71c0303037b327d9741c7936597b78d6511235b7e86127`；WB report/job-state
+  SHA-256 分别为 `3020c445a4587f7b2018b6449f58774bacb5f912aa9c001d5d3686c0d4f889e5` 和
+  `85feb9d5294c08fffc4198ebfc5523608a1b71b42c32b8447dad5422a527bc0b`；
+  2026-07-14T22:14:33.9213117Z 相关进程数为 0。
+- 结论：在此前 semantic 长/短路径配对实验中，缩短路径是唯一有意改动并恢复了算法可达性，强支持
+  该 route 存在路径敏感；但本轮证明相同控制不足以修复 native `.scdocx` route。两条路径使用不同
+  translator/materialization，不能把一条路线的修复外推为另一条路线的一般根因。
+- 下一最小实验：保留 MCP 中 frozen predecessor 只读且不变，在 Workbench job root 建立 hash-equal、
+  明确 writable 的 native working copy，只让 SetFile/Edit/Exit 使用 working copy；记录 staging 前 SHA、
+  属性和 Edit/Exit 后 SHA。若仍失败，再关闭 read-only 假设并转查 native 文件类型/producer 文档结构。
+- 对 Gate/论文主张的影响：suite 为 `FAIL_CAD_TRANSFER_SET`；P1 readiness BLOCKED；native geometry/
+  Named Selection transfer 未证明；P1--P6 `NOT_RUN`；`VISIBILITY=NOT_USER_OBSERVED`。
+- 状态：CLOSED_SHORT_PATH_NOT_SUFFICIENT_OPEN_WRITABLE_STAGING_TEST
+
 ## 新条目模板
 
 ```text

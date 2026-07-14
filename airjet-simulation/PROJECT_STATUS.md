@@ -71,6 +71,11 @@
   仍全 false。审查同时确认脚本两次重建只能证明等效参数驱动，不能证明 `.scdocx` 原生 driving
   parameter；native attach、native Named Selection transfer 与 native parameterization 仍需独立
   关闭，`P1_CAD_TOOLCHAIN_READINESS` 继续 BLOCKED。
+  commit `41fa4a6...` 随后把同一短路径单变量用于 native route：case ID 16 characters、WB job root
+  102 characters、frozen `.scdocx` input path 145 characters，但 SetFile、Edit/Exit、share/save-data
+  返回后，`Model.Refresh()` 仍以同一“无法附加几何结构”失败；280.347 秒后 Mechanical inspection
+  仍未到达。由此关闭“只缩短 native path 即可修复”的假设，下一轮只测试 hash-equal writable
+  working copy，不解除 frozen predecessor 的只读保护。
 - 已新增学习入口、ANSYS/005 实验手册、现实失败日志、run index 和论文方法—证据映射；
   后续每次运行会同步保留小型脱敏机器证据和 Git 外大产物哈希。
 - Gen1 两张官方产品透视图已分别做 homography、10,000 次像素误差 Monte Carlo 和跨视图差比较；四个画出 vent 只作为 `I` 类顶盖候选，不用于推断 cell 数。
@@ -88,7 +93,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP semantic reconstruction diagnostic PASS；native `.scdocx` attach、native Named Selection transfer、native driving parameter 仍 FAIL/NOT_PROVEN；P1 BLOCKED） | hash-bound STEP+sidecar 已在可删除 fixture 上唯一重建 1/1/11 边界，四项负向检查、1063/513 粗网格和 project save 通过；这是 solver-side reconstruction，不是 native transfer 或 AirJet 产品拓扑。下一轮先将短路径单变量复测应用于原生 `.scdocx` route，再建立独立 native parameter 合同；之后仍要完成 Mechanical/Fluent T1，才可判断 005 是否允许进入 006 |
+| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP semantic reconstruction diagnostic PASS；145-character native `.scdocx` path 仍 attach FAIL；native Named Selection transfer/native driving parameter NOT_PROVEN；P1 BLOCKED） | hash-bound STEP+sidecar 已在可删除 fixture 上唯一重建 1/1/11 边界，四项负向检查、1063/513 粗网格和 project save 通过；这是 solver-side reconstruction。native 短路径复测仍在 Model.Refresh direct FAIL；下一轮只测试保留 frozen evidence 的 hash-equal writable staging copy，再建立独立 native parameter 合同；之后仍要完成 Mechanical/Fluent T1，才可判断 005 是否允许进入 006 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -100,13 +105,13 @@
 ## 3. 下一步执行顺序
 
 1. 以已通过的 T0、SpaceClaim partial CAD 和 STEP semantic reconstruction diagnostic 为边界，在
-   Windows 继续 005 T1。下一次只把 native transfer runner 的 case ID 缩短，保持 producer、`.scdocx`、
-   native Workbench journal、profile、Named Selection transfer 检查和 PASS/FAIL 合同不变，复测
-   `.scdocx` attach + native 1/1/11 transfer；不得在 native profile 中用 solver-side reconstruction
-   补名。若仍在同点失败，再按一次一个变量排查只读 predecessor/staging/materialization。native
-   transfer 之后另建原生 parameter object/update/reopen 合同，再分别做 Mechanical 与 Fluent 可删除
-   T1 小模型。所有输入使用精确冻结 SHA；所有运行写 `VISIBILITY=NOT_USER_OBSERVED`，无头结果不得
-   代填 GUI visible 字段；这些完成前不启动 006。
+   Windows 继续 005 T1。native 短路径已同点失败；下一次保持 MCP frozen predecessor 只读且不变，
+   只在 Workbench job root 建立 hash-equal writable `.scdocx` working copy，记录 staged copy 的属性、
+   Edit/Exit 前后 SHA，并保持 profile、Named Selection transfer 检查和 PASS/FAIL 合同不变。不得在
+   native profile 中用 solver-side reconstruction 补名。若仍失败，关闭 writable-copy 假设并转查
+   native 文档类型/producer 结构。native transfer 后另建原生 parameter object/update/reopen 合同，
+   再分别做 Mechanical 与 Fluent 可删除 T1 小模型。所有输入使用精确冻结 SHA；所有运行写
+   `VISIBILITY=NOT_USER_OBSERVED`；这些完成前不启动 006。
 2. 只有 005 的 P1 CAD 必要字段全部通过后，才执行
    `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：同一母版生成 4 个整机配置、
    6 个交付/残差变体和主配置 3 个有独立 ID/Gate 的单因素派生变体。006 最多写

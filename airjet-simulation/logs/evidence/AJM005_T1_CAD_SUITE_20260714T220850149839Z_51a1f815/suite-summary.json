@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "task": "AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
+  "suite": "cad_and_workbench_transfer_t1",
+  "suite_status": "FAIL_CAD_TRANSFER_SET",
+  "git_head": "41fa4a604dc04b3a32590a996a29fab7810c6d36",
+  "case_id": "a5n-8bc3059cd345",
+  "started_at": "2026-07-14T22:08:50.149839+00:00",
+  "ended_at": "2026-07-14T22:13:56.509674+00:00",
+  "external_result_path": "C:\\Users\\admin\\Downloads\\AIRJET_ANSYS_STUDENT_SMOKE_005\\AJM005_T1_CAD_SUITE_20260714T220850149839Z_51a1f815.json",
+  "external_result_size": 60305,
+  "external_result_sha256": "68109b722d0a2fe08b2bb6cb42c2276312659138f4226dca1976f9866d472d0f",
+  "external_mcp_stderr_size": 13421,
+  "external_mcp_stderr_sha256": "8b0cf6d7392dbfa2bb71c0303037b327d9741c7936597b78d6511235b7e86127",
+  "runner_sha256": "4de89e063a199dc7f4bd389ff05849939d18a4eed42924ebe0a2edd910461fc6",
+  "license_arguments_added": false,
+  "visibility": "NOT_USER_OBSERVED",
+  "p1_cad_toolchain_readiness": "BLOCKED",
+  "p1_cad_blocker": "NATIVE_PARAMETERIZATION_NOT_RUN",
+  "p1_p6_gates": "NOT_RUN",
+  "path_budget_observation": {
+    "case_id_length": 16,
+    "spaceclaim_job_directory_length": 102,
+    "workbench_job_directory_length": 102,
+    "native_input_path_length": 145
+  },
+  "post_suite_process_observation": {
+    "observed_at_utc": "2026-07-14T22:14:33.9213117Z",
+    "count": 0,
+    "method": "PowerShell Get-Process name allowlist counted after suite completion"
+  },
+  "runs": [
+    {
+      "profile_id": "ajm005-spaceclaim-cad-t1-v1",
+      "job_id": "a5n-8bc3059cd345-399b0f417639",
+      "script_sha256": "4fdaf2f1f5ae2063f79b99adc8ac6ae91a147032c1386fc4119b5abd4ceff17e",
+      "started_at": "2026-07-14T22:08:52.704855+00:00",
+      "ended_at": "2026-07-14T22:09:14.160430+00:00",
+      "duration_seconds": 21.455575,
+      "phase": "PROCESS_EXITED_0",
+      "exit_code": 0,
+      "report_status": "PASS_PARTIAL_CAD_CAPABILITY",
+      "engineering_capability": "PASS_PARTIAL_CAD_CAPABILITY",
+      "assertions": {
+        "script_parameterization_equivalent": true,
+        "named_selections": true,
+        "volume_extract_or_equivalent": true,
+        "fluid_connectivity": true,
+        "native_save": true,
+        "native_reopen": true,
+        "step_export_reimport": true,
+        "semantic_sidecar": true
+      },
+      "volume_extract_api": "NOT_RUN",
+      "volume_extract_route": "DIRECT_NEGATIVE_VOLUME_BOOLEAN_UNION_EQUIVALENT",
+      "artifacts": {
+        "full_native": {"size": 38203, "sha256": "12da9597ee1d23cf0c7527922a3980596aec49eae1c8f4e69b102ab35087b424"},
+        "transfer_native": {"size": 32148, "sha256": "babdfbee836512c1a6ba602727e7946495b4070538ef26065220305a1e527dcb"},
+        "step": {"size": 17145, "sha256": "55eb309eee3f55443c540758fbbebe086cfea99b961730757909eee45e79b5f9"},
+        "semantic_sidecar": {"size": 4038, "sha256": "a4fa29e11bf955a04ab4afe228434e6418bcd3d39d4da82e6590e224dafdbafa"}
+      },
+      "manifest_total_size": 177553,
+      "declared_report_sha256": "813df1c46d7047d75a8cc0900eb0649ea391fe92eb16a52e603a81f46bba93fd",
+      "job_state_sha256": "e6cd3670f9f83b34d5a9cf3860cec11b3054a5af9882593718a9c4e06fe6d4ca",
+      "stdout_sha256": "79551a4c3d73388c4aaf5036f1f4584ea0512a96d945b4c46dcf618473903eda",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "profile_id": "ajm005-workbench-transfer-t1-v1",
+      "job_id": "a5n-8bc3059cd345-f75ab60f6014",
+      "predecessor_job_id": "a5n-8bc3059cd345-399b0f417639",
+      "script_sha256": "162a7e13485f3ed31c270c7c40c47f378e7f1bac3b17217a06d40f52ad1200fb",
+      "started_at": "2026-07-14T22:09:16.067963+00:00",
+      "ended_at": "2026-07-14T22:13:56.414896+00:00",
+      "duration_seconds": 280.346933,
+      "phase": "FAILED_PROCESS",
+      "exit_code": 2,
+      "report_status": "FAIL_DIRECT",
+      "engineering_capability": "FAIL_DIRECT",
+      "geometry_route": "EXPLICIT_SPACECLAIM_EDIT_COMPONENTS_TO_SHARE",
+      "update_route": "MODEL_CONTAINER_REFRESH_AFTER_COMPONENTS_SHARE",
+      "failure_point": "model_container.Refresh()",
+      "error_summary": "The native .scdocx geometry structure still could not attach at a 145-character input path",
+      "execution_reach": {
+        "predecessor_identity": "PASS",
+        "source_geometry_system": "RETURNED",
+        "source_geometry_set_file": "RETURNED",
+        "source_geometry_edit_spaceclaim": "RETURNED",
+        "source_geometry_exit": "RETURNED",
+        "static_system_with_components_share": "RETURNED",
+        "source_geometry_file_and_save_data": "RETURNED",
+        "model_container": "RETURNED",
+        "model_refresh": "CALLED",
+        "mechanical_inspection": "NOT_REACHED",
+        "project_save": "NOT_REACHED"
+      },
+      "assertion_outcomes": {
+        "predecessor_identity": "PASS",
+        "geometry_transfer": "FAIL_DIRECT",
+        "named_selection_transfer": "NOT_REACHED",
+        "mesh_generation": "NOT_REACHED",
+        "project_save": "NOT_REACHED"
+      },
+      "predecessor": {
+        "git_head": "41fa4a604dc04b3a32590a996a29fab7810c6d36",
+        "report_sha256": "813df1c46d7047d75a8cc0900eb0649ea391fe92eb16a52e603a81f46bba93fd",
+        "native_sha256": "babdfbee836512c1a6ba602727e7946495b4070538ef26065220305a1e527dcb",
+        "manifest_sha256": "eed52bb4681b70b89ce8f02713ec0840e72531fb6c77950aba5fddb9c788f094"
+      },
+      "manifest_total_size": 114127,
+      "declared_report_sha256": "3020c445a4587f7b2018b6449f58774bacb5f912aa9c001d5d3686c0d4f889e5",
+      "job_state_sha256": "85feb9d5294c08fffc4198ebfc5523608a1b71b42c32b8447dad5422a527bc0b",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

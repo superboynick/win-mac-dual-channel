@@ -791,3 +791,24 @@ STEP 面方向符号可能翻转，而轴向仍稳定。任何一项 API 为 nul
 边界语义，并继续生成粗网格和保存工程。不能写成 STEP 原生保留 Named Selections、`.scdocx` attach
 成功、原生参数对象可更新、AirJet 产品入口具有 2-edge 拓扑，或 P1 CAD 通过。face ID 44/54 也只是
 本次 import 实例的瞬时编号，不能进入整机几何合同。
+
+## 24. 第十六次实跑：同一个基础设施变量不能跨格式直接外推
+
+semantic route 从长 job root 缩短后越过了临时 `SYS.mechdb` attach，所以我们把同一变量用于 native
+route。native case ID 缩为 16 characters 后，job directory 只有 102 characters，输入 `.scdocx` 的
+完整路径为 145 characters；但失败点仍是 `Model.Refresh()` 无法附加 geometry structure，耗时也与
+旧 native 失败几乎相同：280.347 秒。
+
+| route | format | short-path outcome | interpretation |
+|---|---|---|---|
+| semantic reconstruction | STEP + sidecar | 越过 attach 并最终 diagnostic PASS | 某个 legacy 子组件有路径敏感性 |
+| native transfer | `.scdocx` | 同一 attach 错误 | 路径缩短不足以解决 native translator/materialization |
+
+这不是矛盾。STEP 是交换格式，Workbench 可重新导入几何；`.scdocx` 是原生文档，可能需要不同的
+translator、文档结构或写回行为。MCP 为防止证据被下游改写，会把 predecessor 副本设为只读。若
+SpaceClaim Edit/Exit 或 Workbench materialization 需要修改 working document，直接使用 frozen file
+可能失败。
+
+下一实验不能解除 frozen evidence 的只读保护。正确做法是在 job root 复制一个 hash-equal working
+copy，显式使它可写，记录复制前后 SHA，再只让 Workbench 使用 staging copy。这样既保留输入证据，
+又单独测试“工作文档必须可写”这一假设。
