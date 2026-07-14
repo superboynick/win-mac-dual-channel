@@ -462,3 +462,29 @@ Topology APIs 实测全部可用。face 44 的 `center + plane + 2 edges + abs(z
 - native transfer/parameterization claims 继续 false。
 
 这样即使下一轮变绿，读者也知道通过的是“可删除小模型的重建能力”，不是产品 CAD Gate。
+
+### 20.5 第十五次实跑：绿色终态也要逐层验收
+
+本轮 exit 0 不是因为 runner 只看进程返回码。它依次要求七个 diagnostic assertions 全 true：
+
+```text
+predecessor identity
+-> semantic sidecar identity
+-> body/13-face geometry available
+-> unique 1/1/11 semantic reconstruction
+-> four negative controls reject bad partitions
+-> mesh 1063 nodes / 513 elements
+-> project save with non-empty SHA
+```
+
+Mechanical 创建前确认 INLET/OUTLET/WALLS 同名对象都是 0；创建后对象数为 1/1/1，实体数为
+1/1/11。这一步防止旧树对象制造假阳性。inspection 还保存了 candidate IDs 与 reconstructed IDs
+完全一致，所以“分类成功”和“实际树对象绑定成功”是两次独立检查。
+
+suite 的正确成功字符串是 `PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC`。report 的 error 字段仍写
+`DIAGNOSTIC_PASS_CANNOT_CLOSE_NATIVE_TRANSFER_GATE`；它是机器可读的 claim boundary，不表示运行
+失败。canonical native claims 全部保持 false，P1 readiness 继续 BLOCKED。
+
+下一实验重新回到独立的 native 路线：先用同一 producer 和最短安全 case ID 复测 `.scdocx` attach
+与原生 Named Selection transfer；原生 driving parameter 另设独立合同。随后还要做 Mechanical 与
+Fluent 可删除 T1 求解。任何一项诊断 PASS 都不能替代另一项，也不能提前启动 006。

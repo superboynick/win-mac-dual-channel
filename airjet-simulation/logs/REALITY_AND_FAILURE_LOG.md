@@ -807,6 +807,48 @@
   claims 全 false；P1 readiness BLOCKED，P1–P6 NOT_RUN。
 - 状态：OPEN_INLET_SOLVER_TOPOLOGY_ANCHOR_SINGLE_VARIABLE_RETEST
 
+## REAL-20260714-036：STEP 语义重建诊断通过，但原生传递与 P1 仍保持阻塞
+
+- UTC：2026-07-14T21:49:44Z
+- Stage/task：005 T1 / 第十五次 solver-side semantic reconstruction 单变量复测
+- run/jobs：`AJM005_T1_SEMANTIC_RECON_SUITE_20260714T214944170151Z_221eac96`；SC
+  `...-8166d373d69f`；WB `...-8332804d3611`；签名 commit
+  `7a7f8e098adf51743c7121dbdfb25ebf4756336d`。
+- 唯一算法变量：INLET 从 centroid+area 改为 centroid+`GeoSurfacePlane`+2 edges+
+  abs(z-normal)。centroid tolerance、OUTLET centroid+area、WALLS complement、1/1/11 硬检查、
+  四项 negative controls 和 Gate 均未改变。规则只作用于
+  `DISPOSABLE_CAPABILITY_FIXTURE_ONLY`，来源为 REAL-034/035；producer inlet area 保留为
+  `DIAGNOSTIC_ONLY`。
+- producer/身份链：SpaceClaim 21.704 秒正常退出，八项 assertions 全 true；STEP 17197 bytes，
+  SHA-256 `ca883117a85380a0bf1b0d8633a0d19d88e68f22db7528ff9effdbdb120debf6`；sidecar
+  4064 bytes，SHA-256 `43beda43a8446e649bd360765e74584c39307ad33e781c3f64da4e1186adad84`；
+  producer report/sidecar/STEP/MCP frozen manifest 身份全部通过。
+- consumer：Workbench 31.357 秒正常退出。Mechanical 实测 1 body/13 faces，候选和重建 face IDs
+  均为 INLET `[44]`、OUTLET `[54]`、WALLS `[45,46,47,48,49,50,51,52,53,55,56]`；创建前
+  三个同名对象计数均为 0，创建后对象数为 1/1/1、实体数为 1/1/11。
+- 负向与下游结果：0 inlet、multiple inlet、overlap、incomplete coverage 四项 synthetic negative
+  controls 全部拒绝；生成 1063 nodes/513 elements 粗网格；保存 50593-byte project。七项 diagnostic
+  assertions 全 true。
+- PASS 的准确名称：Workbench report 与 suite 均为
+  `PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC`。这只证明 hash-bound STEP+sidecar 在该可删除
+  fixture 上能确定性重建 solver-side boundary semantics；STEP 本身没有被宣称携带 native semantics。
+- 原始证据：suite/MCP SHA-256 分别为
+  `b354d7d4243773efef51dea483ce724b867c5dd262f62b5b3046d63fb4621aff` 和
+  `387fddb8d64bbe9b1263681bc1b18ff5325001ec2c56d1438098e9bfa13f5b92`；SC/WB report SHA-256
+  分别为 `39299cac95889d64d7172b64147cb2073d464ec35dc357fd562ae8b2af52bc57` 和
+  `fc7e862ac05545a615a334185fffa16d9fa60e4f2d61e96e696bc7431d26d53a`；inspection/project
+  SHA-256 分别为 `d0c6ac7c0174f3e145f088837c18b283cb172681056cd88870fd70957136b9eb` 和
+  `758dfd38368c3d29afaddda8a02d1f9de24370a6dd468f920c615c03fcf3c990`；
+  2026-07-14T21:50:50.6127980Z 相关进程数为 0。
+- 报告中的 `DIAGNOSTIC_PASS_CANNOT_CLOSE_NATIVE_TRANSFER_GATE` 是防止把诊断 PASS 倒写成 native
+  transfer PASS 的边界声明，不是运行异常。
+- 对 Gate/论文主张的影响：canonical geometry transfer、Named Selection transfer、native attach、
+  native parameterization 与 P1 readiness claims 仍全部 false；P1 readiness BLOCKED，P1--P6
+  `NOT_RUN`；`VISIBILITY=NOT_USER_OBSERVED`。粗网格不是结构/CFD/CHT 求解结果。
+- 下一步：继续独立关闭 native `.scdocx` attach、native Named Selection transfer 和 native driving
+  parameter 三项 blocker，然后运行 Mechanical/Fluent 可删除 T1 小模型；不启动 006。
+- 状态：CLOSED_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC_PASS_NATIVE_GATES_OPEN
+
 ## 新条目模板
 
 ```text

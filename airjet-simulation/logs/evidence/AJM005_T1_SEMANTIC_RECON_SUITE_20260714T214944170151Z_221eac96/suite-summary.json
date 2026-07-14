@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "task": "AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
+  "suite": "step_semantic_reconstruction_t1_diagnostic",
+  "suite_status": "PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC",
+  "semantic_reconstruction_diagnostic": "PASS",
+  "git_head": "7a7f8e098adf51743c7121dbdfb25ebf4756336d",
+  "case_id": "ajm005-sem-20260714t214944170151z_221eac96",
+  "started_at": "2026-07-14T21:49:44.170151+00:00",
+  "ended_at": "2026-07-14T21:50:41.601160+00:00",
+  "external_result_path": "C:\\Users\\admin\\Downloads\\AIRJET_ANSYS_STUDENT_SMOKE_005\\AJM005_T1_SEMANTIC_RECON_SUITE_20260714T214944170151Z_221eac96.json",
+  "external_result_size": 101677,
+  "external_result_sha256": "b354d7d4243773efef51dea483ce724b867c5dd262f62b5b3046d63fb4621aff",
+  "external_mcp_stderr_size": 2597,
+  "external_mcp_stderr_sha256": "387fddb8d64bbe9b1263681bc1b18ff5325001ec2c56d1438098e9bfa13f5b92",
+  "runner_sha256": "579ab306dcce4be083f7aa56c668774573cfea4b28e22422ce101d1997f438f9",
+  "visibility": "NOT_USER_OBSERVED",
+  "p1_cad_toolchain_readiness": "BLOCKED",
+  "p1_cad_blocker": "NATIVE_PARAMETERIZATION_AND_NATIVE_TRANSFER_NOT_PROVEN",
+  "p1_p6_gates": "NOT_RUN",
+  "post_suite_process_observation": {
+    "observed_at_utc": "2026-07-14T21:50:50.6127980Z",
+    "count": 0
+  },
+  "runs": [
+    {
+      "profile_id": "ajm005-spaceclaim-cad-t1-v1",
+      "job_id": "ajm005-sem-20260714t214944170151z_221eac96-8166d373d69f",
+      "script_sha256": "4fdaf2f1f5ae2063f79b99adc8ac6ae91a147032c1386fc4119b5abd4ceff17e",
+      "started_at": "2026-07-14T21:49:46.752708+00:00",
+      "ended_at": "2026-07-14T21:50:08.456491+00:00",
+      "duration_seconds": 21.703783,
+      "phase": "PROCESS_EXITED_0",
+      "exit_code": 0,
+      "report_status": "PASS_PARTIAL_CAD_CAPABILITY",
+      "engineering_capability": "PASS_PARTIAL_CAD_CAPABILITY",
+      "assertions": {
+        "script_parameterization_equivalent": true,
+        "named_selections": true,
+        "volume_extract_or_equivalent": true,
+        "fluid_connectivity": true,
+        "native_save": true,
+        "native_reopen": true,
+        "step_export_reimport": true,
+        "semantic_sidecar": true
+      },
+      "artifacts": {
+        "full_native": {"size": 38204, "sha256": "89cabe13e30ae3c703ec8c894dbbbdc2d40e00bb857c6933f2b9f8cfe1a0b797"},
+        "transfer_native": {"size": 32142, "sha256": "c51d4c8a8a7f9ae9a6934984cddad2b84ea4bb3b975f1e7ebf4e09a535bbc86e"},
+        "step": {"size": 17197, "sha256": "ca883117a85380a0bf1b0d8633a0d19d88e68f22db7528ff9effdbdb120debf6"},
+        "semantic_sidecar": {"size": 4064, "sha256": "43beda43a8446e649bd360765e74584c39307ad33e781c3f64da4e1186adad84"}
+      },
+      "manifest_total_size": 179004,
+      "declared_report_sha256": "39299cac95889d64d7172b64147cb2073d464ec35dc357fd562ae8b2af52bc57",
+      "job_state_sha256": "2634b83ea8d87d755bac7e84768549eda33e18918e1b222a609c1bdbca1b8a93",
+      "stdout_sha256": "1ca6298fae6207e7ffa2b464fb5476088384a2bc2a1ee7b66a1044e34a1ae736",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "profile_id": "ajm005-workbench-semantic-reconstruction-t1-v1",
+      "job_id": "ajm005-sem-20260714t214944170151z_221eac96-8332804d3611",
+      "predecessor_job_id": "ajm005-sem-20260714t214944170151z_221eac96-8166d373d69f",
+      "script_sha256": "c60beb14e03d3f77274f62d843a802131c5f8ec07501d9a8fc83cbb7c39e3098",
+      "started_at": "2026-07-14T21:50:10.085229+00:00",
+      "ended_at": "2026-07-14T21:50:41.442424+00:00",
+      "duration_seconds": 31.357195,
+      "phase": "PROCESS_EXITED_0",
+      "exit_code": 0,
+      "report_status": "PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC",
+      "engineering_capability": "PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC",
+      "diagnostic_assertions": {
+        "predecessor_identity": true,
+        "semantic_sidecar_identity": true,
+        "body_geometry_available": true,
+        "semantic_reconstruction": true,
+        "negative_controls": true,
+        "mesh_generation": true,
+        "project_save": true
+      },
+      "canonical_native_claims": {
+        "geometry_transfer": false,
+        "named_selection_transfer": false,
+        "native_attach": false,
+        "native_parameterization": false,
+        "p1_cad_toolchain_readiness": false
+      },
+      "execution_reach": {
+        "predecessor_identity": "PASS",
+        "semantic_sidecar_identity": "PASS",
+        "source_geometry_set_file": "RETURNED",
+        "source_geometry_file_and_save_data": "RETURNED",
+        "model_refresh": "RETURNED",
+        "mechanical_inspection": "RETURNED",
+        "semantic_reconstruction": "RETURNED",
+        "project_save": "RETURNED"
+      },
+      "inspection": {
+        "body_count": 1,
+        "body_names": ["spaceclaim_cad_t1|AJM005_T1_FLUID"],
+        "face_count": 13,
+        "candidate_face_ids": {
+          "INLET": [44],
+          "OUTLET": [54],
+          "WALLS": [45, 46, 47, 48, 49, 50, 51, 52, 53, 55, 56]
+        },
+        "reconstructed_face_ids": {
+          "INLET": [44],
+          "OUTLET": [54],
+          "WALLS": [45, 46, 47, 48, 49, 50, 51, 52, 53, 55, 56]
+        },
+        "preexisting_named_selection_object_counts": {"INLET": 0, "OUTLET": 0, "WALLS": 0},
+        "named_selection_object_counts": {"INLET": 1, "OUTLET": 1, "WALLS": 1},
+        "named_selection_entity_counts": {"INLET": 1, "OUTLET": 1, "WALLS": 11},
+        "negative_controls": {
+          "zero_inlet_rejected": true,
+          "multiple_inlet_rejected": true,
+          "overlap_rejected": true,
+          "incomplete_coverage_rejected": true
+        },
+        "mesh_node_count": 1063,
+        "mesh_element_count": 513,
+        "semantic_reconstruction": true,
+        "semantic_route": "SOLVER_SIDE_RECONSTRUCTION_NOT_NATIVE_TRANSFER",
+        "inlet_solver_match_contract": {
+          "scope": "DISPOSABLE_CAPABILITY_FIXTURE_ONLY",
+          "area_role": "DIAGNOSTIC_ONLY",
+          "surface_type": "GeoSurfacePlane",
+          "edge_count": 2,
+          "normal_axis_abs": [0.0, 0.0, 1.0],
+          "normal_tolerance": 0.000001,
+          "calibration_evidence_ids": ["REAL-20260714-034", "REAL-20260714-035"]
+        }
+      },
+      "files": {
+        "model_inspection": {"size": 7842, "sha256": "d0c6ac7c0174f3e145f088837c18b283cb172681056cd88870fd70957136b9eb"},
+        "project": {"size": 50593, "sha256": "758dfd38368c3d29afaddda8a02d1f9de24370a6dd468f920c615c03fcf3c990"}
+      },
+      "manifest_total_size": 7520556,
+      "declared_report_sha256": "fc7e862ac05545a615a334185fffa16d9fa60e4f2d61e96e696bc7431d26d53a",
+      "job_state_sha256": "25e11f4da41282800409fe6003fbef8ebd7cbcf656b6c9a65e29d2507f509d02",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "error": "DIAGNOSTIC_PASS_CANNOT_CLOSE_NATIVE_TRANSFER_GATE"
+    }
+  ]
+}

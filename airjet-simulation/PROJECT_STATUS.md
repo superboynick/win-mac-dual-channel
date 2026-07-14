@@ -62,12 +62,15 @@
   匹配容差。commit `d107c40...` 已完成该观测：body=1、faces=13、四项 negative controls 全 PASS；
   位于精确入口中心的 face 44 面积为 `2.0 mm²`，而 producer sidecar 为 `π mm²`，因此面积条件单独
   导致入口 0 匹配。commit `63d8440...` 的 topology 观测显示 face 44 为 plane、2 edges、
-  `[0,0,-1]` normal，13 个面三类 API 均无 error；下一轮只把入口 area hard anchor 替换为这组
-  centroid+topology calibration。P1 readiness 与 native claims 均未改变。
-  审查同时确认脚本两次重建只能证明等效参数驱动，
-  不能证明 `.scdocx` 原生 driving parameter；因此即使本轮
-  CAD/Named Selection/粗网格传递全过，也只允许写 `PASS_CAD_TRANSFER_SET`，
-  `P1_CAD_TOOLCHAIN_READINESS` 仍因 `NATIVE_PARAMETERIZATION_NOT_RUN` 保持 BLOCKED。
+  `[0,0,-1]` normal，13 个面三类 API 均无 error。commit `7a7f8e0...` 只把入口 hard anchor
+  替换为 centroid+topology 后，第十五次签名实跑得到
+  `PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC`：1 body/13 faces 唯一重建
+  `INLET/OUTLET/WALLS=1/1/11`，创建前同名对象为 0，创建后对象/实体为 1/1/1 与 1/1/11，四项
+  negative controls 全通过，并生成 1063 nodes/513 elements 粗网格及 50593-byte project。
+  该 PASS 只属于 hash-bound STEP+sidecar 的 solver-side reconstruction；canonical native claims
+  仍全 false。审查同时确认脚本两次重建只能证明等效参数驱动，不能证明 `.scdocx` 原生 driving
+  parameter；native attach、native Named Selection transfer 与 native parameterization 仍需独立
+  关闭，`P1_CAD_TOOLCHAIN_READINESS` 继续 BLOCKED。
 - 已新增学习入口、ANSYS/005 实验手册、现实失败日志、run index 和论文方法—证据映射；
   后续每次运行会同步保留小型脱敏机器证据和 Git 外大产物哈希。
 - Gen1 两张官方产品透视图已分别做 homography、10,000 次像素误差 Monte Carlo 和跨视图差比较；四个画出 vent 只作为 `I` 类顶盖候选，不用于推断 cell 数。
@@ -85,7 +88,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP 诊断已证实 WB→Mechanical body/mesh/project；短路径 semantic reconstruction 已到达但真实分类为 0/1/12，仍 FAIL；native `.scdocx` attach 与 semantic transfer 仍 FAIL/BLOCKED） | 已实测脚本参数变化、完整三段 union、Named Selections、原生重开与 STEP occurrence/master 全层指纹；frozen STEP + hash-bound sidecar 输入身份已通过，短路径恢复 Mechanical 可达性。13-face map 与 topology map 已证明入口中心/plane/2-edge/z-normal 稳定、跨 kernel area 不稳定；下一轮单变量 topology-anchor 修正。这是 reconstruction，不是 native transfer。native attach、Named Selection transfer 与原生 driving parameter 硬阻塞仍需分别关闭，之后才可按 006 建立完整装配/流体负体积并独立审核 |
+| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP semantic reconstruction diagnostic PASS；native `.scdocx` attach、native Named Selection transfer、native driving parameter 仍 FAIL/NOT_PROVEN；P1 BLOCKED） | hash-bound STEP+sidecar 已在可删除 fixture 上唯一重建 1/1/11 边界，四项负向检查、1063/513 粗网格和 project save 通过；这是 solver-side reconstruction，不是 native transfer 或 AirJet 产品拓扑。下一轮先将短路径单变量复测应用于原生 `.scdocx` route，再建立独立 native parameter 合同；之后仍要完成 Mechanical/Fluent T1，才可判断 005 是否允许进入 006 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -96,16 +99,14 @@
 
 ## 3. 下一步执行顺序
 
-1. 以已通过的 T0、SpaceClaim partial CAD 和 STEP body/mesh/project 诊断为边界，在 Windows 继续
-   005 T1：短 case ID 已恢复 `Model.Refresh`/Mechanical 可达性，失败 inspection 已保存完整
-   13-face map、negative controls 与 surface/edge/normal；现在只把入口 predicate 改为校准后的
-   centroid+topology anchor，再用已通过身份检查的 frozen STEP 与 hash-bound semantic sidecar，
-   按面几何、邻接和容差
-   唯一匹配并重建 `INLET/OUTLET/WALLS`；必须验证 1/1/11、互斥、全覆盖，并做 SHA 错、0 match、
-   multiple match、重叠和覆盖不全的负向测试。报告明确写 semantic reconstruction，不得写 native
-   transfer。随后继续独立排查 `.scdocx` attach、原生 Named Selection transfer 与原生 driving
-   parameter，再分别做 Mechanical 与 Fluent 可删除小模型。所有输入使用精确冻结 SHA；所有运行写
-   `VISIBILITY=NOT_USER_OBSERVED`，无头结果不得代填 GUI visible 字段。
+1. 以已通过的 T0、SpaceClaim partial CAD 和 STEP semantic reconstruction diagnostic 为边界，在
+   Windows 继续 005 T1。下一次只把 native transfer runner 的 case ID 缩短，保持 producer、`.scdocx`、
+   native Workbench journal、profile、Named Selection transfer 检查和 PASS/FAIL 合同不变，复测
+   `.scdocx` attach + native 1/1/11 transfer；不得在 native profile 中用 solver-side reconstruction
+   补名。若仍在同点失败，再按一次一个变量排查只读 predecessor/staging/materialization。native
+   transfer 之后另建原生 parameter object/update/reopen 合同，再分别做 Mechanical 与 Fluent 可删除
+   T1 小模型。所有输入使用精确冻结 SHA；所有运行写 `VISIBILITY=NOT_USER_OBSERVED`，无头结果不得
+   代填 GUI visible 字段；这些完成前不启动 006。
 2. 只有 005 的 P1 CAD 必要字段全部通过后，才执行
    `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：同一母版生成 4 个整机配置、
    6 个交付/残差变体和主配置 3 个有独立 ID/Gate 的单因素派生变体。006 最多写

@@ -764,3 +764,30 @@ STEP 面方向符号可能翻转，而轴向仍稳定。任何一项 API 为 nul
 
 这并不是“从产品图推断入口结构”，而是对 005 fixture 的跨 kernel 语义桥校准。整机 CAD 到来后，
 每个产品边界必须有自己的证据来源、局部拓扑合同和负向测试。
+
+### 23.8 第十五次实跑：怎样把一个诊断 PASS 限定在它真正证明的范围
+
+第十四到第十五次只有一个算法变量：入口从 `centroid+area` 改为
+`centroid+plane+2 edges+abs(z-normal)`。中心容差仍为 0.02 mm；OUTLET 仍用 centroid+area；WALLS
+仍是 complement；1/1/11、互斥、全覆盖和四项拒绝测试没有放宽。
+
+| checkpoint | 第十四次 | 第十五次 |
+|---|---|---|
+| INLET candidates | 0 | 1，face 44 |
+| OUTLET candidates | 1 | 1，face 54 |
+| WALLS candidates | 12 | 11 |
+| preexisting name objects | 0/0/0 | 0/0/0 |
+| created name objects | 未到达 | 1/1/1 |
+| created entity counts | 未到达 | 1/1/11 |
+| negative controls | 4/4 PASS | 4/4 PASS |
+| mesh | 未到达 | 1063 nodes / 513 elements |
+| project | 50593-byte 诊断文件 | 50593-byte 完成文件 |
+
+面积降为诊断量不是因为“面积不重要”，而是 REAL-034 已实测同一个入口在 producer 与 Mechanical
+分别为 π 和 2 mm²；继续把它用作硬 ID 会稳定地产生假阴性。替代它的 topology anchor 由 REAL-035
+在同一个 13-face fixture 上实测，并由唯一性、互斥/全覆盖和 negative controls 共同保护。
+
+因此允许的知识主张是：hash-bound STEP 与 sidecar 可以在 solver 侧对这个可删除小模型确定性重建
+边界语义，并继续生成粗网格和保存工程。不能写成 STEP 原生保留 Named Selections、`.scdocx` attach
+成功、原生参数对象可更新、AirJet 产品入口具有 2-edge 拓扑，或 P1 CAD 通过。face ID 44/54 也只是
+本次 import 实例的瞬时编号，不能进入整机几何合同。
