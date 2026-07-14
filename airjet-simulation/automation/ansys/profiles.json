@@ -130,7 +130,7 @@
       "profile_id": "ajm005-workbench-connected-spaceclaim-t1-v1",
       "engine": "workbench",
       "script": "005/workbench_connected_spaceclaim_t1.wbjn",
-      "sha256": "0f2f266d47a1e376e845dd144d3f76ea5dfe02a65a63c868c2f839084429e6bd",
+      "sha256": "f585cdb473f4c5ebd95d20098f4406b1430f7ed635d10591d05f50c3f42b6aab",
       "timeout_seconds": 1200,
       "output_root_id": "student_smoke_005",
       "reports": [

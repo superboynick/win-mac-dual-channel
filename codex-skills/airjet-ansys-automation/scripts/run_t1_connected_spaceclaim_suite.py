@@ -86,6 +86,7 @@ PROFILE_RULES = {
         "required_status": "PASS_CONNECTED_SPACECLAIM_TRANSFER_DIAGNOSTIC",
         "report": "workbench_connected_spaceclaim_t1.json",
         "artifacts": {
+            "connected_spaceclaim_entry.sentinel": "entry_sentinel",
             "connected_spaceclaim_build.json": "connected_build",
             "workbench_connected_inspection.json": "model_inspection",
             "workbench_connected_spaceclaim_t1.wbpj": "project",

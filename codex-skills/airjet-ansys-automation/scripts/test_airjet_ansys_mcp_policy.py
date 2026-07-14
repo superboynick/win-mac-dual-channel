@@ -173,6 +173,7 @@ for invariant in (
     'case_id = "a5c-" + uuid4().hex[:12]',
     "EXTERNAL_NATIVE_ATTACH_AND_NATIVE_PARAMETERIZATION_NOT_PROVEN",
     "canonical_claim_boundaries",
+    "connected_spaceclaim_entry.sentinel",
     "artifact_manifest",
     "p1_p6_gates",
 ):
@@ -287,6 +288,19 @@ for invariant in (
     "model_container.Refresh()",
     'master_shape = getattr(master, "Shape", None)',
     '"topology_shape_source"',
+    '"connected_editor_post_runscript_probe"',
+    '"connected_editor_post_exit_probe"',
+    '"post_runscript_artifact_probe"',
+    '"post_exit_artifact_probe"',
+    '"failure_artifact_probe"',
+    'item["probe_error"] = str(item_probe_error)',
+    '"connected_spaceclaim_entry.sentinel"',
+    '"FAIL_CONNECTED_EDITOR_ENTRY_SENTINEL_MISSING"',
+    '"FAIL_CONNECTED_EDITOR_STARTED_REPORT_MISSING"',
+    "workbench_message_snapshot()",
+    '"__AJM005_JOB_DIR_LITERAL__"',
+    '"__AJM005_BUILD_REPORT_LITERAL__"',
+    '"__AJM005_ENTRY_SENTINEL_LITERAL__"',
     '"PASS_CONNECTED_SPACECLAIM_TRANSFER_DIAGNOSTIC"',
     '"external_scdocx_attach": "NOT_RUN"',
     '"native_parameterization": "NOT_RUN"',
@@ -304,6 +318,61 @@ for forbidden in (
         fail(f"connected SpaceClaim route uses forbidden external route: {forbidden}")
 try:
     connected_tree = ast.parse(connected_script)
+
+    def dotted_call_name(function):
+        parts = []
+        current = function
+        while isinstance(current, ast.Attribute):
+            parts.append(current.attr)
+            current = current.value
+        if isinstance(current, ast.Name):
+            parts.append(current.id)
+            return ".".join(reversed(parts))
+        return ""
+
+    outer_call_names = {
+        dotted_call_name(node.func)
+        for node in ast.walk(connected_tree)
+        if isinstance(node, ast.Call)
+    }
+    outer_attribute_names = {
+        dotted_call_name(node)
+        for node in ast.walk(connected_tree)
+        if isinstance(node, ast.Attribute)
+    }
+    outer_name_references = {
+        node.id for node in ast.walk(connected_tree) if isinstance(node, ast.Name)
+    }
+    if any(
+        isinstance(node, ast.Attribute) and node.attr == "SetFile"
+        for node in ast.walk(connected_tree)
+    ) or any(
+        isinstance(node, ast.Constant) and node.value == "SetFile"
+        for node in ast.walk(connected_tree)
+    ):
+        fail("connected SpaceClaim route references forbidden SetFile API")
+    for forbidden_call in (
+        "source_geometry.SetFile",
+        "DocumentHelper.CreateNewDocument",
+        "DocumentOpen.Execute",
+        "DocumentSave.Execute",
+    ):
+        if forbidden_call in outer_call_names:
+            fail(
+                "connected SpaceClaim route uses forbidden AST call: "
+                + forbidden_call
+            )
+        if forbidden_call in outer_attribute_names:
+            fail(
+                "connected SpaceClaim route references forbidden attribute: "
+                + forbidden_call
+            )
+    for forbidden_root in ("DocumentHelper", "DocumentOpen", "DocumentSave"):
+        if forbidden_root in outer_name_references:
+            fail(
+                "connected SpaceClaim route references forbidden API root: "
+                + forbidden_root
+            )
     embedded_assignments = [
         node
         for node in connected_tree.body
@@ -318,6 +387,225 @@ try:
         fail("connected SpaceClaim embedded build script is not unique")
     embedded_source = ast.literal_eval(embedded_assignments[0].value)
     compile(embedded_source, "connected_spaceclaim_fixture.py", "exec")
+    embedded_tree = ast.parse(embedded_source)
+    parent_by_node = {}
+    for parent in ast.walk(embedded_tree):
+        for child in ast.iter_child_nodes(parent):
+            parent_by_node[child] = parent
+
+    literal_assignments = {
+        "job_dir": "__AJM005_JOB_DIR_LITERAL__",
+        "report_path": "__AJM005_BUILD_REPORT_LITERAL__",
+        "entry_sentinel_path": "__AJM005_ENTRY_SENTINEL_LITERAL__",
+    }
+    for variable, expected_literal in literal_assignments.items():
+        stores = [
+            node
+            for node in ast.walk(embedded_tree)
+            if isinstance(node, ast.Name)
+            and node.id == variable
+            and isinstance(node.ctx, ast.Store)
+        ]
+        assignments = [
+            node
+            for node in embedded_tree.body
+            if isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and node.targets[0].id == variable
+        ]
+        if len(stores) != 1 or len(assignments) != 1:
+            fail(f"connected child path variable can be reassigned: {variable}")
+        value = assignments[0].value
+        if not isinstance(value, ast.Constant) or value.value != expected_literal:
+            fail(f"connected child path is not literal-bound: {variable}")
+
+    environment_key_nodes = [
+        node
+        for node in ast.walk(embedded_tree)
+        if isinstance(node, ast.Constant) and node.value == "AIRJET_JOB_DIR"
+    ]
+    if len(environment_key_nodes) != 1:
+        fail("connected child must observe AIRJET_JOB_DIR exactly once")
+    environment_get_calls = [
+        node
+        for node in ast.walk(embedded_tree)
+        if isinstance(node, ast.Call)
+        and dotted_call_name(node.func) == "os.environ.get"
+    ]
+    if len(environment_get_calls) != 1:
+        fail("connected child must have one diagnostic os.environ.get call")
+    environment_assignment = parent_by_node.get(environment_get_calls[0])
+    if not (
+        isinstance(environment_assignment, ast.Assign)
+        and len(environment_assignment.targets) == 1
+        and isinstance(environment_assignment.targets[0], ast.Name)
+        and environment_assignment.targets[0].id == "observed_job_dir"
+    ):
+        fail("connected child environment observation has an unsafe target")
+    observed_stores = [
+        node
+        for node in ast.walk(embedded_tree)
+        if isinstance(node, ast.Name)
+        and node.id == "observed_job_dir"
+        and isinstance(node.ctx, ast.Store)
+    ]
+    if len(observed_stores) != 1:
+        fail("connected child observed_job_dir can be reassigned")
+    environment_assignments = [
+        node
+        for node in ast.walk(embedded_tree)
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Subscript)
+        and isinstance(node.targets[0].value, ast.Name)
+        and node.targets[0].value.id == "result"
+        and isinstance(node.targets[0].slice, ast.Constant)
+        and node.targets[0].slice.value == "environment"
+    ]
+    if len(environment_assignments) != 1 or not isinstance(
+        environment_assignments[0].value, ast.Dict
+    ):
+        fail("connected child environment diagnostic object is not unique")
+    environment_keys = [
+        key.value if isinstance(key, ast.Constant) else None
+        for key in environment_assignments[0].value.keys
+    ]
+    if environment_keys != [
+        "airjet_job_dir_present",
+        "airjet_job_dir_value",
+        "matches_literal_job_dir",
+    ]:
+        fail("connected child environment diagnostic keys changed")
+    expected_environment_value = ast.parse(
+        """{
+            "airjet_job_dir_present": observed_job_dir is not None,
+            "airjet_job_dir_value": observed_job_dir,
+            "matches_literal_job_dir": (
+                observed_job_dir is not None
+                and os.path.normcase(os.path.abspath(observed_job_dir))
+                == os.path.normcase(os.path.abspath(job_dir))
+            ),
+        }""",
+        mode="eval",
+    ).body
+    if ast.dump(
+        environment_assignments[0].value, include_attributes=False
+    ) != ast.dump(expected_environment_value, include_attributes=False):
+        fail("connected child environment diagnostic values changed")
+    environment_subscripts = [
+        node
+        for node in ast.walk(embedded_tree)
+        if isinstance(node, ast.Subscript)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "result"
+        and isinstance(node.slice, ast.Constant)
+        and node.slice.value == "environment"
+    ]
+    if len(environment_subscripts) != 1 or not isinstance(
+        environment_subscripts[0].ctx, ast.Store
+    ):
+        fail("connected child environment diagnostic can be read or rewritten")
+    for observed_load in (
+        node
+        for node in ast.walk(embedded_tree)
+        if isinstance(node, ast.Name)
+        and node.id == "observed_job_dir"
+        and isinstance(node.ctx, ast.Load)
+    ):
+        ancestor = parent_by_node.get(observed_load)
+        while ancestor is not None and not isinstance(ancestor, ast.Assign):
+            ancestor = parent_by_node.get(ancestor)
+        target = (
+            ancestor.targets[0]
+            if isinstance(ancestor, ast.Assign) and len(ancestor.targets) == 1
+            else None
+        )
+        safe_diagnostic_assignment = (
+            isinstance(target, ast.Subscript)
+            and isinstance(target.value, ast.Name)
+            and target.value.id == "result"
+            and isinstance(target.slice, ast.Constant)
+            and target.slice.value == "environment"
+        )
+        if not safe_diagnostic_assignment:
+            fail("connected child environment observation escaped diagnostics")
+        call_ancestor = parent_by_node.get(observed_load)
+        while call_ancestor is not None and not isinstance(
+            call_ancestor, ast.Assign
+        ):
+            if isinstance(call_ancestor, ast.Call) and dotted_call_name(
+                call_ancestor.func
+            ) not in {"os.path.abspath", "os.path.normcase"}:
+                fail(
+                    "connected child environment observation entered an unsafe call"
+                )
+            call_ancestor = parent_by_node.get(call_ancestor)
+    for node in ast.walk(embedded_tree):
+        if isinstance(node, ast.Subscript) and dotted_call_name(node.value) == "os.environ":
+            fail("connected child must not subscript os.environ")
+        if isinstance(node, ast.Call) and dotted_call_name(node.func) == "os.getenv":
+            fail("connected child must not call os.getenv")
+
+    embedded_call_names = {
+        dotted_call_name(node.func)
+        for node in ast.walk(embedded_tree)
+        if isinstance(node, ast.Call)
+    }
+    embedded_attribute_names = {
+        dotted_call_name(node)
+        for node in ast.walk(embedded_tree)
+        if isinstance(node, ast.Attribute)
+    }
+    embedded_name_references = {
+        node.id for node in ast.walk(embedded_tree) if isinstance(node, ast.Name)
+    }
+    if any(
+        isinstance(node, ast.Attribute) and node.attr == "SetFile"
+        for node in ast.walk(embedded_tree)
+    ) or any(
+        isinstance(node, ast.Constant) and node.value == "SetFile"
+        for node in ast.walk(embedded_tree)
+    ):
+        fail("connected child references forbidden SetFile API")
+    for forbidden_call in (
+        "DocumentHelper.CreateNewDocument",
+        "DocumentOpen.Execute",
+        "DocumentSave.Execute",
+    ):
+        if forbidden_call in embedded_call_names:
+            fail(
+                "connected child uses forbidden external-document call: "
+                + forbidden_call
+            )
+        if forbidden_call in embedded_attribute_names:
+            fail(
+                "connected child references forbidden external-document attribute: "
+                + forbidden_call
+            )
+    for forbidden_root in ("DocumentHelper", "DocumentOpen", "DocumentSave"):
+        if forbidden_root in embedded_name_references:
+            fail(
+                "connected child references forbidden external-document API root: "
+                + forbidden_root
+            )
+    for embedded_invariant in (
+        'entry_sentinel_path = r"__AJM005_ENTRY_SENTINEL_LITERAL__"',
+        'entry_handle.write("AJM005_CONNECTED_CHILD_ENTERED_V2\\n")',
+        'observed_job_dir = os.environ.get("AIRJET_JOB_DIR")',
+        '"matches_literal_job_dir"',
+        '"literal_paths_injected"',
+        'result["final_stage"] = stage',
+    ):
+        if embedded_invariant not in embedded_source:
+            fail(
+                "connected child lacks observability invariant: "
+                + embedded_invariant
+            )
+    if embedded_source.index("with open(entry_sentinel_path") > embedded_source.index(
+        "import json"
+    ):
+        fail("connected child entry sentinel must precede imports")
 except (SyntaxError, ValueError) as exc:
     fail(f"connected SpaceClaim journal or embedded script is invalid: {exc}")
 
