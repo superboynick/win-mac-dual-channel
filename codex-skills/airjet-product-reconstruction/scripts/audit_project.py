@@ -80,6 +80,12 @@ REQUIRED = [
     "install-skills.sh",
     "audit-airjet-project.ps1",
     "launch-airjet-codex-visible.ps1",
+    "tools/airjet-git-watcher/README.md",
+    "tools/airjet-git-watcher/wake-policy.md",
+    "tools/airjet-git-watcher/mac/manage-airjet-watcher.sh",
+    "tools/airjet-git-watcher/mac/run-awakened-codex.sh",
+    "tools/airjet-git-watcher/mac/watch-airjet-git.sh",
+    "tools/airjet-git-watcher/tests/test-watch-airjet-git.sh",
 ]
 
 MANUALS = [
@@ -134,6 +140,54 @@ def main() -> int:
     for relative in REQUIRED:
         if not (repo / relative).is_file():
             failures.append(f"missing required file: {relative}")
+
+    watcher_path = repo / "tools/airjet-git-watcher/mac/watch-airjet-git.sh"
+    manager_path = repo / "tools/airjet-git-watcher/mac/manage-airjet-watcher.sh"
+    runner_path = repo / "tools/airjet-git-watcher/mac/run-awakened-codex.sh"
+    watcher_test_path = repo / "tools/airjet-git-watcher/tests/test-watch-airjet-git.sh"
+    if watcher_path.is_file():
+        watcher_text = read_text(watcher_path)
+        for marker in (
+            "TASK_ENVELOPE_REL=airjet-simulation/collaboration/MAC_TASK.env",
+            "BLOCKED_STATE_ROOT_INSIDE_REPOSITORY",
+            "BLOCKED_CRITICAL_WATCHER_UPDATE",
+            "BLOCKED_INVALID_MAC_TASK_ENVELOPE",
+            "BLOCKED_EVENT_ROOT_NOT_DIRECT_STATE_CHILD",
+            "BLOCKED_LOG_ROOT_NOT_DIRECT_STATE_CHILD",
+            "BLOCKED_PENDING_REMOTE_MOVED",
+            "unsafe_instruction_object_type",
+            "SYNCED_NO_MAC_TASK",
+        ):
+            if marker not in watcher_text:
+                failures.append(f"Mac watcher lacks safety marker: {marker}")
+    if manager_path.is_file():
+        manager_text = read_text(manager_path)
+        if "RUNTIME_STATUS=DISABLED_PENDING_HARDENING" not in manager_text:
+            failures.append("Mac watcher manager is not runtime-locked pending review")
+    if runner_path.is_file():
+        runner_text = read_text(runner_path)
+        for marker in (
+            "BLOCKED_REPORT_ROOT_SYMLINK",
+            "BLOCKED_REPORT_ROOT_INSIDE_REPOSITORY",
+            "BLOCKED_PROMPT_MISSING_OR_SYMLINKED",
+        ):
+            if marker not in runner_text:
+                failures.append(f"Mac watcher runner lacks safety marker: {marker}")
+    if watcher_test_path.is_file():
+        test_text = read_text(watcher_test_path)
+        for marker in (
+            "critical_update_no_pending",
+            "ordinary_update_no_pending",
+            "dirty_pending_retry_block",
+            "symlink_instruction_block",
+            "state_root_boundary_output",
+            "state_child_symlink_block",
+            "report_root_symlink_block",
+            "manager_start_disabled",
+            "VISIBLE_WAKE_TEST=SKIPPED_BY_DESIGN",
+        ):
+            if marker not in test_text:
+                failures.append(f"Mac watcher test lacks case marker: {marker}")
 
     manual_dir = repo / "airjet-simulation/manuals"
     for manual in MANUALS:

@@ -26,7 +26,7 @@ This repository is the user's safe GitHub-primary collaboration toolkit for Mac 
 
 `dual-channel.ps1` exposes safe operations including status, fetch, compare, sync-check, push-main, and backup-nas. It is designed to fetch before comparison/push and block unsafe states.
 
-The macOS manual Git watcher source is synchronized under `tools/airjet-git-watcher/`, but its 2026-07-14 independent review did not approve runtime use: the current version automatically fast-forwards the worktree and may wake Codex for an update without a structured Mac task envelope. Do not start it until those controls are hardened, reviewed, and the user explicitly authorizes the run. It must never install a LaunchAgent, cron job, login item, or shell-profile startup entry. Machine state remains outside Git.
+The macOS manual Git watcher source is synchronized under `tools/airjet-git-watcher/`. Its isolated core matrix now passes, and ordinary updates cannot wake Codex without a changed, valid `target=mac` task envelope; repository-internal state roots and critical watcher updates fail closed. Runtime remains `DISABLED_PENDING_HARDENING` until commit-authentication policy and a user-observed visible-wake test are reviewed. `start`/`retry` are code-locked; do not bypass them. It must never install a LaunchAgent, cron job, login item, or shell-profile startup entry. Machine state remains outside Git.
 
 ## Current task direction
 

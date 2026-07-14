@@ -9,8 +9,30 @@ SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 REPO_ROOT=${AIRJET_REPO_ROOT:-$(CDPATH= cd -- "$SCRIPT_DIR/../../.." && pwd -P)}
 REPO_ROOT=$(CDPATH= cd -- "$REPO_ROOT" && pwd -P)
 STATE_ROOT=${AIRJET_WATCHER_STATE_ROOT:-$HOME/Library/Application Support/AirJetGitWatcher}
+case "$STATE_ROOT" in
+  "$REPO_ROOT"|"$REPO_ROOT"/*) printf '%s\n' 'BLOCKED_STATE_ROOT_INSIDE_REPOSITORY' >&2; exit 1 ;;
+esac
+STATE_ROOT=$(CDPATH= cd -- "$STATE_ROOT" && pwd -P)
+case "$STATE_ROOT" in
+  "$REPO_ROOT"|"$REPO_ROOT"/*) printf '%s\n' 'BLOCKED_STATE_ROOT_INSIDE_REPOSITORY' >&2; exit 1 ;;
+esac
 EVENT_ROOT=$STATE_ROOT/events
 PENDING_PATH=$STATE_ROOT/pending-event.state
+EVENT_ROOT_REAL=$(CDPATH= cd -- "$EVENT_ROOT" && pwd -P)
+[ "$EVENT_ROOT_REAL" = "$EVENT_ROOT" ] || { printf '%s\n' 'BLOCKED_EVENT_ROOT_NOT_DIRECT_STATE_CHILD' >&2; exit 1; }
+REPORT_PARENT=$HOME/Downloads
+[ -d "$REPORT_PARENT" ] || { printf '%s\n' 'BLOCKED_DOWNLOADS_MISSING' >&2; exit 1; }
+REPORT_PARENT=$(CDPATH= cd -- "$REPORT_PARENT" && pwd -P)
+REPORT_ROOT=$REPORT_PARENT/AirJetGitWatcherReports
+case "$REPORT_ROOT" in
+  "$REPO_ROOT"|"$REPO_ROOT"/*) printf '%s\n' 'BLOCKED_REPORT_ROOT_INSIDE_REPOSITORY' >&2; exit 1 ;;
+esac
+[ ! -L "$REPORT_ROOT" ] || { printf '%s\n' 'BLOCKED_REPORT_ROOT_SYMLINK' >&2; exit 1; }
+umask 077
+mkdir -p "$REPORT_ROOT"
+REPORT_ROOT_REAL=$(CDPATH= cd -- "$REPORT_ROOT" && pwd -P)
+[ "$REPORT_ROOT_REAL" = "$REPORT_ROOT" ] || { printf '%s\n' 'BLOCKED_REPORT_ROOT_REDIRECTED' >&2; exit 1; }
+chmod 700 "$REPORT_ROOT" 2>/dev/null || true
 
 valid_commit() {
   printf '%s\n' "$1" | grep -Eq '^[0-9a-f]{40}([0-9a-f]{24})?$'
@@ -41,7 +63,7 @@ console_user=$(stat -f '%Su' /dev/console 2>/dev/null || true)
 [ -n "$console_user" ] && [ "$console_user" = "$(id -un)" ] || { printf '%s\n' 'BLOCKED_NOT_CONSOLE_USER' >&2; exit 1; }
 valid_commit "$OLD_COMMIT" || { printf '%s\n' 'BLOCKED_OLD_COMMIT_INVALID' >&2; exit 1; }
 valid_commit "$NEW_COMMIT" || { printf '%s\n' 'BLOCKED_NEW_COMMIT_INVALID' >&2; exit 1; }
-[ -f "$PROMPT_PATH" ] || { printf '%s\n' 'BLOCKED_PROMPT_MISSING' >&2; exit 1; }
+[ -f "$PROMPT_PATH" ] && [ ! -L "$PROMPT_PATH" ] || { printf '%s\n' 'BLOCKED_PROMPT_MISSING_OR_SYMLINKED' >&2; exit 1; }
 PROMPT_DIR=$(CDPATH= cd -- "$(dirname -- "$PROMPT_PATH")" && pwd -P)
 EVENT_ROOT_REAL=$(CDPATH= cd -- "$EVENT_ROOT" && pwd -P)
 [ "$PROMPT_DIR" = "$EVENT_ROOT_REAL" ] || { printf '%s\n' 'BLOCKED_PROMPT_OUTSIDE_EVENT_ROOT' >&2; exit 1; }
@@ -68,7 +90,7 @@ printf '%s\n' 'AirJet Git update detected and safely fast-forwarded.'
 printf 'OLD_COMMIT=%s\nNEW_COMMIT=%s\n' "$OLD_COMMIT" "$NEW_COMMIT"
 printf '%s\n' 'Starting a visible interactive Codex session with workspace-write and on-request approvals.'
 set +e
-"$CODEX" -C "$REPO_ROOT" -s workspace-write -a on-request --add-dir "$HOME/Downloads" "$PROMPT"
+"$CODEX" -C "$REPO_ROOT" -s workspace-write -a on-request --add-dir "$REPORT_ROOT" "$PROMPT"
 code=$?
 set -e
 if [ "$code" -eq 0 ]; then

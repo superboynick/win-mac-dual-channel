@@ -5,6 +5,7 @@ ACTION=${1:-status}
 [ "$#" -eq 0 ] || shift
 POLL_SECONDS=180
 FORCE=0
+RUNTIME_STATUS=DISABLED_PENDING_HARDENING
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --poll-seconds)
@@ -25,15 +26,34 @@ fi
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 WATCHER=$SCRIPT_DIR/watch-airjet-git.sh
+REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/../../.." && pwd -P)
 STATE_ROOT=${AIRJET_WATCHER_STATE_ROOT:-$HOME/Library/Application Support/AirJetGitWatcher}
+case "$STATE_ROOT" in
+  "$REPO_ROOT"|"$REPO_ROOT"/*) printf '%s\n' 'BLOCKED_STATE_ROOT_INSIDE_REPOSITORY' >&2; exit 1 ;;
+esac
+[ -e "$STATE_ROOT" ] && STATE_ROOT_PREEXISTED=1 || STATE_ROOT_PREEXISTED=0
+umask 077
+mkdir -p "$STATE_ROOT"
+STATE_ROOT=$(CDPATH= cd -- "$STATE_ROOT" && pwd -P)
+case "$STATE_ROOT" in
+  "$REPO_ROOT"|"$REPO_ROOT"/*)
+    [ "$STATE_ROOT_PREEXISTED" -eq 1 ] || rmdir "$STATE_ROOT" 2>/dev/null || true
+    printf '%s\n' 'BLOCKED_STATE_ROOT_INSIDE_REPOSITORY' >&2
+    exit 1
+    ;;
+esac
 EVENT_ROOT=$STATE_ROOT/events
 STATUS_PATH=$STATE_ROOT/status.state
 PID_PATH=$STATE_ROOT/watcher.pid
 LOCK_DIR=$STATE_ROOT/watcher.lock
 STOP_PATH=$STATE_ROOT/stop.request
 PENDING_PATH=$STATE_ROOT/pending-event.state
-umask 077
 mkdir -p "$STATE_ROOT" "$EVENT_ROOT"
+EVENT_ROOT_REAL=$(CDPATH= cd -- "$EVENT_ROOT" && pwd -P)
+[ "$EVENT_ROOT_REAL" = "$EVENT_ROOT" ] || {
+  printf '%s\n' 'BLOCKED_EVENT_ROOT_NOT_DIRECT_STATE_CHILD' >&2
+  exit 1
+}
 chmod 700 "$STATE_ROOT" "$EVENT_ROOT" 2>/dev/null || true
 
 state_field() {
@@ -66,7 +86,7 @@ show_status() {
   pending_commit=$(state_field new_commit "$PENDING_PATH"); [ -n "$pending_commit" ] || pending_commit=NONE
   [ -f "$PENDING_PATH" ] && pending=true || pending=false
   printf 'WATCHER_RUNNING=%s\nWATCHER_PID=%s\nWATCHER_STATE=%s\nWATCHER_DETAIL=%s\nWATCHER_COMMIT=%s\n' "$running" "$pid" "$state" "$detail" "$commit"
-  printf 'PENDING_EVENT=%s\nPENDING_PHASE=%s\nPENDING_COMMIT=%s\nAUTO_START=DISABLED\n' "$pending" "$phase" "$pending_commit"
+  printf 'PENDING_EVENT=%s\nPENDING_PHASE=%s\nPENDING_COMMIT=%s\nAUTO_START=DISABLED\nRUNTIME_STATUS=%s\n' "$pending" "$phase" "$pending_commit" "$RUNTIME_STATUS"
 }
 
 clean_stale_lock() {
@@ -90,6 +110,10 @@ assert_local_gui() {
 }
 
 start_watcher() {
+  [ "$RUNTIME_STATUS" = ENABLED_AFTER_REVIEW ] || {
+    printf 'START_RESULT=REFUSED_%s\n' "$RUNTIME_STATUS" >&2
+    exit 1
+  }
   assert_local_gui
   if validated_pid; then printf 'watcher already running: PID %s\n' "$VALIDATED_PID" >&2; exit 1; fi
   [ ! -f "$PENDING_PATH" ] || { printf '%s\n' 'pending event exists; use retry or acknowledge' >&2; exit 1; }
@@ -167,10 +191,18 @@ case "$ACTION" in
   status) show_status ;;
   once)
     validated_pid && { printf '%s\n' 'watcher is already running' >&2; exit 1; }
+    set +e
     /bin/sh "$WATCHER" --poll-seconds "$POLL_SECONDS" --once --no-wake
+    code=$?
+    set -e
     show_status
+    exit "$code"
     ;;
   retry)
+    [ "$RUNTIME_STATUS" = ENABLED_AFTER_REVIEW ] || {
+      printf 'RETRY_RESULT=REFUSED_%s\n' "$RUNTIME_STATUS" >&2
+      exit 1
+    }
     assert_local_gui
     validated_pid && { printf '%s\n' 'watcher is already running' >&2; exit 1; }
     [ -f "$PENDING_PATH" ] || { printf '%s\n' 'no pending event to retry' >&2; exit 1; }

@@ -117,12 +117,71 @@ $Required = @(
     'codex-skills\skills-manifest.json',
     'install-skills.ps1',
     'install-skills.sh',
-    'launch-airjet-codex-visible.ps1'
+    'launch-airjet-codex-visible.ps1',
+    'tools\airjet-git-watcher\README.md',
+    'tools\airjet-git-watcher\wake-policy.md',
+    'tools\airjet-git-watcher\mac\manage-airjet-watcher.sh',
+    'tools\airjet-git-watcher\mac\run-awakened-codex.sh',
+    'tools\airjet-git-watcher\mac\watch-airjet-git.sh',
+    'tools\airjet-git-watcher\tests\test-watch-airjet-git.sh'
 )
 
 foreach ($Relative in $Required) {
     if (-not (Test-Path -LiteralPath (Join-Path $RepoRoot $Relative) -PathType Leaf)) {
         Add-Failure "missing required file: $Relative"
+    }
+}
+
+$MacWatcherPath = Join-Path $RepoRoot 'tools\airjet-git-watcher\mac\watch-airjet-git.sh'
+$MacWatcherManagerPath = Join-Path $RepoRoot 'tools\airjet-git-watcher\mac\manage-airjet-watcher.sh'
+$MacWatcherRunnerPath = Join-Path $RepoRoot 'tools\airjet-git-watcher\mac\run-awakened-codex.sh'
+$MacWatcherTestPath = Join-Path $RepoRoot 'tools\airjet-git-watcher\tests\test-watch-airjet-git.sh'
+if (Test-Path -LiteralPath $MacWatcherPath -PathType Leaf) {
+    $MacWatcherText = Read-Utf8 $MacWatcherPath
+    foreach ($Marker in @(
+        'TASK_ENVELOPE_REL=airjet-simulation/collaboration/MAC_TASK.env',
+        'BLOCKED_STATE_ROOT_INSIDE_REPOSITORY',
+        'BLOCKED_CRITICAL_WATCHER_UPDATE',
+        'BLOCKED_INVALID_MAC_TASK_ENVELOPE',
+        'BLOCKED_EVENT_ROOT_NOT_DIRECT_STATE_CHILD',
+        'BLOCKED_LOG_ROOT_NOT_DIRECT_STATE_CHILD',
+        'BLOCKED_PENDING_REMOTE_MOVED',
+        'unsafe_instruction_object_type',
+        'SYNCED_NO_MAC_TASK'
+    )) {
+        if (-not $MacWatcherText.Contains($Marker)) { Add-Failure "Mac watcher lacks safety marker: $Marker" }
+    }
+}
+if (Test-Path -LiteralPath $MacWatcherManagerPath -PathType Leaf) {
+    $MacWatcherManagerText = Read-Utf8 $MacWatcherManagerPath
+    if (-not $MacWatcherManagerText.Contains('RUNTIME_STATUS=DISABLED_PENDING_HARDENING')) {
+        Add-Failure 'Mac watcher manager is not runtime-locked pending review'
+    }
+}
+if (Test-Path -LiteralPath $MacWatcherRunnerPath -PathType Leaf) {
+    $MacWatcherRunnerText = Read-Utf8 $MacWatcherRunnerPath
+    foreach ($Marker in @(
+        'BLOCKED_REPORT_ROOT_SYMLINK',
+        'BLOCKED_REPORT_ROOT_INSIDE_REPOSITORY',
+        'BLOCKED_PROMPT_MISSING_OR_SYMLINKED'
+    )) {
+        if (-not $MacWatcherRunnerText.Contains($Marker)) { Add-Failure "Mac watcher runner lacks safety marker: $Marker" }
+    }
+}
+if (Test-Path -LiteralPath $MacWatcherTestPath -PathType Leaf) {
+    $MacWatcherTestText = Read-Utf8 $MacWatcherTestPath
+    foreach ($Marker in @(
+        'critical_update_no_pending',
+        'ordinary_update_no_pending',
+        'dirty_pending_retry_block',
+        'symlink_instruction_block',
+        'state_root_boundary_output',
+        'state_child_symlink_block',
+        'report_root_symlink_block',
+        'manager_start_disabled',
+        'VISIBLE_WAKE_TEST=SKIPPED_BY_DESIGN'
+    )) {
+        if (-not $MacWatcherTestText.Contains($Marker)) { Add-Failure "Mac watcher test lacks case marker: $Marker" }
     }
 }
 
