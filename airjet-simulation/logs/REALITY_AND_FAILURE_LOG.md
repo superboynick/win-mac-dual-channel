@@ -849,6 +849,29 @@
   parameter 三项 blocker，然后运行 Mechanical/Fluent 可删除 T1 小模型；不启动 006。
 - 状态：CLOSED_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC_PASS_NATIVE_GATES_OPEN
 
+## REAL-20260714-037：Windows 根审计的 hardcoded profile/runner 清单落后于已批准策略
+
+- UTC：2026-07-14T22:03:12Z
+- Stage/task：005 T1 / 第十五次证据提交后的 Windows 精确 handoff 审计
+- 触发：Windows 已 fast-forward 到签名 commit `2e0a884fcd437db7cefd02f7775ca223e4967b7f`，
+  commit 签名正确，但仓库根 `audit-airjet-project.ps1` 返回两项 FAIL：
+  `manifest kind/source/required files changed for airjet-ansys-automation` 与
+  `ANSYS profile policy identity/schema/unique-name lock failed`。
+- 实际原因：根审计的静态期望仍只有旧 10-file automation skill required list 和 6 个 ANSYS
+  profiles；仓库在 commit `4f80fc6...` 已合法加入 semantic runner 与第 7 个 semantic profile，
+  `skills-manifest.json`、`profiles.json`、installers 和 MCP policy 都已更新。审计锁本身未同步。
+- 为什么 Mac 未提前阻止：Mac 的 Python project audit 检查项目文件/证据不变量，但没有复刻 Windows
+  根脚本中的 hardcoded manifest/profile identity lock。两种审计覆盖不同，单端 PASS 不能替代另一端。
+- 最小修复：只把 `run_t1_semantic_reconstruction_suite.py` 加入根 Required/ExpectedManifest，并把
+  `ajm005-workbench-semantic-reconstruction-t1-v1` 加入 ExpectedProfileIds；不改 profile、runner、
+  MCP、skill hash、工程结果或任何 Gate。
+- 预提交原生平台验证：将候选审计脚本复制到 Windows Downloads，并显式以当前干净仓库作为
+  `-RepoRoot` 执行，返回 `PASS / required_files=105 / manuals=7 / csv_files=28`；候选文件随后删除。
+  这证明 PowerShell 语法和新期望清单可用，但仍需提交、拉取后用仓库根脚本再跑一次。
+- 证据边界：这是审计器同步缺陷，不影响第十五次原始 ANSYS suite/report/artifact 哈希，也不把 P1
+  或 native claims 改为 PASS。修复必须在 Windows 真实执行根审计后才可关闭。
+- 状态：CANDIDATE_WINDOWS_RETEST_PASS_GIT_HANDOFF_PENDING
+
 ## 新条目模板
 
 ```text

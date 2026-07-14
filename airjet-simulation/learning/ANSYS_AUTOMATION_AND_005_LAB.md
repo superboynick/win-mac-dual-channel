@@ -488,3 +488,15 @@ suite 的正确成功字符串是 `PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC`
 下一实验重新回到独立的 native 路线：先用同一 producer 和最短安全 case ID 复测 `.scdocx` attach
 与原生 Named Selection transfer；原生 driving parameter 另设独立合同。随后还要做 Mechanical 与
 Fluent 可删除 T1 求解。任何一项诊断 PASS 都不能替代另一项，也不能提前启动 006。
+
+### 20.6 两个审计器为什么会给出不同结果
+
+第十五次证据提交在 Mac 的 Python project audit 中 PASS，但 Windows 根 PowerShell audit 在精确拉取
+后 FAIL。不是 Windows 文件损坏，而是两个审计器的覆盖面不同：Python 审计保护项目骨架与证据语言；
+PowerShell 还硬锁 skill required files 和 profile ID 集。semantic runner/profile 已加入真实策略，
+PowerShell 的期望清单却仍停在旧版本。
+
+这类问题的处理顺序是：先核对工作树、commit、签名和真实 manifest/profile，确认不是分叉或篡改；
+再比较审计器期望与 canonical 配置；最后只同步审计期望，不为了让审计变绿而删除合法 profile。
+审计器修复也必须重新在其原生平台运行。一个审计器 PASS 只能证明它覆盖的规则，没有“全项目绝对
+正确”的含义。
