@@ -108,6 +108,22 @@
 - 残余边界：同一管理员账户主动篡改系统文件超出本 MCP 的防御范围；每次提交仍重新验真。
 - 状态：CLOSED_IN_CODE_PENDING_WINDOWS_NEGATIVE_TEST
 
+## REAL-20260714-010：PowerShell 5 把预期的 Codex 非零探测包装成错误
+
+- UTC：2026-07-14
+- Stage/task：Windows bootstrap / MCP 首次注册
+- 期望：`codex mcp get airjet-ansys` 不存在时返回非零，脚本据此进入 add 分支。
+- 实际：依赖安装、imports、skill hashes 与 static policy 均 PASS；Windows PowerShell 5 在
+  `$ErrorActionPreference='Stop'` 下把原生程序 stderr 包装成 `NativeCommandError`，在读取
+  `$LASTEXITCODE` 前终止脚本。MCP 尚未注册，ANSYS 未启动。
+- 原始日志：`C:\Users\admin\Downloads\AIRJET_ANSYS_BOOTSTRAP_20260714.log`。
+- 根因：把“资源不存在”的预期探测与真正的 bootstrap 失败共用 Stop 语义；高置信度。
+- 处置：只在该探测调用周围临时使用 `Continue`、合并捕获输出并读取退出码，随后立即恢复
+  原 ErrorActionPreference；后续 remove/add/get 仍保持 fail-closed。
+- 对 Gate/论文主张的影响：无工程能力被执行，005 仍 NOT_RUN；该事件只支持自动化方法中的
+  Windows 兼容性与失败恢复描述。
+- 状态：CLOSED_IN_CODE_PENDING_BOOTSTRAP_RERUN
+
 ## 新条目模板
 
 ```text

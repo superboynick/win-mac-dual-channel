@@ -51,8 +51,11 @@ if ($LASTEXITCODE -ne 0) { throw 'BLOCKED_MCP_STATIC_POLICY' }
 
 $Codex = (Get-Command codex.cmd -ErrorAction SilentlyContinue)
 if (-not $Codex) { $Codex = Get-Command codex -ErrorAction Stop }
-& $Codex.Source mcp get airjet-ansys *> $null
+$PreviousErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+$null = & $Codex.Source mcp get airjet-ansys 2>&1
 $Exists = ($LASTEXITCODE -eq 0)
+$ErrorActionPreference = $PreviousErrorActionPreference
 if ($Exists -and (-not $ReplaceMcp)) { throw 'BLOCKED_EXISTING_MCP_USE_REPLACE' }
 if ($Exists) {
     & $Codex.Source mcp remove airjet-ansys
