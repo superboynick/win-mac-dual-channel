@@ -488,3 +488,24 @@ v261 原文“几何结构无法使用组件几何结构”说明这个 source/t
 而本机 standard Geometry post-import journal 使用另一条架构：在创建 Static system 时传入
 `ComponentsToShare=[source_geometry_component]`，再调用 `GetGeometryFileAndSaveData()`。因此下一轮
 测试官方 share 架构，不再猜 `TransferData` 的对象兼容性；`.scdocx` 和下游验收保持不变。
+
+## 19. 实跑记录 7：越过一个边界不代表下一个边界也通过
+
+第七轮的到达矩阵是：
+
+```text
+source Geometry / SetFile                 = RETURNED
+Static CreateSystem(ComponentsToShare=...) = RETURNED
+GetGeometryFileAndSaveData                 = RETURNED
+Model.Update(AllDependencies=True)         = CALLED, not returned
+Mechanical inspection                      = NOT_REACHED
+```
+
+与第六轮相比，失败从 `TransferData` 兼容性检查移动到了 downstream Model update。这是进步，但不能
+写成 geometry transfer PASS：source/share 层通过只说明数据流关系建立，真正让 Mechanical Model
+消费几何仍失败。
+
+同机官方 journal 在前三步后用的是 Model container `Refresh()`，而当前代码为保持上轮单变量用了
+Component `Update(AllDependencies=True)`。下一轮现在只改变这一处，便能检验官方 share topology
+是否必须配套 container refresh。若同时加入显式 SpaceClaim Edit，就会把“更新 API”和“CAD editor
+启动”混在一起，失去因果可识别性。

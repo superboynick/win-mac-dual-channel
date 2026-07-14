@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "task": "AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
+  "suite": "cad_and_workbench_transfer_t1",
+  "suite_status": "FAIL_CAD_TRANSFER_SET",
+  "git_head": "a4aa2befd0aa1b15aacaf8771d5b806f4e569b6e",
+  "case_id": "ajm005-cad-xfer-20260714t200415495276z_fcec8c5a",
+  "started_at": "2026-07-14T20:04:15.496275+00:00",
+  "ended_at": "2026-07-14T20:07:24.469072+00:00",
+  "external_result_path": "C:\\Users\\admin\\Downloads\\AIRJET_ANSYS_STUDENT_SMOKE_005\\AJM005_T1_CAD_SUITE_20260714T200415495276Z_fcec8c5a.json",
+  "external_result_sha256": "d7663dfeed1f17731b6c5c2656495126a66a748dc0fd0a482bfff3fbee9c80d2",
+  "external_mcp_stderr_sha256": "091913fced46e9dd99f051dbfd8b68ad24adc05820bf508bc55f0a72d4883d58",
+  "runner_sha256": "406747086ddf9cb8bc01a97f3d574d981cc95805d37de7e9b4c8f94e71936559",
+  "license_arguments_added": false,
+  "visibility": "NOT_USER_OBSERVED",
+  "p1_cad_toolchain_readiness": "BLOCKED",
+  "p1_cad_blocker": "NATIVE_PARAMETERIZATION_NOT_RUN",
+  "p1_p6_gates": "NOT_RUN",
+  "post_suite_process_observation": {
+    "observed_at_utc": "2026-07-14T20:07:45.2710015Z",
+    "count": 0,
+    "method": "PowerShell Get-Process name allowlist counted after suite completion"
+  },
+  "runs": [
+    {
+      "profile_id": "ajm005-spaceclaim-cad-t1-v1",
+      "job_id": "ajm005-cad-xfer-20260714t200415495276z_fcec8c5a-7be4e428a252",
+      "script_sha256": "44d2a671a4ccf8853484abf726c4bcc121a7ad5d9a53a81bb0f94750d70794a5",
+      "started_at": "2026-07-14T20:04:18.036180+00:00",
+      "ended_at": "2026-07-14T20:04:41.992324+00:00",
+      "duration_seconds": 23.956144,
+      "phase": "PROCESS_EXITED_0",
+      "exit_code": 0,
+      "report_status": "PASS_PARTIAL_CAD_CAPABILITY",
+      "engineering_capability": "PASS_PARTIAL_CAD_CAPABILITY",
+      "assertions": {
+        "script_parameterization_equivalent": true,
+        "named_selections": true,
+        "volume_extract_or_equivalent": true,
+        "fluid_connectivity": true,
+        "native_save": true,
+        "native_reopen": true,
+        "step_export_reimport": true
+      },
+      "volume_extract_api": "NOT_RUN",
+      "volume_extract_route": "DIRECT_NEGATIVE_VOLUME_BOOLEAN_UNION_EQUIVALENT",
+      "geometry_fingerprint": {
+        "union_volume_mm3": 203.14159265358978,
+        "bbox_min_mm": [2.0, 2.0, 0.0],
+        "bbox_max_mm": [20.0, 8.0, 3.0],
+        "face_count": 13,
+        "piece_count": 1,
+        "is_closed": true,
+        "is_manifold": true,
+        "named_selection_counts": {"INLET": 1, "OUTLET": 1, "WALLS": 11},
+        "step_all_body_count": 1,
+        "step_occurrence_shape_type": "TrimmedSpace",
+        "step_topology_shape_source": "MASTER_SHAPE"
+      },
+      "artifacts": {
+        "full_native": {"size": 38197, "sha256": "8f566dd4ba2a48064f7bca695bfca7a6a9a55dbac96c5f19e0f7527ccb2be743"},
+        "transfer_native": {"size": 32140, "sha256": "041ccafb35f4747ec764b9cc1ca5ffd4c975a1db484b480e7c125bb9b2393eed"},
+        "step": {"size": 17207, "sha256": "6e8f3b2880253841729bb5024d4d0b81ad199ec6e91e7ff1e1c0a5cf2884d900"}
+      },
+      "declared_report_sha256": "b7706e27fdff8c17e48021ca1ed242713114e0e6cea5d96dfadeb75dc6d10f06",
+      "job_state_sha256": "bfd08b8e392662ac813458d6831d90af876e9f17bfe32418467f1ca17bbc588e",
+      "stdout_sha256": "1693efae626db41f79cad0dee733dcfde71611fceb22e7efa84e535173e32ac5",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "profile_id": "ajm005-workbench-transfer-t1-v1",
+      "job_id": "ajm005-cad-xfer-20260714t200415495276z_fcec8c5a-eaaa26a0fe20",
+      "predecessor_job_id": "ajm005-cad-xfer-20260714t200415495276z_fcec8c5a-7be4e428a252",
+      "script_sha256": "b0ec5fd5989be22363af4389a0b5556f3f1011e57d08711f11d61a7999e7ab0f",
+      "started_at": "2026-07-14T20:04:43.457207+00:00",
+      "ended_at": "2026-07-14T20:07:24.078829+00:00",
+      "duration_seconds": 160.621622,
+      "phase": "FAILED_PROCESS",
+      "exit_code": 2,
+      "report_status": "FAIL_DIRECT",
+      "engineering_capability": "FAIL_DIRECT",
+      "geometry_route": "INDEPENDENT_GEOMETRY_SOURCE_COMPONENTS_TO_SHARE",
+      "update_route": "MODEL_COMPONENT_UPDATE_ALL_DEPENDENCIES",
+      "failure_point": "model_component.Update(AllDependencies=True)",
+      "error_summary": "Static Structural Model update failed because the .scdocx geometry structure could not be attached",
+      "execution_reach": {
+        "predecessor_identity": "PASS",
+        "source_geometry_system": "RETURNED",
+        "source_geometry_set_file": "RETURNED",
+        "static_system_with_components_share": "RETURNED",
+        "source_geometry_file_and_save_data": "RETURNED",
+        "model_update_all_dependencies": "CALLED",
+        "model_refresh": "NOT_CALLED_BY_ROUTE",
+        "model_container": "NOT_REACHED",
+        "mechanical_inspection": "NOT_REACHED",
+        "project_save": "NOT_REACHED"
+      },
+      "assertion_outcomes": {
+        "predecessor_identity": "PASS",
+        "geometry_transfer": "FAIL_DIRECT",
+        "named_selection_transfer": "NOT_REACHED",
+        "mesh_generation": "NOT_REACHED",
+        "project_save": "NOT_REACHED"
+      },
+      "predecessor": {
+        "git_head": "a4aa2befd0aa1b15aacaf8771d5b806f4e569b6e",
+        "report_sha256": "b7706e27fdff8c17e48021ca1ed242713114e0e6cea5d96dfadeb75dc6d10f06",
+        "native_sha256": "041ccafb35f4747ec764b9cc1ca5ffd4c975a1db484b480e7c125bb9b2393eed",
+        "manifest_sha256": "78941ec891acdc9314cf50d998a65314411edd6007ccaf5829c69ddd42dac6c2"
+      },
+      "declared_report_sha256": "587e0a04d4a56ba2e2645eb1bf7c06097ee2e6c3f9c2bbf8d79c91494b2320c8",
+      "job_state_sha256": "3919d0ddb43813b8fd22c902315b9712536cbe50076bef2f47848c2d96fa9769",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

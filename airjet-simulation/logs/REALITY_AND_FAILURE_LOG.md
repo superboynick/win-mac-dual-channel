@@ -508,6 +508,35 @@
   P1 readiness BLOCKED，P1–P6 NOT_RUN。
 - 状态：CLOSED_INCOMPATIBLE_TRANSFERDATA_COMBINATION_COMPONENTS_TO_SHARE_PENDING
 
+## REAL-20260714-027：ComponentsToShare 越过兼容性检查，但 Component Update 仍 attach 失败
+
+- UTC：2026-07-14T20:04:15Z
+- Stage/task：005 T1 / 第七次 CAD transfer suite
+- run/jobs：`AJM005_T1_CAD_SUITE_20260714T200415495276Z_fcec8c5a`；SC
+  `...-7be4e428a252`；WB `...-eaaa26a0fe20`。
+- 单变量假设：用同机官方 `StaticStructuralANSYS.wbjn` 的
+  `CreateSystem(ComponentsToShare=[source_component])` 和 source
+  `GetGeometryFileAndSaveData()` 替换第六轮不兼容的 `TransferData`；其余保持不变。
+- 实际结果：source system/SetFile、shared Static system 和 GetGeometryFileAndSaveData 全部
+  RETURNED，证明官方 share 数据流越过第六轮兼容性拒绝。随后保持不变的
+  `Model.Update(AllDependencies=True)=CALLED` 但未返回，再次报告无法附加 `.scdocx` geometry
+  structure；Mechanical inspection、mesh、project save 均 NOT_REACHED。
+- 根因边界：不能再把失败归咎于普通 component 的 `TransferData` 兼容性；当前直接失败位于 share
+  route 后的 downstream Model Component update。官方同机 journal 此处用 Model container
+  `Refresh()`，两种更新 API 在 share topology 中尚未对比。
+- 原始证据：suite/MCP SHA-256 分别为
+  `d7663dfeed1f17731b6c5c2656495126a66a748dc0fd0a482bfff3fbee9c80d2` 和
+  `091913fced46e9dd99f051dbfd8b68ad24adc05820bf508bc55f0a72d4883d58`；SC/WB report SHA-256
+  分别为 `b7706e27fdff8c17e48021ca1ed242713114e0e6cea5d96dfadeb75dc6d10f06` 和
+  `587e0a04d4a56ba2e2645eb1bf7c06097ee2e6c3f9c2bbf8d79c91494b2320c8`；
+  2026-07-14T20:07:45.2710015Z 现场相关进程数为 0。
+- 下一最小实验：保持 share/save-data route 不变，只用同机官方 Model container `Refresh()` 替换
+  Component `Update(AllDependencies=True)`；若仍 attach 失败，再单独测试显式
+  `Edit(Interactive=False, IsSpaceClaimGeometry=True)`。
+- 对 Gate/论文主张的影响：官方 share topology 建立成功，但 geometry transfer 仍 FAIL；SC
+  partial PASS 可复现，P1 readiness BLOCKED，P1–P6 NOT_RUN。
+- 状态：OPEN_OFFICIAL_MODEL_CONTAINER_REFRESH_PENDING
+
 ## 新条目模板
 
 ```text

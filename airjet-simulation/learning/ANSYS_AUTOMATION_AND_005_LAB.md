@@ -344,3 +344,7 @@ SHA 身份正确 -> 生产软件可重开 -> 下游软件可附加 -> 语义/网
 第六次签名运行证实普通 Geometry source 和 Static Geometry 的 `TransferData` 组合在调用阶段即被
 v261 拒绝。`TransferData` 方法真实存在，不代表任意 component 类型兼容。下一轮按同机官方
 post-import journal 改用 `ComponentsToShare`；这种“由运行建立兼容矩阵”的记录必须保留在方法日志。
+
+第七次运行中 `ComponentsToShare` 和 `GetGeometryFileAndSaveData()` 已返回，说明官方 share 架构
+越过兼容性拒绝；但保持不变的 Component Update 仍 attach 失败。下一轮只改为同机官方 Model
+container `Refresh()`，不提前把 share 建立写成完整 geometry transfer PASS。
