@@ -739,6 +739,41 @@
   native claims 全 false；P1 readiness BLOCKED，P1–P6 NOT_RUN。
 - 状态：OPEN_PREVALIDATION_FACE_MAP_OBSERVABILITY_RETEST
 
+## REAL-20260714-034：入口中心精确匹配，但跨 STEP 的圆形区域面积锚点不稳定
+
+- UTC：2026-07-14T21:31:01Z
+- Stage/task：005 T1 / 第十三次 semantic reconstruction 失败面图观测
+- run/jobs：`AJM005_T1_SEMANTIC_RECON_SUITE_20260714T213101596271Z_f453bd4b`；SC
+  `...-5371050d9748`；WB `...-e53a6a0403db`；签名 commit
+  `d107c40dbcc549cb75d43bb097b193cade73eb00`。
+- 唯一实现变量：在 face-count guard 前保存 body/13-face map/candidate IDs，在 negative/real partition
+  guard 前保存四项 negative controls；短路径、几何、classification 和 0.02 容差不变。
+- 可观察性结果：body=1、faces=13、四项 negative controls 全 true、project save true 已成为显式
+  report assertions；semantic reconstruction 与 mesh 仍 false。失败仍稳定复现 0/1/12。
+- 入口直接对比：sidecar 期望 `[10,5,0] mm`、`3.141592653589787 mm²`；Mechanical face 44 为
+  `[10,5,0] mm`、`2.0 mm²`。中心最大绝对差为 0，但面积绝对差为
+  `1.141592653589787 mm²`，超过 0.02 面积容差约 57 倍，所以它被放入 WALLS。
+- 相邻圆柱区域也发生变化：producer curved wall 约 `6.283185 mm²`，Mechanical face 45 为
+  `5.832786321640015 mm²`，centroid 为 `[10.0506402,5,0.5016318] mm`；底面则由 producer 约
+  `92.858407 mm²` 变成 Mechanical `94.0 mm²`。矩形 outlet 仍以 `[20,5,2] mm / 4 mm²` 精确匹配。
+- 结论边界：这证明当前 `GeoFace.Area` 对包含圆形入口的跨 kernel face 不是稳定绝对锚点；没有证明
+  STEP 丢失整个 inlet，也没有授权删除所有面积检查。13-face 总数仍保持，入口中心仍存在。
+- 原始证据：suite/MCP SHA-256 分别为
+  `f272f5d9afa2d087362565df1b4fb04bd7960c0cf231b226e2536e21489ad315` 和
+  `51c1430cd0c136ff2fa95fc605d828ec8d5c9204df4443e524ba15577904948a`；SC/WB report SHA-256
+  分别为 `801367ffcb411bc3d48a08995d983b04539fbf9044856d47a51c8d53ad7eba02` 和
+  `91918d1894ed2b5e3b7df2e27df543eda9a0f2dbeb00a236fdea8ecb629e00b9`；inspection/project SHA-256
+  分别为 `2f7303143fc5231672ee2808a5099dcb34353efec67d855586253fc5409b21a6` 和
+  `b4099dc5d99f21ded82c159067f9026b6adcde39ffad2d6381ab42ec28bfd21b`；
+  2026-07-14T21:32:05.9021874Z 相关进程数为 0。
+- 下一最小实验：保持 classification 不变，只在每个 solver face 的失败面图增加 `SurfaceType`、
+  edge count 与 centroid normal（API 不可用时保存 error/null，不猜值）。若 face 44 被观测为唯一
+  planar、单边界环、z-normal 且中心匹配，下一轮再把入口合同单变量改成 centroid+topology anchor，
+  area 退为诊断量；outlet 仍保持 centroid+area。
+- 对 Gate/论文主张的影响：suite 仍 FAIL；Named Selections/mesh NOT_REACHED；canonical native
+  claims 全 false；P1 readiness BLOCKED，P1–P6 NOT_RUN。
+- 状态：OPEN_SOLVER_FACE_TOPOLOGY_OBSERVABILITY_RETEST
+
 ## 新条目模板
 
 ```text

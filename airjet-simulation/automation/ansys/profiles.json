@@ -97,7 +97,7 @@
       "profile_id": "ajm005-workbench-semantic-reconstruction-t1-v1",
       "engine": "workbench",
       "script": "005/workbench_semantic_reconstruction_t1.wbjn",
-      "sha256": "d403286fadaa4d6fb60a2bb543684269f0892cb348dc964739bcd9071237e9cd",
+      "sha256": "1c53f9e796aaa2d187c3d1f0f504328f354d22ec273b7c7a0c5c603f32324482",
       "timeout_seconds": 1200,
       "output_root_id": "student_smoke_005",
       "reports": [
