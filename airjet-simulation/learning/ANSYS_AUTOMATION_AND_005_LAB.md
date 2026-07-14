@@ -446,3 +446,19 @@ face 的 ID/centroid/area、candidate labels 和 negative controls。`semantic_r
 
 本轮 body 和 negative controls 明确 PASS，但 suite 仍 FAIL，说明局部 assertion 进展与最终能力 PASS
 可以同时存在。写论文方法时应呈现这种分层，而不是只保留最后一次绿色运行。
+
+### 20.4 第十四次实跑：从“不稳定 descriptor”迁移到校准后的复合锚点
+
+Topology APIs 实测全部可用。face 44 的 `center + plane + 2 edges + abs(z-normal)` 在 13 面中唯一，
+而 area 是已知不稳定项。下一轮不是单纯“忽略面积”，而是用三个独立局部拓扑 descriptor 替换它，
+并继续让唯一性、1/1/11、互斥、全覆盖和 negative controls fail closed。
+
+复合锚点也有适用范围。这里的 edge count=2 是 STEP→Mechanical 对这个圆形 cap 的实际表达，不是
+圆的一般数学性质，更不是 AirJet 产品事实。所以 report 必须同时记录：
+
+- `scope=DISPOSABLE_CAPABILITY_FIXTURE_ONLY`；
+- area role 为 `DIAGNOSTIC_ONLY`；
+- solver topology calibration 来源为 REAL-034/035；
+- native transfer/parameterization claims 继续 false。
+
+这样即使下一轮变绿，读者也知道通过的是“可删除小模型的重建能力”，不是产品 CAD Gate。

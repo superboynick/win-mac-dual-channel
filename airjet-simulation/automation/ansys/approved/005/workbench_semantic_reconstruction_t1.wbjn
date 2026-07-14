@@ -253,6 +253,15 @@ try:
             for index in range(3)
         )
 
+    def normal_abs_axis_match(actual, expected, tolerance):
+        if actual is None:
+            return False
+        return all(
+            abs(abs(float(actual[index])) - float(expected[index]))
+            <= tolerance
+            for index in range(3)
+        )
+
     def entity_count(obj):
         try:
             return int(obj.TotalSelection)
@@ -313,6 +322,15 @@ try:
     area_tolerance_mm2 = float(tolerances["area_mm2"])
     inlet_signature = sidecar["boundaries"]["INLET"]["face_signatures"][0]
     outlet_signature = sidecar["boundaries"]["OUTLET"]["face_signatures"][0]
+    inlet_solver_topology = {
+        "scope": "DISPOSABLE_CAPABILITY_FIXTURE_ONLY",
+        "calibration_evidence_ids": ["REAL-20260714-034", "REAL-20260714-035"],
+        "surface_type": "GeoSurfacePlane",
+        "edge_count": 2,
+        "normal_axis_abs": [0.0, 0.0, 1.0],
+        "normal_tolerance": 1.0e-6,
+        "area_role": "DIAGNOSTIC_ONLY",
+    }
     inlet_ids = []
     outlet_ids = []
     wall_ids = []
@@ -362,8 +380,13 @@ try:
                 inlet_signature["center_mm"],
                 centroid_tolerance_mm,
             )
-            and abs(area_mm2 - float(inlet_signature["area_mm2"]))
-            <= area_tolerance_mm2
+            and surface_type == inlet_solver_topology["surface_type"]
+            and edge_count == inlet_solver_topology["edge_count"]
+            and normal_abs_axis_match(
+                normal_at_centroid,
+                inlet_solver_topology["normal_axis_abs"],
+                inlet_solver_topology["normal_tolerance"],
+            )
         ):
             inlet_ids.append(int(face.Id))
             label = "INLET"
@@ -418,6 +441,7 @@ try:
                 "OUTLET": len(outlet_ids),
                 "WALLS": len(wall_ids),
             },
+            "inlet_solver_match_contract": inlet_solver_topology,
             "classification_stage": (
                 "FACE_CANDIDATES_OBSERVED_BEFORE_COUNT_VALIDATION"
             ),

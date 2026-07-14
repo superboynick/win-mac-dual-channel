@@ -61,8 +61,9 @@
   Selections、未 mesh。下一轮只让失败分支保存 13-face map 与 negative-control 中间观测，不放宽
   匹配容差。commit `d107c40...` 已完成该观测：body=1、faces=13、四项 negative controls 全 PASS；
   位于精确入口中心的 face 44 面积为 `2.0 mm²`，而 producer sidecar 为 `π mm²`，因此面积条件单独
-  导致入口 0 匹配。下一轮只增加 surface type/edge count/normal 观测，再决定 topology anchor；P1
-  readiness 与 native claims 均未改变。
+  导致入口 0 匹配。commit `63d8440...` 的 topology 观测显示 face 44 为 plane、2 edges、
+  `[0,0,-1]` normal，13 个面三类 API 均无 error；下一轮只把入口 area hard anchor 替换为这组
+  centroid+topology calibration。P1 readiness 与 native claims 均未改变。
   审查同时确认脚本两次重建只能证明等效参数驱动，
   不能证明 `.scdocx` 原生 driving parameter；因此即使本轮
   CAD/Named Selection/粗网格传递全过，也只允许写 `PASS_CAD_TRANSFER_SET`，
@@ -84,7 +85,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP 诊断已证实 WB→Mechanical body/mesh/project；短路径 semantic reconstruction 已到达但真实分类为 0/1/12，仍 FAIL；native `.scdocx` attach 与 semantic transfer 仍 FAIL/BLOCKED） | 已实测脚本参数变化、完整三段 union、Named Selections、原生重开与 STEP occurrence/master 全层指纹；frozen STEP + hash-bound sidecar 输入身份已通过，短路径恢复 Mechanical 可达性。完整 13-face map 证明入口中心稳定、跨 kernel area 不稳定；先补 surface/edge/normal 观测，再做单变量 topology-anchor 修正。这是 reconstruction，不是 native transfer。native attach、Named Selection transfer 与原生 driving parameter 硬阻塞仍需分别关闭，之后才可按 006 建立完整装配/流体负体积并独立审核 |
+| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP 诊断已证实 WB→Mechanical body/mesh/project；短路径 semantic reconstruction 已到达但真实分类为 0/1/12，仍 FAIL；native `.scdocx` attach 与 semantic transfer 仍 FAIL/BLOCKED） | 已实测脚本参数变化、完整三段 union、Named Selections、原生重开与 STEP occurrence/master 全层指纹；frozen STEP + hash-bound sidecar 输入身份已通过，短路径恢复 Mechanical 可达性。13-face map 与 topology map 已证明入口中心/plane/2-edge/z-normal 稳定、跨 kernel area 不稳定；下一轮单变量 topology-anchor 修正。这是 reconstruction，不是 native transfer。native attach、Named Selection transfer 与原生 driving parameter 硬阻塞仍需分别关闭，之后才可按 006 建立完整装配/流体负体积并独立审核 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -97,8 +98,8 @@
 
 1. 以已通过的 T0、SpaceClaim partial CAD 和 STEP body/mesh/project 诊断为边界，在 Windows 继续
    005 T1：短 case ID 已恢复 `Model.Refresh`/Mechanical 可达性，失败 inspection 已保存完整
-   13-face map 和 negative controls；现在补 surface type/edge count/normal，再用已通过身份检查的
-   frozen STEP 与 hash-bound semantic sidecar，
+   13-face map、negative controls 与 surface/edge/normal；现在只把入口 predicate 改为校准后的
+   centroid+topology anchor，再用已通过身份检查的 frozen STEP 与 hash-bound semantic sidecar，
    按面几何、邻接和容差
    唯一匹配并重建 `INLET/OUTLET/WALLS`；必须验证 1/1/11、互斥、全覆盖，并做 SHA 错、0 match、
    multiple match、重叠和覆盖不全的负向测试。报告明确写 semantic reconstruction，不得写 native

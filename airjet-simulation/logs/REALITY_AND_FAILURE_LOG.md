@@ -774,6 +774,39 @@
   claims 全 false；P1 readiness BLOCKED，P1–P6 NOT_RUN。
 - 状态：OPEN_SOLVER_FACE_TOPOLOGY_OBSERVABILITY_RETEST
 
+## REAL-20260714-035：入口 solver topology 已观测，支持用局部拓扑替代不稳定面积硬锚点
+
+- UTC：2026-07-14T21:40:25Z
+- Stage/task：005 T1 / 第十四次 solver face topology 观测
+- run/jobs：`AJM005_T1_SEMANTIC_RECON_SUITE_20260714T214025424158Z_01e34e81`；SC
+  `...-34da26e8e08a`；WB `...-64daf4bc354b`；签名 commit
+  `63d84405522a9f07b8f629dceae3b24c798869d6`。
+- 唯一变量：每个 face 记录 `SurfaceType`、edge count 与 centroid normal；三类 API 独立
+  fail-soft，失败时保存 error/null。classification、0.02 容差、短路径和 Gate 未改。
+- API 实测：13 个 face 的 surface/edge/normal 全部返回，所有 error 字段均 null。入口位置 face 44
+  为 `GeoSurfacePlane`、2 edges、normal `[0,0,-1]`；其 centroid 仍为 `[10,5,0] mm`。相邻 face 45
+  为 `GeoSurfaceCylinder`、4 edges；outlet face 54 为 plane、4 edges、normal `[1,0,0]`。
+- 唯一性：在当前 13-face disposable fixture 中，`centroid=[10,5,0] + plane + 2 edges +
+  abs(normal)=[0,0,1]` 只命中 face 44。它比不稳定的跨-kernel `area=π` 更适合作为 solver-side
+  calibration anchor。
+- 原始证据：suite/MCP SHA-256 分别为
+  `628eb8ee3ff24ccef387d74e4efdfe0d879dd18e4a2c1e40b5597450bf456f48` 和
+  `cc4721645dfb547cb240b52ebb551397713240113ae4d52029ef185b0f0f4512`；SC/WB report SHA-256
+  分别为 `d751215238d836e7c21c5c07929723b150b361409cf07ed0a4eab304b0363462` 和
+  `ec505cff47b43b546ca872a5a0800c2a28ee881f778ce93b59819931e94c2602`；inspection/project SHA-256
+  分别为 `e81d748c698f779968975244521a37f5e2b7fdd4fc061b693ec7652ee44f2222` 和
+  `d1848a313153ed93dc1e2e1bc13d57b9035e49698dac6b4b08c95fd81b418a34`；
+  2026-07-14T21:42:11.2801302Z 相关进程数为 0。
+- 下一最小实验：只把 INLET predicate 从 centroid+area 改为
+  centroid+`GeoSurfacePlane`+2 edges+abs(z-normal)，并在 report 明确把 producer area 标为
+  `DIAGNOSTIC_ONLY`、规则来源标为 `REAL-20260714-034/035`。OUTLET 继续 centroid+area，WALLS 继续
+  complement，四项 negative controls 与 1/1/11 硬检查不变。
+- 结论边界：该 topology 规则只校准 005 可删除 fixture，不是 AirJet 产品内部边界事实，也不关闭
+  native transfer/parameterization Gate。
+- 对 Gate/论文主张的影响：当前 suite 仍 FAIL；Named Selections/mesh NOT_REACHED；canonical native
+  claims 全 false；P1 readiness BLOCKED，P1–P6 NOT_RUN。
+- 状态：OPEN_INLET_SOLVER_TOPOLOGY_ANCHOR_SINGLE_VARIABLE_RETEST
+
 ## 新条目模板
 
 ```text

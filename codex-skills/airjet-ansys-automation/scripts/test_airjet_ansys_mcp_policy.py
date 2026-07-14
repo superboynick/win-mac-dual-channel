@@ -282,6 +282,12 @@ for diagnostic_field in (
     'edge_count_error = str(edge_count_exception)',
     '"normal_at_centroid": normal_at_centroid',
     '"normal_error": normal_error',
+    '"inlet_solver_match_contract": inlet_solver_topology',
+    '"area_role": "DIAGNOSTIC_ONLY"',
+    '"calibration_evidence_ids": ["REAL-20260714-034", "REAL-20260714-035"]',
+    'surface_type == inlet_solver_topology["surface_type"]',
+    'edge_count == inlet_solver_topology["edge_count"]',
+    "normal_abs_axis_match(",
     face_observation_marker,
     negative_observation_marker,
 ):
@@ -302,6 +308,24 @@ if rendered_model_script.index(negative_observation_marker) > rendered_model_scr
     real_partition_validation
 ):
     fail("semantic reconstruction negative observations occur after partition guard")
+inlet_predicate = rendered_model_script.split("        if (\n", 1)[1].split(
+    "        elif (\n", 1
+)[0]
+if 'inlet_signature["area_mm2"]' in inlet_predicate:
+    fail("semantic reconstruction inlet predicate must not use unstable STEP area")
+for inlet_anchor in (
+    'inlet_signature["center_mm"]',
+    'surface_type == inlet_solver_topology["surface_type"]',
+    'edge_count == inlet_solver_topology["edge_count"]',
+    "normal_abs_axis_match(",
+):
+    if inlet_anchor not in inlet_predicate:
+        fail("semantic reconstruction inlet predicate lost anchor: " + inlet_anchor)
+outlet_predicate = rendered_model_script.split("        elif (\n", 1)[1].split(
+    "        else:\n", 1
+)[0]
+if 'outlet_signature["area_mm2"]' not in outlet_predicate:
+    fail("semantic reconstruction outlet predicate lost its validated area anchor")
 for profile in policy["profiles"]:
     predecessor = profile["predecessor"]
     if predecessor is None:
