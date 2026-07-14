@@ -26,6 +26,10 @@ Use these automation result states consistently:
   was uniquely mapped to solver-side boundary objects and its diagnostic mesh/project checks
   passed. This is reconstruction, not native attach or Named Selection transfer; it never unlocks
   P1 readiness by itself.
+- `PASS_CONNECTED_SPACECLAIM_TRANSFER_DIAGNOSTIC`: a Workbench-managed empty SpaceClaim Geometry
+  cell built the disposable fixture and transferred its body/groups to Mechanical with mesh and
+  project evidence. This is not external `.scdocx` attach, native parameterization, full-product
+  CAD, or a P1 Gate; keep those claims false/NOT_RUN.
 - `PASS_005_CAPABILITY`: the corresponding 005 geometry, transfer, solve, or conservation
   assertions and required artifacts passed.
 - `FAIL_DIRECT`: the tested route itself failed.

@@ -125,6 +125,37 @@
           "spaceclaim_semantic_sidecar.json"
         ]
       }
+    },
+    {
+      "profile_id": "ajm005-workbench-connected-spaceclaim-t1-v1",
+      "engine": "workbench",
+      "script": "005/workbench_connected_spaceclaim_t1.wbjn",
+      "sha256": "0f2f266d47a1e376e845dd144d3f76ea5dfe02a65a63c868c2f839084429e6bd",
+      "timeout_seconds": 1200,
+      "output_root_id": "student_smoke_005",
+      "reports": [
+        "workbench_connected_spaceclaim_t1.json",
+        "connected_spaceclaim_build.json",
+        "workbench_connected_inspection.json"
+      ],
+      "predecessor": {
+        "profile_id": "ajm005-spaceclaim-cad-t1-v1",
+        "report": "spaceclaim_cad_t1.json",
+        "required_probe": "spaceclaim_cad_t1",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
+        "required_assertions": [
+          "script_parameterization_equivalent",
+          "named_selections",
+          "volume_extract_or_equivalent",
+          "fluid_connectivity",
+          "native_save",
+          "native_reopen",
+          "step_export_reimport"
+        ],
+        "artifacts": [
+          "spaceclaim_cad_t1.json"
+        ]
+      }
     }
   ]
 }

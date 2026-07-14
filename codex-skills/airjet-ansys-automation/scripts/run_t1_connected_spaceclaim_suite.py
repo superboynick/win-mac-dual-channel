@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the fixed AJM-005 CAD/Workbench T1 capability pair through MCP."""
+"""Run the AJM-005 Workbench-connected SpaceClaim diagnostic through MCP."""
 
 from __future__ import annotations
 
@@ -36,7 +36,8 @@ SERVER = (
 )
 REPO = Path(r"C:\Users\admin\win-mac-dual-channel")
 RUNNER_GIT_PATH = (
-    "codex-skills/airjet-ansys-automation/scripts/run_t1_cad_suite.py"
+    "codex-skills/airjet-ansys-automation/scripts/"
+    "run_t1_connected_spaceclaim_suite.py"
 )
 OUTPUT_ROOT = Path.home() / "Downloads" / "AIRJET_ANSYS_STUDENT_SMOKE_005"
 EXPECTED_TOOLS = {
@@ -47,7 +48,7 @@ EXPECTED_TOOLS = {
     "artifact_manifest",
 }
 SC_PROFILE = "ajm005-spaceclaim-cad-t1-v1"
-WB_PROFILE = "ajm005-workbench-transfer-t1-v1"
+WB_PROFILE = "ajm005-workbench-connected-spaceclaim-t1-v1"
 POLL_SECONDS = 1.0
 HARD_PROFILE_WAIT_SECONDS = 1500
 TERMINAL_PHASES = {
@@ -67,6 +68,7 @@ PROFILE_RULES = {
         "artifacts": {
             "spaceclaim_cad_t1.scdocx": "transfer_native",
             "spaceclaim_cad_t1.step": "step",
+            "spaceclaim_semantic_sidecar.json": "semantic_sidecar",
         },
         "assertions": {
             "script_parameterization_equivalent",
@@ -76,19 +78,22 @@ PROFILE_RULES = {
             "native_save",
             "native_reopen",
             "step_export_reimport",
+            "semantic_sidecar",
         },
     },
     WB_PROFILE: {
-        "probe": "workbench_transfer_t1",
-        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
-        "report": "workbench_transfer_t1.json",
+        "probe": "workbench_connected_spaceclaim_t1",
+        "required_status": "PASS_CONNECTED_SPACECLAIM_TRANSFER_DIAGNOSTIC",
+        "report": "workbench_connected_spaceclaim_t1.json",
         "artifacts": {
-            "input/stagingcopy/spaceclaim_cad_t1.scdocx": "working_native",
-            "workbench_transfer_t1.wbpj": "project",
-            "workbench_model_inspection.json": "model_inspection",
+            "connected_spaceclaim_build.json": "connected_build",
+            "workbench_connected_inspection.json": "model_inspection",
+            "workbench_connected_spaceclaim_t1.wbpj": "project",
         },
         "assertions": {
-            "predecessor_identity",
+            "predecessor_control_identity",
+            "empty_geometry_cell",
+            "connected_editor_build",
             "geometry_transfer",
             "named_selection_transfer",
             "mesh_generation",
@@ -117,11 +122,11 @@ def require_runner_git_blob(head: str) -> str:
         stdin=subprocess.DEVNULL,
     )
     if completed.returncode != 0:
-        raise RuntimeError("BLOCKED_T1_CAD_RUNNER_GIT_BLOB_MISSING")
+        raise RuntimeError("BLOCKED_T1_CONNECTED_RUNNER_GIT_BLOB_MISSING")
     installed_digest = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     git_digest = hashlib.sha256(completed.stdout).hexdigest()
     if installed_digest != git_digest:
-        raise RuntimeError("BLOCKED_T1_CAD_RUNNER_COPY_MISMATCH")
+        raise RuntimeError("BLOCKED_T1_CONNECTED_RUNNER_COPY_MISMATCH")
     return installed_digest
 
 
@@ -161,9 +166,15 @@ def manifest_file(
         for item in files
         if isinstance(item, dict) and item.get("relative_path") == relative_path
     ]
-    if len(matches) != 1:
-        return None
-    return matches[0]
+    return matches[0] if len(matches) == 1 else None
+
+
+def report_path_matches(declared: object, artifact: str) -> bool:
+    declared_path = str(declared or "").replace("\\", "/").rstrip("/")
+    artifact_path = artifact.replace("\\", "/").rstrip("/")
+    return declared_path == artifact_path or declared_path.endswith(
+        "/" + artifact_path
+    )
 
 
 async def run_profile(
@@ -241,15 +252,6 @@ async def run_profile(
         for artifact, report_key in rule["artifacts"].items():
             entry = manifest_file(manifest, artifact)
             declared = report_files.get(report_key)
-            declared_path = (
-                str(declared.get("path", "")).replace("\\", "/").rstrip("/")
-                if isinstance(declared, dict)
-                else ""
-            )
-            artifact_path = artifact.replace("\\", "/").rstrip("/")
-            declared_path_matches = declared_path == artifact_path or declared_path.endswith(
-                "/" + artifact_path
-            )
             artifacts_ok = (
                 isinstance(entry, dict)
                 and isinstance(declared, dict)
@@ -258,17 +260,36 @@ async def run_profile(
                 and entry.get("size") == declared.get("size")
                 and isinstance(entry.get("sha256"), str)
                 and entry.get("sha256") == declared.get("sha256")
-                and declared_path_matches
+                and report_path_matches(declared.get("path"), artifact)
             )
             if not artifacts_ok:
                 break
+
     scope_ok = True
     if profile_id == SC_PROFILE:
         scope_ok = (
             isinstance(report, dict)
             and report.get("native_parameterization") == "NOT_RUN"
+            and report.get("p1_cad_hard_gate") == "BLOCKED_NATIVE_PARAMETERIZATION"
+        )
+    elif profile_id == WB_PROFILE:
+        boundaries = report.get("canonical_claim_boundaries", {})
+        scope_ok = (
+            isinstance(report, dict)
+            and report.get("diagnostic_only") is True
+            and report.get("external_scdocx_attach") == "NOT_RUN"
+            and report.get("native_parameterization") == "NOT_RUN"
             and report.get("p1_cad_hard_gate")
-            == "BLOCKED_NATIVE_PARAMETERIZATION"
+            == "BLOCKED_EXTERNAL_NATIVE_ATTACH_AND_NATIVE_PARAMETERIZATION_NOT_PROVEN"
+            and isinstance(boundaries, dict)
+            and set(boundaries)
+            == {
+                "external_scdocx_attach",
+                "external_native_named_selection_transfer",
+                "native_parameterization",
+                "p1_cad_toolchain_readiness",
+            }
+            and all(value is False for value in boundaries.values())
         )
     capability_pass = (
         phase == "PROCESS_EXITED_0"
@@ -279,6 +300,7 @@ async def run_profile(
         and report.get("p1_stage_gate") == "NOT_RUN"
         and report.get("license_arguments_added") is False
         and isinstance(assertions, dict)
+        and set(assertions) == rule["assertions"]
         and all(assertions.get(name) is True for name in rule["assertions"])
         and artifacts_ok
         and scope_ok
@@ -303,27 +325,27 @@ async def run_suite() -> int:
         + "_"
         + uuid4().hex[:8]
     )
-    # Keep native external-attach diagnostics below the legacy path budget.
-    # Individual route interventions are identified by the signed profile and
-    # archived run evidence; the timestamp stays outside the short case path.
-    case_id = "a5n-" + uuid4().hex[:12]
+    case_id = "a5c-" + uuid4().hex[:12]
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
-    result_path = OUTPUT_ROOT / f"AJM005_T1_CAD_SUITE_{stamp}.json"
-    stderr_path = OUTPUT_ROOT / f"AJM005_T1_CAD_SUITE_{stamp}_MCP_STDERR.log"
+    result_path = OUTPUT_ROOT / f"AJM005_T1_CONNECTED_SC_SUITE_{stamp}.json"
+    stderr_path = OUTPUT_ROOT / f"AJM005_T1_CONNECTED_SC_SUITE_{stamp}_MCP_STDERR.log"
     result: dict[str, Any] = {
         "schema_version": 1,
         "task": "AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
-        "suite": "cad_and_workbench_transfer_t1",
+        "suite": "workbench_connected_spaceclaim_t1_diagnostic",
         "case_id": case_id,
         "started_at": utc_now(),
         "ended_at": None,
-        "suite_status": "FAIL_CAD_TRANSFER_SET",
+        "suite_status": "FAIL_CONNECTED_SPACECLAIM_TRANSFER_DIAGNOSTIC",
         "p1_cad_toolchain_readiness": "BLOCKED",
-        "p1_cad_blocker": "NATIVE_PARAMETERIZATION_NOT_RUN",
-        "pass_005_capability": "PARTIAL_CAD_TRANSFER_ONLY",
+        "p1_cad_blocker": (
+            "EXTERNAL_NATIVE_ATTACH_AND_NATIVE_PARAMETERIZATION_NOT_PROVEN"
+        ),
+        "pass_005_capability": "DIAGNOSTIC_ONLY_NOT_EXTERNAL_NATIVE_TRANSFER",
         "p1_p6_gates": "NOT_RUN",
         "visibility": "NOT_USER_OBSERVED",
         "license_arguments_added": False,
+        "connected_spaceclaim_diagnostic": "NOT_RUN",
         "mcp_package_version": None,
         "protocol_version": None,
         "server_name": None,
@@ -335,7 +357,7 @@ async def run_suite() -> int:
     exit_code = 2
     try:
         if norm(Path(sys.executable)) != norm(EXPECTED_PYTHON):
-            raise RuntimeError("BLOCKED_WRONG_T1_CAD_RUNNER_INTERPRETER")
+            raise RuntimeError("BLOCKED_WRONG_T1_CONNECTED_RUNNER_INTERPRETER")
         result["mcp_package_version"] = version("mcp")
         if result["mcp_package_version"] != "1.28.1":
             raise RuntimeError("BLOCKED_UNEXPECTED_MCP_PACKAGE_VERSION")
@@ -354,7 +376,8 @@ async def run_suite() -> int:
                     *streams,
                     read_timeout_seconds=timedelta(seconds=120),
                     client_info=types.Implementation(
-                        name="airjet-ajm005-t1-cad-harness", version="1.0.0"
+                        name="airjet-ajm005-t1-connected-spaceclaim-harness",
+                        version="1.0.0",
                     ),
                 ) as session:
                     initialized = await session.initialize()
@@ -374,8 +397,8 @@ async def run_suite() -> int:
                     )
                     if inventory.get("license_data_read") is not False:
                         raise RuntimeError("INVENTORY_READ_LICENSE_DATA")
-                    approved = set(inventory.get("approved_profiles") or [])
                     required = {SC_PROFILE, WB_PROFILE}
+                    approved = set(inventory.get("approved_profiles") or [])
                     if not required.issubset(approved):
                         raise RuntimeError(
                             f"BLOCKED_MISSING_PROFILES:{sorted(required - approved)}"
@@ -394,6 +417,9 @@ async def run_suite() -> int:
                             sc_run["final_state"]["job_id"],
                         )
                         result["runs"].append(wb_run)
+                        result["connected_spaceclaim_diagnostic"] = (
+                            "PASS" if wb_run["capability_pass"] else "FAIL"
+                        )
                     else:
                         result["runs"].append(
                             {
@@ -404,8 +430,13 @@ async def run_suite() -> int:
                                 "p1_stage_gate": "NOT_RUN",
                             }
                         )
-                    if all(run.get("capability_pass") for run in result["runs"]):
-                        result["suite_status"] = "PASS_CAD_TRANSFER_SET"
+                    if (
+                        all(run.get("capability_pass") for run in result["runs"])
+                        and result["connected_spaceclaim_diagnostic"] == "PASS"
+                    ):
+                        result["suite_status"] = (
+                            "PASS_CONNECTED_SPACECLAIM_TRANSFER_DIAGNOSTIC"
+                        )
                         exit_code = 0
     except Exception as exc:  # noqa: BLE001 - preserve unexpected failures.
         result["error"] = {

@@ -100,6 +100,7 @@ REQUIRED = [
     "codex-skills/airjet-ansys-automation/scripts/airjet_ansys_mcp.py",
     "codex-skills/airjet-ansys-automation/scripts/run_t0_suite.py",
     "codex-skills/airjet-ansys-automation/scripts/run_t1_cad_suite.py",
+    "codex-skills/airjet-ansys-automation/scripts/run_t1_connected_spaceclaim_suite.py",
     "codex-skills/airjet-ansys-automation/scripts/run_t1_semantic_reconstruction_suite.py",
     "codex-skills/airjet-ansys-automation/scripts/test_t1_predecessor_negative.py",
     "codex-skills/airjet-ansys-automation/scripts/test_airjet_ansys_mcp_policy.py",
@@ -1332,6 +1333,7 @@ def main() -> int:
                         "scripts/airjet_ansys_mcp.py",
                         "scripts/run_t0_suite.py",
                         "scripts/run_t1_cad_suite.py",
+                        "scripts/run_t1_connected_spaceclaim_suite.py",
                         "scripts/run_t1_semantic_reconstruction_suite.py",
                         "scripts/test_t1_predecessor_negative.py",
                         "scripts/test_airjet_ansys_mcp_policy.py",
@@ -1440,6 +1442,7 @@ def main() -> int:
                 "ajm005-pyfluent-t0-v1",
                 "ajm005-spaceclaim-cad-t1-v1",
                 "ajm005-workbench-transfer-t1-v1",
+                "ajm005-workbench-connected-spaceclaim-t1-v1",
                 "ajm005-workbench-semantic-reconstruction-t1-v1",
             }
             if (

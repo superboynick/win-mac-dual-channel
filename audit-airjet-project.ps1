@@ -138,6 +138,7 @@ $Required = @(
     'codex-skills\airjet-ansys-automation\scripts\airjet_ansys_mcp.py',
     'codex-skills\airjet-ansys-automation\scripts\run_t0_suite.py',
     'codex-skills\airjet-ansys-automation\scripts\run_t1_cad_suite.py',
+    'codex-skills\airjet-ansys-automation\scripts\run_t1_connected_spaceclaim_suite.py',
     'codex-skills\airjet-ansys-automation\scripts\run_t1_semantic_reconstruction_suite.py',
     'codex-skills\airjet-ansys-automation\scripts\test_t1_predecessor_negative.py',
     'codex-skills\airjet-ansys-automation\scripts\test_airjet_ansys_mcp_policy.py',
@@ -1295,7 +1296,7 @@ if (Test-Path -LiteralPath $ManifestPath) {
         $Manifest = (Read-Utf8 $ManifestPath) | ConvertFrom-Json
         $Skills = @($Manifest.skills)
         $ExpectedManifest = @{
-            'airjet-ansys-automation' = [pscustomobject]@{ kind='project'; source='codex-skills/airjet-ansys-automation'; required=@('SKILL.md','agents/openai.yaml','references/official-automation-routes.md','references/gate-evidence.md','scripts/bootstrap_windows.ps1','scripts/airjet_ansys_mcp.py','scripts/run_t0_suite.py','scripts/run_t1_cad_suite.py','scripts/run_t1_semantic_reconstruction_suite.py','scripts/test_t1_predecessor_negative.py','scripts/test_airjet_ansys_mcp_policy.py') }
+            'airjet-ansys-automation' = [pscustomobject]@{ kind='project'; source='codex-skills/airjet-ansys-automation'; required=@('SKILL.md','agents/openai.yaml','references/official-automation-routes.md','references/gate-evidence.md','scripts/bootstrap_windows.ps1','scripts/airjet_ansys_mcp.py','scripts/run_t0_suite.py','scripts/run_t1_cad_suite.py','scripts/run_t1_connected_spaceclaim_suite.py','scripts/run_t1_semantic_reconstruction_suite.py','scripts/test_t1_predecessor_negative.py','scripts/test_airjet_ansys_mcp_policy.py') }
             'airjet-product-reconstruction' = [pscustomobject]@{ kind='project'; source='codex-skills/airjet-product-reconstruction'; required=@('SKILL.md','agents/openai.yaml','references/evidence-rules.md','references/stage-routing.md','references/windows-operation.md','scripts/audit_project.py') }
             'jupyter-notebook' = [pscustomobject]@{ kind='official'; source='skills/.curated/jupyter-notebook'; required=@('LICENSE.txt','SKILL.md','agents/openai.yaml','assets/experiment-template.ipynb','assets/jupyter-small.svg','assets/jupyter.png','assets/tutorial-template.ipynb','references/experiment-patterns.md','references/notebook-structure.md','references/quality-checklist.md','references/tutorial-patterns.md','scripts/new_notebook.py') }
             'pdf' = [pscustomobject]@{ kind='official'; source='skills/.curated/pdf'; required=@('LICENSE.txt','SKILL.md','agents/openai.yaml','assets/pdf.png') }
@@ -1360,6 +1361,7 @@ if (Test-Path -LiteralPath $AnsysProfilesPath) {
             'ajm005-pyfluent-t0-v1',
             'ajm005-spaceclaim-cad-t1-v1',
             'ajm005-workbench-transfer-t1-v1',
+            'ajm005-workbench-connected-spaceclaim-t1-v1',
             'ajm005-workbench-semantic-reconstruction-t1-v1'
         )
         $RootFields = @($ProfileData.PSObject.Properties.Name)

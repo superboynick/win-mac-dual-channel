@@ -76,6 +76,12 @@ scope, while this skill owns deterministic Windows execution.
   disposable fixture; it must keep native attach, native Named Selection transfer, native
   parameterization and `P1_CAD_TOOLCHAIN_READINESS` false/BLOCKED. Never merge this status into
   `PASS_CAD_TRANSFER_SET`.
+- Use `scripts/run_t1_connected_spaceclaim_suite.py` only for the independent Workbench-managed
+  connected SpaceClaim document diagnostic. The approved journal must start from an empty Geometry
+  cell, must not call `SetFile`, `DocumentOpen`, or external `DocumentSave`, and may consume only the
+  predecessor producer report as a control. A PASS proves the disposable fixture can travel from a
+  connected editor document to Mechanical; it does not repair or prove external `.scdocx` attach,
+  native parameterization, full-product CAD, or any P1-P6 Gate.
 - Before the first T1 CAD run after an MCP change, use
   `scripts/test_t1_predecessor_negative.py`. It starts no ANSYS engine and verifies that missing,
   unexpected and unknown predecessor IDs leave auditable `FAILED_START` states with no PID.

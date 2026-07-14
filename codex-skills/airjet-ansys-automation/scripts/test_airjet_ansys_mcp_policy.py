@@ -20,6 +20,9 @@ T1_CAD_RUNNER = SKILL_ROOT / "scripts" / "run_t1_cad_suite.py"
 T1_SEMANTIC_RUNNER = (
     SKILL_ROOT / "scripts" / "run_t1_semantic_reconstruction_suite.py"
 )
+T1_CONNECTED_RUNNER = (
+    SKILL_ROOT / "scripts" / "run_t1_connected_spaceclaim_suite.py"
+)
 T1_PREDECESSOR_NEGATIVE = (
     SKILL_ROOT / "scripts" / "test_t1_predecessor_negative.py"
 )
@@ -161,6 +164,27 @@ for invariant in (
 if "PASS_CAD_TRANSFER_SET" in t1_semantic_runner_source:
     fail("T1 semantic suite must not claim native CAD transfer pass")
 
+t1_connected_runner_source = T1_CONNECTED_RUNNER.read_text(encoding="utf-8")
+for invariant in (
+    "BLOCKED_T1_CONNECTED_RUNNER_COPY_MISMATCH",
+    "PASS_CONNECTED_SPACECLAIM_TRANSFER_DIAGNOSTIC",
+    "DIAGNOSTIC_ONLY_NOT_EXTERNAL_NATIVE_TRANSFER",
+    'WB_PROFILE = "ajm005-workbench-connected-spaceclaim-t1-v1"',
+    'case_id = "a5c-" + uuid4().hex[:12]',
+    "EXTERNAL_NATIVE_ATTACH_AND_NATIVE_PARAMETERIZATION_NOT_PROVEN",
+    "canonical_claim_boundaries",
+    "artifact_manifest",
+    "p1_p6_gates",
+):
+    if invariant not in t1_connected_runner_source:
+        fail(f"T1 connected suite runner lacks invariant: {invariant}")
+for forbidden in (
+    "PASS_CAD_TRANSFER_SET",
+    "PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC",
+):
+    if forbidden in t1_connected_runner_source:
+        fail(f"T1 connected diagnostic overclaims another route: {forbidden}")
+
 t1_negative_source = T1_PREDECESSOR_NEGATIVE.read_text(encoding="utf-8")
 for invariant in (
     "BLOCKED_REQUIRED_PREDECESSOR_ID",
@@ -239,6 +263,63 @@ try:
     compile(native_script, "workbench_transfer_t1.wbjn", "exec")
 except SyntaxError as exc:
     fail(f"native Workbench staging journal is invalid: {exc}")
+
+connected_profile = by_profile_id.get(
+    "ajm005-workbench-connected-spaceclaim-t1-v1"
+)
+if not isinstance(connected_profile, dict):
+    fail("missing connected SpaceClaim diagnostic profile")
+connected_predecessor = connected_profile.get("predecessor") or {}
+if connected_predecessor.get("artifacts") != ["spaceclaim_cad_t1.json"]:
+    fail("connected diagnostic must consume only the producer control report")
+connected_script = (
+    APPROVED / connected_profile["script"]
+).read_text(encoding="utf-8")
+for invariant in (
+    '"WORKBENCH_MANAGED_CONNECTED_SPACECLAIM_DOCUMENT"',
+    "source_properties.GeometryFilePath",
+    "source_geometry.Edit(Interactive=False, IsSpaceClaimGeometry=True)",
+    "source_geometry.RunScript(ScriptFile=build_script_path)",
+    "source_geometry.Exit()",
+    '"connected_editor_cleanup"',
+    "ComponentsToShare=[source_component]",
+    "source_geometry.GetGeometryFileAndSaveData()",
+    "model_container.Refresh()",
+    'master_shape = getattr(master, "Shape", None)',
+    '"topology_shape_source"',
+    '"PASS_CONNECTED_SPACECLAIM_TRANSFER_DIAGNOSTIC"',
+    '"external_scdocx_attach": "NOT_RUN"',
+    '"native_parameterization": "NOT_RUN"',
+    '"p1_stage_gate": "NOT_RUN"',
+):
+    if invariant not in connected_script:
+        fail(f"connected SpaceClaim journal lacks invariant: {invariant}")
+for forbidden in (
+    "source_geometry.SetFile(",
+    "DocumentHelper.CreateNewDocument()",
+    "DocumentOpen.Execute(",
+    "DocumentSave.Execute(",
+):
+    if forbidden in connected_script:
+        fail(f"connected SpaceClaim route uses forbidden external route: {forbidden}")
+try:
+    connected_tree = ast.parse(connected_script)
+    embedded_assignments = [
+        node
+        for node in connected_tree.body
+        if isinstance(node, ast.Assign)
+        and any(
+            isinstance(target, ast.Name)
+            and target.id == "connected_spaceclaim_script"
+            for target in node.targets
+        )
+    ]
+    if len(embedded_assignments) != 1:
+        fail("connected SpaceClaim embedded build script is not unique")
+    embedded_source = ast.literal_eval(embedded_assignments[0].value)
+    compile(embedded_source, "connected_spaceclaim_fixture.py", "exec")
+except (SyntaxError, ValueError) as exc:
+    fail(f"connected SpaceClaim journal or embedded script is invalid: {exc}")
 
 semantic_profile = by_profile_id.get(
     "ajm005-workbench-semantic-reconstruction-t1-v1"

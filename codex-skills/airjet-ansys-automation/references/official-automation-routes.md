@@ -25,6 +25,10 @@ changed to Parasolid in 2025 R1, so do not assume old ACIS behavior.
 - Run reviewed journals with `RunWB2.exe -B -R <absolute.wbjn>`.
 - Use Workbench journals for system creation, geometry transfer, Named Selection transfer, project
   save, and integration checks. Capture the Workbench log and project archive.
+- For the connected-document diagnostic, create an empty Geometry system, verify its
+  `GeometryFilePath` is empty, launch SpaceClaim with `Edit(IsSpaceClaimGeometry=True)`, execute the
+  reviewed build file through `RunScript(ScriptFile=...)`, and call `Exit()` before sharing the
+  Geometry component. Keep this route separate from external CAD `SetFile` attach.
 
 Official 2026 R1 scripting guide:
 `https://ansyshelp.ansys.com/public/Views/Secured/corp/v261/en/pdf/Workbench_Scripting_Guide.pdf`
