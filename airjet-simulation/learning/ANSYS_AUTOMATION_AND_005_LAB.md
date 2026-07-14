@@ -340,3 +340,7 @@ SHA 身份正确 -> 生产软件可重开 -> 下游软件可附加 -> 语义/网
 第五次签名运行进一步把旧更新顺序替换为 `Model.Update(AllDependencies=True)`，但 attach 错误不变。
 到达标记显示 `SetFile` 返回、Update 被调用但未返回，其后全部未到达。由此只排除旧更新顺序这一
 窄假设；下一步才允许单独改变为 Geometry source→`TransferData` 数据流架构。
+
+第六次签名运行证实普通 Geometry source 和 Static Geometry 的 `TransferData` 组合在调用阶段即被
+v261 拒绝。`TransferData` 方法真实存在，不代表任意 component 类型兼容。下一轮按同机官方
+post-import journal 改用 `ComponentsToShare`；这种“由运行建立兼容矩阵”的记录必须保留在方法日志。

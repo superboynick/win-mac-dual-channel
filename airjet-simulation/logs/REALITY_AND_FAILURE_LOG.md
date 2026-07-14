@@ -479,6 +479,35 @@
   BLOCKED，P1–P6 NOT_RUN。
 - 状态：CLOSED_UPDATE_ORDER_HYPOTHESIS_TRANSFERDATA_ROUTE_PENDING
 
+## REAL-20260714-026：普通 Geometry component 的 TransferData 组合被 v261 拒绝
+
+- UTC：2026-07-14T19:57:25Z
+- Stage/task：005 T1 / 第六次 CAD transfer suite
+- run/jobs：`AJM005_T1_CAD_SUITE_20260714T195725871623Z_d3a5b5c3`；SC
+  `...-9aaa10ed5333`；WB `...-94beffc74bdc`。
+- 单变量假设：保持 `.scdocx`、Named Selection import 属性、Model update 和验收不变，把文件从
+  Static system 内直接 attach 改为独立 Geometry source，再调用
+  `source_component.TransferData(TargetComponent=static_geometry_component)`。
+- 实际结果：source system、source `SetFile` 和 target Static system 均 RETURNED；
+  `TransferData=CALLED` 但未返回，v261 原文是“几何结构无法使用组件几何结构。”Model update、
+  Mechanical inspection、mesh 和 project save 均 `NOT_REACHED`。WB 约 16.1 秒结束，不同于前两轮
+  约 160 秒的 attach 尝试。
+- 根因边界：`TransferData` 是真实 Component API，但普通 Geometry component→Static Geometry
+  component 的具体组合在本机被明确拒绝。方法存在不等于任意 component 类型兼容；尚未测试
+  standard Geometry 的 `ComponentsToShare` 路线。
+- 原始证据：suite/MCP SHA-256 分别为
+  `a23aadc8539f4fcf95958343e2edbb86a06d3fd3fea2741061309c38a85e6b0c` 和
+  `52ac612bbfb82df1c23d4787cf341cd449e646c2165ef6f907cb3da916284b37`；SC/WB report SHA-256
+  分别为 `29f59c1f0b57644cada442c866ae1db87cd13fc1bcd3cf0628f2ea3b3f2588cc` 和
+  `04547dc9c2e7eee8398fdcad87fcc88cddb4a89e27e8160f3cfb74f2fedac505`；
+  2026-07-14T19:58:27.4612580Z 现场相关进程数为 0。
+- 下一最小实验：改用本机官方 `StaticStructuralANSYS.wbjn` 的
+  `CreateSystem(ComponentsToShare=[source_component])` 和 `GetGeometryFileAndSaveData()` 架构；
+  不同时修改文件格式、更新 API、Mechanical 检查或断言。
+- 对 Gate/论文主张的影响：SC partial PASS 再次可复现；Workbench geometry transfer 仍 FAIL，
+  P1 readiness BLOCKED，P1–P6 NOT_RUN。
+- 状态：CLOSED_INCOMPATIBLE_TRANSFERDATA_COMBINATION_COMPONENTS_TO_SHARE_PENDING
+
 ## 新条目模板
 
 ```text

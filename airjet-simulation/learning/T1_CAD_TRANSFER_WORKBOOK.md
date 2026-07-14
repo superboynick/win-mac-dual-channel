@@ -458,3 +458,33 @@ mechanical_inspection         = NOT_REACHED
 另一个细节是不同 SpaceClaim run 的原生文件 SHA 可能不同，即使几何断言相同。可复现性不要求
 二进制文件跨 run 完全相同；它要求每个消费者精确绑定本轮生产者，并复算体积、bbox、拓扑、组数
 和 SHA 身份。不能拿第四轮文件哈希去验证第五轮 predecessor。
+
+## 18. 实跑记录 6：API 存在不等于对象类型组合兼容
+
+第六轮保持文件、更新 API 和所有断言不变，只改变数据流：
+
+```text
+.scdocx -> independent Geometry source component
+         -> TransferData
+         -> Static Structural Geometry component
+```
+
+到达矩阵为：
+
+```text
+source Geometry system    = RETURNED
+source SetFile            = RETURNED
+target Static system      = RETURNED
+source.TransferData       = CALLED, not returned
+Model Update              = NOT_REACHED
+Mechanical inspection     = NOT_REACHED
+```
+
+v261 原文“几何结构无法使用组件几何结构”说明这个 source/target component 组合被拒绝。这里最容易
+犯的推理错误是：看到官方 API 有 `TransferData(TargetComponent=...)`，就认为任何 Component 都
+能传给任何 Component。API 签名只定义调用形状，兼容矩阵仍要由模板类型与真实运行决定。
+
+本机 optiSLang sample 的成功 source 是 `PDMReceive/GeoTransfer`，不是普通 Geometry component。
+而本机 standard Geometry post-import journal 使用另一条架构：在创建 Static system 时传入
+`ComponentsToShare=[source_geometry_component]`，再调用 `GetGeometryFileAndSaveData()`。因此下一轮
+测试官方 share 架构，不再猜 `TransferData` 的对象兼容性；`.scdocx` 和下游验收保持不变。
