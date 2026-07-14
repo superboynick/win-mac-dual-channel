@@ -697,6 +697,48 @@
   readiness BLOCKED，P1–P6 NOT_RUN。
 - 状态：OPEN_SHORT_CASE_ID_SINGLE_VARIABLE_RETEST
 
+## REAL-20260714-033：短路径越过 attach，真实 partition 首次暴露 INLET 0 / OUTLET 1 / WALLS 12
+
+- UTC：2026-07-14T21:21:01Z
+- Stage/task：005 T1 / 第十二次 semantic reconstruction 短路径单变量复测
+- run/jobs：`AJM005_T1_SEMANTIC_RECON_SUITE_20260714T212101506753Z_e604cf53`；SC
+  `...-db1044630176`；WB `...-e3349c39cebd`；签名 commit
+  `0fe714fdba9746aff2ef8cda23e5f2657e4d0f8e`。
+- 唯一代码变量：runner case prefix 从 `ajm005-semantic-recon-` 缩为 `ajm005-sem-`；WB job root
+  从 176 降到 154 字符。profile、Workbench journal、分类容差、sidecar 合同、MCP 和成功判定均
+  未改变。
+- 路径假设结果：上一轮 `Model.Refresh()` 在保存/附加临时 `SYS.mechdb` 时失败；本轮
+  `Model.Refresh`、Mechanical inspection command、semantic reconstruction command 和 project save
+  全部 RETURNED。短路径对 legacy Workbench/Mechanical path-budget sensitivity 提供强支持，但不
+  等于证明所有相关组件都遵循或违反单一 `MAX_PATH=260` 规则。
+- producer：SpaceClaim 21.454 秒正常退出，八项 report assertions 全 true；STEP SHA-256
+  `2bb42781b556d5b378b7d8af222ef964cf388c9ff106346028a30030261711f9`，sidecar SHA-256
+  `05b3689af6944b3b86e384152633aba29424a5354bc7fc0bc5abf6fac28327ea`。
+- consumer 真实结果：Mechanical 已越过 body count、13-face count 与 pure partition control 段，
+  在真实分区硬检查得到
+  `SEMANTIC_RECONSTRUCTION_CLASS_COUNT_MISMATCH:{'INLET': 0, 'WALLS': 12, 'OUTLET': 1}`。
+  因此未创建三组 Named Selections、未 mesh；仅保存 50593-byte 诊断 project。
+- 新发现的可观察性缺陷：`face_details`、candidate IDs 与 `negative_controls` 已在内存形成，但旧脚本
+  只在全部 validation 和 mesh 成功后才把它们合并进 inspection。失败文件只有 exception/traceback，
+  所以 report 中 body/negative-controls 仍为 false。控制流可帮助定位，但不得把未保存的值补写为
+  PASS。
+- 原始证据：suite/MCP SHA-256 分别为
+  `13049b1e65162f5329a335597131b20709dc2d02bd97192bcb1462e5c7bc90f1` 和
+  `9c569072213a885ec5d65e36b6c221b1e0fe3592d585f8892ac1821160d177a7`；SC/WB report SHA-256
+  分别为 `eb06f75055cd75ed46472d653503ae2433498dfd330c3e2d11680533a8ab0cc3` 和
+  `89afc8b0f6fab5d631d9adeb0b45c5b4532e71223985a33d7458e86575ff0434`；inspection/project SHA-256
+  分别为 `a0480879536f9fa9f7d2c46dcb5b6b9608b1c6d21821379d843d2329b8e682e4` 和
+  `df443b0d41ba99fbe68ab85826d39ab4ae1641fec691248f03bf056153b9d7b1`；
+  2026-07-14T21:22:09.1452895Z 相关进程数为 0。
+- 下一最小实验：只增强 fail-path observability——在真实 partition validation 前把 `cad_unit`、
+  body/face count、13-face centroid/area map、candidate IDs 与四项 negative controls 写入 inspection
+  对象。分类规则和 `0.02 mm / 0.02 mm²` 容差保持不变；拿到实际 inlet 候选附近面值后再提出单变量
+  修正。
+- 对 Gate/论文主张的影响：suite 仍
+  `FAIL_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC`；semantic reconstruction/mesh false；canonical
+  native claims 全 false；P1 readiness BLOCKED，P1–P6 NOT_RUN。
+- 状态：OPEN_PREVALIDATION_FACE_MAP_OBSERVABILITY_RETEST
+
 ## 新条目模板
 
 ```text

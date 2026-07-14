@@ -248,6 +248,52 @@ try:
     compile(rendered_model_script, "embedded_mechanical_model_script.py", "exec")
 except (SyntaxError, TypeError, ValueError) as exc:
     fail(f"semantic reconstruction embedded model_script is invalid: {exc}")
+face_observation_marker = (
+    '"classification_stage": (\n'
+    '                "FACE_CANDIDATES_OBSERVED_BEFORE_COUNT_VALIDATION"'
+)
+negative_observation_marker = (
+    '"classification_stage": (\n'
+    '                "NEGATIVE_CONTROLS_OBSERVED_BEFORE_PARTITION_VALIDATION"'
+)
+face_count_guard = (
+    "    if len(face_details) != expected_face_count:\n"
+    "        raise Exception("
+)
+negative_control_guard = (
+    "    if not all(negative_controls.values()):\n"
+    '        raise Exception("SEMANTIC_RECONSTRUCTION_NEGATIVE_CONTROL_FAILED")'
+)
+real_partition_validation = (
+    "    validate_partition(\n"
+    "        expected_face_count,\n"
+    "        expected_counts,"
+)
+for diagnostic_field in (
+    '"face_details": face_details',
+    '"candidate_face_ids": {',
+    '"candidate_face_counts": {',
+    '"negative_controls": negative_controls',
+    face_observation_marker,
+    negative_observation_marker,
+):
+    if diagnostic_field not in rendered_model_script:
+        fail(
+            "semantic reconstruction must preserve prevalidation field: "
+            + diagnostic_field
+        )
+if rendered_model_script.index(face_observation_marker) > rendered_model_script.index(
+    face_count_guard
+):
+    fail("semantic reconstruction face observations occur after face-count guard")
+if rendered_model_script.index(negative_observation_marker) > rendered_model_script.index(
+    negative_control_guard
+):
+    fail("semantic reconstruction negative observations occur after control guard")
+if rendered_model_script.index(negative_observation_marker) > rendered_model_script.index(
+    real_partition_validation
+):
+    fail("semantic reconstruction negative observations occur after partition guard")
 for profile in policy["profiles"]:
     predecessor = profile["predecessor"]
     if predecessor is None:

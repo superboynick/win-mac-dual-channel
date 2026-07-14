@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "task": "AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
+  "suite": "step_semantic_reconstruction_t1",
+  "suite_status": "FAIL_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC",
+  "semantic_reconstruction_diagnostic": "FAIL",
+  "git_head": "0fe714fdba9746aff2ef8cda23e5f2657e4d0f8e",
+  "case_id": "ajm005-sem-20260714t212101506753z_e604cf53",
+  "started_at": "2026-07-14T21:21:01.506753+00:00",
+  "ended_at": "2026-07-14T21:21:55.953837+00:00",
+  "external_result_path": "C:\\Users\\admin\\Downloads\\AIRJET_ANSYS_STUDENT_SMOKE_005\\AJM005_T1_SEMANTIC_RECON_SUITE_20260714T212101506753Z_e604cf53.json",
+  "external_result_size": 70213,
+  "external_result_sha256": "13049b1e65162f5329a335597131b20709dc2d02bd97192bcb1462e5c7bc90f1",
+  "external_mcp_stderr_size": 2465,
+  "external_mcp_stderr_sha256": "9c569072213a885ec5d65e36b6c221b1e0fe3592d585f8892ac1821160d177a7",
+  "runner_sha256": "579ab306dcce4be083f7aa56c668774573cfea4b28e22422ce101d1997f438f9",
+  "license_arguments_added": false,
+  "visibility": "NOT_USER_OBSERVED",
+  "p1_cad_toolchain_readiness": "BLOCKED",
+  "p1_cad_blocker": "NATIVE_PARAMETERIZATION_AND_NATIVE_TRANSFER_NOT_PROVEN",
+  "p1_p6_gates": "NOT_RUN",
+  "single_variable_test": {
+    "changed": "semantic runner case prefix only",
+    "previous_prefix": "ajm005-semantic-recon-",
+    "current_prefix": "ajm005-sem-",
+    "previous_workbench_job_directory_length": 176,
+    "current_workbench_job_directory_length": 154,
+    "model_refresh_previous": "CALLED_THEN_HOST_ATTACH_EXCEPTION",
+    "model_refresh_current": "RETURNED",
+    "interpretation": "strong support for a legacy Workbench or Mechanical path-budget sensitivity; not proof of a universal Windows MAX_PATH root cause"
+  },
+  "post_suite_process_observation": {
+    "observed_at_utc": "2026-07-14T21:22:09.1452895Z",
+    "count": 0,
+    "method": "PowerShell Get-Process name allowlist counted after suite completion"
+  },
+  "runs": [
+    {
+      "profile_id": "ajm005-spaceclaim-cad-t1-v1",
+      "job_id": "ajm005-sem-20260714t212101506753z_e604cf53-db1044630176",
+      "script_sha256": "4fdaf2f1f5ae2063f79b99adc8ac6ae91a147032c1386fc4119b5abd4ceff17e",
+      "started_at": "2026-07-14T21:21:04.082307+00:00",
+      "ended_at": "2026-07-14T21:21:25.536609+00:00",
+      "duration_seconds": 21.454302,
+      "phase": "PROCESS_EXITED_0",
+      "exit_code": 0,
+      "report_status": "PASS_PARTIAL_CAD_CAPABILITY",
+      "engineering_capability": "PASS_PARTIAL_CAD_CAPABILITY",
+      "assertions": {
+        "script_parameterization_equivalent": true,
+        "named_selections": true,
+        "volume_extract_or_equivalent": true,
+        "fluid_connectivity": true,
+        "native_save": true,
+        "native_reopen": true,
+        "step_export_reimport": true,
+        "semantic_sidecar": true
+      },
+      "artifacts": {
+        "full_native": {"size": 38195, "sha256": "5c07b0584514b44b00ddb66d5d86182626382f68d58f9f43f6e648b3733f9479"},
+        "transfer_native": {"size": 32136, "sha256": "6b7673e9b427b4f208779aff520b4488f0475ae5f0d32db22e6f01454a2897ff"},
+        "step": {"size": 17197, "sha256": "2bb42781b556d5b378b7d8af222ef964cf388c9ff106346028a30030261711f9"},
+        "semantic_sidecar": {"size": 4064, "sha256": "05b3689af6944b3b86e384152633aba29424a5354bc7fc0bc5abf6fac28327ea"}
+      },
+      "declared_report_sha256": "eb06f75055cd75ed46472d653503ae2433498dfd330c3e2d11680533a8ab0cc3",
+      "job_state_sha256": "c215d887b3a14c7c02722d7c18af7bb21efa7236e291ea288c702368ee06db86",
+      "stdout_sha256": "d5f4932ace856bb7c9cc991bbe6829506ffc7f5d8e518a9bfd88cc3a50c37f79",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "profile_id": "ajm005-workbench-semantic-reconstruction-t1-v1",
+      "job_id": "ajm005-sem-20260714t212101506753z_e604cf53-e3349c39cebd",
+      "predecessor_job_id": "ajm005-sem-20260714t212101506753z_e604cf53-db1044630176",
+      "script_sha256": "b713083ecadc83816d05e289bc48bf1ce038bd4ec9b7a0d7280e7e470144361a",
+      "started_at": "2026-07-14T21:21:27.443681+00:00",
+      "ended_at": "2026-07-14T21:21:55.294434+00:00",
+      "duration_seconds": 27.850753,
+      "phase": "FAILED_PROCESS",
+      "exit_code": 2,
+      "report_status": "FAIL_DIRECT",
+      "engineering_capability": "FAIL_DIRECT",
+      "error": "STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC_FAILED",
+      "execution_reach": {
+        "predecessor_identity": "PASS",
+        "semantic_sidecar_identity": "PASS",
+        "source_geometry_system": "RETURNED",
+        "source_geometry_set_file": "RETURNED",
+        "source_geometry_edit_spaceclaim": "NOT_CALLED_BY_STEP_ROUTE",
+        "source_geometry_exit": "NOT_CALLED_BY_STEP_ROUTE",
+        "static_system_with_components_share": "RETURNED",
+        "source_geometry_file_and_save_data": "RETURNED",
+        "model_update_all_dependencies": "NOT_CALLED_BY_ROUTE",
+        "model_container": "RETURNED",
+        "model_refresh": "RETURNED",
+        "mechanical_inspection": "RETURNED",
+        "semantic_reconstruction": "RETURNED",
+        "project_save": "RETURNED"
+      },
+      "diagnostic_assertions": {
+        "predecessor_identity": true,
+        "semantic_sidecar_identity": true,
+        "body_geometry_available": false,
+        "semantic_reconstruction": false,
+        "negative_controls": false,
+        "mesh_generation": false,
+        "project_save": true
+      },
+      "inspection_error": "SEMANTIC_RECONSTRUCTION_CLASS_COUNT_MISMATCH:{'INLET': 0, 'WALLS': 12, 'OUTLET': 1}",
+      "inspection_observability_limit": "face_details and negative-control results were created in memory but only written into inspection after final validation; the failure file therefore preserves the exception but not the candidate face map",
+      "canonical_native_claims": {
+        "geometry_transfer": false,
+        "named_selection_transfer": false,
+        "native_attach": false,
+        "native_parameterization": false,
+        "p1_cad_toolchain_readiness": false
+      },
+      "files": {
+        "model_inspection": {"size": 1115, "sha256": "a0480879536f9fa9f7d2c46dcb5b6b9608b1c6d21821379d843d2329b8e682e4"},
+        "project": {"size": 50593, "sha256": "df443b0d41ba99fbe68ab85826d39ab4ae1641fec691248f03bf056153b9d7b1"}
+      },
+      "predecessor_manifest_total_size": 7508132,
+      "declared_report_sha256": "89afc8b0f6fab5d631d9adeb0b45c5b4532e71223985a33d7458e86575ff0434",
+      "job_state_sha256": "7bc3860ace86de61d67425c6bdf77f8d3a88435e7be88f576cad6ae32f24cdb0",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

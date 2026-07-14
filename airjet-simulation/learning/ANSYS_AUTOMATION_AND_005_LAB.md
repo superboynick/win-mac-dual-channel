@@ -413,3 +413,19 @@ Workbench 也到达 `Model.Refresh()`，但在进入 Mechanical script 前无法
 本轮若直接放宽 centroid/area tolerance，既不会越过 `Model.Refresh()`，又会同时改变算法，导致实验
 无法归因。正确的下一轮只缩短 case prefix；如果短路径进入 Mechanical，才逐个处理 v261 API 与
 单位风险。该例展示了自动化仿真里“先恢复可达性，再调算法”的基本顺序。
+
+### 20.2 第十二次实跑：失败分支也必须保存中间观测
+
+短 case ID 让 Workbench job root 降到 154 字符，`Model.Refresh()` 和 Mechanical script 都返回。
+因此第十一次的 attach 异常不是永久软件不可用；它对 ANSYS 某个 legacy 子组件的路径预算敏感提供
+强支持。
+
+接着 fail-closed classifier 正确拒绝 `INLET=0, OUTLET=1, WALLS=12`。由于 Named Selection 创建位于
+partition validation 之后，本轮没有把错误边界写进模型，这是安全行为。问题在于旧脚本也没有把
+失败前已经算出的 face map 写进 inspection，导致我们知道“入口没匹配”，却不知道最近的实际面差
+多少。
+
+修正方式是在 real validation 之前更新 inspection 的纯观测字段：CAD unit、body/face count、每个
+face 的 ID/centroid/area、candidate labels 和 negative controls。`semantic_reconstruction` 仍为 false，
+不提前创建任何树对象，不放宽容差。静态测试还要断言这个 prevalidation marker 位于真实
+`validate_partition(...)` 之前，避免以后重构时又丢失失败证据。

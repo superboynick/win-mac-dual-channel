@@ -364,6 +364,29 @@ try:
         (name, int(sidecar["boundaries"][name]["expected_count"]))
         for name in ("INLET", "OUTLET", "WALLS")
     )
+    inspection.update(
+        {
+            "cad_unit": cad_unit,
+            "body_count": len(bodies),
+            "expected_face_count": expected_face_count,
+            "expected_named_selection_entity_counts": expected_counts,
+            "face_count": len(face_details),
+            "face_details": face_details,
+            "candidate_face_ids": {
+                "INLET": inlet_ids,
+                "OUTLET": outlet_ids,
+                "WALLS": wall_ids,
+            },
+            "candidate_face_counts": {
+                "INLET": len(inlet_ids),
+                "OUTLET": len(outlet_ids),
+                "WALLS": len(wall_ids),
+            },
+            "classification_stage": (
+                "FACE_CANDIDATES_OBSERVED_BEFORE_COUNT_VALIDATION"
+            ),
+        }
+    )
     if len(face_details) != expected_face_count:
         raise Exception(
             "SEMANTIC_RECONSTRUCTION_FACE_COUNT_MISMATCH:%%d" %% len(face_details)
@@ -382,6 +405,14 @@ try:
             {"INLET": [1], "OUTLET": [2], "WALLS": list(range(3, 13))}
         ),
     }
+    inspection.update(
+        {
+            "negative_controls": negative_controls,
+            "classification_stage": (
+                "NEGATIVE_CONTROLS_OBSERVED_BEFORE_PARTITION_VALIDATION"
+            ),
+        }
+    )
     if not all(negative_controls.values()):
         raise Exception("SEMANTIC_RECONSTRUCTION_NEGATIVE_CONTROL_FAILED")
     validate_partition(
