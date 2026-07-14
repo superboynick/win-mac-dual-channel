@@ -80,6 +80,26 @@ powershell -ExecutionPolicy Bypass -File .\launch-airjet-codex-visible.ps1
 
 该脚本只允许在当前交互桌面会话启动；若从 SSH 运行会明确拒绝，防止产生用户看不见的后台 Codex。
 
+## 签名 Git watcher（当前仍锁定）
+
+双端无人值守同步实现位于 `tools/airjet-git-watcher/`。Windows 源码、测试和
+installer 已纳入 Git，不再使用旧的 `C:\Users\admin\AirJetGitWatcher` 本地脚本。
+协议与 schema 先读：
+
+1. `tools/airjet-git-watcher/README.md`
+2. `airjet-simulation/collaboration/README.md`
+3. `tools/airjet-git-watcher/wake-policy.md`
+
+当前 `RUNTIME_STATUS=DISABLED_PENDING_END_TO_END`。允许执行 status、隔离测试和
+单次 no-wake 同步；禁止直接绕过 manager 调用 watcher/runner。Windows 隔离测试
+固定要求 `WINDOWS_CORE_CASES_PASS=50` 与 `EXPECTED_PASS_COUNT=50`。
+
+真实双端可见唤醒通过后，Windows installer 才允许把 watcher 注册为当前用户的
+`InteractiveToken`、`Limited`、AtLogOn Scheduled Task。它不是服务，不在 session 0
+启动 Codex；installer 不从 Git 导入 trust key，只接受本机预先 bootstrap 且固定
+SHA256 正确的 trust 文件。任何窗口在用户肉眼确认前都只能标记
+`NOT_USER_OBSERVED`。
+
 当前下一轮入口仍是 `airjet-simulation/windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`。只有其 P1 CAD 必需字段通过后，才打开 006。若 30 天官方试用开通，再使用 004。SSH/Git 可以可靠同步这些文件；旧 001 和 003 保留作历史记录，不再作为当前入口。
 
 ## 安全规则

@@ -51,3 +51,19 @@ git rev-list --left-right --count HEAD...origin/main
 2. 已推送且可追溯的工作不得被静默覆盖。
 3. 两端结论不同时，把证据、假设和分歧写入 Git，由用户决定方向；不得靠最后一次推送自动决定工程事实。
 4. 未通过 stage gate 的工作保持未通过；平级协作不降低证据、审计、许可或物理验证门槛。
+
+## 6. 签名 watcher 的自动化边界
+
+双端 watcher 的技术协议见 `collaboration/README.md`。两端分别使用独立的
+Ed25519 commit-signing key；push 权限本身不构成任务授权。自动同步只接受
+clean、线性、可 fast-forward 且 incoming 每条 commit 都通过本地 Git 外信任根
+验证的历史。任务信封必须是 target tip，并由对端专用 key 再签名。
+
+当前版本只允许 `parent_task_id=NONE, hop=0, max_hops=0` 的根任务。自动 reciprocal
+relay、receipt 驱动接力和循环执行均未启用。一个 Codex 可以正常提交并推送成果，
+但不能仅因为“任务完成”就自动改写对端信封；新的唤醒必须由主协调会话建立新的
+签名根任务。这样可在 receipt 亲子验证器完成以前保持 fail-closed。
+
+测试模式永远不能启动真实 Codex。生产运行在 Mac manager/watcher/runner 和
+Windows manager/watcher/runner 三层同时锁定；只有双端隔离测试、真实可见唤醒
+和用户观察通过后，才允许修改 runtime 状态并注册登录启动项。

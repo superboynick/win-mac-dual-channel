@@ -5,7 +5,7 @@ ACTION=${1:-status}
 [ "$#" -eq 0 ] || shift
 POLL_SECONDS=180
 FORCE=0
-RUNTIME_STATUS=DISABLED_PENDING_HARDENING
+RUNTIME_STATUS=DISABLED_PENDING_END_TO_END
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --poll-seconds)
@@ -27,7 +27,12 @@ fi
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 WATCHER=$SCRIPT_DIR/watch-airjet-git.sh
 REPO_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/../../.." && pwd -P)
-STATE_ROOT=${AIRJET_WATCHER_STATE_ROOT:-$HOME/Library/Application Support/AirJetGitWatcher}
+TEST_MODE=${AIRJET_WATCHER_TEST_MODE:-0}
+if [ "$TEST_MODE" = 1 ]; then
+  STATE_ROOT=${AIRJET_WATCHER_STATE_ROOT:?test mode requires AIRJET_WATCHER_STATE_ROOT}
+else
+  STATE_ROOT="$HOME/Library/Application Support/AirJetGitWatcher"
+fi
 case "$STATE_ROOT" in
   "$REPO_ROOT"|"$REPO_ROOT"/*) printf '%s\n' 'BLOCKED_STATE_ROOT_INSIDE_REPOSITORY' >&2; exit 1 ;;
 esac
@@ -35,6 +40,9 @@ esac
 umask 077
 mkdir -p "$STATE_ROOT"
 STATE_ROOT=$(CDPATH= cd -- "$STATE_ROOT" && pwd -P)
+if [ "$TEST_MODE" = 1 ]; then
+  case "$STATE_ROOT" in /private/tmp/*|/private/var/folders/*) ;; *) printf '%s\n' 'BLOCKED_TEST_STATE_OUTSIDE_TEMP' >&2; exit 1 ;; esac
+fi
 case "$STATE_ROOT" in
   "$REPO_ROOT"|"$REPO_ROOT"/*)
     [ "$STATE_ROOT_PREEXISTED" -eq 1 ] || rmdir "$STATE_ROOT" 2>/dev/null || true
@@ -114,6 +122,8 @@ start_watcher() {
     printf 'START_RESULT=REFUSED_%s\n' "$RUNTIME_STATUS" >&2
     exit 1
   }
+  [ "$TEST_MODE" = 0 ] || { printf '%s\n' 'START_RESULT=REFUSED_TEST_MODE' >&2; exit 1; }
+  unset AIRJET_REPO_ROOT AIRJET_EXPECTED_REMOTE AIRJET_WATCHER_STATE_ROOT AIRJET_TEST_RUNNER_MODE || true
   assert_local_gui
   if validated_pid; then printf 'watcher already running: PID %s\n' "$VALIDATED_PID" >&2; exit 1; fi
   [ ! -f "$PENDING_PATH" ] || { printf '%s\n' 'pending event exists; use retry or acknowledge' >&2; exit 1; }
@@ -177,9 +187,19 @@ acknowledge() {
   if validated_pid; then printf '%s\n' 'stop the watcher before acknowledging' >&2; exit 1; fi
   [ -f "$PENDING_PATH" ] || { printf '%s\n' 'ACKNOWLEDGE_RESULT=NO_PENDING_EVENT'; return 0; }
   new=$(state_field new_commit "$PENDING_PATH")
+  task_id=$(state_field task_id "$PENDING_PATH")
   phase=$(state_field phase "$PENDING_PATH")
   case "$phase" in CODEX_EXITED_0|CODEX_FAILED) ;; *) printf 'pending phase %s is not terminal; refusing acknowledgement\n' "$phase" >&2; exit 1 ;; esac
   printf '%s\n' "$new" | grep -Eq '^[0-9a-f]{40}([0-9a-f]{24})?$' || { printf '%s\n' 'pending commit is invalid' >&2; exit 1; }
+  printf '%s\n' "$task_id" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$' || { printf '%s\n' 'pending task ID is invalid' >&2; exit 1; }
+  claim=$STATE_ROOT/processed/$task_id.claim
+  claim_state=$claim/state
+  [ -d "$claim" ] && [ ! -L "$claim" ] && [ -f "$claim_state" ] && [ ! -L "$claim_state" ] || {
+    printf '%s\n' 'processed claim is missing or unsafe; refusing acknowledgement' >&2; exit 1;
+  }
+  [ "$(state_field task_id "$claim_state")" = "$task_id" ] || { printf '%s\n' 'processed claim task ID mismatch' >&2; exit 1; }
+  [ "$(state_field task_commit "$claim_state")" = "$new" ] || { printf '%s\n' 'processed claim commit mismatch' >&2; exit 1; }
+  [ "$(state_field phase "$claim_state")" = "$phase" ] || { printf '%s\n' 'processed claim phase mismatch' >&2; exit 1; }
   destination=$EVENT_ROOT/acknowledged-$new-$(date -u '+%Y%m%dT%H%M%SZ').state
   mv "$PENDING_PATH" "$destination"
   printf 'ACKNOWLEDGE_RESULT=ARCHIVED\nACKNOWLEDGED_PATH=%s\n' "$destination"
@@ -203,6 +223,8 @@ case "$ACTION" in
       printf 'RETRY_RESULT=REFUSED_%s\n' "$RUNTIME_STATUS" >&2
       exit 1
     }
+    [ "$TEST_MODE" = 0 ] || { printf '%s\n' 'RETRY_RESULT=REFUSED_TEST_MODE' >&2; exit 1; }
+    unset AIRJET_REPO_ROOT AIRJET_EXPECTED_REMOTE AIRJET_WATCHER_STATE_ROOT AIRJET_TEST_RUNNER_MODE || true
     assert_local_gui
     validated_pid && { printf '%s\n' 'watcher is already running' >&2; exit 1; }
     [ -f "$PENDING_PATH" ] || { printf '%s\n' 'no pending event to retry' >&2; exit 1; }

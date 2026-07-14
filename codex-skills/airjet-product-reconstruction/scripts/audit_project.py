@@ -24,6 +24,7 @@ REQUIRED = [
     "airjet-simulation/WINDOWS_HANDOFF.md",
     "airjet-simulation/WINDOWS_ENVIRONMENT_REPORT.md",
     "airjet-simulation/PEER_COLLABORATION_PROTOCOL.md",
+    "airjet-simulation/collaboration/README.md",
     "airjet-simulation/evidence/SOURCE_PROVENANCE.md",
     "airjet-simulation/evidence/product_selection_matrix.csv",
     "airjet-simulation/evidence/airjet_mini_performance_curve_digitized.csv",
@@ -40,6 +41,7 @@ REQUIRED = [
     "airjet-simulation/windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md",
     "airjet-simulation/reports/AJM_WIN_ANSYS_CAPABILITY_SMOKE_003_SUMMARY.md",
     "airjet-simulation/reports/AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md",
+    "airjet-simulation/reports/AIRJET_DUAL_ENDPOINT_WATCHER_IMPLEMENTATION_2026-07-14.md",
     "airjet-simulation/evidence/build_layout_candidate_scores.py",
     "airjet-simulation/evidence/extract_official_image_geometry.py",
     "airjet-simulation/evidence/analyze_official_vent_views.py",
@@ -83,9 +85,16 @@ REQUIRED = [
     "tools/airjet-git-watcher/README.md",
     "tools/airjet-git-watcher/wake-policy.md",
     "tools/airjet-git-watcher/mac/manage-airjet-watcher.sh",
+    "tools/airjet-git-watcher/mac/install-mac-watcher.sh",
     "tools/airjet-git-watcher/mac/run-awakened-codex.sh",
     "tools/airjet-git-watcher/mac/watch-airjet-git.sh",
     "tools/airjet-git-watcher/tests/test-watch-airjet-git.sh",
+    "tools/airjet-git-watcher/windows/AirJetWatcher.Common.ps1",
+    "tools/airjet-git-watcher/windows/Watch-AirJetGit.ps1",
+    "tools/airjet-git-watcher/windows/Manage-AirJetWatcher.ps1",
+    "tools/airjet-git-watcher/windows/Run-AwakenedCodex.ps1",
+    "tools/airjet-git-watcher/windows/Install-AirJetWatcher.ps1",
+    "tools/airjet-git-watcher/tests/test-watch-airjet-git-windows.ps1",
 ]
 
 MANUALS = [
@@ -155,6 +164,10 @@ def main() -> int:
             "BLOCKED_EVENT_ROOT_NOT_DIRECT_STATE_CHILD",
             "BLOCKED_LOG_ROOT_NOT_DIRECT_STATE_CHILD",
             "BLOCKED_PENDING_REMOTE_MOVED",
+            "BLOCKED_UNTRUSTED_COMMIT",
+            "task_tip_not_signed_by_windows_peer",
+            "automatic_relay_not_enabled",
+            "RUNTIME_STATUS=DISABLED_PENDING_END_TO_END",
             "unsafe_instruction_object_type",
             "SYNCED_NO_MAC_TASK",
         ):
@@ -162,14 +175,17 @@ def main() -> int:
                 failures.append(f"Mac watcher lacks safety marker: {marker}")
     if manager_path.is_file():
         manager_text = read_text(manager_path)
-        if "RUNTIME_STATUS=DISABLED_PENDING_HARDENING" not in manager_text:
-            failures.append("Mac watcher manager is not runtime-locked pending review")
+        if "RUNTIME_STATUS=DISABLED_PENDING_END_TO_END" not in manager_text:
+            failures.append("Mac watcher manager is not runtime-locked pending end-to-end review")
     if runner_path.is_file():
         runner_text = read_text(runner_path)
         for marker in (
             "BLOCKED_REPORT_ROOT_SYMLINK",
             "BLOCKED_REPORT_ROOT_INSIDE_REPOSITORY",
-            "BLOCKED_PROMPT_MISSING_OR_SYMLINKED",
+            "BLOCKED_PROMPT_HANDLE_MISSING_OR_SYMLINKED",
+            "RUNNER_RESULT=REFUSED_",
+            "BLOCKED_TEST_MODE_CODEX_START",
+            "approval_policy=\"never\"",
         ):
             if marker not in runner_text:
                 failures.append(f"Mac watcher runner lacks safety marker: {marker}")
@@ -184,10 +200,54 @@ def main() -> int:
             "state_child_symlink_block",
             "report_root_symlink_block",
             "manager_start_disabled",
+            "unsigned_commit_block",
+            "self_signed_task_block",
+            "revoked_signer_block",
+            "automatic_relay_block",
+            "EXPECTED_PASS_COUNT=80",
             "VISIBLE_WAKE_TEST=SKIPPED_BY_DESIGN",
         ):
             if marker not in test_text:
                 failures.append(f"Mac watcher test lacks case marker: {marker}")
+
+    windows_common = repo / "tools/airjet-git-watcher/windows/AirJetWatcher.Common.ps1"
+    windows_watcher = repo / "tools/airjet-git-watcher/windows/Watch-AirJetGit.ps1"
+    windows_manager = repo / "tools/airjet-git-watcher/windows/Manage-AirJetWatcher.ps1"
+    windows_runner = repo / "tools/airjet-git-watcher/windows/Run-AwakenedCodex.ps1"
+    windows_installer = repo / "tools/airjet-git-watcher/windows/Install-AirJetWatcher.ps1"
+    windows_test = repo / "tools/airjet-git-watcher/tests/test-watch-airjet-git-windows.ps1"
+    windows_markers = {
+        windows_common: (
+            "DISABLED_PENDING_END_TO_END",
+            "WINDOWS_TASK.env",
+            "MAC_TASK.env",
+            "gpg.minTrustLevel=fully",
+            "--no-replace-objects",
+            "BLOCKED_RELAY_NOT_ENABLED",
+            "[IO.FileMode]::CreateNew",
+        ),
+        windows_watcher: (
+            "BLOCKED_RUNTIME_",
+            "BLOCKED_TEST_MODE_WAKE_FORBIDDEN",
+            "BLOCKED_CRITICAL_WATCHER_UPDATE",
+            "SHELL_REQUESTED_NOT_USER_OBSERVED",
+        ),
+        windows_manager: ("DISABLED_PENDING_END_TO_END", "'start'", "'retry'"),
+        windows_runner: (
+            "BLOCKED_TEST_MODE_CODEX_FORBIDDEN",
+            "ENABLED_AFTER_END_TO_END",
+            "approval_policy=\"never\"",
+        ),
+        windows_installer: ("InteractiveToken", "RegisterAtLogOn", "BLOCKED_REGISTER_RUNTIME_NOT_ENABLED"),
+        windows_test: ("EXPECTED_PASS_COUNT=$ExpectedPassCount", "OVERALL=PASS_CORE_RUNTIME_DISABLED"),
+    }
+    for path, markers in windows_markers.items():
+        if not path.is_file():
+            continue
+        text = read_text(path)
+        for marker in markers:
+            if marker not in text:
+                failures.append(f"Windows watcher file lacks safety marker: {path.name}: {marker}")
 
     manual_dir = repo / "airjet-simulation/manuals"
     for manual in MANUALS:

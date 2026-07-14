@@ -62,6 +62,7 @@ $Required = @(
     'airjet-simulation\WINDOWS_HANDOFF.md',
     'airjet-simulation\WINDOWS_ENVIRONMENT_REPORT.md',
     'airjet-simulation\PEER_COLLABORATION_PROTOCOL.md',
+    'airjet-simulation\collaboration\README.md',
     'airjet-simulation\SKILLS_AND_GIT_WORKFLOW.md',
     'airjet-simulation\evidence\SOURCE_PROVENANCE.md',
     'airjet-simulation\evidence\product_selection_matrix.csv',
@@ -79,6 +80,7 @@ $Required = @(
     'airjet-simulation\windows-prompts\AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md',
     'airjet-simulation\reports\AJM_WIN_ANSYS_CAPABILITY_SMOKE_003_SUMMARY.md',
     'airjet-simulation\reports\AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md',
+    'airjet-simulation\reports\AIRJET_DUAL_ENDPOINT_WATCHER_IMPLEMENTATION_2026-07-14.md',
     'airjet-simulation\evidence\build_layout_candidate_scores.py',
     'airjet-simulation\evidence\extract_official_image_geometry.py',
     'airjet-simulation\evidence\analyze_official_vent_views.py',
@@ -121,9 +123,16 @@ $Required = @(
     'tools\airjet-git-watcher\README.md',
     'tools\airjet-git-watcher\wake-policy.md',
     'tools\airjet-git-watcher\mac\manage-airjet-watcher.sh',
+    'tools\airjet-git-watcher\mac\install-mac-watcher.sh',
     'tools\airjet-git-watcher\mac\run-awakened-codex.sh',
     'tools\airjet-git-watcher\mac\watch-airjet-git.sh',
-    'tools\airjet-git-watcher\tests\test-watch-airjet-git.sh'
+    'tools\airjet-git-watcher\tests\test-watch-airjet-git.sh',
+    'tools\airjet-git-watcher\windows\AirJetWatcher.Common.ps1',
+    'tools\airjet-git-watcher\windows\Watch-AirJetGit.ps1',
+    'tools\airjet-git-watcher\windows\Manage-AirJetWatcher.ps1',
+    'tools\airjet-git-watcher\windows\Run-AwakenedCodex.ps1',
+    'tools\airjet-git-watcher\windows\Install-AirJetWatcher.ps1',
+    'tools\airjet-git-watcher\tests\test-watch-airjet-git-windows.ps1'
 )
 
 foreach ($Relative in $Required) {
@@ -146,6 +155,10 @@ if (Test-Path -LiteralPath $MacWatcherPath -PathType Leaf) {
         'BLOCKED_EVENT_ROOT_NOT_DIRECT_STATE_CHILD',
         'BLOCKED_LOG_ROOT_NOT_DIRECT_STATE_CHILD',
         'BLOCKED_PENDING_REMOTE_MOVED',
+        'BLOCKED_UNTRUSTED_COMMIT',
+        'task_tip_not_signed_by_windows_peer',
+        'automatic_relay_not_enabled',
+        'RUNTIME_STATUS=DISABLED_PENDING_END_TO_END',
         'unsafe_instruction_object_type',
         'SYNCED_NO_MAC_TASK'
     )) {
@@ -154,8 +167,8 @@ if (Test-Path -LiteralPath $MacWatcherPath -PathType Leaf) {
 }
 if (Test-Path -LiteralPath $MacWatcherManagerPath -PathType Leaf) {
     $MacWatcherManagerText = Read-Utf8 $MacWatcherManagerPath
-    if (-not $MacWatcherManagerText.Contains('RUNTIME_STATUS=DISABLED_PENDING_HARDENING')) {
-        Add-Failure 'Mac watcher manager is not runtime-locked pending review'
+    if (-not $MacWatcherManagerText.Contains('RUNTIME_STATUS=DISABLED_PENDING_END_TO_END')) {
+        Add-Failure 'Mac watcher manager is not runtime-locked pending end-to-end review'
     }
 }
 if (Test-Path -LiteralPath $MacWatcherRunnerPath -PathType Leaf) {
@@ -163,7 +176,10 @@ if (Test-Path -LiteralPath $MacWatcherRunnerPath -PathType Leaf) {
     foreach ($Marker in @(
         'BLOCKED_REPORT_ROOT_SYMLINK',
         'BLOCKED_REPORT_ROOT_INSIDE_REPOSITORY',
-        'BLOCKED_PROMPT_MISSING_OR_SYMLINKED'
+        'BLOCKED_PROMPT_HANDLE_MISSING_OR_SYMLINKED',
+        'RUNNER_RESULT=REFUSED_',
+        'BLOCKED_TEST_MODE_CODEX_START',
+        'approval_policy="never"'
     )) {
         if (-not $MacWatcherRunnerText.Contains($Marker)) { Add-Failure "Mac watcher runner lacks safety marker: $Marker" }
     }
@@ -179,9 +195,38 @@ if (Test-Path -LiteralPath $MacWatcherTestPath -PathType Leaf) {
         'state_child_symlink_block',
         'report_root_symlink_block',
         'manager_start_disabled',
+        'unsigned_commit_block',
+        'self_signed_task_block',
+        'revoked_signer_block',
+        'automatic_relay_block',
+        'EXPECTED_PASS_COUNT=80',
         'VISIBLE_WAKE_TEST=SKIPPED_BY_DESIGN'
     )) {
         if (-not $MacWatcherTestText.Contains($Marker)) { Add-Failure "Mac watcher test lacks case marker: $Marker" }
+    }
+}
+
+$WindowsWatcherFiles = @{
+    'AirJetWatcher.Common.ps1' = @('DISABLED_PENDING_END_TO_END','WINDOWS_TASK.env','MAC_TASK.env','gpg.minTrustLevel=fully','--no-replace-objects','BLOCKED_RELAY_NOT_ENABLED','[IO.FileMode]::CreateNew')
+    'Watch-AirJetGit.ps1' = @('BLOCKED_RUNTIME_','BLOCKED_TEST_MODE_WAKE_FORBIDDEN','BLOCKED_CRITICAL_WATCHER_UPDATE','SHELL_REQUESTED_NOT_USER_OBSERVED')
+    'Manage-AirJetWatcher.ps1' = @('DISABLED_PENDING_END_TO_END',"'start'", "'retry'")
+    'Run-AwakenedCodex.ps1' = @('BLOCKED_TEST_MODE_CODEX_FORBIDDEN','ENABLED_AFTER_END_TO_END','approval_policy="never"')
+    'Install-AirJetWatcher.ps1' = @('InteractiveToken','RegisterAtLogOn','BLOCKED_REGISTER_RUNTIME_NOT_ENABLED')
+}
+foreach ($Name in $WindowsWatcherFiles.Keys) {
+    $Path = Join-Path $RepoRoot (Join-Path 'tools\airjet-git-watcher\windows' $Name)
+    if (Test-Path -LiteralPath $Path -PathType Leaf) {
+        $Text = Read-Utf8 $Path
+        foreach ($Marker in $WindowsWatcherFiles[$Name]) {
+            if (-not $Text.Contains($Marker)) { Add-Failure "Windows watcher file lacks safety marker: ${Name}: $Marker" }
+        }
+    }
+}
+$WindowsWatcherTestPath = Join-Path $RepoRoot 'tools\airjet-git-watcher\tests\test-watch-airjet-git-windows.ps1'
+if (Test-Path -LiteralPath $WindowsWatcherTestPath -PathType Leaf) {
+    $Text = Read-Utf8 $WindowsWatcherTestPath
+    foreach ($Marker in @('EXPECTED_PASS_COUNT=$ExpectedPassCount','OVERALL=PASS_CORE_RUNTIME_DISABLED')) {
+        if (-not $Text.Contains($Marker)) { Add-Failure "Windows watcher test lacks marker: $Marker" }
     }
 }
 
