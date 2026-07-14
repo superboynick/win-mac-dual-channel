@@ -336,3 +336,7 @@ SHA 身份正确 -> 生产软件可重开 -> 下游软件可附加 -> 语义/网
 ```
 
 每一箭头都需要新的运行证据。前一步 PASS 只是排除一类原因，不能替代后一步。
+
+第五次签名运行进一步把旧更新顺序替换为 `Model.Update(AllDependencies=True)`，但 attach 错误不变。
+到达标记显示 `SetFile` 返回、Update 被调用但未返回，其后全部未到达。由此只排除旧更新顺序这一
+窄假设；下一步才允许单独改变为 Geometry source→`TransferData` 数据流架构。

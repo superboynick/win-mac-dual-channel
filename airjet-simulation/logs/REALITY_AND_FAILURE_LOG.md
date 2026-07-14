@@ -449,6 +449,36 @@
   inspection、粗网格、project save、Volume Extract API、原生 driving parameter、005 或 P1 PASS。
 - 状态：OPEN_WORKBENCH_GEOMETRY_ATTACH_ROUTE_PENDING_SIGNED_RETRY_SC_PASS_PRESERVED
 
+## REAL-20260714-025：Model.Update(AllDependencies=True) 未关闭同一 attach 失败
+
+- UTC：2026-07-14T19:47:56Z
+- Stage/task：005 T1 / 第五次 CAD transfer suite
+- run/jobs：`AJM005_T1_CAD_SUITE_20260714T194756378277Z_87034366`；SC
+  `...-8dc6d985f23d`；WB `...-04b25837c835`。
+- 单变量假设：第四轮可能因 `Model.UpdateUpstreamComponents(); Model.Refresh()` 的更新顺序导致
+  attach 失败。保持 `.scdocx`、Static Structural、Geometry `SetFile`、Named Selection import
+  属性、predecessor 身份和 Mechanical 检查不变，只替换为
+  `Model.Update(AllDependencies=True)`。
+- 实际结果：SC 七项再次 PASS。WB predecessor identity PASS；`geometry_set_file=RETURNED`、
+  `model_update_all_dependencies=CALLED` 但未 RETURNED；错误仍为 Static Structural Model 更新失败，
+  无法附加 `.scdocx` geometry structure。`model_refresh=NOT_CALLED_BY_ROUTE`，model container、
+  Mechanical inspection、mesh 和 project save 全部 `NOT_REACHED`。
+- 原始证据：suite SHA-256
+  `cc64f6e8da11d01b45e1eb412753abc816be5c58ef1b2e7772e197216756568b`；MCP stderr SHA-256
+  `2de5b54aa653cc5b72be38c77011ed57c54d2d52073648066b289b7b0420f5a4`；SC/WB report SHA-256
+  分别为 `654518f1204e2579a3047a76f4d8f2c21fe4919bb468751d129ba5760baf897b` 和
+  `21389b0defc6719f42cdb069a32cfc8c6aac1f3a06133893b65b2701dd6c85c6`；
+  2026-07-14T19:51:21.6178890Z 现场相关进程数为 0。
+- 结论边界：新运行排除了“只有旧 update/refresh 顺序导致失败”的窄假设；它没有证明 `.scdocx`
+  在 v261 所有 Workbench 路线都不受支持，也没有测试 Mechanical 本身。官方 ReaderFilter 仍列出
+  `*.scdoc;*.scdocx`，所以不能用本次失败反推格式全局不支持。
+- 下一最小实验：保持 `.scdocx` 不变，改用同机官方 sample 的独立 Geometry source 与
+  `TransferData(TargetComponent=Static.Geometry)` 架构；不得在同轮同时换 STEP、`.scdoc` 或
+  DesignModeler，否则无法归因。
+- 对 Gate/论文主张的影响：SC partial PASS 可复现；完整 transfer set 仍 FAIL。P1 readiness
+  BLOCKED，P1–P6 NOT_RUN。
+- 状态：CLOSED_UPDATE_ORDER_HYPOTHESIS_TRANSFERDATA_ROUTE_PENDING
+
 ## 新条目模板
 
 ```text
