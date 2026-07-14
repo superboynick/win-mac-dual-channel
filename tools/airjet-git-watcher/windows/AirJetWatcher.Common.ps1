@@ -89,7 +89,7 @@ function Invoke-AirJetGit {
                 Remove-Item -LiteralPath "Env:$($entry.Name)"
             }
         }
-        $env:GIT_SSH_COMMAND = 'C:\Windows\System32\OpenSSH\ssh.exe -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -p 443'
+        $env:GIT_SSH_COMMAND = 'C:/Windows/System32/OpenSSH/ssh.exe -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -p 443'
         $env:GIT_SSH_VARIANT = 'ssh'
         $all = @('--no-replace-objects','-C', $script:RepoRoot) + $Arguments
         $output = @(& $script:GitExe @all 2>&1 | ForEach-Object { $_.ToString() })

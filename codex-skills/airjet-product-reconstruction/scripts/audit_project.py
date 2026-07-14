@@ -228,6 +228,7 @@ def main() -> int:
             "BLOCKED_RELAY_NOT_ENABLED",
             "[IO.FileMode]::CreateNew",
             "GIT_SSH_VARIANT",
+            "C:/Windows/System32/OpenSSH/ssh.exe",
         ),
         windows_watcher: (
             "BLOCKED_RUNTIME_",
