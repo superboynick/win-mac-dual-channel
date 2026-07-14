@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "task": "AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
+  "suite": "workbench_connected_spaceclaim_t1_diagnostic",
+  "suite_status": "FAIL_CONNECTED_SPACECLAIM_TRANSFER_DIAGNOSTIC",
+  "git_head": "f15aae34c6a3b7cf1d5fe3ea07b63cdee2b3e33a",
+  "case_id": "a5c-ab68b630caaa",
+  "started_at": "2026-07-14T23:09:03.934067+00:00",
+  "ended_at": "2026-07-14T23:11:50.580887+00:00",
+  "external_result_path": "C:\\Users\\admin\\Downloads\\AIRJET_ANSYS_STUDENT_SMOKE_005\\AJM005_T1_CONNECTED_SC_SUITE_20260714T230903934067Z_ad740c2f.json",
+  "external_result_size": 59322,
+  "external_result_sha256": "58d5fb4dde9e4c8627f4850225ed884e666082036b8ca37429a1290636922f5b",
+  "external_mcp_stderr_size": 7349,
+  "external_mcp_stderr_sha256": "7ea09aa4de55cc6ec73df5f68bbdbd10216b8f0f3f4987e8af22c3103cfb0ecd",
+  "runner_sha256": "f5ae07088f89e9d388a2769933abbf4ca1d20c8f777c1b92c10b6098b8812c37",
+  "license_arguments_added": false,
+  "visibility": "NOT_USER_OBSERVED",
+  "p1_cad_toolchain_readiness": "BLOCKED",
+  "p1_cad_blocker": "EXTERNAL_NATIVE_ATTACH_AND_NATIVE_PARAMETERIZATION_NOT_PROVEN",
+  "p1_p6_gates": "NOT_RUN",
+  "diagnostic_scope": {
+    "route": "WORKBENCH_MANAGED_CONNECTED_SPACECLAIM_DOCUMENT",
+    "external_scdocx_attach": "NOT_RUN",
+    "external_native_named_selection_transfer": "NOT_RUN",
+    "native_parameterization": "NOT_RUN",
+    "full_product_cad": "NOT_RUN"
+  },
+  "post_suite_process_observation": {
+    "observed_at_utc": "2026-07-14T23:13:56.0285117Z",
+    "count": 0,
+    "method": "PowerShell Get-Process name allowlist counted after suite completion"
+  },
+  "runs": [
+    {
+      "profile_id": "ajm005-spaceclaim-cad-t1-v1",
+      "job_id": "a5c-ab68b630caaa-6338801f9872",
+      "script_sha256": "4fdaf2f1f5ae2063f79b99adc8ac6ae91a147032c1386fc4119b5abd4ceff17e",
+      "started_at": "2026-07-14T23:09:06.539850+00:00",
+      "ended_at": "2026-07-14T23:09:30.999957+00:00",
+      "duration_seconds": 24.460107,
+      "phase": "PROCESS_EXITED_0",
+      "exit_code": 0,
+      "report_status": "PASS_PARTIAL_CAD_CAPABILITY",
+      "engineering_capability": "PASS_PARTIAL_CAD_CAPABILITY",
+      "assertions_all_true": true,
+      "transfer_native": {
+        "size": 32142,
+        "sha256": "23dcfa4309d7b0a850eb99e7431d609d1e3cbfc4d5425cffc9a5d9bab1896cb1"
+      },
+      "manifest_total_size": 177552,
+      "manifest_file_count": 20,
+      "declared_report_sha256": "29d8f21ed4d5d4372fd3f8ada318d6a6e16771c4bb7b0a6d9a021e2904b49d26",
+      "job_state_sha256": "78cea57d82c9e702bdc01e4d12afaa3924ad4d055cc886429ccb3a1b7963d8de",
+      "stdout_sha256": "9223a5d3e81c7e5fa206a016877b302950f73bbafc7959e2746f570caa3454d3",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "profile_id": "ajm005-workbench-connected-spaceclaim-t1-v1",
+      "job_id": "a5c-ab68b630caaa-a6a5526bae67",
+      "predecessor_job_id": "a5c-ab68b630caaa-6338801f9872",
+      "script_sha256": "0f2f266d47a1e376e845dd144d3f76ea5dfe02a65a63c868c2f839084429e6bd",
+      "started_at": "2026-07-14T23:09:32.925151+00:00",
+      "ended_at": "2026-07-14T23:11:49.727144+00:00",
+      "duration_seconds": 136.801993,
+      "phase": "FAILED_PROCESS",
+      "exit_code": 2,
+      "report_status": "FAIL_CONNECTED_SPACECLAIM_DIAGNOSTIC",
+      "engineering_capability": "FAIL_CONNECTED_SPACECLAIM_DIAGNOSTIC",
+      "failure": "FAIL_CONNECTED_EDITOR_BUILD_REPORT_MISSING",
+      "geometry_file_path_before_edit": "",
+      "connected_build_script": {
+        "size": 7243,
+        "sha256": "bf10e67ad3888aa55fd56d945b35f714174ae2b62c350c77c0785a13766f8366"
+      },
+      "execution_reach": {
+        "predecessor_control_identity": "PASS",
+        "empty_geometry_system": "RETURNED",
+        "connected_editor_edit": "RETURNED",
+        "connected_editor_run_script": "RETURNED",
+        "connected_editor_exit_save": "RETURNED",
+        "connected_build_contract": "CALLED",
+        "static_system_with_components_share": "NOT_REACHED",
+        "source_geometry_file_and_save_data": "NOT_REACHED",
+        "model_container": "NOT_REACHED",
+        "model_refresh": "NOT_REACHED",
+        "mechanical_inspection": "NOT_REACHED",
+        "project_save": "NOT_REACHED",
+        "predecessor_control_recheck": "RETURNED"
+      },
+      "predecessor_control_unchanged": true,
+      "manifest_total_size": 68274,
+      "manifest_file_count": 19,
+      "declared_report_sha256": "1e29128b0312c853820428e7bc9be6fb3c409db3ecd151841b2ce699c82f786d",
+      "job_state_sha256": "6f19c6eb7c58d9ed9feb6072bb65ac111daf360368f513f0f6e08993c5a3d71c",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "workbench_log_sha256": "5dd828a556f6b20db79483d45ef0d02d99758427bd81b64d61686ea29990e5da",
+      "workbench_fatal_log_sha256": "83238038b96b4153fb89093cb900c2fc78778a816628049187c98b3d7590333c",
+      "workbench_recorded_journal_sha256": "7d7d4383e71823188d7bcf022ca9798ed450d4495e5cf7486151a5a32de7ed80"
+    }
+  ],
+  "non_causal_observations": [
+    {
+      "observation": "Workbench logged JobManagerUnAvailable because the Remote Solve Manager component was not installed and a ProgramData path lookup required an absolute path.",
+      "classification": "NONBLOCKING_FOR_THIS_ROUTE_NO_CAUSAL_LINK_ESTABLISHED",
+      "reason": "The run subsequently created the project and returned Edit, RunScript and Exit; no remote queue or solve was requested."
+    }
+  ]
+}

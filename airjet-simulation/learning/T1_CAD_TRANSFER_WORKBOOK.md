@@ -846,3 +846,54 @@ Workbench job 总时长为 282.115 秒，traceback 的异常点是 `Model.Refres
 system，进入与该 cell 连接的 SpaceClaim editor，在 connected document 内构造同一个 disposable
 fixture，退出 editor 后再 share 到 Static Structural。它若通过，只证明 Workbench-managed connected
 document 可用；仍不证明 external `.scdocx` attach 已修复，也不证明 native parameterization 或 P1。
+
+## 26. 第十八次实跑：API 返回不等于内层脚本证据已经产生
+
+connected-document diagnostic 被拆成独立 profile，是为了不改写前十七次 external `.scdocx` attach
+历史。它从空 Geometry cell 开始，先硬检查 `GeometryFilePath=""`，再执行非交互 SpaceClaim Edit、
+`RunScript` 和 Exit；前驱只给 producer report 作 control，刻意不给 `.scdocx`、STEP 或 sidecar。
+
+首轮 reach 如下：
+
+| checkpoint | observation | what it proves | what it does not prove |
+|---|---|---|---|
+| predecessor | identity PASS，前后 size/SHA 不变 | control 没被下游改写 | connected 几何已建立 |
+| empty Geometry | RETURNED，path 为空 | 没有偷偷 attach external file | editor document 一定可写 |
+| Edit | RETURNED | Workbench API 调用没有向外抛错 | SpaceClaim 内层初始化完全成功 |
+| RunScript | RETURNED | 外层调用返回 | script 已执行到几何构造或写报告 |
+| Exit | RETURNED | 外层退出调用返回 | embedded script 没有早期异常 |
+| build report | missing | 预期证据未产生 | 几何算法本身失败 |
+| share / Mechanical | NOT_REACHED | 没有后续观测 | transfer 或 mesh 分别失败 |
+
+这里最重要的学习点是“控制 API 的返回值”和“被控制进程产生的工程证据”是两个层次。runner 不能
+只因为 `RunScript` 返回就把 `connected_editor_build=true`；它必须要求 build JSON、几何指纹和
+Named Groups 精确合同。正因为 fail closed，本轮没有制造一个假 PASS。
+
+当前嵌入脚本的可观测性顺序有缺陷：先 imports，再读取
+`os.environ["AIRJET_JOB_DIR"]`，之后才建立 report path、result 和 try/finally。若 connected host 中
+变量缺失、陈旧或指向另一个 job，它会在能够自报错之前退出或把报告写到别处。RSM 日志也显示该批
+Workbench 环境没有 `PROGRAMDATA`，说明特殊目录环境确实可能与普通进程不同；但 RSM 与 fixture
+没有直接因果关系，所以这只能提升环境假设优先级，不能确认根因。
+
+下一轮只修可观测性，不改 fixture 几何和 transfer route：
+
+1. 外层 journal 把绝对 sentinel/report/job path 写入嵌入脚本；
+2. sentinel 在任何 import 前用 builtin `open` 落盘；
+3. imports 后记录 `os.environ.get("AIRJET_JOB_DIR")` 的真实值；
+4. 顶层捕获当前 stage、exception type 和 traceback；
+5. build contract 继续要求 1 body、13 faces、闭合/manifold、1/1/11 groups；
+6. 只有 build report PASS 才允许 share 和 Mechanical。
+
+判读矩阵：
+
+| sentinel | recorded env | build report | inference |
+|---|---|---|---|
+| missing | unknown | missing | 优先查 RunScript 未执行、错误会话、脚本读取或目标写权限 |
+| present | missing/wrong | present | 环境传播假设得到直接支持 |
+| present | correct | missing | 环境假设被削弱，转查 imports/host/final write |
+| present | any | FAIL JSON | 按精确 stage/traceback 做下一次单变量修复 |
+| present | any | PASS JSON | 才能继续检验 share、Refresh、Named Selection、mesh 和 project |
+
+Workbench job 总时长 136.802 秒，日志中第二次 project-created 到最终外层异常约 120 秒；但没有
+分段计时，不能把这 120 秒分配给 Edit、RunScript 或 Exit 的任一个。论文方法记录必须保留这种
+时间归因边界。

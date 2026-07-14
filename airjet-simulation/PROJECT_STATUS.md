@@ -82,6 +82,12 @@
   `Model.Refresh()`；整个 WB job 为 282.115 秒。结果关闭“本轮可写 staging 足以修复 attach”这一
   窄假设，但不能全局排除权限与其他因素联合作用。下一轮改查 Workbench-managed SpaceClaim
   Geometry editor 内部文档创建/导入的 materialization route，不再叠加路径或权限 workaround。
+  commit `f15aae3...` 已把该路线拆成独立 connected-document diagnostic 并首轮实跑：空 Geometry
+  cell、Edit、RunScript 和 Exit 都返回，但内层 `connected_spaceclaim_build.json` 未生成；因此在
+  share/save-data/Refresh/Mechanical 之前 fail closed。当前只能定位为内层脚本执行或输出证据缺失，
+  不能称为 connected transfer 已失败。`AIRJET_JOB_DIR` 在 SpaceClaim host 中缺失、陈旧或指向其他
+  job 是优先假设而非确认根因。下一轮只嵌入绝对路径并增加 import 前 sentinel/stage/traceback，保持
+  fixture、API 顺序、前驱范围和 Gate 合同不变。
 - 已新增学习入口、ANSYS/005 实验手册、现实失败日志、run index 和论文方法—证据映射；
   后续每次运行会同步保留小型脱敏机器证据和 Git 外大产物哈希。
 - Gen1 两张官方产品透视图已分别做 homography、10,000 次像素误差 Monte Carlo 和跨视图差比较；四个画出 vent 只作为 `I` 类顶盖候选，不用于推断 cell 数。
@@ -99,7 +105,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP semantic reconstruction diagnostic PASS；145-character writable native `.scdocx` 仍 attach FAIL；native Named Selection transfer/native driving parameter NOT_PROVEN；P1 BLOCKED） | hash-bound STEP+sidecar 已在可删除 fixture 上唯一重建 1/1/11 边界，四项负向检查、1063/513 粗网格和 project save 通过；这是 solver-side reconstruction。native 短路径与 hash-equal writable-staging 两轮均在 Model.Refresh direct FAIL；下一轮改变 Workbench-managed native materialization route，再建立独立 native parameter 合同；之后仍要完成 Mechanical/Fluent T1，才可判断 005 是否允许进入 006 |
+| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP semantic reconstruction diagnostic PASS；145-character writable native `.scdocx` 仍 attach FAIL；connected 首轮缺 build report、transfer 未到达；native Named Selection transfer/native driving parameter NOT_PROVEN；P1 BLOCKED） | hash-bound STEP+sidecar 已在可删除 fixture 上唯一重建 1/1/11 边界，四项负向检查、1063/513 粗网格和 project save 通过；这是 solver-side reconstruction。native 短路径与 hash-equal writable-staging 两轮均在 Model.Refresh direct FAIL；connected 首轮只到 Edit/RunScript/Exit 返回，下一轮先用 literal path + early sentinel 恢复子脚本可观测性，再建立独立 native parameter 合同；之后仍要完成 Mechanical/Fluent T1，才可判断 005 是否允许进入 006 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -111,10 +117,12 @@
 ## 3. 下一步执行顺序
 
 1. 以已通过的 T0、SpaceClaim partial CAD 和 STEP semantic reconstruction diagnostic 为边界，在
-   Windows 继续 005 T1。native 短路径和 writable-staging 已在同一点失败；下一次保持 producer、
-   `.scdocx`、短 case、五项 assertions 与 frozen evidence 不变，只改为 Workbench-managed
-   SpaceClaim Geometry editor 内部创建/导入 native working document 的 materialization route。
-   不得在 native profile 中用 solver-side reconstruction 补名。native transfer 后另建原生 parameter
+   Windows 继续 005 T1。native 短路径和 writable-staging 已在同一点失败；connected editor 首轮
+   尚未生成内层 build report，所以 transfer 未到达。下一次保持 fixture、empty-cell Edit/RunScript/
+   Exit、predecessor report-only control、Mechanical assertions 和 Gate 边界不变，只把 job/report/
+   sentinel 绝对路径渲染进 child，并在 imports 前落 sentinel、记录实际环境和异常 stage。不得在
+   native profile 中用 solver-side reconstruction 补名。connected route 可观测且通过后，仍要回到
+   external native transfer，并另建原生 parameter
    object/update/reopen 合同，
    再分别做 Mechanical 与 Fluent 可删除 T1 小模型。所有输入使用精确冻结 SHA；所有运行写
    `VISIBILITY=NOT_USER_OBSERVED`；这些完成前不启动 006。

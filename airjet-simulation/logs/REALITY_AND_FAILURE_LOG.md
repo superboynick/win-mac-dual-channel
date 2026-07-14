@@ -969,6 +969,74 @@
 - Gate 影响：NONE；此问题在 ANSYS suite 启动前已关闭，不能用于解释本轮 native attach 失败。
 - 状态：CLOSED_CORRECT_WINDOWS_INSTALLER_USED
 
+## REAL-20260714-041：connected editor 首轮在 build report 落盘前失去可观测性
+
+- UTC：2026-07-14T23:09:03Z
+- Stage/task：005 T1 / 第十八次、首轮独立 connected SpaceClaim document diagnostic
+- run/jobs：`AJM005_T1_CONNECTED_SC_SUITE_20260714T230903934067Z_ad740c2f`；SC
+  `a5c-ab68b630caaa-6338801f9872`；WB `a5c-ab68b630caaa-a6a5526bae67`；签名 commit
+  `f15aae34c6a3b7cf1d5fe3ea07b63cdee2b3e33a`。
+- 设计边界：Workbench 从 `GeometryFilePath=""` 的空 Geometry cell 进入 connected SpaceClaim；
+  没有 `SetFile`、`DocumentOpen` 或 external `DocumentSave`。前驱只复制 producer report 作为 control，
+  不消费 `.scdocx`、STEP 或 sidecar。该 profile 无论成败都不改 external/native/P1 canonical claims。
+- producer：24.460107 秒正常退出，八项 assertions 全 true；transfer native 为 32142 bytes、
+  SHA-256 `23dcfa4309d7b0a850eb99e7431d609d1e3cbfc4d5425cffc9a5d9bab1896cb1`；report
+  SHA-256 `29d8f21ed4d5d4372fd3f8ada318d6a6e16771c4bb7b0a6d9a021e2904b49d26`。
+- consumer reach：前驱 control PASS、空 Geometry cell RETURNED、connected `Edit` RETURNED、
+  `RunScript` RETURNED、`Exit` RETURNED；随后检查
+  `connected_spaceclaim_build.json` 时发现文件不存在，精确错误为
+  `FAIL_CONNECTED_EDITOR_BUILD_REPORT_MISSING`。share/save-data/Refresh/Mechanical/mesh/project 全部
+  `NOT_REACHED`。前驱 report 前后 size/SHA 不变。
+- 可观测性缺口：嵌入脚本在建立 `result` 和 `try/except` 前读取 `AIRJET_JOB_DIR`；如果 connected
+  SpaceClaim 进程未继承该变量，就会在最早处退出且无法写报告。该解释合理但未证实；早期 import/API
+  异常、RunScript 异常不传播或落盘时序仍是并列解释。
+- 原始证据：suite/MCP SHA-256 分别为
+  `58d5fb4dde9e4c8627f4850225ed884e666082036b8ca37429a1290636922f5b` 与
+  `7ea09aa4de55cc6ec73df5f68bbdbd10216b8f0f3f4987e8af22c3103cfb0ecd`；WB report/job-state
+  SHA-256 分别为 `1e29128b0312c853820428e7bc9be6fb3c409db3ecd151841b2ce699c82f786d` 与
+  `6f19c6eb7c58d9ed9feb6072bb65ac111daf360368f513f0f6e08993c5a3d71c`；
+  2026-07-14T23:13:56.0285117Z 相关进程数为 0。
+- 下一最小实验：不改几何和 transfer 合同，只把绝对 job/report path 嵌入 build script，并在任何
+  SpaceClaim import/API 前写 early sentinel；顶层捕获 stage/type/traceback。先恢复可观测性，再按
+  精确异常决定是否修 route。
+- Gate/论文影响：suite 为 `FAIL_CONNECTED_SPACECLAIM_TRANSFER_DIAGNOSTIC`；这不是 external native
+  transfer 失败的新证据，也不是许可/安装根因。P1 readiness BLOCKED；P1--P6 `NOT_RUN`；
+  `VISIBILITY=NOT_USER_OBSERVED`。
+- 状态：OPEN_EXPLICIT_PATH_AND_EARLY_SENTINEL_DIAGNOSTIC
+
+## REAL-20260714-042：临时验证包装器出现三次假失败，项目合同本身随后均通过
+
+- UTC：2026-07-14T23:00:00Z--23:09:00Z
+- Stage/task：connected diagnostic preflight / Mac 与 Windows 外层验证器
+- 现象一：Mac 临时哈希检查器把 profile 字段写成 `id/script_sha256`，而真实 schema 是
+  `profile_id/sha256`；第二次又假设嵌入变量名为大写 `SPACECLAIM_SCRIPT`，实际为
+  `connected_spaceclaim_script`。两次 AssertionError 都来自临时复核器，不来自项目 audit 或 journal。
+- 现象二：Windows 在同一 PowerShell 进程中调用 `install-skills.ps1` 后，外层直接检查
+  `$LASTEXITCODE`；installer 已打印四项 PASS，但变量保留了内部 native command 的旧值，外层误抛
+  `INSTALL_SKILLS_FAILED`。改为每个 `.ps1` 用独立 `powershell.exe -File` 进程执行后真实退出码为 0。
+- 恢复证据：profile 数 8、tools 数 5；Python project audit
+  `required_files=106/manuals=7/csv_files=28`；四个 skill hash/必需文件均 PASS；Windows 工作树保持
+  clean，HEAD 和签名 commit 均为 `f15aae34...`。
+- 教学结论：验证器也必须对 canonical schema 编程；`$LASTEXITCODE` 是最近 native command 状态，
+  不是任意 PowerShell script block 的可靠返回值。把 preflight 红字当作 ANSYS 根因会制造错误因果链。
+- Gate 影响：NONE；这些问题都在 ANSYS suite 启动前关闭，未修改任何物理/几何结果。
+- 状态：CLOSED_VALIDATOR_AND_PROCESS_EXIT_CONTRACT_CORRECTED
+
+## REAL-20260714-043：Workbench 记录 RSM/ProgramData 警告，但当前没有因果链指向 connected 失败
+
+- UTC：2026-07-14T23:09:36Z
+- Stage/task：005 T1 connected Workbench CoreEvents 环境噪声审查
+- 原始观察：`JobManagerUnAvailable` 报告未安装 Remote Solve Manager；其初始化同时抛出
+  `System.ArgumentException: 需要绝对路径信息`，调用栈位于
+  `ApplicationConfiguration.ProgramDataDirectoryPathByVersion`。CoreEvents/Fatal/recorded journal
+  SHA-256 分别为 `5dd828a5...`、`83238038...`、`7d7d4383...`。
+- 因果边界：本轮没有请求远程队列或远程求解；警告之后 project 仍创建，connected Edit、RunScript、
+  Exit 都返回。当前失败是 build report 不存在，日志没有把该文件缺失连接到 RSM。
+- 采取的处理：保留 warning 与堆栈，不安装额外 RSM、不修许可、不把它用于解释本轮失败。只有未来
+  实际调用远程队列/求解或相同绝对路径异常直接阻断所需 API 时，才重新升级该问题。
+- Gate 影响：NONE_OBSERVED；P1--P6 状态不变。
+- 状态：OBSERVED_NONBLOCKING_NO_CAUSAL_LINK
+
 ## 新条目模板
 
 ```text
