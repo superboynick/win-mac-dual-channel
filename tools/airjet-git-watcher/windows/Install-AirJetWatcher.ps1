@@ -96,7 +96,7 @@ try {
         if (($managerText -notmatch "RuntimeStatus\s*=\s*'ENABLED_AFTER_END_TO_END'") -or ($commonText -notmatch "RuntimeStatus\s*=\s*'ENABLED_AFTER_END_TO_END'") -or ($watcherText -notmatch 'BLOCKED_RUNTIME_') -or ($runnerText -notmatch 'ENABLED_AFTER_END_TO_END')) { throw 'BLOCKED_REGISTER_RUNTIME_NOT_ENABLED' }
         Import-Module ScheduledTasks -ErrorAction Stop
         $powerShell = (Get-Command powershell.exe -ErrorAction Stop).Source
-        $arguments = "-NoProfile -ExecutionPolicy RemoteSigned -File `"$watcher`" -PollSeconds 180"
+        $arguments = "-NoProfile -ExecutionPolicy RemoteSigned -File `"$watcher`" -PollSeconds 10"
         $existing = Get-ScheduledTask -TaskName 'AirJetGitWatcher' -ErrorAction SilentlyContinue
         if ($existing) {
             $owned = @($existing.Actions | Where-Object { ($_.Execute -eq $powerShell) -and ($_.Arguments -eq $arguments) })

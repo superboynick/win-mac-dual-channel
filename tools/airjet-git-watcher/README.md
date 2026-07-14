@@ -112,8 +112,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\airjet-git-watcher\t
 预期：
 
 ```text
-WINDOWS_CORE_CASES_PASS=53
-EXPECTED_PASS_COUNT=53
+WINDOWS_CORE_CASES_PASS=54
+EXPECTED_PASS_COUNT=54
 OVERALL=PASS_CORE_RUNTIME_ENABLED_MANUAL
 ```
 
@@ -124,13 +124,13 @@ OVERALL=PASS_CORE_RUNTIME_ENABLED_MANUAL
 ```sh
 sh tools/airjet-git-watcher/mac/manage-airjet-watcher.sh status
 sh tools/airjet-git-watcher/mac/manage-airjet-watcher.sh once
-sh tools/airjet-git-watcher/mac/manage-airjet-watcher.sh start --poll-seconds 180
+sh tools/airjet-git-watcher/mac/manage-airjet-watcher.sh start --poll-seconds 10
 ```
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy RemoteSigned -File .\tools\airjet-git-watcher\windows\Manage-AirJetWatcher.ps1 -Action status
 powershell -NoProfile -ExecutionPolicy RemoteSigned -File .\tools\airjet-git-watcher\windows\Manage-AirJetWatcher.ps1 -Action once
-powershell -NoProfile -ExecutionPolicy RemoteSigned -File .\tools\airjet-git-watcher\windows\Manage-AirJetWatcher.ps1 -Action start -PollSeconds 180
+powershell -NoProfile -ExecutionPolicy RemoteSigned -File .\tools\airjet-git-watcher\windows\Manage-AirJetWatcher.ps1 -Action start -PollSeconds 10
 ```
 
 `start`、`retry` 和目标任务 wake 已启用；测试模式仍硬拒绝真实启动。startup
@@ -145,7 +145,7 @@ Mac 使用当前可见用户的 LaunchAgent；Windows 使用当前登录用户�
 解锁后的安装入口为：
 
 ```sh
-sh tools/airjet-git-watcher/mac/install-mac-watcher.sh install --poll-seconds 180
+sh tools/airjet-git-watcher/mac/install-mac-watcher.sh install --poll-seconds 10
 ```
 
 ```powershell

@@ -374,13 +374,14 @@ try {
     Assert-Contains 'fixed_git_ssh_keygen' ([IO.File]::ReadAllText($Common)) 'C:\Program Files\Git\usr\bin\ssh-keygen.exe'
     Assert-Contains 'fixed_ssh_variant' ([IO.File]::ReadAllText($Common)) '$env:GIT_SSH_VARIANT = ''ssh'''
     Assert-Contains 'fixed_ssh_command_shell_path' ([IO.File]::ReadAllText($Common)) 'C:/Windows/System32/OpenSSH/ssh.exe'
+    Assert-Contains 'fixed_poll_default_10' ([IO.File]::ReadAllText($Watcher)) '[ValidateRange(10, 3600)][int]$PollSeconds = 10'
     Assert-Contains 'runner_sandbox' ([IO.File]::ReadAllText($Runner)) 'exec -C $script:RepoRoot -s workspace-write -c ''approval_policy="never"'''
     Assert-Contains 'runner_test_mode_guard' ([IO.File]::ReadAllText($Runner)) 'BLOCKED_TEST_MODE_CODEX_FORBIDDEN'
     Assert-Contains 'atomic_processed_claim' ([IO.File]::ReadAllText($Common)) '[IO.FileMode]::CreateNew'
     Assert-Contains 'watcher_runtime_guard' ([IO.File]::ReadAllText($Watcher)) 'BLOCKED_RUNTIME_'
     Assert-Contains 'installer_default_no_register' ([IO.File]::ReadAllText($Installer)) 'if ($RegisterAtLogOn)'
 
-    $ExpectedPassCount = 53
+    $ExpectedPassCount = 54
     if ($PassCount -ne $ExpectedPassCount) { Fail "pass_count_expected_$ExpectedPassCount`_actual_$PassCount" }
     Write-Output "WINDOWS_CORE_CASES_PASS=$PassCount"
     Write-Output "EXPECTED_PASS_COUNT=$ExpectedPassCount"

@@ -95,7 +95,7 @@ run_watcher() {
     AIRJET_REPO_ROOT="$repo" \
     AIRJET_EXPECTED_REMOTE="$expected_remote" \
     AIRJET_WATCHER_STATE_ROOT="$state" \
-    /bin/sh "$WATCHER" --poll-seconds 30 --once --no-wake 2>&1)
+    /bin/sh "$WATCHER" --poll-seconds 10 --once --no-wake 2>&1)
   WATCH_CODE=$?
   set -e
 }
@@ -133,7 +133,7 @@ run_watcher_retry() {
     AIRJET_REPO_ROOT="$repo" \
     AIRJET_EXPECTED_REMOTE="$ORIGIN" \
     AIRJET_WATCHER_STATE_ROOT="$state" \
-    /bin/sh "$WATCHER" --poll-seconds 30 --once --no-wake --retry-pending 2>&1)
+    /bin/sh "$WATCHER" --poll-seconds 10 --once --no-wake --retry-pending 2>&1)
   WATCH_CODE=$?
   set -e
 }

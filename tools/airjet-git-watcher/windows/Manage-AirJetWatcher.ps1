@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [ValidateSet('status','once','start','stop','retry','acknowledge')][string]$Action = 'status',
-    [ValidateRange(30, 3600)][int]$PollSeconds = 180
+    [ValidateRange(10, 3600)][int]$PollSeconds = 10
 )
 
 Set-StrictMode -Version 2.0

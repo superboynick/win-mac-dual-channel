@@ -3,7 +3,7 @@ set -eu
 
 ACTION=${1:-status}
 [ "$#" -eq 0 ] || shift
-POLL_SECONDS=180
+POLL_SECONDS=10
 FORCE=0
 RUNTIME_STATUS=ENABLED_AFTER_REVIEW
 while [ "$#" -gt 0 ]; do
@@ -19,8 +19,8 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$POLL_SECONDS" in ''|*[!0-9]*) printf '%s\n' 'poll seconds must be an integer' >&2; exit 2 ;; esac
-if [ "$POLL_SECONDS" -lt 30 ] || [ "$POLL_SECONDS" -gt 3600 ]; then
-  printf '%s\n' 'poll seconds must be between 30 and 3600' >&2
+if [ "$POLL_SECONDS" -lt 10 ] || [ "$POLL_SECONDS" -gt 3600 ]; then
+  printf '%s\n' 'poll seconds must be between 10 and 3600' >&2
   exit 2
 fi
 

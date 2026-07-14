@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateRange(30, 3600)][int]$PollSeconds = 180,
+    [ValidateRange(10, 3600)][int]$PollSeconds = 10,
     [switch]$Once,
     [switch]$NoWake,
     [switch]$RetryPending

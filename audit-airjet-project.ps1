@@ -158,6 +158,7 @@ if (Test-Path -LiteralPath $MacWatcherPath -PathType Leaf) {
         'BLOCKED_UNTRUSTED_COMMIT',
         'task_tip_not_signed_by_windows_peer',
         'automatic_relay_not_enabled',
+        'POLL_SECONDS=10',
         'RUNTIME_STATUS=ENABLED_AFTER_REVIEW',
         'unsafe_instruction_object_type',
         'SYNCED_NO_MAC_TASK'
@@ -170,6 +171,7 @@ if (Test-Path -LiteralPath $MacWatcherManagerPath -PathType Leaf) {
     if (-not $MacWatcherManagerText.Contains('RUNTIME_STATUS=ENABLED_AFTER_REVIEW')) {
         Add-Failure 'Mac watcher manager is not enabled for reviewed manual runtime'
     }
+    if (-not $MacWatcherManagerText.Contains('POLL_SECONDS=10')) { Add-Failure 'Mac watcher manager default poll interval is not 10 seconds' }
 }
 if (Test-Path -LiteralPath $MacWatcherRunnerPath -PathType Leaf) {
     $MacWatcherRunnerText = Read-Utf8 $MacWatcherRunnerPath
@@ -210,8 +212,8 @@ if (Test-Path -LiteralPath $MacWatcherTestPath -PathType Leaf) {
 
 $WindowsWatcherFiles = @{
     'AirJetWatcher.Common.ps1' = @('ENABLED_AFTER_END_TO_END','WINDOWS_TASK.env','MAC_TASK.env','gpg.minTrustLevel=fully','--no-replace-objects','BLOCKED_RELAY_NOT_ENABLED','[IO.FileMode]::CreateNew','GIT_SSH_VARIANT','C:/Windows/System32/OpenSSH/ssh.exe')
-    'Watch-AirJetGit.ps1' = @('BLOCKED_RUNTIME_','BLOCKED_TEST_MODE_WAKE_FORBIDDEN','BLOCKED_CRITICAL_WATCHER_UPDATE','SHELL_REQUESTED_NOT_USER_OBSERVED')
-    'Manage-AirJetWatcher.ps1' = @('ENABLED_AFTER_END_TO_END','REFUSED_TEST_MODE',"'start'", "'retry'")
+    'Watch-AirJetGit.ps1' = @('[ValidateRange(10, 3600)][int]$PollSeconds = 10','BLOCKED_RUNTIME_','BLOCKED_TEST_MODE_WAKE_FORBIDDEN','BLOCKED_CRITICAL_WATCHER_UPDATE','SHELL_REQUESTED_NOT_USER_OBSERVED')
+    'Manage-AirJetWatcher.ps1' = @('[ValidateRange(10, 3600)][int]$PollSeconds = 10','ENABLED_AFTER_END_TO_END','REFUSED_TEST_MODE',"'start'", "'retry'")
     'Run-AwakenedCodex.ps1' = @('BLOCKED_TEST_MODE_CODEX_FORBIDDEN','ENABLED_AFTER_END_TO_END','approval_policy="never"')
     'Install-AirJetWatcher.ps1' = @('InteractiveToken','RegisterAtLogOn','BLOCKED_REGISTER_RUNTIME_NOT_ENABLED')
 }
