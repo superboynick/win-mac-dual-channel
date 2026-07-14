@@ -870,7 +870,10 @@
   这证明 PowerShell 语法和新期望清单可用，但仍需提交、拉取后用仓库根脚本再跑一次。
 - 证据边界：这是审计器同步缺陷，不影响第十五次原始 ANSYS suite/report/artifact 哈希，也不把 P1
   或 native claims 改为 PASS。修复必须在 Windows 真实执行根审计后才可关闭。
-- 状态：CANDIDATE_WINDOWS_RETEST_PASS_GIT_HANDOFF_PENDING
+- Git 后原生复测：Windows fast-forward 到签名 commit
+  `065295660bc816f754fb4ac417020eed9b90d5f1`，仓库根脚本返回
+  `PASS / required_files=105 / manuals=7 / csv_files=28`。
+- 状态：CLOSED_WINDOWS_ROOT_AUDIT_POLICY_SYNCHRONIZED
 
 ## 新条目模板
 

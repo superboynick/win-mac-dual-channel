@@ -294,7 +294,10 @@ async def run_suite() -> int:
         + "_"
         + uuid4().hex[:8]
     )
-    case_id = f"ajm005-cad-xfer-{stamp.lower()}"
+    # Keep the native route below the path budget that restored the independent
+    # STEP semantic route. This is the sole behavior variable in the native
+    # attach retest; the timestamp remains in the external suite filename.
+    case_id = "a5n-" + uuid4().hex[:12]
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
     result_path = OUTPUT_ROOT / f"AJM005_T1_CAD_SUITE_{stamp}.json"
     stderr_path = OUTPUT_ROOT / f"AJM005_T1_CAD_SUITE_{stamp}_MCP_STDERR.log"

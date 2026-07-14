@@ -128,12 +128,21 @@ for invariant in (
     "BLOCKED_T1_CAD_RUNNER_COPY_MISMATCH",
     "PASS_CAD_TRANSFER_SET",
     "PARTIAL_CAD_TRANSFER_ONLY",
+    'WB_PROFILE = "ajm005-workbench-transfer-t1-v1"',
+    'case_id = "a5n-" + uuid4().hex[:12]',
+    "NATIVE_PARAMETERIZATION_NOT_RUN",
     "predecessor_job_id",
     "artifact_manifest",
     "P1_STAGE_GATE",
 ):
     if invariant.upper() not in t1_cad_runner_source.upper():
         fail(f"T1 CAD suite runner lacks invariant: {invariant}")
+for forbidden in (
+    "ajm005-workbench-semantic-reconstruction-t1-v1",
+    "PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC",
+):
+    if forbidden in t1_cad_runner_source:
+        fail(f"native T1 CAD runner must not use semantic route: {forbidden}")
 
 t1_semantic_runner_source = T1_SEMANTIC_RUNNER.read_text(encoding="utf-8")
 for invariant in (

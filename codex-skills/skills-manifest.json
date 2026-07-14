@@ -10,7 +10,7 @@
       "name": "airjet-ansys-automation",
       "kind": "project",
       "source": "codex-skills/airjet-ansys-automation",
-      "skill_md_sha256": "226129b791b286cac16cb8cdec2057a2bc110ba874ffed925a3f9a1ae0ae2265",
+      "skill_md_sha256": "0b0efd83d2c1e1e38879cda9fd46633442570b7d482f28d146931eb072f07cbd",
       "required_files": [
         "SKILL.md",
         "agents/openai.yaml",

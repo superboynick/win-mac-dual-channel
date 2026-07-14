@@ -40,7 +40,7 @@ has_required() {
 
 jupyter_expected=62f102e8554b25716dccef0ffab4572d4e3eaf05ccc76562d33a065bc9c521fb
 pdf_expected=d108cf2b36355ab37eb5962933f4d09785ec002f3105c506129320209306b9d2
-ansys_expected=226129b791b286cac16cb8cdec2057a2bc110ba874ffed925a3f9a1ae0ae2265
+ansys_expected=0b0efd83d2c1e1e38879cda9fd46633442570b7d482f28d146931eb072f07cbd
 jupyter_actual=$(skill_hash "$target_root/jupyter-notebook/SKILL.md" || true)
 pdf_actual=$(skill_hash "$target_root/pdf/SKILL.md" || true)
 official_needed=0
