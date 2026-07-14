@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "task": "AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
+  "suite": "cad_and_workbench_transfer_t1",
+  "suite_status": "FAIL_CAD_TRANSFER_SET",
+  "git_head": "96f0799e98b264cc4efb8c914b4df734c5814158",
+  "case_id": "ajm005-cad-xfer-20260714t185233920643z_14b42b18",
+  "started_at": "2026-07-14T18:52:33.921171+00:00",
+  "ended_at": "2026-07-14T18:52:56.877561+00:00",
+  "external_result_path": "C:\\Users\\admin\\Downloads\\AIRJET_ANSYS_STUDENT_SMOKE_005\\AJM005_T1_CAD_SUITE_20260714T185233920643Z_14b42b18.json",
+  "external_result_sha256": "154b3174653df43f273fc8621d1ea6ed9bdaeaac032c28478c2cafa35bd011c5",
+  "external_mcp_stderr_sha256": "ff61e776c064942549a3d68bc543f2a9133adcaf97646dc4d9cbdf8f67759304",
+  "runner_sha256": "406747086ddf9cb8bc01a97f3d574d981cc95805d37de7e9b4c8f94e71936559",
+  "license_arguments_added": false,
+  "visibility": "NOT_USER_OBSERVED",
+  "p1_cad_toolchain_readiness": "BLOCKED",
+  "p1_cad_blocker": "NATIVE_PARAMETERIZATION_NOT_RUN",
+  "p1_p6_gates": "NOT_RUN",
+  "post_suite_ansys_process_count": 0,
+  "runs": [
+    {
+      "profile_id": "ajm005-spaceclaim-cad-t1-v1",
+      "job_id": "ajm005-cad-xfer-20260714t185233920643z_14b42b18-6a64cc458c40",
+      "script_sha256": "a402d0ba42389bdf8afb214aa7aafa761c351d716825ad18ec5039cce22f1735",
+      "phase": "PROCESS_EXITED_0",
+      "exit_code": 0,
+      "report_status": "FAIL_DIRECT",
+      "engineering_capability": "FAIL_DIRECT",
+      "error_type": "TypeError",
+      "error": "expected Array[str], got list",
+      "assertions": {
+        "script_parameterization_equivalent": true,
+        "named_selections": false,
+        "volume_extract_or_equivalent": false,
+        "fluid_connectivity": false,
+        "native_save": false,
+        "native_reopen": false,
+        "step_export_reimport": false
+      },
+      "declared_report_sha256": "7a13ce774598ac076002af46a21bd5af73ca0779337d592d990967c8c27581e7",
+      "job_state_sha256": "8c336d228009bff59008f6f7c112a4915d69c2e12360c1a8785b0b2438b625ff",
+      "stdout_sha256": "e0aeef0201d3646651a8fc79404398bbf64ce5b55351730d2d1d2e8c8c0058c7",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "profile_id": "ajm005-workbench-transfer-t1-v1",
+      "status": "BLOCKED_UPSTREAM",
+      "job_id": null,
+      "engineering_capability": "NOT_RUN"
+    }
+  ]
+}

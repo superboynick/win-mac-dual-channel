@@ -5,6 +5,8 @@ import math
 import os
 import traceback
 
+from System import Array, String
+
 
 job_dir = os.environ["AIRJET_JOB_DIR"]
 report_path = os.path.join(job_dir, "spaceclaim_cad_t1.json")
@@ -81,6 +83,11 @@ def body_fingerprint(body):
 
 def close_enough(actual, expected, tolerance):
     return abs(float(actual) - float(expected)) <= tolerance
+
+
+def group_count(name):
+    """CreateByGroups requires a .NET String array in the v261 script host."""
+    return int(Selection.CreateByGroups(Array[String]([name])).Count)
 
 
 def find_boundary_faces(body):
@@ -198,9 +205,9 @@ try:
     if len(wall_faces) > 0:
         FaceSelection.Create(wall_faces).CreateAGroup("WALLS")
     group_counts = {
-        "INLET": int(Selection.CreateByGroups(["INLET"]).Count),
-        "OUTLET": int(Selection.CreateByGroups(["OUTLET"]).Count),
-        "WALLS": int(Selection.CreateByGroups(["WALLS"]).Count),
+        "INLET": group_count("INLET"),
+        "OUTLET": group_count("OUTLET"),
+        "WALLS": group_count("WALLS"),
     }
     named_ok = (
         group_counts["INLET"] == 1
@@ -246,7 +253,7 @@ try:
     native_body = GetRootPart().Bodies[0] if GetRootPart().Bodies.Count == 1 else None
     native_fingerprint = body_fingerprint(native_body) if native_body is not None else None
     native_groups = dict(
-        (name, int(Selection.CreateByGroups([name]).Count))
+        (name, group_count(name))
         for name in ("INLET", "OUTLET", "WALLS")
     )
     native_reopen_ok = (

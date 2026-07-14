@@ -22,7 +22,9 @@
   `PROCESS_EXITED_0 / PASS_CONTROL`，suite 为 `PASS_CONTROL_SET`，结束后相关进程数为 0。
   这只证明官方控制接口可控；005 T1 工程小模型仍为 `NOT_RUN`。
 - 005 T1 的第一条 SpaceClaim→Workbench 小模型已完成脚本、固定 profile、冻结 predecessor
-  manifest 和确定性 runner 的发布前实现，等待签名提交后在 Windows 实跑。审查同时确认脚本
+  manifest 和确定性 runner。commit `96f0799e...` 首轮已实跑：5/6 mm 脚本参数重建和
+  160/192 mm³ 解析体积通过，但 v261 要求 `CreateByGroups(System.String[])`，普通 Python list
+  导致 SC `FAIL_DIRECT`，Workbench 正确 `BLOCKED_UPSTREAM`；显式 .NET Array 修复正等待签名重跑。审查同时确认脚本
   两次重建只能证明等效参数驱动，不能证明 `.scdocx` 原生 driving parameter；因此即使本轮
   CAD/Named Selection/粗网格传递全过，也只允许写 `PASS_CAD_TRANSFER_SET`，
   `P1_CAD_TOOLCHAIN_READINESS` 仍因 `NATIVE_PARAMETERIZATION_NOT_RUN` 保持 BLOCKED。
@@ -43,7 +45,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；首个 T1 CAD→Workbench partial probe 待签名实跑） | 本轮可验证脚本参数变化、Named Selections、等效负体积、原生/STEP 重开和 Workbench 粗网格传递；原生 driving parameter 仍是硬阻塞，关闭后才可按 006 建立完整装配/流体负体积并独立审核 |
+| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；首个 T1 partial probe 首轮 FAIL 已保留，类型修复待签名重跑） | 首轮已实测脚本参数变化；Named Selections、等效负体积、原生/STEP 重开和 Workbench 粗网格传递仍待新 job，原生 driving parameter 仍是硬阻塞，关闭后才可按 006 建立完整装配/流体负体积并独立审核 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |

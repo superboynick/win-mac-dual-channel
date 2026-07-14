@@ -301,6 +301,31 @@
   SHA、静态审查和冻结 handoff，而不是声称子进程无法读取其他用户可读文件。
 - 状态：CLOSED_IN_CODE_PENDING_WINDOWS_NEGATIVE_TEST
 
+## REAL-20260714-021：v261 `CreateByGroups` 不接受普通 Python list
+
+- UTC：2026-07-14T18:52:33Z
+- Stage/task：005 T1 / 首次 SC-CAD-T1 实跑
+- Machine/operator：LAPTOP-LCCLM2HI / Mac Codex via SSH and fixed MCP
+- run/job/profile：`AJM005_T1_CAD_SUITE_20260714T185233920643Z_14b42b18` /
+  `...-6a64cc458c40` / `ajm005-spaceclaim-cad-t1-v1`
+- 期望：创建三个 Named Selection 后用 group 名复核 cardinality。
+- 实际观察：脚本先成功完成 5/6 mm 两次构建，解析体积为 160/192 mm³；随后
+  `Selection.CreateByGroups(["INLET"])` 抛出 `TypeError: expected Array[str], got list`。
+  SpaceClaim wrapper 进程退出 0，但 declared report 为 `FAIL_DIRECT`，所以 suite 正确判
+  `FAIL_CAD_TRANSFER_SET`，Workbench 写 `BLOCKED_UPSTREAM` 且未启动。
+- 原始证据：完整 suite JSON SHA-256
+  `154b3174653df43f273fc8621d1ea6ed9bdaeaac032c28478c2cafa35bd011c5`；MCP stderr SHA-256
+  `ff61e776c064942549a3d68bc543f2a9133adcaf97646dc4d9cbdf8f67759304`；declared report SHA-256
+  `7a13ce774598ac076002af46a21bd5af73ca0779337d592d990967c8c27581e7`。
+- 根因及置信度：v261 XML 签名为 `CreateByGroups(System.String[])`；Python list 没有被该
+  script host 隐式转换为 .NET string array。错误文本与签名一致，高置信度。
+- 处置：显式 `from System import Array, String`，统一用
+  `Array[String]([name])` 调用；重新计算 profile script SHA，并用新签名 commit/new job 重跑。
+- 拒绝的 workaround：不跳过重开后的 group 检查，不因 wrapper exit 0 写能力 PASS，不手改旧报告。
+- 对 Gate/论文主张的影响：首次运行证明脚本等效参数变化可执行，但全部 partial CAD capability
+  仍 FAIL；P1 readiness BLOCKED，P1–P6 NOT_RUN。
+- 状态：CLOSED_IN_CODE_PENDING_SIGNED_RETRY_FIRST_FAILURE_PRESERVED
+
 ## 新条目模板
 
 ```text

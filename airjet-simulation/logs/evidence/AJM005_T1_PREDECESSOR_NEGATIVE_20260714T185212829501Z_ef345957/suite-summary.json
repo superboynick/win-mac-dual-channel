@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "task": "AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
+  "suite": "t1_predecessor_negative_no_ansys",
+  "status": "PASS",
+  "git_head": "96f0799e98b264cc4efb8c914b4df734c5814158",
+  "test_script_sha256": "590803a5758e510884aea6e315c7716dc812d472307bd8be63bd33285d38bad3",
+  "external_result_path": "C:\\Users\\admin\\Downloads\\AIRJET_ANSYS_STUDENT_SMOKE_005\\AJM005_T1_PREDECESSOR_NEGATIVE_20260714T185212829501Z_ef345957.json",
+  "external_result_sha256": "d90f16f59cc8f78a454fe167f0b57c56f8e4c00ab226d0d3e81d44e9611309a1",
+  "ansys_started": false,
+  "license_data_read": false,
+  "post_test_ansys_process_count": 0,
+  "tests": [
+    {
+      "profile_id": "ajm005-workbench-transfer-t1-v1",
+      "case_id": "ajm005-neg-20260714t185212829501z_ef345957-missing",
+      "job_id": "ajm005-neg-20260714t185212829501z_ef345957-missing-4e493bf9fee9",
+      "expected_error": "BLOCKED_REQUIRED_PREDECESSOR_ID",
+      "phase": "FAILED_START",
+      "pid": null,
+      "job_state_sha256": "f804c00a053d1eaa3b167b00f19d3abb19e96125a2d61d4d6fb9333470a1096d"
+    },
+    {
+      "profile_id": "ajm005-spaceclaim-t0-v1",
+      "case_id": "ajm005-neg-20260714t185212829501z_ef345957-unexpected",
+      "job_id": "ajm005-neg-20260714t185212829501z_ef345957-unexpected-4c62d873bcfd",
+      "expected_error": "BLOCKED_UNEXPECTED_PREDECESSOR",
+      "phase": "FAILED_START",
+      "pid": null,
+      "job_state_sha256": "ca73b1afd82e835b04ce5d48b0f5711ec266cca672ec325fc719cccf0ec20acc"
+    },
+    {
+      "profile_id": "ajm005-workbench-transfer-t1-v1",
+      "case_id": "ajm005-neg-20260714t185212829501z_ef345957-unknown",
+      "job_id": "ajm005-neg-20260714t185212829501z_ef345957-unknown-33744dd03542",
+      "expected_error": "BLOCKED_UNKNOWN_OR_SERVER_RESTARTED_PREDECESSOR",
+      "phase": "FAILED_START",
+      "pid": null,
+      "job_state_sha256": "d2b756706b3ff9b5e67ede8a6837aaf67c59bcb099fba3edd0abfd75687750a4"
+    }
+  ],
+  "gate_effect": "P1_P6_NOT_RUN"
+}
