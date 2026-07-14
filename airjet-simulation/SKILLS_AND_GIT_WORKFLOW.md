@@ -58,6 +58,12 @@ sh ./install-skills.sh
 
 Mac 脚本同步项目 skill，并核对当前已安装的两个官方 skill。官方 skill 更新应使用 `skill-installer`，然后有意识地更新锁文件。
 
+## 跨机器 subagent 规则
+
+`AGENTS.md` 和项目 `SKILL.md` 共同保存 subagent 规则，因此 Windows 提交并推送后，Mac 通过 `git pull --ff-only` 和 `sh ./install-skills.sh` 即可加载同一规则。真正的长任务或多部分任务可使用 1–2 个边界明确的 subagent 分担独立研究、审计或测试；主 agent 必须亲自读取 skill、保持任务所有权、整合并验证结果，并在交接前结束所有 subagent。不得用 subagent 模拟空闲常驻，也不得绕过审批、stage gate、证据规则、Git 安全或可见 GUI 要求。
+
+本机监听器的 PID、日志、pending event、缓存、凭据和绝对路径不进入 Git；Mac 与 Windows 只同步经审查的规则和可移植源码。
+
 ## 更新规则
 
 1. 修改仓库中的 `codex-skills/airjet-product-reconstruction`。

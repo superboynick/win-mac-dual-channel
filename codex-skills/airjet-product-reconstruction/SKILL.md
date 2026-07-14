@@ -17,6 +17,13 @@ Advance a complete, public-evidence-constrained AirJet product reconstruction wi
 4. Run `python scripts/audit_project.py --repo <repo>` before broad edits and again before handoff. On Windows without a working Python launcher, run repository-root `audit-airjet-project.ps1` instead.
 5. Inspect `git status`; stop on unknown changes or divergence.
 
+## Coordinate long-running work
+
+- For a genuinely long or multi-part task, use 1-2 bounded subagents when independent research, audit, or testing can run in parallel.
+- The primary agent must read required skills and task files itself, retain ownership, integrate the findings, verify the result, and stop all subagents before handoff.
+- Do not use subagents merely for idle persistence, or to bypass approvals, stage gates, evidence rules, Git safety, or visible-GUI requirements.
+- Keep machine-specific watcher state, credentials, caches, PIDs, logs, and pending events outside Git. Synchronize only reviewed instructions and portable source files through the repository.
+
 ## Preserve the objective
 
 - Treat AirJet Mini Gen1 as the primary full-product reconstruction target unless the user changes it.

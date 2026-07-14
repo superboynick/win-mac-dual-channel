@@ -10,7 +10,7 @@
       "name": "airjet-product-reconstruction",
       "kind": "project",
       "source": "codex-skills/airjet-product-reconstruction",
-      "skill_md_sha256": "cb9fd3c78c09aed5cfb95d04194791f1a8f8799f20ad42cddc03f20f0281386c",
+      "skill_md_sha256": "71300b6641575b00df2966024446d491dd7e07cf6734764bdc64387422bb6f66",
       "required_files": [
         "SKILL.md",
         "agents/openai.yaml",

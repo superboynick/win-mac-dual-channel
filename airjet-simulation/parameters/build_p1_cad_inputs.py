@@ -246,7 +246,10 @@ def render_csv(rows: list[dict[str, object]]) -> str:
 
 def write_or_check(path: Path, content: str, check: bool) -> None:
     if check:
-        with path.open(newline="", encoding="utf-8") as handle:
+        # Git may check text files out as CRLF on Windows and LF on macOS.
+        # Universal-newline reading keeps deterministic generated-content checks
+        # independent of the workstation's checkout convention.
+        with path.open(newline=None, encoding="utf-8") as handle:
             actual = handle.read()
         if actual != content:
             raise ValueError(f"generated output is stale: {path}")

@@ -19,6 +19,7 @@ This repository is the user's safe GitHub-primary collaboration toolkit for Mac 
 3. Before work: run `git status`, `git fetch origin`, inspect ahead/behind, then use `git pull --ff-only` only when clean and non-divergent. After work: review, commit, and push without force.
 4. Stop on divergence, dirty worktrees, missing authentication, or ambiguous ownership. Do not auto-merge, rebase, force-push, reset, clean, or overwrite changes.
 5. Preserve user files and existing changes. Never store passwords, tokens, or private keys in repository files.
+6. For genuinely long or multi-part work, the primary Codex agent should use 1-2 bounded subagents for independent research, audit, or testing when parallel work is useful. The primary agent must read required skills itself, retain task ownership, integrate and verify subagent results, and stop all subagents before handoff. Do not use subagents merely to simulate idle persistence or to bypass stage gates, approvals, or repository safety rules.
 
 ## Toolkit scope
 
