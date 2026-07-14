@@ -537,6 +537,33 @@
   partial PASS 可复现，P1 readiness BLOCKED，P1–P6 NOT_RUN。
 - 状态：OPEN_OFFICIAL_MODEL_CONTAINER_REFRESH_PENDING
 
+## REAL-20260714-028：官方 Model container Refresh 仍无法附加 .scdocx
+
+- UTC：2026-07-14T20:13:03Z
+- Stage/task：005 T1 / 第八次 CAD transfer suite
+- run/jobs：`AJM005_T1_CAD_SUITE_20260714T201303434255Z_6dbb18a9`；SC
+  `...-a2d230d5fb6d`；WB `...-3b17344528db`。
+- 单变量假设：保持已越过的 `ComponentsToShare` 与 save-data 路线，只把下游
+  `Model Component.Update(AllDependencies=True)` 换成同机官方 journal 的 Model container
+  `Refresh()`。
+- 实际结果：Model container RETURNED，`Refresh=CALLED` 但未返回；仍报告无法附加本轮精确
+  predecessor `.scdocx`。Mechanical inspection、mesh、project save 仍 NOT_REACHED。
+- 结论边界：share topology 中两种更新 API 都出现同一 attach 失败，update API 选择这一假设关闭；
+  仍不能断言 `.scdocx` 格式全局不支持，因为 Workbench 管理的 SpaceClaim editor 尚未显式打开该
+  文件。
+- 原始证据：suite/MCP SHA-256 分别为
+  `b6c8bd3532e9c7a0e75127e8d7662b31523b23cfe1ac9d22c098357a7aef3195` 和
+  `9dcedb2085c4705915d2e9aee012219f11e07614cac2bd250175d11abf405cca`；SC/WB report SHA-256
+  分别为 `8825b8f09e066a4a1aa9fd0ddeab460963724d67d8a8714d04a9b02297684e7c` 和
+  `50e877c2e4e716b8a33b4d82347b20d41a69fdb241222b59efe72357b250f067`；
+  2026-07-14T20:16:31.3344349Z 现场相关进程数为 0。
+- 下一最小实验：保持 share/refresh 不变，只在 source SetFile 后调用
+  `Edit(Interactive=False, IsSpaceClaimGeometry=True)` 并 `Exit()`；到达标记区分 Edit/Exit、
+  save-data 与 Refresh。
+- 对 Gate/论文主张的影响：geometry transfer 仍 FAIL；SC partial PASS 可复现，P1 readiness
+  BLOCKED，P1–P6 NOT_RUN。
+- 状态：CLOSED_SHARE_UPDATE_API_HYPOTHESIS_EXPLICIT_SPACECLAIM_EDIT_PENDING
+
 ## 新条目模板
 
 ```text

@@ -509,3 +509,18 @@ Mechanical inspection                      = NOT_REACHED
 Component `Update(AllDependencies=True)`。下一轮现在只改变这一处，便能检验官方 share topology
 是否必须配套 container refresh。若同时加入显式 SpaceClaim Edit，就会把“更新 API”和“CAD editor
 启动”混在一起，失去因果可识别性。
+
+## 20. 实跑记录 8：官方调用也必须由真实运行验证
+
+第八轮只把 share route 后的更新从 Component Update 改成官方 journal 录制的 Model container
+`Refresh()`。结果仍是在 Refresh 内无法附加 `.scdocx`，且后续未到达。
+
+这说明“代码与官方 sample 一致”是采用一个实验假设的理由，不是它一定成功的证据。sample 的文件
+来源、安装组件、许可、会话状态与当前环境都可能不同。当前可以关闭的是“share route 只因选错
+Update API 才失败”这一窄假设；不能关闭的是 CAD editor 启动/文件 attach 问题。
+
+下一轮显式调用 Workbench Geometry container 的
+`Edit(Interactive=False, IsSpaceClaimGeometry=True)`，让 source `.scdocx` 由 Workbench 管理的
+SpaceClaim editor 实际打开，再退出并继续同一 share/refresh 路线。若 Edit 自身失败，根因定位会
+从 downstream Model 进一步前移到 CAD editor attach；若 Edit/Exit 返回而 Refresh 仍失败，则说明
+“能在 editor 打开”仍不等于“Workbench 下游能附加”。

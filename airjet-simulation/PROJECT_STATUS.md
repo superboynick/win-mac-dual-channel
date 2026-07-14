@@ -42,7 +42,9 @@
   但普通 Geometry component→Static Geometry 的 `TransferData` 组合被 v261 明确拒绝；下一实验
   转向同机官方 standard Geometry journal 的 `ComponentsToShare` 架构。commit `a4aa2be...` 第七轮
   已越过 share 与 `GetGeometryFileAndSaveData()`，但保持不变的 Model Component Update 仍 attach
-  失败；下一轮只改成官方 Model container Refresh。七轮证据和哈希均已保留。审查同时确认脚本
+  失败。commit `1d1c9ee...` 第八轮改用官方 Model container Refresh 仍出现同一 attach 失败，
+  已排除 share topology 中的 update API 选择；下一轮显式 SpaceClaim Edit/Exit。八轮证据和哈希
+  均已保留。审查同时确认脚本
   两次重建只能证明等效参数驱动，
   不能证明 `.scdocx` 原生 driving parameter；因此即使本轮
   CAD/Named Selection/粗网格传递全过，也只允许写 `PASS_CAD_TRANSFER_SET`，
@@ -64,7 +66,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；Workbench official share 已建立但 Model Update attach FAIL） | 已实测脚本参数变化、完整三段 union、Named Selections、原生重开与 STEP occurrence/master 全层指纹；下一实验配套官方 Model container Refresh，仍需关闭 Named Selection/粗网格传递以及原生 driving parameter 硬阻塞，之后才可按 006 建立完整装配/流体负体积并独立审核 |
+| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；Workbench official share 的 Component Update/Container Refresh 均 attach FAIL） | 已实测脚本参数变化、完整三段 union、Named Selections、原生重开与 STEP occurrence/master 全层指纹；下一实验显式 SpaceClaim Edit/Exit，仍需关闭 Named Selection/粗网格传递以及原生 driving parameter 硬阻塞，之后才可按 006 建立完整装配/流体负体积并独立审核 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -77,7 +79,8 @@
 
 1. 以已通过的 T0 控制集和 SpaceClaim partial CAD 为边界，在 Windows 继续 005 T1：先按同机
    v261 官方 standard Geometry journal 把 `.scdocx` 放入独立 Geometry source，并以
-   `ComponentsToShare` 创建 Static system，并用官方 Model container Refresh；用精确冻结 SHA 的产物完成
+   `ComponentsToShare` 创建 Static system，显式 SpaceClaim Edit/Exit，并用官方 Model container
+   Refresh；用精确冻结 SHA 的产物完成
    Workbench/Mechanical 粗网格与 Named Selection 传递；这仍只形成 partial capability，不解除
    原生参数化硬阻塞。随后分别
    做 Mechanical 与 Fluent 可删除小模型。所有运行写 `VISIBILITY=NOT_USER_OBSERVED`，无头
