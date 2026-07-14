@@ -112,8 +112,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\airjet-git-watcher\t
 预期：
 
 ```text
-WINDOWS_CORE_CASES_PASS=52
-EXPECTED_PASS_COUNT=52
+WINDOWS_CORE_CASES_PASS=53
+EXPECTED_PASS_COUNT=53
 OVERALL=PASS_CORE_RUNTIME_ENABLED_MANUAL
 ```
 

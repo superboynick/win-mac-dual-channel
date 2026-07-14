@@ -123,3 +123,4 @@ try {
     [Console]::Error.WriteLine($_.Exception.Message)
     exit 1
 }
+exit 0

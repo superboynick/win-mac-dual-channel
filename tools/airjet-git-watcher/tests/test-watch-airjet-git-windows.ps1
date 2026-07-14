@@ -351,6 +351,12 @@ try {
     Assert-Contains 'case_collision_block' $result.Text 'BLOCKED_CASE_COLLISION'
 
     $savedPreference=$ErrorActionPreference; $ErrorActionPreference='Continue'
+    try { $output=@(& $PowerShell -NoProfile -ExecutionPolicy Bypass -File $Manager -Action status 2>&1 | ForEach-Object { $_.ToString() }); $code=$LASTEXITCODE }
+    finally { $ErrorActionPreference=$savedPreference }
+    if ($code -ne 0) { Fail "manager_status_exit_$code" }
+    Assert-Contains 'manager_status_exit' ($output -join "`n") 'RUNTIME_STATUS=ENABLED_AFTER_END_TO_END'
+
+    $savedPreference=$ErrorActionPreference; $ErrorActionPreference='Continue'
     try { $output=@(& $PowerShell -NoProfile -ExecutionPolicy Bypass -File $Manager -Action start 2>&1 | ForEach-Object { $_.ToString() }); $code=$LASTEXITCODE }
     finally { $ErrorActionPreference=$savedPreference }
     if ($code -eq 0) { Fail 'manager_start_guard' }
@@ -374,7 +380,7 @@ try {
     Assert-Contains 'watcher_runtime_guard' ([IO.File]::ReadAllText($Watcher)) 'BLOCKED_RUNTIME_'
     Assert-Contains 'installer_default_no_register' ([IO.File]::ReadAllText($Installer)) 'if ($RegisterAtLogOn)'
 
-    $ExpectedPassCount = 52
+    $ExpectedPassCount = 53
     if ($PassCount -ne $ExpectedPassCount) { Fail "pass_count_expected_$ExpectedPassCount`_actual_$PassCount" }
     Write-Output "WINDOWS_CORE_CASES_PASS=$PassCount"
     Write-Output "EXPECTED_PASS_COUNT=$ExpectedPassCount"
