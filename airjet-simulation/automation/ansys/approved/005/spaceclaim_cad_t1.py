@@ -169,9 +169,11 @@ try:
     ).CreatedBody
     cavity.Name = "AJM005_T1_FLUID"
     inlet = CylinderBody.Create(
+        # Installed v261 example semantics: p1->p2 is the cylinder axis;
+        # p2->p3 is the radius vector in the second end-cap plane.
         Point.Create(MM(10), MM(5), MM(0)),
-        Point.Create(MM(11), MM(5), MM(0)),
-        Point.Create(MM(11), MM(5), MM(1)),
+        Point.Create(MM(10), MM(5), MM(1.1)),
+        Point.Create(MM(11), MM(5), MM(1.1)),
         ExtrudeType.ForceIndependent,
     ).CreatedBodies[0]
     outlet = BlockBody.Create(
@@ -180,6 +182,29 @@ try:
         ExtrudeType.ForceIndependent,
     ).CreatedBody
 
+    body_count_before_merge = int(GetRootPart().Bodies.Count)
+    inlet_fingerprint_before_merge = body_fingerprint(inlet)
+    outlet_fingerprint_before_merge = body_fingerprint(outlet)
+    inlet_raw_expected_volume_mm3 = 1.1 * math.pi
+    inlet_construction_ok = (
+        close_enough(
+            inlet_fingerprint_before_merge["volume_mm3"],
+            inlet_raw_expected_volume_mm3,
+            0.05,
+        )
+        and all(
+            close_enough(actual, expected, 0.02)
+            for actual, expected in zip(
+                inlet_fingerprint_before_merge["bbox_min_mm"], [9.0, 4.0, 0.0]
+            )
+        )
+        and all(
+            close_enough(actual, expected, 0.02)
+            for actual, expected in zip(
+                inlet_fingerprint_before_merge["bbox_max_mm"], [11.0, 6.0, 1.1]
+            )
+        )
+    )
     merge_result = Combine.Merge(
         Selection.Create(cavity), Selection.Create(inlet, outlet)
     )
@@ -188,7 +213,8 @@ try:
     fluid_fingerprint = body_fingerprint(fluid)
     expected_volume_mm3 = 192.0 + math.pi + 8.0
     equivalent_ok = (
-        bool(merge_result.Success)
+        inlet_construction_ok
+        and bool(merge_result.Success)
         and GetRootPart().Bodies.Count == 2
         and close_enough(fluid_fingerprint["volume_mm3"], expected_volume_mm3, 0.05)
     )
@@ -220,8 +246,15 @@ try:
         "outer_block_mm": [20.0, 10.0, 4.0],
         "cavity_mm": [16.0, 6.0, 2.0],
         "inlet_diameter_mm": 2.0,
+        "inlet_constructed_length_mm": 1.1,
+        "inlet_cavity_overlap_mm": 0.1,
+        "inlet_raw_expected_volume_mm3": inlet_raw_expected_volume_mm3,
+        "inlet_construction_ok": inlet_construction_ok,
         "outlet_mm": [4.0, 1.0],
         "fluid_expected_volume_mm3": expected_volume_mm3,
+        "body_count_before_merge": body_count_before_merge,
+        "inlet_fingerprint_before_merge": inlet_fingerprint_before_merge,
+        "outlet_fingerprint_before_merge": outlet_fingerprint_before_merge,
         "fluid_fingerprint_before_save": fluid_fingerprint,
         "full_document_body_count": int(GetRootPart().Bodies.Count),
         "boolean_merge_success": bool(merge_result.Success),
@@ -274,7 +307,10 @@ try:
 
     DocumentHelper.CloseDocument()
     DocumentOpen.Execute(step_path)
-    step_body = GetRootPart().Bodies[0] if GetRootPart().Bodies.Count == 1 else None
+    step_root_body_count = int(GetRootPart().Bodies.Count)
+    step_component_count = int(GetRootPart().Components.Count)
+    step_bodies = [body for body in GetRootPart().GetAllBodies()]
+    step_body = step_bodies[0] if len(step_bodies) == 1 else None
     step_fingerprint = body_fingerprint(step_body) if step_body is not None else None
     step_reimport_ok = (
         step_body is not None
@@ -295,7 +331,10 @@ try:
         )
     )
     result_data["step_reimport"] = {
-        "body_count": int(GetRootPart().Bodies.Count),
+        "route": "DOCUMENT_OPEN_AND_GET_ALL_BODIES",
+        "root_body_count": step_root_body_count,
+        "component_count": step_component_count,
+        "all_body_count": len(step_bodies),
         "fingerprint": step_fingerprint,
         "named_selections_expected_to_persist": False,
     }

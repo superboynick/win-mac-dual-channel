@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "task": "AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
+  "suite": "cad_and_workbench_transfer_t1",
+  "suite_status": "FAIL_CAD_TRANSFER_SET",
+  "git_head": "aa914a65bf3a8292ae2c6ec9f781fa2fb4381179",
+  "case_id": "ajm005-cad-xfer-20260714t190312403805z_81461dd4",
+  "started_at": "2026-07-14T19:03:12.403805+00:00",
+  "ended_at": "2026-07-14T19:03:39.649391+00:00",
+  "external_result_path": "C:\\Users\\admin\\Downloads\\AIRJET_ANSYS_STUDENT_SMOKE_005\\AJM005_T1_CAD_SUITE_20260714T190312403805Z_81461dd4.json",
+  "external_result_sha256": "5a1197520c39a3b80434e078d55519c5c1b6a5bc3c96910e3fa2dd90dc0a726",
+  "external_mcp_stderr_sha256": "224ba0e83c60418b25577548b620ed783a3c6cf6b4cc37833078684f574718ad",
+  "runner_sha256": "406747086ddf9cb8bc01a97f3d574d981cc95805d37de7e9b4c8f94e71936559",
+  "license_arguments_added": false,
+  "visibility": "NOT_USER_OBSERVED",
+  "p1_cad_toolchain_readiness": "BLOCKED",
+  "p1_cad_blocker": "NATIVE_PARAMETERIZATION_NOT_RUN",
+  "p1_p6_gates": "NOT_RUN",
+  "post_suite_ansys_process_count": 0,
+  "post_suite_process_observation": {
+    "observed_at_utc": "2026-07-14T19:17:37.7937999Z",
+    "count": 0,
+    "method": "PowerShell Get-Process name allowlist piped to Measure-Object"
+  },
+  "runs": [
+    {
+      "profile_id": "ajm005-spaceclaim-cad-t1-v1",
+      "job_id": "ajm005-cad-xfer-20260714t190312403805z_81461dd4-a3fdb92e5107",
+      "script_sha256": "2ac08c349a89474e99e83e79799ac1797986449a0a781fa743178facae4cc9ec",
+      "started_at": "2026-07-14T19:03:15.071275+00:00",
+      "ended_at": "2026-07-14T19:03:38.777071+00:00",
+      "duration_seconds": 23.705796,
+      "phase": "PROCESS_EXITED_0",
+      "exit_code": 0,
+      "report_status": "FAIL_DIRECT",
+      "engineering_capability": "FAIL_DIRECT",
+      "error": "CAPABILITY_ASSERTION_FAILED",
+      "observed_geometry": {
+        "expected_volume_mm3": 203.14159265358978,
+        "actual_volume_mm3": 200.0,
+        "bbox_min_mm": [2.0, 2.0, 1.0],
+        "bbox_max_mm": [20.0, 8.0, 3.0],
+        "named_selection_counts": {
+          "INLET": 0,
+          "OUTLET": 1,
+          "WALLS": 10
+        },
+        "boolean_merge_success": true,
+        "piece_count": 1,
+        "is_closed": true
+      },
+      "native_reopen": {
+        "body_count": 1,
+        "actual_volume_mm3": 200.00000000000006,
+        "named_selection_counts": {
+          "INLET": 0,
+          "OUTLET": 1,
+          "WALLS": 10
+        }
+      },
+      "artifacts": {
+        "full_native": {
+          "size": 29329,
+          "sha256": "5036e113192bdfc5c35e6e24f3743ab1308b339489fbea85b0ce456ed06a50de"
+        },
+        "transfer_native": {
+          "size": 23283,
+          "sha256": "865a83fff38663a1667465832b07b0a790cc579d525265d4e51d53be32a96ee1"
+        },
+        "step": {
+          "size": 15137,
+          "sha256": "d04b26e497047e22a90db1da4cbef2fbbc7ed7ea2ef41b9ee8026b58b7d0a847"
+        }
+      },
+      "step_reimport": {
+        "saved_file_size": 15137,
+        "saved_file_sha256": "d04b26e497047e22a90db1da4cbef2fbbc7ed7ea2ef41b9ee8026b58b7d0a847",
+        "root_body_count": 0,
+        "all_body_count": "NOT_MEASURED_IN_THIS_RUN"
+      },
+      "assertions": {
+        "script_parameterization_equivalent": true,
+        "named_selections": false,
+        "volume_extract_or_equivalent": false,
+        "fluid_connectivity": true,
+        "native_save": true,
+        "native_reopen": false,
+        "step_export_reimport": false
+      },
+      "declared_report_sha256": "112d510dfb088c24251ee2275256b5b3641f3e372d80649b57e9d405b39b191e",
+      "job_state_sha256": "c689b80ba4be703cbdde0c1e1cab30d0f96f7a78fde75fd32c9c66bed27a2491",
+      "stdout_sha256": "f58dc151bed640e2e1bb0878978056bbf9316584edf3be1e11aed5995f1e18cb",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "profile_id": "ajm005-workbench-transfer-t1-v1",
+      "status": "BLOCKED_UPSTREAM",
+      "job_id": null,
+      "engineering_capability": "NOT_RUN"
+    }
+  ],
+  "post_run_readonly_inspection": {
+    "not_part_of_signed_script_assertions": true,
+    "step_header_starts_iso_10303_21": true,
+    "manifold_solid_brep_record": {
+      "observed": true,
+      "line_number": 341,
+      "text_identifier": "AJM005_T1_FLUID"
+    },
+    "advanced_brep_shape_representation_record": {
+      "observed": true,
+      "line_number": 351
+    },
+    "claim_boundary": "B-rep records do not prove complete topology or successful v261 import"
+  }
+}

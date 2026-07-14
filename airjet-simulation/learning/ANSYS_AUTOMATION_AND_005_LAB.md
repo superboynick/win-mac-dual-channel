@@ -296,7 +296,9 @@ terminal SC job
 
 ## 17. 发布前审查修掉了哪些会制造假阳性的点
 
-1. 圆柱入口的三点顺序按 v261 `centerPoint/startPoint/endPoint` 语义修正；
+1. 圆柱入口三点曾按 v261 XML 的短参数名做过一次静态修正，但第二次签名实跑用
+   `200 mm³ / zmin=1 / INLET=0` 推翻该解释；同机官方 example 最终确认 `p1→p2` 是轴线、
+   `p2→p3` 是半径，第三版还在 Boolean 前检查 raw cylinder 指纹；
 2. `parametric_geometry` 改为诚实的 `script_parameterization_equivalent`；
 3. P1 readiness 不再因 partial pair 通过而改为 PASS；
 4. runner 的 job commit 必须与初次 inventory commit 精确相等，堵住中途 fast-forward；
@@ -304,5 +306,5 @@ terminal SC job
 6. `.scdocx/.step/.wbpj/inspection.json` 都要求 manifest size/SHA 与 profile 报告自报值一致；
 7. predecessor 还要核对 probe、required assertions、P1 Gate 和许可参数标记。
 
-静态 policy/audit PASS 只证明这些规则在代码和配置中存在。它们还要经过 Windows 负向测试与
-第一轮真实 ANSYS 运行，才能把状态从 `PENDING_SIGNED_RUN` 改成实测结果。
+静态 policy/audit PASS 只证明这些规则在代码和配置中存在。Windows 负向测试已通过，真实 CAD
+探针两轮 FAIL 已保留；第三版仍需新签名 job，不能因修复逻辑看起来合理而提前写能力 PASS。

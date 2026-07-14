@@ -1,7 +1,8 @@
 # 005 T1 CAD→Workbench 学习工作簿
 
 更新时间：2026-07-14  
-当前状态：**脚本与证据协议在发布审查中；尚未运行，任何能力字段都不能写 PASS。**
+当前状态：**两次签名运行均已保留为 FAIL；第三版几何/STEP 区分修复待签名运行，任何 partial
+CAD/transfer 能力字段都不能写 PASS。**
 
 这份工作簿随实作同步更新。它记录的不只是最后命令，还包括为什么这样建、哪些 API 只在
 本机 v261 证据中出现、第一次尝试可能在哪里失败，以及一次结果最多能支持论文中的哪句话。
@@ -26,10 +27,11 @@
 | 部分 | 几何 | 坐标范围或定义 | 解析体积 |
 |---|---|---|---:|
 | cavity | block | `(2,2,1)` 到 `(18,8,3)` mm | `16×6×2 = 192 mm³` |
-| inlet | cylinder | 直径 2 mm，`z=0→1 mm` | `π×1²×1 = π mm³` |
+| inlet | cylinder | 直径 2 mm，构造为 `z=0→1.1 mm`；其中 `z=1→1.1` 与 cavity 重叠 | raw `1.1π mm³`，对 union 的唯一贡献为 `π mm³` |
 | outlet | block | `x=18→20, y=3→7, z=1.5→2.5 mm` | `2×4×1 = 8 mm³` |
 
-三体只在完整公共面相接，Boolean union 后理论总体积为：
+入口特意向 cavity 内重叠 0.1 mm，避免把“恰好接触是否可合并”混入当前工具链问题；outlet 与
+cavity 相交。扣除入口重叠 `0.1π mm³` 后，Boolean union 理论总体积仍为：
 
 ```text
 V = 192 + π + 8 = 203.1415926535898 mm³
@@ -42,28 +44,39 @@ bbox max = (20, 8, 3) mm
 
 ## 3. API 不是看名字猜：圆柱三点的实例
 
-本机 v261 XML 对 `CylinderBody.Create` 的三个点定义为：
+本机 v261 XML 把 `CylinderBody.Create` 的三个点简写为：
 
 ```text
-centerPoint = 定义圆的圆心
-startPoint  = 圆周上的起点
-endPoint    = 对应圆周点沿挤出方向移动后的终点
+centerPoint = center of the defining circle
+startPoint  = start of the cylinder
+endPoint    = end of the cylinder
 ```
 
-所以半径 1 mm、沿 `+z` 从 0 到 1 mm 的入口必须写成：
+首次静态审查把它解释成“圆心、圆周点、挤出后的圆周点”，但第二次签名运行得到
+`200 mm³ / zmin=1 / INLET=0`，证明该解释没有建立预期 z 轴入口。随后重新读取同机官方
+`space_claim_geometry.py`：table leg 的第一点和第二点位于轴线两端，第三点由第二点沿半径方向
+偏移。可操作的同版本语义因此是：
+
+```text
+p1 -> p2 = 轴向量与圆柱高度
+p2 -> p3 = 第二个端圆平面内的半径向量
+```
+
+所以半径 1 mm、沿 `+z` 从 0 到 1.1 mm 的入口应写成：
 
 ```python
 CylinderBody.Create(
     Point.Create(MM(10), MM(5), MM(0)),
-    Point.Create(MM(11), MM(5), MM(0)),
-    Point.Create(MM(11), MM(5), MM(1)),
+    Point.Create(MM(10), MM(5), MM(1.1)),
+    Point.Create(MM(11), MM(5), MM(1.1)),
     ExtrudeType.ForceIndependent,
 )
 ```
 
-初稿把三个点理解成了“轴起点、轴终点、半径点”。静态审查通过 XML 参数名发现错误，并在
-任何签名提交和运行前修正。这个例子说明：函数存在只证明 API 可见；参数语义必须由同版本
-文档、官方样例和运行后的几何指纹共同确认。
+第三版会在 Boolean 前直接断言 raw cylinder 为 `1.1π mm³`，bbox 为
+`[9,4,0]→[11,6,1.1] mm`。这个例子比“静态审查发现错误”更有学习价值：即使使用了同版本 XML，
+短参数名仍可能被人错误解释；必须让同版本官方实例和运行后的体积/bbox/面共同约束语义。旧的
+错误判断保留在现实日志中，不能把被实跑推翻的推理从项目历史里删除。
 
 ## 4. 本机同版本资料从哪里来
 
@@ -160,9 +173,12 @@ license_arguments_added=false
 这不是静力分析：没有材料、载荷、约束或求解。选择 Static Structural 只是为了取得一个可由
 Mechanical 数据模型无头检查和网格化的 Model cell。
 
-## 10. 第一次实跑前的预期失败清单
+## 10. 第一次实跑前的预期失败清单（事前记录保留）
 
-这些是待实验消除的不确定性，不是已发生的结果：
+下面是首次实跑前写下的风险快照。它保留预测与后来实际问题的差异，不随结果倒改成“早就知道”。
+其中“错误圆柱语义下 Boolean Success 不足以证明目标 union”、STEP 根层 query 和 collection
+类型已分别在前两次运行中暴露；恰好面接触 tolerance 没有被独立检验，Workbench/Mechanical
+项仍因上游阻塞而没有运行：
 
 - `Combine.Merge` 对恰好接触的三个 solid 在 v261 中是否保留单一 closed piece；
 - `.scdocx` 由 Workbench `SetFile` 直接消费时是否完整传递 group；
@@ -177,7 +193,7 @@ Mechanical 数据模型无头检查和网格化的 Model cell。
 
 若两项都通过，方法部分最多可写：
 
-> 在 ANSYS 2026 R1 Student 的签名固定脚本上，以可解析流道验证了参数驱动几何、单连通流体
+> 在 ANSYS 2026 R1 Student 的签名固定脚本上，以可解析流道验证了脚本参数重建、单连通流体
 > 实体、原生/STEP 回读，以及 Named Selections 向 Workbench Mechanical 粗网格的传递。
 
 这句话还必须带 run ID、commit、script/report/artifact SHA 和限制：小模型仅验证工具链，不是
@@ -232,3 +248,48 @@ Selection.CreateByGroups(Array[String]([name]))
 完整外部 suite JSON 的 SHA-256 是
 `154b3174653df43f273fc8621d1ea6ed9bdaeaac032c28478c2cafa35bd011c5`；仓库只保存凝练、脱敏的
 evidence summary。修复必须用新 commit、script SHA 和 job ID 运行，旧失败不改写。
+
+## 14. 实跑记录 2：Success、闭合、文件存在仍可能全部不够
+
+第二次签名运行使用 commit `aa914a65bf3a8292ae2c6ec9f781fa2fb4381179`。上一轮
+`Array[String]` 修复有效，脚本完成 group 查询、三份文件保存和两次重开。结果却是：
+
+```text
+Combine.Merge.Success = true
+expected volume         = 203.14159265358978 mm³
+actual volume           = 200.0 mm³
+expected bbox zmin      = 0 mm
+actual bbox zmin        = 1 mm
+INLET / OUTLET / WALLS  = 0 / 1 / 10
+piece_count / closed    = 1 / true
+STEP size               = 15137 bytes
+STEP root body count    = 0
+```
+
+`200 = 192 + 8` 精确表明最终 body 只有 cavity 与 outlet 的体积；bbox 与入口面计数提供了独立
+交叉验证。单片且闭合只说明这个错误 body 自己合法，并不说明设计要求的三个分支都存在。原生文件
+成功保存并重开，也只是忠实保存了错误的 200 mm³ 几何，所以 aggregate native-reopen 仍 FAIL。
+
+运行后重新对照安装内的官方 table-leg 例子，发现此前仅凭 XML 短描述得到的圆柱三点解释是错的。
+这形成一条可用于 Methods/Limitations 的因果链：
+
+```text
+Array 类型修复
+-> 脚本到达几何断言
+-> Boolean 返回 Success
+-> 解析体积与 bbox 发现入口缺失
+-> INLET cardinality 再次确认
+-> 原生文件忠实保存错误几何
+-> STEP 非空但根层查询为零 body
+-> Workbench 因上游不合格而不运行
+```
+
+STEP 的 15137-byte 文件已确认以 `ISO-10303-21` 开头，并含一个
+`MANIFOLD_SOLID_BREP('AJM005_T1_FLUID', ...)`，因此它不是零字节或无 B-rep 记录的导出；这不
+证明实体图完整或可导入，“root bodies 为零”也不能代表全层 body 为零。本机官方
+脚本使用 `GetRootPart().GetAllBodies()` 遍历当前 part 与子组件。第三版保持相同 open，仅同时
+记录 `root_body_count/component_count/all_body_count`；这样下一次结果能区分层级假设。若全层仍为
+零，再以另一新 job 检验显式 `ImportOptions.Create()`，不在一次重试中改变两个 STEP 变量。
+
+本轮最多可以写：解析几何指纹成功阻止了一个 API 返回成功但缺入口的模型进入 Workbench。不能写
+三段 union、完整 Named Selections、STEP 可移植性、CAD transfer 或 P1 readiness 已通过。

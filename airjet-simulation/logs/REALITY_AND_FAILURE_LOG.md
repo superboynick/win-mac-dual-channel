@@ -252,19 +252,24 @@
 - 对 Gate/论文主张的影响：没有工程能力运行，P1–P6 不变；该问题只属于复现基础设施现实。
 - 状态：CLOSED_BY_LITERAL_PATH_AND_SCOPED_COPY
 
-## REAL-20260714-018：CylinderBody 的“三点”不是轴两端加半径点
+## REAL-20260714-018：CylinderBody 三点语义曾被静态误判（已纠正）
 
 - UTC：2026-07-14
 - Stage/task：005 T1 / SC-CAD-T1 发布前审查
 - 初稿：入口三点为 `(10,5,1)`、`(10,5,0)`、`(11,5,0)` mm，并预期得到沿 z 的直径 2 mm
   圆柱。
-- 实际证据：本机 `SpaceClaim.Api.V261.Scripting.xml` 明确定义
-  `centerPoint` 为定义圆圆心、`startPoint` 为圆周起点、`endPoint` 为该圆周点的挤出终点。
-  初稿会混置半径和轴向，后续 `π mm³` 与 `z=0` 入口断言没有成立基础。
+- 当时的静态解释：发布前审查把本机 XML 的 `centerPoint/startPoint/endPoint` 短标签错误解释为
+  “定义圆圆心、圆周起点、该圆周点的挤出终点”。初稿会混置半径和轴向，但这一轮审查提出的
+  替代点组后来也被实跑推翻。
 - 处置：在签名提交和 ANSYS 实跑前改为 `(10,5,0)`、`(11,5,0)`、`(11,5,1)`；最终仍由
   body 体积、bbox、入口面积及重开结果复核，而不是因 API 调用未报错就判 PASS。
 - 对论文的影响：方法记录“同版本参数语义 + 解析几何指纹”的双重验证；没有生成产品结论。
-- 状态：CLOSED_IN_CODE_PENDING_SIGNED_RUN
+- 后续纠正：第二次签名运行得到 `200 mm³ / zmin=1 / INLET=0`，推翻了上述静态解释。重新读取
+  同机官方 `space_claim_geometry.py` 后确认实际向量语义是 `p1→p2` 为轴线、`p2→p3` 为半径；
+  XML 的 `centerPoint/startPoint/endPoint` 短标签不足以单独确定几何。正确的 z 轴点组是
+  `(10,5,0)`、`(10,5,1.1)`、`(11,5,1.1)`。旧判断不删除，作为“文档短描述必须被官方实例和
+  实跑几何共同验证”的反例；完整运行证据见 REAL-20260714-022。
+- 状态：REOPENED_AND_CORRECTED_PENDING_SIGNED_RETRY
 
 ## REAL-20260714-019：脚本重建参数变化不等于原生参数化
 
@@ -325,6 +330,43 @@
 - 对 Gate/论文主张的影响：首次运行证明脚本等效参数变化可执行，但全部 partial CAD capability
   仍 FAIL；P1 readiness BLOCKED，P1–P6 NOT_RUN。
 - 状态：CLOSED_IN_CODE_PENDING_SIGNED_RETRY_FIRST_FAILURE_PRESERVED
+
+## REAL-20260714-022：Array 修复后入口未进入最终流体，STEP 回读为空
+
+- UTC：2026-07-14T19:03:12Z
+- Stage/task：005 T1 / 第二次 SC-CAD-T1 实跑
+- Machine/operator：LAPTOP-LCCLM2HI / Mac Codex via SSH and fixed MCP
+- run/job/profile：`AJM005_T1_CAD_SUITE_20260714T190312403805Z_81461dd4` /
+  `...-a3fdb92e5107` / `ajm005-spaceclaim-cad-t1-v1`
+- 期望：三段负体积 union 为 `203.14159265358978 mm³`，bbox 从 `z=0` 到 `3 mm`，并能
+  创建 `INLET/OUTLET/WALLS`、原生重开和 STEP 回读。
+- 实际观察：`.NET Array` 修复有效，脚本越过首次 TypeError 并完成保存/重开。Boolean 返回
+  `Success=true`，但最终体积为 `200 mm³ = 192 + 8`、bbox `zmin=1 mm`、`INLET=0`；面清单
+  没有面积约 `π mm²` 的入口圆面。`piece_count=1`、`is_closed=true` 只描述剩余 body，不能证明
+  设计中的入口存在。原生文件忠实重开了同一错误几何，所以 aggregate `native_reopen=false`。
+  STEP 是 15137-byte、以 `ISO-10303-21` 开头的非空文件，但单参数
+  `DocumentOpen.Execute(step_path)` 后根层 `Bodies.Count=0`；该轮没有记录全层 body 数。
+- 原始证据：完整 suite JSON SHA-256
+  `5a1197520c39a3b80434e078d55519c5c1b6a5bc3c96910e3fa2dd90dc0a726`；MCP stderr SHA-256
+  `224ba0e83c60418b25577548b620ed783a3c6cf6b4cc37833078684f574718ad`；declared report SHA-256
+  `112d510dfb088c24251ee2275256b5b3641f3e372d80649b57e9d405b39b191e`；STEP SHA-256
+  `d04b26e497047e22a90db1da4cbef2fbbc7ed7ea2ef41b9ee8026b58b7d0a847`。
+- 根因分层：入口没有进入最终几何为运行直接证据。运行后对照本机官方 v261
+  `space_claim_geometry.py`，确认 `p1→p2` 定义轴线、`p2→p3` 定义半径；旧点组实际建立沿 x
+  而非沿 z 的圆柱，和体积/bbox/面证据一致，圆柱点语义根因为高置信度。STEP 文件内已确认有
+  `MANIFOLD_SOLID_BREP`，所以它不是零字节或完全没有 B-rep 记录的导出；这仍不证明实体拓扑完整
+  或可被 v261 正确导入。根层 body 为 0 仍不能区分“实体在子组件”与“导入没有落地”，需检查
+  全层 body。
+- 最小修正/区分实验：用正确三点建立 `z=0→1.1 mm` 圆柱，Boolean 前断言其原始体积
+  `1.1π mm³` 与 bbox `[9,4,0]→[11,6,1.1] mm`；0.1 mm overlap 后 union 解析体积仍为
+  `192 + π + 8 mm³`。STEP 保持相同 open，只把检查改为官方 `GetAllBodies()` 并同时记录根层、
+  component 和全层计数；若全层仍为 0，再以独立新 job 检验显式 ImportOptions。只有新签名运行的
+  体积、bbox、面和回读断言通过，才能把这两条解释提升为已关闭。
+- 拒绝的 workaround：不因 `Combine.Success` 或文件非空写 PASS；不把闭合但缺入口的 body 送入
+  Workbench；不把 Workbench 的 `BLOCKED_UPSTREAM` 写成执行失败。
+- 对 Gate/论文主张的影响：本轮最多证明几何指纹成功阻止错误模型下传。三段 union、完整 Named
+  Selections、STEP 可移植性、CAD→Workbench 传递均未通过；P1 readiness BLOCKED，P1–P6 NOT_RUN。
+- 状态：OPEN_SIGNED_RETRY_REQUIRED_FIRST_FAILURE_PRESERVED
 
 ## 新条目模板
 
