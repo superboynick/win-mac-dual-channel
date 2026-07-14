@@ -75,6 +75,7 @@ $Required = @(
     'airjet-simulation\windows-prompts\AJM_WIN_P1_READINESS_001.md',
     'airjet-simulation\windows-prompts\AJM_WIN_ANSYS_OFFICIAL_TRIAL_INSTALL_AND_SMOKE_004.md',
     'airjet-simulation\windows-prompts\AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md',
+    'airjet-simulation\windows-prompts\AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md',
     'airjet-simulation\reports\AJM_WIN_ANSYS_CAPABILITY_SMOKE_003_SUMMARY.md',
     'airjet-simulation\reports\AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md',
     'airjet-simulation\evidence\build_layout_candidate_scores.py',
@@ -89,7 +90,26 @@ $Required = @(
     'airjet-simulation\parameters\build_p1_cad_inputs.py',
     'airjet-simulation\parameters\p1_layout_configuration_matrix.csv',
     'airjet-simulation\parameters\p1_thickness_budget.csv',
+    'airjet-simulation\parameters\build_p1_cad_contracts.py',
+    'airjet-simulation\parameters\P1_CAD_CONTRACT_METHOD.md',
+    'airjet-simulation\parameters\p1_model_form_variants.csv',
+    'airjet-simulation\parameters\p1_cad_parameter_map.csv',
+    'airjet-simulation\parameters\p1_orifice_pattern_candidates.csv',
+    'airjet-simulation\parameters\p1_vent_geometry_candidates.csv',
+    'airjet-simulation\parameters\p1_planform_exhaust_candidates.csv',
+    'airjet-simulation\parameters\p1_internal_geometry_rules.csv',
+    'airjet-simulation\geometry\contracts\README.md',
+    'airjet-simulation\geometry\contracts\p1_cad_features.csv',
+    'airjet-simulation\geometry\contracts\p1_cad_feature_parameter_bindings.csv',
+    'airjet-simulation\geometry\contracts\p1_cad_interfaces.csv',
+    'airjet-simulation\geometry\contracts\p1_cad_named_selections.csv',
+    'airjet-simulation\geometry\contracts\p1_cad_open_questions.csv',
     'airjet-simulation\checklists\full_product_stage_gates.md',
+    'airjet-simulation\checklists\p1_cad_gate_matrix.csv',
+    'airjet-simulation\checklists\P1_CAD_INDEPENDENT_REVIEW_METHOD.md',
+    'airjet-simulation\checklists\prepare_p1_cad_review.py',
+    'airjet-simulation\logs\p1_cad_run_template.md',
+    'airjet-simulation\logs\external-files.csv',
     'airjet-simulation\notebooks\airjet-mini-layout-baseline.ipynb',
     'airjet-simulation\notebooks\build_layout_baseline.py',
     'codex-skills\airjet-product-reconstruction\SKILL.md',
@@ -482,6 +502,420 @@ if (Test-Path -LiteralPath $P1BuilderPath) {
     }
 }
 
+$P1ContractBuilderPath = Join-Path $RepoRoot 'airjet-simulation\parameters\build_p1_cad_contracts.py'
+if (Test-Path -LiteralPath $P1ContractBuilderPath) {
+    $PythonCommand = Get-Command python -ErrorAction SilentlyContinue
+    if ($null -eq $PythonCommand) { $PythonCommand = Get-Command python3 -ErrorAction SilentlyContinue }
+    if ($null -eq $PythonCommand) {
+        Add-Failure 'Python is required to verify generated P1 CAD contracts'
+    } else {
+        $ContractBuilderOutput = @(& $PythonCommand.Source $P1ContractBuilderPath --check 2>&1)
+        if ($LASTEXITCODE -ne 0 -or ($ContractBuilderOutput -join "`n") -notlike '*PASS mode=check*') {
+            Add-Failure "P1 CAD contracts are stale or invalid: $($ContractBuilderOutput -join ' | ')"
+        }
+    }
+}
+
+$VariantPath = Join-Path $RepoRoot 'airjet-simulation\parameters\p1_model_form_variants.csv'
+if (Test-Path -LiteralPath $VariantPath) {
+    $VariantRows = @(Import-Csv -LiteralPath $VariantPath -Encoding UTF8)
+    $ExpectedVariantIds = @(
+        'M-3x4-7.0__R25_BOTTOM_HEAVY',
+        'M-3x4-7.0__R50_BALANCED',
+        'M-3x4-7.0__R75_TOP_HEAVY',
+        'M+S-3x5-6.0__R50_BALANCED',
+        'L-2x4-8.0__R50_BALANCED',
+        'S-3x5-5.5__R50_BALANCED',
+        'M-3x4-7.0__R50_VENT_UPPER',
+        'M-3x4-7.0__R50_ORIFICE_EDGE_GAP',
+        'M-3x4-7.0__R50_EXHAUST_HALF_TAPER'
+    )
+    $ActualVariantIds = @($VariantRows | ForEach-Object { $_.variant_id } | Sort-Object -Unique)
+    if ($VariantRows.Count -ne 9 -or @(Compare-Object ($ExpectedVariantIds | Sort-Object) $ActualVariantIds).Count -gt 0) {
+        Add-Failure 'P1 model-form table must contain six base/residual and three derived variants'
+    }
+    $PrimaryFractions = @($VariantRows | Where-Object { $_.configuration_id -eq 'M-3x4-7.0' } |
+        ForEach-Object { $_.C020_residual_top_fraction } | Sort-Object -Unique)
+    if (@(Compare-Object @('0.25', '0.50', '0.75') $PrimaryFractions).Count -gt 0) {
+        Add-Failure 'P1 primary residual branches must remain 0.25/0.50/0.75'
+    }
+    foreach ($Row in $VariantRows) {
+        if ($Row.product_fact -ne 'false' -or $Row.status -ne 'CANDIDATE_NOT_RUN') {
+            Add-Failure "P1 variant was promoted beyond candidate input: $($Row.variant_id)"
+        }
+        $ExpectedInternalBranches = @{
+            cell_geometry_rule_id = 'CELL_CENTER_AND_TILE_R0'
+            central_anchor_rule_id = 'CENTRAL_ANCHOR_SQUARE_DATUM_R0'
+            bottom_chamber_rule_id = 'BOTTOM_CHAMBER_PER_CELL_SQUARE_R0'
+            cell_partition_rule_id = 'CELL_PARTITION_DATUM_R0'
+            top_chamber_branch_id = 'TOP_SHARED_PLENUM_R0'
+            perimeter_gap_branch_id = 'PERIM_SPLIT_GAP_R0'
+            side_frame_closure_branch_id = 'SIDE_WALL_BOUNDARY_R0'
+            residual_closure_branch_id = 'RESIDUAL_NUMERICAL_CLOSURE_R0'
+            orifice_grid_rule_id = 'ORIFICE_PER_CELL_CENTERED_CLIP_R0'
+        }
+        foreach ($Field in $ExpectedInternalBranches.Keys) {
+            if ($Row.$Field -ne $ExpectedInternalBranches[$Field]) {
+                Add-Failure "P1 variant internal R0 branch set changed: $($Row.variant_id)"
+                break
+            }
+        }
+        try {
+            $Residual = Convert-InvariantDouble $Row.C019_residual_total_mm
+            $Split = (Convert-InvariantDouble $Row.residual_top_mm) + (Convert-InvariantDouble $Row.residual_bottom_mm)
+            if ([Math]::Abs($Split - $Residual) -gt 1e-9) { Add-Failure "P1 residual split does not close: $($Row.variant_id)" }
+        } catch {
+            Add-Failure "P1 residual split is non-numeric: $($Row.variant_id)"
+        }
+    }
+    $DerivedRows = @($VariantRows | Where-Object { $_.variant_kind -eq 'DERIVED_SINGLE_FACTOR' })
+    $BaselineRows = @($VariantRows | Where-Object { $_.variant_id -eq 'M-3x4-7.0__R50_BALANCED' })
+    if ($DerivedRows.Count -ne 3 -or $BaselineRows.Count -ne 1) {
+        Add-Failure 'P1 variant table lacks baseline or three derived single-factor rows'
+    } else {
+        $Baseline = $BaselineRows[0]
+        foreach ($Row in $DerivedRows) {
+            $Changes = 0
+            foreach ($Field in @('vent_candidate_set_id', 'orifice_pattern_id', 'exhaust_branch_id')) {
+                if ($Row.$Field -ne $Baseline.$Field) { $Changes++ }
+            }
+            if ($Row.comparison_parent_variant_id -ne $Baseline.variant_id -or $Changes -ne 1) {
+                Add-Failure "P1 derived variant is not single-factor: $($Row.variant_id)"
+            }
+        }
+    }
+}
+
+$ParameterMapPath = Join-Path $RepoRoot 'airjet-simulation\parameters\p1_cad_parameter_map.csv'
+if (Test-Path -LiteralPath $ParameterMapPath) {
+    $ParameterMapRows = @(Import-Csv -LiteralPath $ParameterMapPath -Encoding UTF8)
+    if ($ParameterMapRows.Count -ne 342) { Add-Failure "P1 CAD parameter map must contain 342 rows, got $($ParameterMapRows.Count)" }
+    if (@($ParameterMapRows | Where-Object { $_.evidence_class -notin @('D', 'P', 'I', 'C', 'U') }).Count -gt 0) {
+        Add-Failure 'P1 CAD parameter map contains an invalid evidence class'
+    }
+    $ProductFactRows = @($ParameterMapRows | Where-Object { $_.product_fact -eq 'true' })
+    if ($ProductFactRows.Count -ne 27 -or @($ProductFactRows | Where-Object { $_.parameter_id -notin @('D001', 'D002', 'D003') }).Count -gt 0) {
+        Add-Failure 'only D001/D002/D003 may be product facts in the P1 CAD parameter map'
+    }
+    $GuardedRows = @($ParameterMapRows | Where-Object { $_.parameter_id -in @('C017', 'C019', 'C019_TOP', 'C019_BOTTOM') })
+    if ($GuardedRows.Count -ne 36 -or @($GuardedRows | Where-Object {
+        $_.geometry_only -ne 'true' -or $_.solver_use -ne 'GEOMETRY_ONLY_NO_MATERIAL_NO_MASS_NO_STRUCTURAL_NO_CHT'
+    }).Count -gt 0) {
+        Add-Failure 'P1 CAD parameter-map geometry-only guards changed'
+    }
+}
+
+$OrificePath = Join-Path $RepoRoot 'airjet-simulation\parameters\p1_orifice_pattern_candidates.csv'
+if (Test-Path -LiteralPath $OrificePath) {
+    $OrificeRows = @(Import-Csv -LiteralPath $OrificePath -Encoding UTF8)
+    $OrificeConfigurations = @($OrificeRows | ForEach-Object { $_.configuration_id } | Select-Object -Unique)
+    if ($OrificeRows.Count -ne 12 -or $OrificeConfigurations.Count -ne 4) {
+        Add-Failure 'P1 orifice table must contain three branches for each of four configurations'
+    }
+    if (@($OrificeRows | Where-Object { $_.product_fact -ne 'false' }).Count -gt 0) {
+        Add-Failure 'P1 orifice branch was promoted to product fact'
+    }
+    $CenterRows = @($OrificeRows | Where-Object { $_.pattern_id -like '*CENTER_PITCH_SENTINEL*' })
+    if ($CenterRows.Count -ne 4 -or @($CenterRows | Where-Object {
+        (Convert-InvariantDouble $_.infinite_square_grid_open_area_pct) -le 15.0 -or $_.cad_ready_candidate -ne 'false'
+    }).Count -gt 0) {
+        Add-Failure 'P008 center-pitch porosity conflict sentinel was lost'
+    }
+    $EdgeRows = @($OrificeRows | Where-Object { $_.pattern_id -like '*P008_AS_EDGE_GAP*' })
+    if ($EdgeRows.Count -ne 4 -or @($EdgeRows | Where-Object { -not (Test-Close $_.pitch_x_mm 0.75 1e-6) }).Count -gt 0) {
+        Add-Failure 'P008 edge-gap candidate pitch must remain 0.75 mm'
+    }
+}
+
+$VentCandidatePath = Join-Path $RepoRoot 'airjet-simulation\parameters\p1_vent_geometry_candidates.csv'
+if (Test-Path -LiteralPath $VentCandidatePath) {
+    $VentCandidateRows = @(Import-Csv -LiteralPath $VentCandidatePath -Encoding UTF8)
+    $FlowCandidateRows = @($VentCandidateRows | Where-Object { $_.candidate_set_id -eq 'VENT_FLOW_BBOX_R0' })
+    $UpperCandidateRows = @($VentCandidateRows | Where-Object { $_.candidate_set_id -eq 'VENT_UPPER_CENTERLINE_P013_R0' })
+    if ($VentCandidateRows.Count -ne 8 -or $FlowCandidateRows.Count -ne 4 -or $UpperCandidateRows.Count -ne 4 -or
+        @($FlowCandidateRows.vent_id | Select-Object -Unique).Count -ne 4 -or
+        @($UpperCandidateRows.vent_id | Select-Object -Unique).Count -ne 4) {
+        Add-Failure 'P1 vent candidates must contain two complete four-object sets'
+    }
+    if (@($VentCandidateRows | Where-Object {
+        $_.product_fact -ne 'false' -or $_.drawn_object_count_scope -ne 'FOUR_DRAWN_OBJECTS_NOT_GROUP_COUNT'
+    }).Count -gt 0) {
+        Add-Failure 'P1 vent candidate evidence boundary changed'
+    }
+}
+
+$PlanformPath = Join-Path $RepoRoot 'airjet-simulation\parameters\p1_planform_exhaust_candidates.csv'
+if (Test-Path -LiteralPath $PlanformPath) {
+    $PlanformRows = @(Import-Csv -LiteralPath $PlanformPath -Encoding UTF8)
+    $PlanformConfigurations = @($PlanformRows | ForEach-Object { $_.configuration_id } | Select-Object -Unique)
+    $PlanformCountFailure = $false
+    foreach ($Configuration in $PlanformConfigurations) {
+        if (@($PlanformRows | Where-Object { $_.configuration_id -eq $Configuration }).Count -ne 2) {
+            $PlanformCountFailure = $true
+        }
+    }
+    if ($PlanformRows.Count -ne 8 -or $PlanformConfigurations.Count -ne 4 -or $PlanformCountFailure) {
+        Add-Failure 'P1 exhaust table must contain two branches for each configuration'
+    }
+    if (@($PlanformRows | Where-Object {
+        $_.product_fact -ne 'false' -or $_.single_side_rule -ne 'OUTLET_ON_Y_PLUS_ENVELOPE_FACE_ONLY' -or
+        -not (Test-Close $_.manifold_y_max_mm 20.75 1e-9) -or (Convert-InvariantDouble $_.manifold_length_mm) -le 0.0
+    }).Count -gt 0) {
+        Add-Failure 'P1 exhaust branch evidence or geometry closure changed'
+    }
+}
+
+$InternalRulePath = Join-Path $RepoRoot 'airjet-simulation\parameters\p1_internal_geometry_rules.csv'
+if (Test-Path -LiteralPath $InternalRulePath) {
+    $InternalRuleRows = @(Import-Csv -LiteralPath $InternalRulePath -Encoding UTF8)
+    $ExpectedRuleIds = @(
+        'CELL_CENTER_AND_TILE_R0',
+        'BOTTOM_CHAMBER_PER_CELL_SQUARE_R0',
+        'CENTRAL_ANCHOR_SQUARE_DATUM_R0',
+        'CELL_PARTITION_DATUM_R0',
+        'TOP_SHARED_PLENUM_R0',
+        'PERIM_SPLIT_GAP_R0',
+        'SIDE_WALL_BOUNDARY_R0',
+        'RESIDUAL_NUMERICAL_CLOSURE_R0',
+        'ORIFICE_PER_CELL_CENTERED_CLIP_R0'
+    )
+    $ActualRuleIds = @($InternalRuleRows | ForEach-Object { $_.rule_id } | Sort-Object -Unique)
+    if ($InternalRuleRows.Count -ne 9 -or @(Compare-Object ($ExpectedRuleIds | Sort-Object) $ActualRuleIds).Count -gt 0) {
+        Add-Failure 'P1 internal geometry table must retain the nine explicit R0 rules'
+    }
+    if (@($InternalRuleRows | Where-Object {
+        $_.product_fact -ne 'false' -or $_.evidence_class -ne 'C' -or
+        $_.selection_status -ne 'SELECTED_R0_ENGINEERING_CLOSURE'
+    }).Count -gt 0) {
+        Add-Failure 'P1 internal geometry rule was promoted beyond C-class engineering closure'
+    }
+    $ExpectedRuleSources = @{
+        CELL_CENTER_AND_TILE_R0 = 'P;C'
+        BOTTOM_CHAMBER_PER_CELL_SQUARE_R0 = 'P;C'
+        CENTRAL_ANCHOR_SQUARE_DATUM_R0 = 'P;C'
+        CELL_PARTITION_DATUM_R0 = 'P;C'
+        TOP_SHARED_PLENUM_R0 = 'P;I;C'
+        PERIM_SPLIT_GAP_R0 = 'P;C'
+        SIDE_WALL_BOUNDARY_R0 = 'D;I;C;U'
+        RESIDUAL_NUMERICAL_CLOSURE_R0 = 'C;U'
+        ORIFICE_PER_CELL_CENTERED_CLIP_R0 = 'P;C'
+    }
+    if (@($InternalRuleRows | Where-Object {
+        $_.source_evidence_classes -ne $ExpectedRuleSources[$_.rule_id]
+    }).Count -gt 0) {
+        Add-Failure 'P1 internal geometry rule provenance classes changed'
+    }
+    $ResidualRule = @($InternalRuleRows | Where-Object { $_.rule_id -eq 'RESIDUAL_NUMERICAL_CLOSURE_R0' })
+    if ($ResidualRule.Count -ne 1 -or $ResidualRule[0].planform_or_construction_rule -notlike '*NEVER_EXTRACT_OUTER_ENVELOPE_MINUS_ALL_SOLIDS*') {
+        Add-Failure 'P1 residual closure no longer prevents false fluid extraction'
+    }
+}
+
+$FeatureContractPath = Join-Path $RepoRoot 'airjet-simulation\geometry\contracts\p1_cad_features.csv'
+if (Test-Path -LiteralPath $FeatureContractPath) {
+    $FeatureRows = @(Import-Csv -LiteralPath $FeatureContractPath -Encoding UTF8)
+    $FeatureIds = @($FeatureRows | ForEach-Object { $_.feature_id } | Select-Object -Unique)
+    if ($FeatureRows.Count -ne 30 -or $FeatureIds.Count -ne 30) { Add-Failure 'P1 feature contract must contain 30 unique features' }
+    $TrueFeatures = @($FeatureRows | Where-Object { $_.product_fact -eq 'true' })
+    if ($TrueFeatures.Count -ne 1 -or $TrueFeatures[0].feature_id -ne 'ENVELOPE_REF') {
+        Add-Failure 'only ENVELOPE_REF may be a product fact in the P1 feature contract'
+    }
+    $ResidualFeatures = @($FeatureRows | Where-Object { $_.feature_id -in @('C017_SUPPORT_ALLOWANCE_REF', 'C019_TOP_REF', 'C019_BOTTOM_REF') })
+    if ($ResidualFeatures.Count -ne 3 -or @($ResidualFeatures | Where-Object {
+        $_.material_policy -ne 'PROHIBITED' -or $_.mass_policy -ne 'EXCLUDE' -or
+        $_.boolean_policy -ne 'NO_BOOLEAN' -or $_.export_policy -ne 'DO_NOT_EXPORT' -or
+        $_.solver_use -ne 'GEOMETRY_ONLY_NO_PHYSICS'
+    }).Count -gt 0) {
+        Add-Failure 'P1 feature residual/support guards changed'
+    }
+    $ConstructionDatums = @($FeatureRows | Where-Object {
+        $_.feature_id -in @('CENTRAL_ANCHOR_CAND_TEMPLATE', 'CELL_PARTITION_CAND_TEMPLATE')
+    })
+    if ($ConstructionDatums.Count -ne 2 -or @($ConstructionDatums | Where-Object {
+        $_.material_policy -ne 'PROHIBITED' -or $_.mass_policy -ne 'EXCLUDE' -or
+        $_.boolean_policy -notlike 'NO_BOOLEAN*' -or $_.export_policy -notlike 'DO_NOT_EXPORT*' -or
+        $_.solver_use -ne 'GEOMETRY_ONLY_NO_PHYSICS'
+    }).Count -gt 0) {
+        Add-Failure 'P1 central-anchor or cell-partition datum gained physical behavior'
+    }
+    if (@($ConstructionDatums | Where-Object { $_.geometry_class -ne 'C' }).Count -gt 0) {
+        Add-Failure 'P1 central-anchor or cell-partition exact geometry was promoted beyond C'
+    }
+}
+
+$BindingContractPath = Join-Path $RepoRoot 'airjet-simulation\geometry\contracts\p1_cad_feature_parameter_bindings.csv'
+if (Test-Path -LiteralPath $BindingContractPath) {
+    $BindingRows = @(Import-Csv -LiteralPath $BindingContractPath -Encoding UTF8)
+    $BindingIds = @($BindingRows | ForEach-Object { $_.binding_id } | Select-Object -Unique)
+    if ($BindingRows.Count -ne 31 -or $BindingIds.Count -ne 31 -or @($BindingRows | Where-Object {
+        [string]::IsNullOrWhiteSpace($_.parameter_id) -or [string]::IsNullOrWhiteSpace($_.source_locator)
+    }).Count -gt 0) {
+        Add-Failure 'P1 parameter-binding contract count or provenance changed'
+    }
+    $PartitionBindings = @($BindingRows | Where-Object {
+        $_.feature_id -eq 'CELL_PARTITION_CAND_TEMPLATE' -and $_.parameter_id -eq 'P014'
+    })
+    if ($PartitionBindings.Count -ne 1 -or $PartitionBindings[0].geometry_only -ne 'true') {
+        Add-Failure 'P1 cell-partition datum binding must remain geometry-only'
+    }
+}
+
+$InterfaceContractPath = Join-Path $RepoRoot 'airjet-simulation\geometry\contracts\p1_cad_interfaces.csv'
+if (Test-Path -LiteralPath $InterfaceContractPath) {
+    $InterfaceRows = @(Import-Csv -LiteralPath $InterfaceContractPath -Encoding UTF8)
+    $ForbiddenInterfaceFeatures = @(
+        'C017_SUPPORT_ALLOWANCE_REF', 'C019_TOP_REF', 'C019_BOTTOM_REF', 'FLEX_KEEP_OUT_U',
+        'CENTRAL_ANCHOR_CAND_TEMPLATE', 'CELL_PARTITION_CAND_TEMPLATE'
+    )
+    if ($InterfaceRows.Count -ne 13 -or @($InterfaceRows | Where-Object {
+        $_.side_a_feature_id -in $ForbiddenInterfaceFeatures -or $_.side_b_feature_id -in $ForbiddenInterfaceFeatures
+    }).Count -gt 0) {
+        Add-Failure 'P1 interface contract count or geometry-only exclusion changed'
+    }
+    foreach ($Interface in $InterfaceRows) {
+        $ExpectedBranch = 'ALL_P1_VARIANTS'
+        if ($Interface.interface_id -in @('IF001', 'IF009')) { $ExpectedBranch = 'P1_OPTIONAL_EXTERNAL_DOMAIN' }
+        if ($Interface.interface_id -eq 'IF013') { $ExpectedBranch = 'P5_ONLY' }
+        if ($Interface.branch_id -ne $ExpectedBranch) {
+            Add-Failure "P1 interface branch scope changed: $($Interface.interface_id)"
+        }
+    }
+}
+
+$NamedContractPath = Join-Path $RepoRoot 'airjet-simulation\geometry\contracts\p1_cad_named_selections.csv'
+if (Test-Path -LiteralPath $NamedContractPath) {
+    $NamedRows = @(Import-Csv -LiteralPath $NamedContractPath -Encoding UTF8)
+    $NamedIds = @($NamedRows | ForEach-Object { $_.selection_id } | Select-Object -Unique)
+    if ($NamedRows.Count -ne 37 -or $NamedIds.Count -ne 37 -or @($NamedRows | Where-Object {
+        $_.selection_id -match 'REAL_|PRODUCTION_|ACTUAL_SPOUT|MATERIAL_RESIDUAL_LAYER'
+    }).Count -gt 0) {
+        Add-Failure 'P1 named-selection contract count or evidence-safe naming changed'
+    }
+    $NamedById = @{}
+    foreach ($Row in $NamedRows) { $NamedById[$Row.selection_id] = $Row }
+    if (Test-Path -LiteralPath $InterfaceContractPath) {
+        foreach ($Interface in $InterfaceRows) {
+            $SideA = $NamedById[$Interface.named_selection_a]
+            $SideB = $NamedById[$Interface.named_selection_b]
+            if ($null -eq $SideA -or $null -eq $SideB) {
+                Add-Failure "P1 interface lacks an exact named-selection pair: $($Interface.interface_id)"
+            } elseif ($SideA.owner_feature_id -ne $Interface.side_a_feature_id -or
+                $SideB.owner_feature_id -ne $Interface.side_b_feature_id -or
+                $Interface.interface_mode -ne 'PAIRED_NONCONFORMAL_OR_MATCHED_FACE') {
+                Add-Failure "P1 interface named-selection ownership mismatch: $($Interface.interface_id)"
+            }
+        }
+    }
+}
+
+$OpenQuestionPath = Join-Path $RepoRoot 'airjet-simulation\geometry\contracts\p1_cad_open_questions.csv'
+if (Test-Path -LiteralPath $OpenQuestionPath) {
+    $OpenRows = @(Import-Csv -LiteralPath $OpenQuestionPath -Encoding UTF8)
+    if ($OpenRows.Count -ne 15 -or @($OpenRows | Where-Object { $_.status -ne 'OPEN' -or $_.product_fact -ne 'false' }).Count -gt 0) {
+        Add-Failure 'P1 open-question contract must retain 15 open non-product-fact rows'
+    }
+    $IntakeMapping = @($OpenRows | Where-Object { $_.question_id -eq 'OQ002' })
+    if ($IntakeMapping.Count -ne 1 -or $IntakeMapping[0].evidence_class -ne 'U') {
+        Add-Failure 'true intake-group count and cell mapping must remain U-class'
+    }
+}
+
+$GateMatrixPath = Join-Path $RepoRoot 'airjet-simulation\checklists\p1_cad_gate_matrix.csv'
+if (Test-Path -LiteralPath $GateMatrixPath) {
+    $GateRows = @(Import-Csv -LiteralPath $GateMatrixPath -Encoding UTF8)
+    $GateVariantIds = @($GateRows | ForEach-Object { $_.variant_id } | Select-Object -Unique)
+    if ($GateRows.Count -ne 252 -or $GateVariantIds.Count -ne 9 -or
+        @($GateRows | Where-Object { $_.status -ne 'NOT_RUN' }).Count -gt 0) {
+        Add-Failure 'P1 CAD gate matrix must contain 252 NOT_RUN rows across nine variants'
+    }
+    if ($GateRows.Count -gt 0) {
+        $GateProperties = @($GateRows[0].PSObject.Properties.Name)
+        foreach ($RequiredProperty in @(
+            'selected_vent_candidate_set_id',
+            'selected_orifice_pattern_id',
+            'selected_exhaust_branch_id',
+            'selected_cell_geometry_rule_id',
+            'selected_central_anchor_rule_id',
+            'selected_bottom_chamber_rule_id',
+            'selected_cell_partition_rule_id',
+            'selected_top_chamber_branch_id',
+            'selected_perimeter_gap_branch_id',
+            'selected_side_frame_closure_branch_id',
+            'selected_residual_closure_branch_id',
+            'selected_orifice_grid_rule_id',
+            'comparison_parent_variant_id',
+            'changed_factor'
+        )) {
+            if ($RequiredProperty -notin $GateProperties) { Add-Failure "P1 CAD gate matrix lacks branch field: $RequiredProperty" }
+        }
+    }
+    foreach ($GateId in @('G4_INTERFERENCE', 'G4_ZERO_THICKNESS', 'G4_DUPLICATE_FACES')) {
+        $ScopedRows = @($GateRows | Where-Object { $_.gate_item_id -eq $GateId })
+        if ($ScopedRows.Count -ne 9 -or @($ScopedRows | Where-Object {
+            $_.requirement -notlike '*exported physical candidate solids and required fluid bodies*'
+        }).Count -gt 0) {
+            Add-Failure "P1 geometry-health Gate scope changed: $GateId"
+        }
+    }
+}
+
+$ExternalFilesPath = Join-Path $RepoRoot 'airjet-simulation\logs\external-files.csv'
+if (Test-Path -LiteralPath $ExternalFilesPath) {
+    $ExternalText = (Read-Utf8 $ExternalFilesPath).Trim()
+    $ExpectedExternalHeader = 'case_id,file_role,absolute_path,size_bytes,sha256,created_at_utc,software_version,git_commit,notes'
+    if ($ExternalText -ne $ExpectedExternalHeader) {
+        Add-Failure 'external-files.csv must remain an empty canonical P1 artifact manifest'
+    }
+}
+
+$ReviewScriptPath = Join-Path $RepoRoot 'airjet-simulation\checklists\prepare_p1_cad_review.py'
+if (Test-Path -LiteralPath $ReviewScriptPath) {
+    $ReviewScriptText = Read-Utf8 $ReviewScriptPath
+    foreach ($Marker in @(
+        'AJM-WIN-P1-FULL-PRODUCT-CAD-BUILD-006',
+        'duplicate report key',
+        '"merge-base"',
+        'P1 gate input must contain 252 unique gate/variant rows',
+        'review packet output must remain outside the Git repository',
+        'P1_STAGE_GATE=PENDING_INDEPENDENT_REVIEW',
+        'REVIEW_PACKET_PREPARATION=PASS',
+        'PureWindowsPath',
+        'GATE_EVIDENCE_006_CSV',
+        'P1_CONTRACT_BUNDLE_SHA256',
+        'load_gate_rows_at_commit',
+        'copied run root contains unindexed files',
+        '"REPORT_005_COPY"',
+        '"PARENT_GEOMETRY_RESULT_DIFF"',
+        '"secondary_evidence_original_path"',
+        '"secondary_evidence_sha256"',
+        '"--finalize-worksheet"',
+        '"--spot-check-record"',
+        'validate_step_limitation_consistency',
+        'P1_REVIEW_RECOMMENDATION=PASS',
+        'P1_STAGE_GATE=PENDING_REVIEW_RECORD_COMMIT',
+        'Preparation PASS does not mean P1 PASS'
+    )) {
+        if (-not $ReviewScriptText.Contains($Marker)) { Add-Failure "P1 independent-review script lacks invariant: $Marker" }
+    }
+}
+
+$ReviewMethodPath = Join-Path $RepoRoot 'airjet-simulation\checklists\P1_CAD_INDEPENDENT_REVIEW_METHOD.md'
+if (Test-Path -LiteralPath $ReviewMethodPath) {
+    $ReviewMethodText = Read-Utf8 $ReviewMethodPath
+    foreach ($Marker in @(
+        'P1_REVIEW_RECOMMENDATION=PASS',
+        '252',
+        'LIMITATION_ACCEPTED',
+        'NOT_REVIEWED',
+        'PureWindowsPath',
+        '006 commit',
+        'prepare_p1_cad_review.py',
+        'INCOMPLETE'
+    )) {
+        if (-not $ReviewMethodText.Contains($Marker)) { Add-Failure "P1 independent-review method lacks invariant: $Marker" }
+    }
+}
+
 $VentResultsPath = Join-Path $RepoRoot 'airjet-simulation\evidence\annotated_figures\gen1_vent_homography_results.csv'
 if (Test-Path -LiteralPath $VentResultsPath) {
     $VentRows = @(Import-Csv -LiteralPath $VentResultsPath -Encoding UTF8)
@@ -600,6 +1034,83 @@ if (Test-Path -LiteralPath $StudentPromptPath) {
     }
     if ($StudentPromptText.Contains('P1_FULL_PRODUCT_CAD=')) {
         Add-Failure 'Windows Student smoke prompt conflates toolchain readiness with the P1 stage Gate'
+    }
+}
+
+$CadPromptPath = Join-Path $RepoRoot 'airjet-simulation\windows-prompts\AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md'
+if (Test-Path -LiteralPath $CadPromptPath) {
+    $CadPromptText = Read-Utf8 $CadPromptPath
+    foreach ($Marker in @(
+        'AJM-WIN-P1-FULL-PRODUCT-CAD-BUILD-006',
+        'TASK=AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005',
+        'OLD_PLE_BASELINE=CLEAN',
+        'GIT_FETCH=PASS',
+        'git merge-base --is-ancestor $Report005Commit HEAD',
+        'git remote get-url origin',
+        "git rev-parse --abbrev-ref --symbolic-full-name '@{u}'",
+        'https://github.com/superboynick/win-mac-dual-channel.git',
+        'AIRJET_ANSYS_STUDENT_CAPABILITY_SMOKE_005.txt',
+        'build_p1_cad_contracts.py --check',
+        'D:\AirJet_P1\AJM-P1-CAD-006\<UTC-run-id>',
+        '$RunId = (Get-Date).ToUniversalTime().ToString(''yyyyMMddTHHmmssZ'')',
+        'git status --porcelain',
+        'ANSYSLMD_LICENSE_FILE=1055@localhost',
+        'REPORT_005_GIT_COMMIT=',
+        'GIT_ORIGIN=https://github.com/superboynick/win-mac-dual-channel.git',
+        'GIT_BRANCH=main',
+        'GIT_UPSTREAM=origin/main',
+        'FINAL_GIT_CLEAN=PASS/FAIL',
+        'C_FREE_GIB=',
+        'D_FREE_GIB=',
+        'AVAILABLE_RAM_GIB=',
+        'LICENSE_SAFETY_CHECK=PASS/FAIL',
+        'P1_CONTRACT_BUNDLE_SHA256=',
+        'GATE_TEMPLATE_SHA256=',
+        'VARIANT_TABLE_SHA256=',
+        'INTERNAL_RULES_SHA256=',
+        'GATE_EVIDENCE_006_CSV',
+        'AUTOMATED_CHECKS_CSV',
+        'REPORT_005_COPY',
+        'PARENT_GEOMETRY_RESULT_DIFF',
+        'secondary_evidence_original_path,secondary_evidence_sha256',
+        'excluded_datum_feature_ids',
+        'anchor_partition_nonphysical_guard',
+        'selected_central_anchor_rule_id=CENTRAL_ANCHOR_SQUARE_DATUM_R0',
+        'selected_bottom_chamber_rule_id=BOTTOM_CHAMBER_PER_CELL_SQUARE_R0',
+        'selected_cell_partition_rule_id=CELL_PARTITION_DATUM_R0',
+        'CONFIGURATIONS_REQUESTED=4',
+        'BASE_OR_RESIDUAL_VARIANTS_REQUESTED=6',
+        'DERIVED_SINGLE_FACTOR_VARIANTS_REQUESTED=3',
+        'TOTAL_VARIANTS_REQUESTED=9',
+        'BLOCKED_005_GATE',
+        'BLOCKED_GIT_OR_ENVIRONMENT',
+        'PARTIAL_CAD_OUTPUT',
+        'COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW',
+        'COMPLETE_AWAITING_REVIEW',
+        'P1_STAGE_GATE=NOT_STARTED/INCOMPLETE/PENDING_MAC_REVIEW',
+        'C017_C019_PHYSICS_GUARD=',
+        'PARAMETER_DIFF_CHECK=PASS_ALL_3_DERIVED/FAIL',
+        'GEOMETRY_RESULT_DIFF_CHECK=PASS_ALL_3_DERIVED/FAIL',
+        'STEP_EXPORT_REIMPORT=PASS_ALL_9/LIMITATION_RECORDED/FAIL',
+        'ANCHOR_PARTITION_NONPHYSICAL_GUARD=PASS_ALL_9/FAIL',
+        'TRANSFER_LIMITATION_SCOPE=NONE/STEP_ONLY',
+        'REPORT_005_PARSE=UNIQUE_KEYS_REJECT_DUPLICATES_AND_CONFLICTS',
+        'REPORT_005_IDENTITY=TASK_COMPUTER_ANSYS_VERSION_INSTALL_ROOT_COMMIT',
+        'LICENSE_POLICY=NO_LICENSE_FILE_POOL_SERVICE_REGISTRY_ENV_PRIORITY_CHECKOUT_MUTATION',
+        'RESOURCE_THRESHOLDS_GIB=C_FREE_GE_10_D_FREE_GE_20_AVAILABLE_RAM_GE_8',
+        'GIT_RECHECK=BEFORE_BUILD_AFTER_EACH_VARIANT_AFTER_FINAL_MANIFEST',
+        'STATUS_MAP_BLOCKED_005_GATE=NOT_STARTED',
+        'STATUS_MAP_BLOCKED_GIT_OR_ENVIRONMENT=NOT_STARTED',
+        'STATUS_MAP_PARTIAL_CAD_OUTPUT=INCOMPLETE',
+        'STATUS_MAP_COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW=PENDING_MAC_REVIEW',
+        'STATUS_MAP_COMPLETE_AWAITING_REVIEW=PENDING_MAC_REVIEW',
+        'P1_PASS_PROHIBITED=006_CAN_ONLY_REACH_PENDING_MAC_REVIEW',
+        '005_TRANSFER_LIMITATION_INHERITANCE=REQUIRED'
+    )) {
+        if (-not $CadPromptText.Contains($Marker)) { Add-Failure "Windows P1 CAD prompt lacks invariant: $Marker" }
+    }
+    if ($CadPromptText -match '(?mi)^\s*(?:[-*+]\s*)?`?P1_STAGE_GATE\s*=\s*PASS(?:\s|`|$)') {
+        Add-Failure 'Windows P1 CAD prompt is allowed to report P1 PASS'
     }
 }
 

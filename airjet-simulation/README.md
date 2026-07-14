@@ -33,6 +33,10 @@
 - `evidence/SOURCE_PROVENANCE.md`：每份产品卡、专利和论文能支持哪些参数，以及不能支持什么。
 - `parameters/full_product_parameter_registry.csv`：完整产品尺寸、性能、结构、流体、控制和热参数注册表。
 - `parameters/build_p1_cad_inputs.py`、`p1_layout_configuration_matrix.csv`、`p1_thickness_budget.csv`：从冻结账本生成的 P1 主/备/sentinel 布局输入、孔数代理和严格 2.8 mm 占位厚度预算；占位闭合不等于内部层厚已识别。
+- `parameters/build_p1_cad_contracts.py`、`P1_CAD_CONTRACT_METHOD.md`：生成并解释 P1 的 6 个交付/残差变体、3 个单因素派生变体、内部 R0 构造规则、参数映射和全部 `NOT_RUN` Gate 行。
+- `geometry/contracts/`：整机 feature、参数绑定、接口、Named Selections 和开放问题的证据分离合同。
+- `logs/p1_cad_run_template.md`、`logs/external-files.csv`：P1 运行记录与 Git 外大文件哈希索引模板。
+- `checklists/P1_CAD_INDEPENDENT_REVIEW_METHOD.md`、`prepare_p1_cad_review.py`：006 后的跨系统证据包校验、252 行 Gate worksheet 和 finalize/六项原生抽查校验；准备或推荐 PASS 都不直接改写 P1 阶段状态。
 - `manuals/01_FULL_PRODUCT_CAD.md`：完整产品 CAD 装配、流道和候选阵列操作规划。
 - `manuals/02_ACTUATOR_STRUCTURAL.md`：执行片结构、压电谐响应、位移场和整机功耗约束。
 - `manuals/03_CELL_TRANSIENT_CFD.md`：单 cell 可压缩动态网格校准与整机降阶接口。
@@ -40,6 +44,7 @@
 - `manuals/05_FULL_PRODUCT_CHT.md`：完整热结构、自热/芯片热账户和官方热工况校准。
 - `manuals/06_CALIBRATION_AND_UNCERTAINTY.md`：多指标参数识别、验证集与不可辨识性处理。
 - `manuals/07_RUN_LOG_AND_GIT.md`：每次算例注释、大文件索引和 Windows/Mac 交接。
+- `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：只有 005 P1 CAD 工具链通过后才可执行的完整产品 CAD 建模任务；006 本身不能宣布 P1 Gate PASS。
 - `notebooks/airjet-mini-layout-baseline.ipynb`：可执行的产品指标核对与 Layout-L/M/S 几何候选枚举；几何可装入不等于真实内部布局。
 - `notebooks/build_layout_baseline.py`：可重复生成上述 notebook 的标准库脚本。
 - `checklists/full_product_stage_gates.md`：P0–P6 的整机验收门槛。

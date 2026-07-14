@@ -1,6 +1,6 @@
 # 操作手册 01：AirJet Mini 完整产品参数化 CAD
 
-状态：规划版，等待 Windows CAD 软件和版本确认后补充逐按钮截图。  
+状态：可执行合同版；等待 Windows 005 工具链门槛通过后由 006 建模并补充实际截图。
 目标：建立完整 AirJet Mini 装配体和可用于 CFD 的完整流体体积；单 cell 只是装配体中的参数化子组件。
 
 ## 1. 建模坐标和尺寸基准
@@ -23,14 +23,15 @@ AJM_GEN1_PRODUCT
 ├── 10_PACKAGE_SOLIDS
 │   ├── TOP_COVER
 │   ├── SIDE_FRAME
-│   ├── BOTTOM_ORIFICE_OR_SPOUT_PLATE
+│   ├── ORIFICE_PLATE_CAND
+│   ├── SPOUT_BOUNDARY_CONSTRUCTION_CAND
 │   ├── HEAT_SPREADER
 │   └── FLEX_PLACEHOLDER
 ├── 20_ACTIVE_ARRAY
 │   ├── CELL_001 ... CELL_N
-│   ├── CENTRAL_ANCHORS
+│   ├── CENTRAL_ANCHOR_DATUM_C
 │   ├── MEMBRANES
-│   └── CELL_PARTITIONS
+│   └── CELL_PARTITION_DATUM_C
 ├── 30_FLOW_PATH
 │   ├── EXTERNAL_INLET_PLENUM
 │   ├── TOP_CHAMBERS
@@ -61,18 +62,26 @@ AJM_GEN1_PRODUCT
 
 ```powershell
 python .\airjet-simulation\parameters\build_p1_cad_inputs.py
+python .\airjet-simulation\parameters\build_p1_cad_contracts.py
 ```
 
 要求同时生成：
 
 - `parameters/p1_layout_configuration_matrix.csv`：主候选、备选和两个 model-form sentinel 的阵列输入；
 - `parameters/p1_thickness_budget.csv`：从底部热扩散面到顶盖的 `TB0-PLACEHOLDER` 坐标表。
+- `parameters/p1_model_form_variants.csv` 与 `p1_cad_parameter_map.csv`：6 个交付/残差变体、3 个单因素派生变体及其逐参数 CAD 映射；
+- `parameters/p1_orifice_pattern_candidates.csv`、`p1_vent_geometry_candidates.csv`、`p1_planform_exhaust_candidates.csv`：三类不能静默猜测的几何分支；
+- `parameters/p1_internal_geometry_rules.csv`：膜片/每 cell 底腔、中央锚与分区 datum、共享顶腔、外围间隙、side-wall、残差数值封闭和喷孔落点等 9 条可重复 R0 规则；
+- `geometry/contracts/*.csv`：整机 component/interface/Named Selection/open-question 合同；
+- `checklists/p1_cad_gate_matrix.csv`：初始全部 `NOT_RUN` 的逐变体验收矩阵。
 
 `TB0-PLACEHOLDER` 严格加和为 2.8 mm，但其中 `C019` 是未识别层厚残差，初始由 `C020=0.5` 对称分配到主动层上下。这个占位体只让第一版 CAD 能闭合、切片和检查拓扑，不证明真实产品存在两个等厚残差层。`C017`、`C019_TOP`、`C019_BOTTOM` 禁止赋予材料，禁止计入质量，禁止进入结构或 CHT 求解；只有分解成有独立证据的真实候选部件后才能升级用途。P1 必须至少比较 top-heavy、balanced、bottom-heavy 三种 `C020` 分配，并用双视图、质量预算、结构碰撞和流体连通淘汰；不得通过缩放官方示意剖面直接定层厚。
 
 `P002=0.275 mm` 来自 8 mm 专利执行片实施例。TB0 暂把它跨尺寸借给 5.5/6/7/8 mm 四个具体配置，只用于 P1 CAD 占位；进入 P2 前必须按膜片尺寸建立独立厚度/材料分支，不能声称四个布局都得到相同专利厚度支持。
 
-`porosity_hole_count_proxy` 只按 `phi_open * active_membrane_area_proxy / circular_hole_area` 估算建模规模。因为真实活动孔板面积未知、`separation s` 图义未解决，它不能直接成为最终喷孔数。初次 Boolean 可用代理孔阵列验证软件稳定性，正式 P1 Gate 仍须使实际孔数、孔径、活动面积和开孔率闭合。生成后运行 `python .\airjet-simulation\parameters\build_p1_cad_inputs.py --check`，必须无写入地返回 PASS，才说明 CSV 与注册表一致。
+`porosity_hole_count_proxy` 只按 `phi_open * active_membrane_area_proxy / circular_hole_area` 估算建模规模。因为真实活动孔板面积未知、`separation s` 图义未解决，它不能直接成为最终喷孔数。初次 Boolean 可用代理孔阵列验证软件稳定性，正式 P1 Gate 仍须使实际孔数、孔径、活动面积和开孔率闭合。
+
+生成后必须同时运行 `build_p1_cad_inputs.py --check` 和 `build_p1_cad_contracts.py --check`。第二个生成器还锁定两套 vent 坐标、两套排气平面闭合和 0.25/0.50/0.75 残差位置分支；完整公式、证据边界和禁止用途见 `parameters/P1_CAD_CONTRACT_METHOD.md`。两条命令无写入返回 PASS 只说明 CSV 与上游输入一致，仍不表示 CAD 已建立。
 
 ## 4. 第二步：建立产品层级流道
 
@@ -103,9 +112,11 @@ python .\airjet-simulation\parameters\build_p1_cad_inputs.py
 
 ### Layout-M（当前主候选）
 
-- 执行片有效长度初值 8 mm；
+- 当前工作主配置执行片有效长度为 7 mm（`M-3x4-7.0`）；
 - 中等数量单元，排气歧管和 flex 留出明确空间；
 - 作为第一版完整装配体。
+
+`P002=0.275 mm` 是 8 mm 专利执行片的跨尺寸厚度占位，它不是 Layout-M 的平面长度；8 mm 平面执行片只在 `L-2x4-8.0` sentinel 中出现。
 
 ### Layout-S
 
@@ -119,7 +130,8 @@ python .\airjet-simulation\parameters\build_p1_cad_inputs.py
 
 每个 `CELL_nnn` 包含：
 
-- 中央锚点；
+- 非物理中央锚 construction datum；
+- 零厚度 cell-partition ownership/naming datum；
 - 复合执行片占位实体；
 - 顶腔；
 - 膜片外围连通间隙；
@@ -144,6 +156,8 @@ cell 子组件必须能被完整产品阵列调用，但其外壁不能重复生
 - 用产品图确定主要出口方向，建立汇流歧管和集成 spout；
 - 为比较建立 `EXHAUST_OPEN_ALL_SIDES` 诊断配置，但不得作为最终 Mini 模型。
 
+正式 P1 R0 不再临场画歧管。默认从 `p1_planform_exhaust_candidates.csv` 选择 `<configuration_id>__EXH_FULL_WIDTH_RECT_R0`；主配置 balanced 另建 `EXH_CENTER_HALF_TAPER_R0`，一次只改变排气模型形式。二者都为 `C` 类工程闭合，不是产品截面。顶盖同样一次完整选择 `VENT_FLOW_BBOX_R0` 或 `VENT_UPPER_CENTERLINE_P013_R0` 的全部四行，禁止混拼两套视图。
+
 ## 9. 第七步：流体体积提取
 
 分别提取并命名：
@@ -167,16 +181,20 @@ cell 子组件必须能被完整产品阵列调用，但其外壁不能重复生
 - [ ] 每个未知尺寸拥有 `I/C/U` 标签；
 - [ ] 三个概念族对应的四个具体配置可切换且外壳不变；
 - [ ] STEP、原生 CAD、剖面图和参数表均已导出。
+- [ ] `C017/C019` 参考体及中央锚/partition datum 没有材料、质量、Boolean、结构、CHT、fluid union 或求解器导出；
+- [ ] Required Named Selections 均按稳定 feature ID 重建并成功传入 Workbench；
+- [ ] 每个变体记录 vent/orifice/exhaust 三个 branch ID、实际孔数/开孔率和全部文件 SHA256；
+- [ ] 006 结束时 P1 只允许 `INCOMPLETE` 或 `PENDING_MAC_REVIEW`，不得由执行端自评 PASS。
 
 ## 11. 文件输出
 
 ```text
-geometry/product_assembly/AJM-P1-M-v001.<native>
-geometry/product_assembly/AJM-P1-M-v001.step
-geometry/fluid_volumes/AJM-P1-M-fluid-v001.step
-geometry/layouts/layout_constraints-v001.csv
-results_summary/P1-M-cross-sections-v001.pdf
-logs/AJM-P1-M-v001.md
+D:\AirJet_P1\AJM-P1-CAD-006\<UTC-run-id>\master\AJM-P1-master.<native>
+D:\AirJet_P1\AJM-P1-CAD-006\<UTC-run-id>\<variant-id>\product.<native>
+D:\AirJet_P1\AJM-P1-CAD-006\<UTC-run-id>\<variant-id>\product.step
+D:\AirJet_P1\AJM-P1-CAD-006\<UTC-run-id>\<variant-id>\fluid.step
+D:\AirJet_P1\AJM-P1-CAD-006\<UTC-run-id>\<variant-id>\checks\
+C:\Users\admin\Downloads\AIRJET_P1_FULL_PRODUCT_CAD_BUILD_006.txt
 ```
 
-大型 CAD/网格若不适合 Git，Git 中保留参数表、截图、STEP 的轻量替代版本或外部文件校验值。
+大型 CAD/STEP/Workbench 文件不进入 Git。Git 只保留生成器、参数/合同表、运行模板和后续审核通过的小型摘要；外部产物用 `logs/external-files.csv` 的字段记录绝对路径、大小、SHA256、软件版本和 Git commit。

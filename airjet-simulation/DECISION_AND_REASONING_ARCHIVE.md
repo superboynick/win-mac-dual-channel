@@ -251,3 +251,42 @@ P0 的目的不是识别所有内部几何，而是冻结：哪些是 D、哪些
 ### 为什么专利定位改用 printed column/line
 
 旧 registry 中的 `paragraph 864/866` 是网页文本抽取行号，不是正式美国专利段落号，无法让另一位研究者直接在扫描 PDF 上核对。现在数值参数和部件映射均使用“本地 PDF 页码 + FIG. + printed column/line”，同时保留网页只作检索辅助。
+
+## 16. 为什么 P1 需要“可执行候选”，不能只把未知写成 TBD
+
+证据诚实不等于让 CAD 操作者自由补图。顶腔共享关系、外围转移截面、side frame、残差层和孔板落点仍未知，但如果它们只写 `TBD/U`，Windows 建模时必然产生未登记的隐藏常量。当前采用两层表达：
+
+1. 产品事实层继续保持 D/P/I/C/U，不把未知升级；
+2. 数值执行层给出明确、可重复、可替换的 C 类 R0 规则。
+
+### cell tile 与外围间隙
+
+布局搜索原先使用 `array_span = N*P001+(N-1)*P014`。R0 将 cell 中心节距明确为 `P001+P014`，每个膜片位于同尺寸 Voronoi tile 中心，因此每侧候选 clearance 为 `P014/2`。外围流体取 `tile square - membrane square` 并沿 Z 贯通顶/底腔。这个解释使同一 CSV 只生成一种几何，但 `P014` 的真实壁/间隙含义仍是待实物证据确认的模型形式问题。
+
+### 共享顶腔
+
+R0 顶部配气空间取“选定四个 vent polygon 与完整 cell tile footprint 的包络裁剪凸包”，Z 范围来自所选厚度变体。选择凸包是为了给所有 cell 一个确定、连通、无手绘 corridor 的第一版共享 plenum。分组或逐 cell 顶腔仍保留开放问题，R0 成功不表示量产结构共享。
+
+### C017/C019 为什么既不能当固体，也不能当空气
+
+这些项只承担 2.8 mm 厚度算术闭合。如果把它们建成实体，会伪造产品部件；如果做“外包络减所有候选固体”的负体积，它们又会被误抽成空气。当前规则是：只直接构造合同声明的流体体并 union，在厚度预算 Z 边界建立不导出的 closure datum。这样残差区既不进入材料/质量/物理，也不会造成虚假泄漏通道。
+
+### 喷孔为什么按每 cell 中心重置
+
+仅给直径和 pitch 不能唯一决定实际孔数。R0 在每个膜片中心建立独立方阵，只有整个圆落在膜片方形代理区内才保留，edge margin 为 `d/2`。这能确定 Boolean 输入和实际重数；中央锚投影是否排孔、真实活动孔板 polygon 和锥孔仍是后续分支。
+
+### 为什么是 9 个 variant、252 条 Gate
+
+六个基础运行覆盖四个整机配置以及主配置 `C020=0.25/0.50/0.75`。vent、P008 edge-gap 和 half-taper exhaust 三个比较各自作为独立派生 variant，只允许相对 balanced 父项改变一个 branch ID。每个 variant 有相同的 28 条 Gate，因此 9×28=252；这防止报告只写“比较过”却没有完整连通、孔数、传递和哈希证据。
+
+### 为什么接口必须有 A/B 两套 Named Selections
+
+即使两个体共享同一几何面，它们在 CAD/Workbench 中仍可能是不同 owner 或 nonconformal face。每个接口现在都使用分别归属 side A/side B feature 的两个精确 selection ID；`{NNN}` 只按 `001..N_CELL` 展开。外部入口/出口域对 P1 可选，对 P4 必需；产品内部 vent opening 到 product outlet 始终是 P1 硬连通路径。
+
+### 为什么 006 不能自评 PASS
+
+模型生成端会同时控制脚本、几何和日志，缺少独立性。006 只能到 `PENDING_MAC_REVIEW`。007 保留原始 Windows 路径和 manifest，用 `PureWindowsPath` 安全映射完整副本；从精确 006 commit 重算合同 bundle，并验证 9 个 variant 的固定文件角色、机器检查 CSV、252 行证据键、目录全文件闭合及全部大小/SHA256，随后才生成独立 worksheet。Mac 无法打开原生 SpaceClaim 时，还需要用户或另一可见 Windows 会话抽查关键原生文件。只有 243 个 hard gates 全部独立通过、9 个 STEP 行通过或合规接受限制，后续单独审核提交才可推荐 P1 PASS。
+
+原先把膜片中心、中央锚、底腔和分区压在一个 cell rule 中，仍会让 CAD 操作者猜中央锚形状、底腔平面和 partition 的实体含义。现拆成 9 条显式 R0：底腔是每 cell 的 `P001` 方形流体体；中央锚是 `P012` 方形、膜片 Z 区间内的非物理 datum；partition 是只用于 ownership/naming 的内部零厚度中面，不做 Boolean、不占据已经由 perimeter-gap 流体使用的空间。它们都是 C 类候选闭合，不是产品事实。
+
+追溯：`parameters/P1_CAD_CONTRACT_METHOD.md`、`parameters/p1_internal_geometry_rules.csv`、`parameters/p1_model_form_variants.csv`、`checklists/p1_cad_gate_matrix.csv`、`windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`、`checklists/P1_CAD_INDEPENDENT_REVIEW_METHOD.md`。

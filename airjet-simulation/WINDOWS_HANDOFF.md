@@ -24,7 +24,11 @@
 12. `airjet-simulation/parameters/full_product_parameter_registry.csv`
 13. `airjet-simulation/checklists/full_product_stage_gates.md`
 14. `airjet-simulation/manuals/01_FULL_PRODUCT_CAD.md`
-15. `airjet-simulation/windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`（当前下一轮入口）
+15. `airjet-simulation/parameters/P1_CAD_CONTRACT_METHOD.md`
+16. `airjet-simulation/geometry/contracts/README.md`
+17. `airjet-simulation/windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`（当前下一轮入口）
+18. `airjet-simulation/windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`（005 通过后才执行）
+19. `airjet-simulation/checklists/P1_CAD_INDEPENDENT_REVIEW_METHOD.md`（006 完成后由独立审查端执行）
 
 先安装并核对固定 skills：
 
@@ -62,9 +66,9 @@ Expected SHA256:
 2. 确认研究 ZIP 与 Mini PDF 哈希；不需要重做已经版本化的曲线、图像 homography、专利映射或 Layout 去重；
 3. 将 Windows Codex 默认 reasoning effort 设为 `high`；复杂故障/关键 Gate 审核可临时升 `xhigh`；Mac 证据协调端保持 `xhigh`；
 4. 当前先执行 `windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`；不等待 30 天试用审批；
-5. 005 的 P1 CAD 工具链就绪度通过后，用同一 27.5 x 41.5 x 2.8 mm 外壳建立 `M-3x4-7.0` 工作主候选、`M+S-3x5-6.0` 备选和两个 sentinel；005 不通过 P1 整机 Gate，P1 输入先由 `parameters/build_p1_cad_inputs.py` 生成；
+5. 005 的 P1 CAD 工具链就绪度通过后，执行 006；用同一 27.5 x 41.5 x 2.8 mm 母版建立全部 9 个正式 variant。输入由两个 P1 生成器、9 条 internal R0 和 `geometry/contracts/` 锁定，不能由 Windows 临场猜测；006 必须保留真实 005 副本、固定角色 manifest、机器检查和 252 行 evidence；
 6. 先完成 2.8 mm 厚度预算和完整入口-上下腔-孔板-冲击通道-歧管-spout 连通检查，再给任何布局正式图像/几何分；
-7. 不启动高保真单 cell 作为主线；只有 P1 Gate 通过后才进入 P2/P3。
+7. 006 只能到 `PENDING_MAC_REVIEW`；Mac 端 007 preparation/finalize 及 6 项原生文件可见抽查完成后，仍需单独审核提交才能记录 P1 Gate；不启动高保真单 cell 作为主线。
 
 可见窗口启动使用仓库脚本：
 
@@ -74,7 +78,7 @@ powershell -ExecutionPolicy Bypass -File .\launch-airjet-codex-visible.ps1
 
 该脚本只允许在当前交互桌面会话启动；若从 SSH 运行会明确拒绝，防止产生用户看不见的后台 Codex。
 
-当前下一轮入口是 `airjet-simulation/windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`。若 30 天官方试用开通，再使用 004。SSH/Git 可以可靠同步这些文件；旧 001 和 003 保留作历史记录，不再作为当前入口。
+当前下一轮入口仍是 `airjet-simulation/windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`。只有其 P1 CAD 必需字段通过后，才打开 006。若 30 天官方试用开通，再使用 004。SSH/Git 可以可靠同步这些文件；旧 001 和 003 保留作历史记录，不再作为当前入口。
 
 ## 安全规则
 

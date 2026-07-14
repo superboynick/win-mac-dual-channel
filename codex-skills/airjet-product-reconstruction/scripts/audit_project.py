@@ -8,6 +8,7 @@ import csv
 import hashlib
 import json
 import math
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -35,6 +36,7 @@ REQUIRED = [
     "airjet-simulation/windows-prompts/AJM_WIN_P1_READINESS_001.md",
     "airjet-simulation/windows-prompts/AJM_WIN_ANSYS_OFFICIAL_TRIAL_INSTALL_AND_SMOKE_004.md",
     "airjet-simulation/windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md",
+    "airjet-simulation/windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md",
     "airjet-simulation/reports/AJM_WIN_ANSYS_CAPABILITY_SMOKE_003_SUMMARY.md",
     "airjet-simulation/reports/AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md",
     "airjet-simulation/evidence/build_layout_candidate_scores.py",
@@ -49,7 +51,26 @@ REQUIRED = [
     "airjet-simulation/parameters/build_p1_cad_inputs.py",
     "airjet-simulation/parameters/p1_layout_configuration_matrix.csv",
     "airjet-simulation/parameters/p1_thickness_budget.csv",
+    "airjet-simulation/parameters/build_p1_cad_contracts.py",
+    "airjet-simulation/parameters/P1_CAD_CONTRACT_METHOD.md",
+    "airjet-simulation/parameters/p1_model_form_variants.csv",
+    "airjet-simulation/parameters/p1_cad_parameter_map.csv",
+    "airjet-simulation/parameters/p1_orifice_pattern_candidates.csv",
+    "airjet-simulation/parameters/p1_vent_geometry_candidates.csv",
+    "airjet-simulation/parameters/p1_planform_exhaust_candidates.csv",
+    "airjet-simulation/parameters/p1_internal_geometry_rules.csv",
+    "airjet-simulation/geometry/contracts/README.md",
+    "airjet-simulation/geometry/contracts/p1_cad_features.csv",
+    "airjet-simulation/geometry/contracts/p1_cad_feature_parameter_bindings.csv",
+    "airjet-simulation/geometry/contracts/p1_cad_interfaces.csv",
+    "airjet-simulation/geometry/contracts/p1_cad_named_selections.csv",
+    "airjet-simulation/geometry/contracts/p1_cad_open_questions.csv",
     "airjet-simulation/checklists/full_product_stage_gates.md",
+    "airjet-simulation/checklists/p1_cad_gate_matrix.csv",
+    "airjet-simulation/checklists/P1_CAD_INDEPENDENT_REVIEW_METHOD.md",
+    "airjet-simulation/checklists/prepare_p1_cad_review.py",
+    "airjet-simulation/logs/p1_cad_run_template.md",
+    "airjet-simulation/logs/external-files.csv",
     "airjet-simulation/SKILLS_AND_GIT_WORKFLOW.md",
     "airjet-simulation/notebooks/airjet-mini-layout-baseline.ipynb",
     "airjet-simulation/notebooks/build_layout_baseline.py",
@@ -433,6 +454,479 @@ def main() -> int:
             detail = (check.stderr or check.stdout).strip().replace("\n", " | ")
             failures.append(f"P1 generated inputs are stale or invalid: {detail}")
 
+    p1_contract_builder = repo / "airjet-simulation/parameters/build_p1_cad_contracts.py"
+    if p1_contract_builder.is_file():
+        check = subprocess.run(
+            [sys.executable, str(p1_contract_builder), "--check"],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if check.returncode != 0 or "PASS mode=check" not in check.stdout:
+            detail = (check.stderr or check.stdout).strip().replace("\n", " | ")
+            failures.append(f"P1 CAD contracts are stale or invalid: {detail}")
+
+    variant_path = repo / "airjet-simulation/parameters/p1_model_form_variants.csv"
+    if variant_path.is_file():
+        with variant_path.open(newline="", encoding="utf-8") as handle:
+            variant_rows = list(csv.DictReader(handle))
+        expected_variants = {
+            "M-3x4-7.0__R25_BOTTOM_HEAVY",
+            "M-3x4-7.0__R50_BALANCED",
+            "M-3x4-7.0__R75_TOP_HEAVY",
+            "M+S-3x5-6.0__R50_BALANCED",
+            "L-2x4-8.0__R50_BALANCED",
+            "S-3x5-5.5__R50_BALANCED",
+            "M-3x4-7.0__R50_VENT_UPPER",
+            "M-3x4-7.0__R50_ORIFICE_EDGE_GAP",
+            "M-3x4-7.0__R50_EXHAUST_HALF_TAPER",
+        }
+        actual_variants = {row.get("variant_id", "") for row in variant_rows}
+        if len(variant_rows) != 9 or actual_variants != expected_variants:
+            failures.append("P1 model-form table must contain six base/residual and three derived variants")
+        primary_fractions = {
+            row.get("C020_residual_top_fraction")
+            for row in variant_rows
+            if row.get("configuration_id") == "M-3x4-7.0"
+        }
+        if primary_fractions != {"0.25", "0.50", "0.75"}:
+            failures.append("P1 primary residual branches must remain 0.25/0.50/0.75")
+        for row in variant_rows:
+            if row.get("product_fact") != "false" or row.get("status") != "CANDIDATE_NOT_RUN":
+                failures.append(f"P1 variant was promoted beyond candidate input: {row.get('variant_id')}")
+            expected_internal_branches = {
+                "cell_geometry_rule_id": "CELL_CENTER_AND_TILE_R0",
+                "central_anchor_rule_id": "CENTRAL_ANCHOR_SQUARE_DATUM_R0",
+                "bottom_chamber_rule_id": "BOTTOM_CHAMBER_PER_CELL_SQUARE_R0",
+                "cell_partition_rule_id": "CELL_PARTITION_DATUM_R0",
+                "top_chamber_branch_id": "TOP_SHARED_PLENUM_R0",
+                "perimeter_gap_branch_id": "PERIM_SPLIT_GAP_R0",
+                "side_frame_closure_branch_id": "SIDE_WALL_BOUNDARY_R0",
+                "residual_closure_branch_id": "RESIDUAL_NUMERICAL_CLOSURE_R0",
+                "orifice_grid_rule_id": "ORIFICE_PER_CELL_CENTERED_CLIP_R0",
+            }
+            if any(row.get(key) != value for key, value in expected_internal_branches.items()):
+                failures.append(f"P1 variant internal R0 branch set changed: {row.get('variant_id')}")
+            try:
+                residual = float(row["C019_residual_total_mm"])
+                if not math.isclose(
+                    float(row["residual_top_mm"]) + float(row["residual_bottom_mm"]),
+                    residual,
+                    rel_tol=0.0,
+                    abs_tol=1e-9,
+                ):
+                    failures.append(f"P1 residual split does not close: {row.get('variant_id')}")
+            except (KeyError, TypeError, ValueError):
+                failures.append(f"P1 residual split is non-numeric: {row.get('variant_id')}")
+        derived_rows = [row for row in variant_rows if row.get("variant_kind") == "DERIVED_SINGLE_FACTOR"]
+        baseline = next(
+            (row for row in variant_rows if row.get("variant_id") == "M-3x4-7.0__R50_BALANCED"),
+            None,
+        )
+        branch_fields = ("vent_candidate_set_id", "orifice_pattern_id", "exhaust_branch_id")
+        if len(derived_rows) != 3 or baseline is None:
+            failures.append("P1 variant table lacks baseline or three derived single-factor rows")
+        else:
+            for row in derived_rows:
+                changes = sum(row.get(field) != baseline.get(field) for field in branch_fields)
+                if row.get("comparison_parent_variant_id") != baseline.get("variant_id") or changes != 1:
+                    failures.append(f"P1 derived variant is not single-factor: {row.get('variant_id')}")
+
+    parameter_map_path = repo / "airjet-simulation/parameters/p1_cad_parameter_map.csv"
+    if parameter_map_path.is_file():
+        with parameter_map_path.open(newline="", encoding="utf-8") as handle:
+            parameter_map_rows = list(csv.DictReader(handle))
+        if len(parameter_map_rows) != 342:
+            failures.append(f"P1 CAD parameter map must contain 342 rows, got {len(parameter_map_rows)}")
+        if any(row.get("evidence_class") not in {"D", "P", "I", "C", "U"} for row in parameter_map_rows):
+            failures.append("P1 CAD parameter map contains an invalid evidence class")
+        product_fact_rows = [row for row in parameter_map_rows if row.get("product_fact") == "true"]
+        if len(product_fact_rows) != 27 or any(
+            row.get("parameter_id") not in {"D001", "D002", "D003"} for row in product_fact_rows
+        ):
+            failures.append("only D001/D002/D003 may be product facts in the P1 CAD parameter map")
+        guarded_ids = {"C017", "C019", "C019_TOP", "C019_BOTTOM"}
+        guarded_rows = [row for row in parameter_map_rows if row.get("parameter_id") in guarded_ids]
+        if len(guarded_rows) != 36 or any(
+            row.get("geometry_only") != "true"
+            or row.get("solver_use") != "GEOMETRY_ONLY_NO_MATERIAL_NO_MASS_NO_STRUCTURAL_NO_CHT"
+            for row in guarded_rows
+        ):
+            failures.append("P1 CAD parameter-map geometry-only guards changed")
+
+    orifice_path = repo / "airjet-simulation/parameters/p1_orifice_pattern_candidates.csv"
+    if orifice_path.is_file():
+        with orifice_path.open(newline="", encoding="utf-8") as handle:
+            orifice_rows = list(csv.DictReader(handle))
+        if len(orifice_rows) != 12 or len({row.get("configuration_id") for row in orifice_rows}) != 4:
+            failures.append("P1 orifice table must contain three branches for each of four configurations")
+        if any(row.get("product_fact") != "false" for row in orifice_rows):
+            failures.append("P1 orifice branch was promoted to product fact")
+        center_rows = [row for row in orifice_rows if "CENTER_PITCH_SENTINEL" in row.get("pattern_id", "")]
+        edge_rows = [row for row in orifice_rows if "P008_AS_EDGE_GAP" in row.get("pattern_id", "")]
+        phi_rows = [row for row in orifice_rows if "PHI_DERIVED_SQUARE" in row.get("pattern_id", "")]
+        if len(center_rows) != 4 or any(
+            float(row.get("infinite_square_grid_open_area_pct", "0")) <= 15.0
+            or row.get("cad_ready_candidate") != "false"
+            for row in center_rows
+        ):
+            failures.append("P008 center-pitch porosity conflict sentinel was lost")
+        if len(edge_rows) != 4 or any(not float_close(row.get("pitch_x_mm", ""), 0.75, 1e-6) for row in edge_rows):
+            failures.append("P008 edge-gap candidate pitch must remain 0.75 mm")
+        expected_phi_pitch = 0.25 * math.sqrt(math.pi / (4.0 * 0.10))
+        if len(phi_rows) != 4 or any(
+            not float_close(row.get("pitch_x_mm", ""), expected_phi_pitch, 1e-6) for row in phi_rows
+        ):
+            failures.append("porosity-derived P1 orifice pitch is stale")
+
+    vent_candidate_path = repo / "airjet-simulation/parameters/p1_vent_geometry_candidates.csv"
+    if vent_candidate_path.is_file():
+        with vent_candidate_path.open(newline="", encoding="utf-8") as handle:
+            vent_candidate_rows = list(csv.DictReader(handle))
+        expected_sets = {"VENT_FLOW_BBOX_R0", "VENT_UPPER_CENTERLINE_P013_R0"}
+        set_counts = {
+            candidate_set: len(
+                {row.get("vent_id") for row in vent_candidate_rows if row.get("candidate_set_id") == candidate_set}
+            )
+            for candidate_set in expected_sets
+        }
+        if len(vent_candidate_rows) != 8 or set_counts != {name: 4 for name in expected_sets}:
+            failures.append("P1 vent candidates must contain two complete four-object sets")
+        if any(
+            row.get("product_fact") != "false"
+            or row.get("drawn_object_count_scope") != "FOUR_DRAWN_OBJECTS_NOT_GROUP_COUNT"
+            for row in vent_candidate_rows
+        ):
+            failures.append("P1 vent candidate evidence boundary changed")
+        try:
+            if any(
+                not (-13.75 <= float(row["center_x_cad_mm"]) <= 13.75)
+                or not (-20.75 <= float(row["center_y_cad_mm"]) <= 20.75)
+                or float(row["axis_length_mm"]) <= 0.0
+                or float(row["slot_width_mm"]) <= 0.0
+                for row in vent_candidate_rows
+            ):
+                failures.append("P1 vent candidate lies outside envelope or has non-positive dimensions")
+        except (KeyError, TypeError, ValueError):
+            failures.append("P1 vent candidate contains non-numeric geometry")
+
+    planform_path = repo / "airjet-simulation/parameters/p1_planform_exhaust_candidates.csv"
+    if planform_path.is_file():
+        with planform_path.open(newline="", encoding="utf-8") as handle:
+            planform_rows = list(csv.DictReader(handle))
+        configuration_counts = {
+            config: sum(row.get("configuration_id") == config for row in planform_rows)
+            for config in {"M-3x4-7.0", "M+S-3x5-6.0", "L-2x4-8.0", "S-3x5-5.5"}
+        }
+        if len(planform_rows) != 8 or set(configuration_counts.values()) != {2}:
+            failures.append("P1 exhaust table must contain two branches for each configuration")
+        if any(
+            row.get("product_fact") != "false"
+            or row.get("single_side_rule") != "OUTLET_ON_Y_PLUS_ENVELOPE_FACE_ONLY"
+            for row in planform_rows
+        ):
+            failures.append("P1 exhaust branch evidence or single-side boundary changed")
+        try:
+            if any(
+                not float_close(row["manifold_y_max_mm"], 20.75, 1e-9)
+                or float(row["manifold_length_mm"]) <= 0.0
+                or not math.isclose(
+                    float(row["outlet_width_mm"]) * float(row["outlet_height_mm"]),
+                    float(row["outlet_area_mm2"]),
+                    rel_tol=0.0,
+                    abs_tol=1e-9,
+                )
+                for row in planform_rows
+            ):
+                failures.append("P1 exhaust branch geometry closure failed")
+        except (KeyError, TypeError, ValueError):
+            failures.append("P1 exhaust branch contains non-numeric geometry")
+
+    internal_rule_path = repo / "airjet-simulation/parameters/p1_internal_geometry_rules.csv"
+    if internal_rule_path.is_file():
+        with internal_rule_path.open(newline="", encoding="utf-8") as handle:
+            internal_rule_rows = list(csv.DictReader(handle))
+        expected_rule_ids = {
+            "CELL_CENTER_AND_TILE_R0",
+            "BOTTOM_CHAMBER_PER_CELL_SQUARE_R0",
+            "CENTRAL_ANCHOR_SQUARE_DATUM_R0",
+            "CELL_PARTITION_DATUM_R0",
+            "TOP_SHARED_PLENUM_R0",
+            "PERIM_SPLIT_GAP_R0",
+            "SIDE_WALL_BOUNDARY_R0",
+            "RESIDUAL_NUMERICAL_CLOSURE_R0",
+            "ORIFICE_PER_CELL_CENTERED_CLIP_R0",
+        }
+        if len(internal_rule_rows) != 9 or {row.get("rule_id") for row in internal_rule_rows} != expected_rule_ids:
+            failures.append("P1 internal geometry table must retain the nine explicit R0 rules")
+        if any(
+            row.get("product_fact") != "false"
+            or row.get("evidence_class") != "C"
+            or row.get("selection_status") != "SELECTED_R0_ENGINEERING_CLOSURE"
+            for row in internal_rule_rows
+        ):
+            failures.append("P1 internal geometry rule was promoted beyond C-class engineering closure")
+        expected_rule_sources = {
+            "CELL_CENTER_AND_TILE_R0": "P;C",
+            "BOTTOM_CHAMBER_PER_CELL_SQUARE_R0": "P;C",
+            "CENTRAL_ANCHOR_SQUARE_DATUM_R0": "P;C",
+            "CELL_PARTITION_DATUM_R0": "P;C",
+            "TOP_SHARED_PLENUM_R0": "P;I;C",
+            "PERIM_SPLIT_GAP_R0": "P;C",
+            "SIDE_WALL_BOUNDARY_R0": "D;I;C;U",
+            "RESIDUAL_NUMERICAL_CLOSURE_R0": "C;U",
+            "ORIFICE_PER_CELL_CENTERED_CLIP_R0": "P;C",
+        }
+        if any(
+            row.get("source_evidence_classes") != expected_rule_sources.get(row.get("rule_id"))
+            for row in internal_rule_rows
+        ):
+            failures.append("P1 internal geometry rule provenance classes changed")
+        residual_rule = next(
+            (row for row in internal_rule_rows if row.get("rule_id") == "RESIDUAL_NUMERICAL_CLOSURE_R0"),
+            {},
+        )
+        if "NEVER_EXTRACT_OUTER_ENVELOPE_MINUS_ALL_SOLIDS" not in residual_rule.get(
+            "planform_or_construction_rule", ""
+        ):
+            failures.append("P1 residual closure no longer prevents false fluid extraction")
+
+    feature_path = repo / "airjet-simulation/geometry/contracts/p1_cad_features.csv"
+    binding_path = repo / "airjet-simulation/geometry/contracts/p1_cad_feature_parameter_bindings.csv"
+    interface_path = repo / "airjet-simulation/geometry/contracts/p1_cad_interfaces.csv"
+    named_path = repo / "airjet-simulation/geometry/contracts/p1_cad_named_selections.csv"
+    open_path = repo / "airjet-simulation/geometry/contracts/p1_cad_open_questions.csv"
+    if feature_path.is_file():
+        with feature_path.open(newline="", encoding="utf-8") as handle:
+            feature_rows = list(csv.DictReader(handle))
+        feature_ids = {row.get("feature_id", "") for row in feature_rows}
+        if len(feature_rows) != 30 or len(feature_ids) != 30:
+            failures.append("P1 feature contract must contain 30 unique features")
+        true_features = {row.get("feature_id") for row in feature_rows if row.get("product_fact") == "true"}
+        if true_features != {"ENVELOPE_REF"}:
+            failures.append("only ENVELOPE_REF may be a product fact in the P1 feature contract")
+        residual_features = [
+            row for row in feature_rows
+            if row.get("feature_id") in {"C017_SUPPORT_ALLOWANCE_REF", "C019_TOP_REF", "C019_BOTTOM_REF"}
+        ]
+        if len(residual_features) != 3 or any(
+            row.get("material_policy") != "PROHIBITED"
+            or row.get("mass_policy") != "EXCLUDE"
+            or row.get("boolean_policy") != "NO_BOOLEAN"
+            or row.get("export_policy") != "DO_NOT_EXPORT"
+            or row.get("solver_use") != "GEOMETRY_ONLY_NO_PHYSICS"
+            for row in residual_features
+        ):
+            failures.append("P1 feature residual/support guards changed")
+        construction_datums = [
+            row for row in feature_rows
+            if row.get("feature_id") in {"CENTRAL_ANCHOR_CAND_TEMPLATE", "CELL_PARTITION_CAND_TEMPLATE"}
+        ]
+        if len(construction_datums) != 2 or any(
+            row.get("material_policy") != "PROHIBITED"
+            or row.get("mass_policy") != "EXCLUDE"
+            or not row.get("boolean_policy", "").startswith("NO_BOOLEAN")
+            or not row.get("export_policy", "").startswith("DO_NOT_EXPORT")
+            or row.get("solver_use") != "GEOMETRY_ONLY_NO_PHYSICS"
+            for row in construction_datums
+        ):
+            failures.append("P1 central-anchor or cell-partition datum gained physical behavior")
+        if any(row.get("geometry_class") != "C" for row in construction_datums):
+            failures.append("P1 central-anchor or cell-partition exact geometry was promoted beyond C")
+    else:
+        feature_ids = set()
+
+    if binding_path.is_file():
+        with binding_path.open(newline="", encoding="utf-8") as handle:
+            binding_rows = list(csv.DictReader(handle))
+        if len(binding_rows) != 31 or len({row.get("binding_id") for row in binding_rows}) != 31:
+            failures.append("P1 parameter-binding contract must contain 31 unique rows")
+        if any(not row.get("parameter_id") or not row.get("source_locator") for row in binding_rows):
+            failures.append("P1 parameter-binding contract contains a hidden or untraced input")
+        if feature_ids and any(row.get("feature_id") not in feature_ids for row in binding_rows):
+            failures.append("P1 parameter-binding contract references an unknown feature")
+        partition_binding = next(
+            (
+                row
+                for row in binding_rows
+                if row.get("feature_id") == "CELL_PARTITION_CAND_TEMPLATE"
+                and row.get("parameter_id") == "P014"
+            ),
+            {},
+        )
+        if partition_binding.get("geometry_only") != "true":
+            failures.append("P1 cell-partition datum binding must remain geometry-only")
+
+    if interface_path.is_file():
+        with interface_path.open(newline="", encoding="utf-8") as handle:
+            interface_rows = list(csv.DictReader(handle))
+        forbidden_features = {
+            "C017_SUPPORT_ALLOWANCE_REF",
+            "C019_TOP_REF",
+            "C019_BOTTOM_REF",
+            "FLEX_KEEP_OUT_U",
+            "CENTRAL_ANCHOR_CAND_TEMPLATE",
+            "CELL_PARTITION_CAND_TEMPLATE",
+        }
+        if len(interface_rows) != 13 or any(
+            row.get("side_a_feature_id") in forbidden_features
+            or row.get("side_b_feature_id") in forbidden_features
+            for row in interface_rows
+        ):
+            failures.append("P1 interface contract count or geometry-only exclusion changed")
+        if feature_ids and any(
+            row.get("side_a_feature_id") not in feature_ids or row.get("side_b_feature_id") not in feature_ids
+            for row in interface_rows
+        ):
+            failures.append("P1 interface contract references an unknown feature")
+        expected_interface_branches = {
+            "IF001": "P1_OPTIONAL_EXTERNAL_DOMAIN",
+            "IF009": "P1_OPTIONAL_EXTERNAL_DOMAIN",
+            "IF013": "P5_ONLY",
+        }
+        for row in interface_rows:
+            expected_branch = expected_interface_branches.get(row.get("interface_id"), "ALL_P1_VARIANTS")
+            if row.get("branch_id") != expected_branch:
+                failures.append(f"P1 interface branch scope changed: {row.get('interface_id')}")
+
+    if named_path.is_file():
+        with named_path.open(newline="", encoding="utf-8") as handle:
+            named_rows = list(csv.DictReader(handle))
+        forbidden_tokens = ("REAL_", "PRODUCTION_", "ACTUAL_SPOUT", "MATERIAL_RESIDUAL_LAYER")
+        if len(named_rows) != 37 or len({row.get("selection_id") for row in named_rows}) != 37:
+            failures.append("P1 named-selection contract must contain 37 unique rows")
+        if any(any(token in row.get("selection_id", "") for token in forbidden_tokens) for row in named_rows):
+            failures.append("P1 named selection implies unsupported production geometry")
+        if feature_ids and any(row.get("owner_feature_id") not in feature_ids for row in named_rows):
+            failures.append("P1 named-selection contract references an unknown feature")
+        named_by_id = {row.get("selection_id"): row for row in named_rows}
+        if interface_path.is_file():
+            for interface in interface_rows:
+                side_a = named_by_id.get(interface.get("named_selection_a"))
+                side_b = named_by_id.get(interface.get("named_selection_b"))
+                if side_a is None or side_b is None:
+                    failures.append(f"P1 interface lacks an exact named-selection pair: {interface.get('interface_id')}")
+                elif (
+                    side_a.get("owner_feature_id") != interface.get("side_a_feature_id")
+                    or side_b.get("owner_feature_id") != interface.get("side_b_feature_id")
+                    or interface.get("interface_mode") != "PAIRED_NONCONFORMAL_OR_MATCHED_FACE"
+                ):
+                    failures.append(f"P1 interface named-selection ownership mismatch: {interface.get('interface_id')}")
+
+    if open_path.is_file():
+        with open_path.open(newline="", encoding="utf-8") as handle:
+            open_rows = list(csv.DictReader(handle))
+        if len(open_rows) != 15 or any(
+            row.get("status") != "OPEN" or row.get("product_fact") != "false" for row in open_rows
+        ):
+            failures.append("P1 open-question contract must retain 15 open non-product-fact rows")
+        intake_mapping = next((row for row in open_rows if row.get("question_id") == "OQ002"), {})
+        if intake_mapping.get("evidence_class") != "U":
+            failures.append("true intake-group count and cell mapping must remain U-class")
+
+    gate_path = repo / "airjet-simulation/checklists/p1_cad_gate_matrix.csv"
+    if gate_path.is_file():
+        with gate_path.open(newline="", encoding="utf-8") as handle:
+            gate_rows = list(csv.DictReader(handle))
+        required_gate_columns = {
+            "selected_vent_candidate_set_id",
+            "selected_orifice_pattern_id",
+            "selected_exhaust_branch_id",
+            "selected_cell_geometry_rule_id",
+            "selected_central_anchor_rule_id",
+            "selected_bottom_chamber_rule_id",
+            "selected_cell_partition_rule_id",
+            "selected_top_chamber_branch_id",
+            "selected_perimeter_gap_branch_id",
+            "selected_side_frame_closure_branch_id",
+            "selected_residual_closure_branch_id",
+            "selected_orifice_grid_rule_id",
+            "comparison_parent_variant_id",
+            "changed_factor",
+        }
+        gate_columns = set(gate_rows[0]) if gate_rows else set()
+        if len(gate_rows) != 252 or len({row.get("variant_id") for row in gate_rows}) != 9:
+            failures.append("P1 CAD gate matrix must contain 252 rows across nine variants")
+        if any(row.get("status") != "NOT_RUN" for row in gate_rows):
+            failures.append("generated P1 CAD gate matrix must remain entirely NOT_RUN")
+        if not required_gate_columns.issubset(gate_columns):
+            failures.append("P1 CAD gate matrix lacks explicit model-form branch fields")
+        scoped_health = {
+            row.get("gate_item_id"): row
+            for row in gate_rows
+            if row.get("gate_item_id") in {"G4_INTERFERENCE", "G4_ZERO_THICKNESS", "G4_DUPLICATE_FACES"}
+        }
+        if len(scoped_health) != 3 or any(
+            "exported physical candidate solids and required fluid bodies" not in row.get("requirement", "")
+            for row in scoped_health.values()
+        ):
+            failures.append("P1 geometry-health Gate scope no longer excludes declared nonphysical datums")
+
+    external_files_path = repo / "airjet-simulation/logs/external-files.csv"
+    if external_files_path.is_file():
+        with external_files_path.open(newline="", encoding="utf-8") as handle:
+            external_rows = list(csv.reader(handle))
+        expected_external_header = [
+            "case_id",
+            "file_role",
+            "absolute_path",
+            "size_bytes",
+            "sha256",
+            "created_at_utc",
+            "software_version",
+            "git_commit",
+            "notes",
+        ]
+        if len(external_rows) != 1 or external_rows[0] != expected_external_header:
+            failures.append("external-files.csv must remain an empty canonical P1 artifact manifest")
+
+    review_script = repo / "airjet-simulation/checklists/prepare_p1_cad_review.py"
+    if review_script.is_file():
+        review_script_text = read_text(review_script)
+        for marker in (
+            "AJM-WIN-P1-FULL-PRODUCT-CAD-BUILD-006",
+            "duplicate report key",
+            '"merge-base"',
+            "P1 gate input must contain 252 unique gate/variant rows",
+            "review packet output must remain outside the Git repository",
+            "P1_STAGE_GATE=PENDING_INDEPENDENT_REVIEW",
+            "REVIEW_PACKET_PREPARATION=PASS",
+            "Preparation PASS does not mean P1 PASS",
+            "PureWindowsPath",
+            "GATE_EVIDENCE_006_CSV",
+            "P1_CONTRACT_BUNDLE_SHA256",
+            "load_gate_rows_at_commit",
+            "copied run root contains unindexed files",
+            '"REPORT_005_COPY"',
+            '"PARENT_GEOMETRY_RESULT_DIFF"',
+            '"secondary_evidence_original_path"',
+            '"secondary_evidence_sha256"',
+            '"--finalize-worksheet"',
+            '"--spot-check-record"',
+            "validate_step_limitation_consistency",
+            "P1_REVIEW_RECOMMENDATION=PASS",
+            "P1_STAGE_GATE=PENDING_REVIEW_RECORD_COMMIT",
+        ):
+            if marker not in review_script_text:
+                failures.append(f"P1 independent-review script lacks invariant {marker!r}")
+
+    review_method = repo / "airjet-simulation/checklists/P1_CAD_INDEPENDENT_REVIEW_METHOD.md"
+    if review_method.is_file():
+        review_method_text = read_text(review_method)
+        for marker in (
+            "P1_REVIEW_RECOMMENDATION=PASS",
+            "252",
+            "LIMITATION_ACCEPTED",
+            "NOT_REVIEWED",
+            "PureWindowsPath",
+            "006 commit",
+            "prepare_p1_cad_review.py",
+            "P1 保持 `INCOMPLETE`",
+        ):
+            if marker not in review_method_text:
+                failures.append(f"P1 independent-review method lacks invariant {marker!r}")
+
     vent_results = repo / "airjet-simulation/evidence/annotated_figures/gen1_vent_homography_results.csv"
     if vent_results.is_file():
         with vent_results.open(newline="", encoding="utf-8") as handle:
@@ -539,6 +1033,82 @@ def main() -> int:
                 failures.append(f"Windows Student smoke prompt lacks invariant {marker!r}")
         if "P1_FULL_PRODUCT_CAD=" in student_text:
             failures.append("Windows Student smoke prompt conflates toolchain readiness with the P1 stage Gate")
+
+    cad_prompt = repo / "airjet-simulation/windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md"
+    if cad_prompt.is_file():
+        cad_text = read_text(cad_prompt)
+        for marker in (
+            "AJM-WIN-P1-FULL-PRODUCT-CAD-BUILD-006",
+            "TASK=AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
+            "OLD_PLE_BASELINE=CLEAN",
+            "GIT_FETCH=PASS",
+            "git merge-base --is-ancestor $Report005Commit HEAD",
+            "git remote get-url origin",
+            "git rev-parse --abbrev-ref --symbolic-full-name '@{u}'",
+            "https://github.com/superboynick/win-mac-dual-channel.git",
+            "AIRJET_ANSYS_STUDENT_CAPABILITY_SMOKE_005.txt",
+            "build_p1_cad_contracts.py --check",
+            "D:\\AirJet_P1\\AJM-P1-CAD-006\\<UTC-run-id>",
+            "$RunId = (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ')",
+            "git status --porcelain",
+            "ANSYSLMD_LICENSE_FILE=1055@localhost",
+            "REPORT_005_GIT_COMMIT=",
+            "GIT_ORIGIN=https://github.com/superboynick/win-mac-dual-channel.git",
+            "GIT_BRANCH=main",
+            "GIT_UPSTREAM=origin/main",
+            "FINAL_GIT_CLEAN=PASS/FAIL",
+            "C_FREE_GIB=",
+            "D_FREE_GIB=",
+            "AVAILABLE_RAM_GIB=",
+            "LICENSE_SAFETY_CHECK=PASS/FAIL",
+            "P1_CONTRACT_BUNDLE_SHA256=",
+            "GATE_TEMPLATE_SHA256=",
+            "VARIANT_TABLE_SHA256=",
+            "INTERNAL_RULES_SHA256=",
+            "GATE_EVIDENCE_006_CSV",
+            "AUTOMATED_CHECKS_CSV",
+            "REPORT_005_COPY",
+            "PARENT_GEOMETRY_RESULT_DIFF",
+            "secondary_evidence_original_path,secondary_evidence_sha256",
+            "excluded_datum_feature_ids",
+            "anchor_partition_nonphysical_guard",
+            "selected_central_anchor_rule_id=CENTRAL_ANCHOR_SQUARE_DATUM_R0",
+            "selected_bottom_chamber_rule_id=BOTTOM_CHAMBER_PER_CELL_SQUARE_R0",
+            "selected_cell_partition_rule_id=CELL_PARTITION_DATUM_R0",
+            "CONFIGURATIONS_REQUESTED=4",
+            "BASE_OR_RESIDUAL_VARIANTS_REQUESTED=6",
+            "DERIVED_SINGLE_FACTOR_VARIANTS_REQUESTED=3",
+            "TOTAL_VARIANTS_REQUESTED=9",
+            "BLOCKED_005_GATE",
+            "BLOCKED_GIT_OR_ENVIRONMENT",
+            "PARTIAL_CAD_OUTPUT",
+            "COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW",
+            "COMPLETE_AWAITING_REVIEW",
+            "P1_STAGE_GATE=NOT_STARTED/INCOMPLETE/PENDING_MAC_REVIEW",
+            "C017_C019_PHYSICS_GUARD=",
+            "唯一剩余失败是 005 已知或 006 复现的 STEP",
+            "PARAMETER_DIFF_CHECK=PASS_ALL_3_DERIVED/FAIL",
+            "GEOMETRY_RESULT_DIFF_CHECK=PASS_ALL_3_DERIVED/FAIL",
+            "STEP_EXPORT_REIMPORT=PASS_ALL_9/LIMITATION_RECORDED/FAIL",
+            "ANCHOR_PARTITION_NONPHYSICAL_GUARD=PASS_ALL_9/FAIL",
+            "TRANSFER_LIMITATION_SCOPE=NONE/STEP_ONLY",
+            "REPORT_005_PARSE=UNIQUE_KEYS_REJECT_DUPLICATES_AND_CONFLICTS",
+            "REPORT_005_IDENTITY=TASK_COMPUTER_ANSYS_VERSION_INSTALL_ROOT_COMMIT",
+            "LICENSE_POLICY=NO_LICENSE_FILE_POOL_SERVICE_REGISTRY_ENV_PRIORITY_CHECKOUT_MUTATION",
+            "RESOURCE_THRESHOLDS_GIB=C_FREE_GE_10_D_FREE_GE_20_AVAILABLE_RAM_GE_8",
+            "GIT_RECHECK=BEFORE_BUILD_AFTER_EACH_VARIANT_AFTER_FINAL_MANIFEST",
+            "STATUS_MAP_BLOCKED_005_GATE=NOT_STARTED",
+            "STATUS_MAP_BLOCKED_GIT_OR_ENVIRONMENT=NOT_STARTED",
+            "STATUS_MAP_PARTIAL_CAD_OUTPUT=INCOMPLETE",
+            "STATUS_MAP_COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW=PENDING_MAC_REVIEW",
+            "STATUS_MAP_COMPLETE_AWAITING_REVIEW=PENDING_MAC_REVIEW",
+            "P1_PASS_PROHIBITED=006_CAN_ONLY_REACH_PENDING_MAC_REVIEW",
+            "005_TRANSFER_LIMITATION_INHERITANCE=REQUIRED",
+        ):
+            if marker not in cad_text:
+                failures.append(f"Windows P1 CAD prompt lacks invariant {marker!r}")
+        if re.search(r"(?mi)^\s*(?:[-*+]\s*)?`?P1_STAGE_GATE\s*=\s*PASS(?:\s|`|$)", cad_text):
+            failures.append("Windows P1 CAD prompt is allowed to report P1 PASS")
 
     student_cleanup = repo / "airjet-simulation/reports/AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md"
     if student_cleanup.is_file():

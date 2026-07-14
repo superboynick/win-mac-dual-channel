@@ -122,3 +122,26 @@
 **孔数代理**：配置表按 0.25 mm 圆孔、10% 候选开孔率和膜片面积代理估算约 924--1198 个孔，只用于 Boolean/网格规模规划。真实活动孔板面积和 `separation s` 图义未锁定，代理数不能写成真实孔数。
 
 **追溯**：`parameters/full_product_parameter_registry.csv`、`parameters/build_p1_cad_inputs.py`、`parameters/p1_layout_configuration_matrix.csv`、`parameters/p1_thickness_budget.csv`。
+
+## AJM-P1-GEO-002：整机 CAD 可执行合同与模型形式分支
+
+日期：2026-07-14
+状态：合同/输入已生成；CAD 与 P1 Gate 均未运行
+
+**问题**：P0 已经知道整机必须有顶盖开口、孔板、冲击通道和单侧 spout，但 `C005` 排气三维尺寸、vent 真实投影和专利 `P008 separation s` 的几何含义仍未知。若只给 Windows 一份文字手册，它会在 CAD 中临场补尺寸，导致模型不可复现。
+
+**决定**：新增生成式 P1 合同。它把“存在、拓扑、精确几何、所选分支”四类证据分开，并把每个 CAD 变量绑定到 D/P/I/C/U 来源。主布局保留 `C020=0.25/0.50/0.75`；vent 保留图像包围框槽和第二视图中心线+P013 槽宽两套完整候选；单侧排气对每个配置保留全宽矩形与半宽线性收缩两支。为了不让 CAD 端临场补尺寸，另锁 9 条 C 类 R0 构造规则：cell 中心/膜片、每 cell 方形底腔、中央锚 datum、分区 datum、共享顶腔、外围转移间隙、side-wall 流体边界、残差数值封闭和每 cell 中心落孔。中央锚和分区仅为无 Boolean/无材料的 construction datum，避免把未知实体偷偷写进产品。三条单因素比较拥有独立 variant ID、父项 diff 和完整 Gate 行；总计 9 个变体、252 条初始 `NOT_RUN` Gate。
+
+**孔距逻辑**：`d=0.25 mm, phi=10%` 导出方阵节距约 0.700624 mm。若把 `P008=0.5 mm` 直接当中心节距，R0 方阵开孔率约 19.635%，与当前开孔率范围冲突，因此保留为哨兵而不建成交付 CAD；若解释为边缘间距，节距为 0.75 mm、开孔率约 8.727%，保留为替代候选。这是对解释分支的筛选，不是对专利本身的否定。
+
+**真实性边界**：公开数据只把外包络锁为 D 类。vent 候选仍是 I/C，排气平面闭合是 C，`C017/C019` 仍是 U/C 几何记账。模型生成成功不会把这些项升级为量产事实，也不会关闭开放问题。
+
+**执行边界**：005 必须先证明 Student 的参数化、Named Selections、Volume Extract、连通、原生保存和 Workbench/Named Selection 传递能力；随后 006 才能建立完整产品。006 只能输出 `INCOMPLETE/PENDING_MAC_REVIEW`，不能宣布 P1 PASS。
+
+**残差数值处理**：`C017/C019` 不参与物理 Boolean，也不当空气。P1 只直接构造合同声明的流体体并 union；`FLUID_DOMAIN_CLOSURE_DATUM_C` 仅在厚度预算 Z 边界提供数值封闭。严禁用“外包络减所有候选固体”抽流体域，否则未识别残差会被错误解释为空气。
+
+**接口处理**：每个接口使用 A/B feature 各自拥有的一对 Named Selections；允许 matched 或 nonconformal，但不能用同一 owner 的 selection 冒充两侧。外部入口/出口域在 P1 可选、P4 必需；内部 vent opening 到 product outlet 连通在 P1 必需。
+
+**独立复核**：006 完成后由 007 校验报告唯一键、Git 祖先、run-root 和全部外部文件 SHA256，再生成 252 行 review worksheet。准备 PASS、仓库审计 PASS 和 006 完成状态都不等于 P1 PASS。
+
+**追溯**：`parameters/P1_CAD_CONTRACT_METHOD.md`、`parameters/build_p1_cad_contracts.py`、`geometry/contracts/`、`checklists/p1_cad_gate_matrix.csv`、`windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`。
