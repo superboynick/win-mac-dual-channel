@@ -35,6 +35,9 @@ REPO = Path(r"C:\Users\admin\win-mac-dual-channel")
 SCRIPT_ROOT = REPO / "airjet-simulation" / "automation" / "ansys" / "approved"
 POLICY_GIT_PATH = "airjet-simulation/automation/ansys/profiles.json"
 SCRIPT_GIT_ROOT = "airjet-simulation/automation/ansys/approved"
+SERVER_GIT_PATH = (
+    "codex-skills/airjet-ansys-automation/scripts/airjet_ansys_mcp.py"
+)
 ANSYS_ROOT = Path(r"D:\ansys\ANSYS Inc\ANSYS Student\v261")
 SPACECLAIM = ANSYS_ROOT / "scdm" / "SpaceClaim.exe"
 RUNWB2 = ANSYS_ROOT / "Framework" / "bin" / "Win64" / "RunWB2.exe"
@@ -68,6 +71,8 @@ MAX_SCRIPT_BYTES = 1024 * 1024
 MAX_ARTIFACT_BYTES = 16 * 1024 * 1024 * 1024
 MAX_TOTAL_ARTIFACT_BYTES = 64 * 1024 * 1024 * 1024
 FILE_ATTRIBUTE_REPARSE_POINT = 0x400
+ERROR_ALREADY_EXISTS = 183
+MACHINE_JOB_LOCK_NAME = r"Global\AirJetAnsysAutomation-OneJob"
 ALLOWED_SIGNER_FINGERPRINTS = {
     "SHA256:jdxP5xJrt8J7PKjeCrJmrEeoAH44u9NxBICo41HwMuc",
     "SHA256:oI3/MIlKz1mgLV3+5n1coQxynaqQOzxqi0GHxreGEdc",
@@ -88,6 +93,7 @@ class Job:
     state: dict[str, Any]
     timeout_seconds: int
     job_handle: int | None
+    machine_lock_handle: int | None
     reports: tuple[str, ...]
 
 
@@ -186,6 +192,12 @@ def require_git_invariants() -> str:
         raise ValueError("BLOCKED_UNAPPROVED_HEAD_SIGNER")
     if git_text("rev-parse", "HEAD") != head:
         raise ValueError("BLOCKED_GIT_HEAD_CHANGED_DURING_VALIDATION")
+    installed_server = Path(__file__)
+    reject_existing_reparse_ancestors(installed_server)
+    if sha256_bytes(installed_server.read_bytes()) != sha256_bytes(
+        read_git_blob(head, SERVER_GIT_PATH)
+    ):
+        raise ValueError("BLOCKED_MCP_SERVER_COPY_MISMATCH")
     return head
 
 
@@ -504,6 +516,27 @@ def create_windows_job_object(process: subprocess.Popen[bytes]) -> int | None:
     return int(handle)
 
 
+def acquire_machine_job_lock() -> int | None:
+    if os.name != "nt":
+        return None
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateEventW.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+        ctypes.c_int,
+        ctypes.c_wchar_p,
+    ]
+    kernel32.CreateEventW.restype = ctypes.c_void_p
+    ctypes.set_last_error(0)
+    handle = kernel32.CreateEventW(None, 1, 0, MACHINE_JOB_LOCK_NAME)
+    if not handle:
+        raise OSError(ctypes.get_last_error(), "CreateEventW failed")
+    if ctypes.get_last_error() == ERROR_ALREADY_EXISTS:
+        close_windows_handle(int(handle))
+        raise ValueError("BLOCKED_ONE_JOB_AT_A_TIME_CROSS_PROCESS")
+    return int(handle)
+
+
 def resume_windows_process(process: subprocess.Popen[bytes]) -> None:
     if os.name != "nt":
         return
@@ -584,6 +617,13 @@ def finish_job_locked(
     except OSError as exc:
         reason = f"{reason or ''};JOB_HANDLE_CLOSE_FAILED:{exc.winerror or exc.errno}".strip(";")
     job.job_handle = None
+    try:
+        close_windows_handle(job.machine_lock_handle)
+    except OSError as exc:
+        reason = (
+            f"{reason or ''};MACHINE_LOCK_CLOSE_FAILED:{exc.winerror or exc.errno}"
+        ).strip(";")
+    job.machine_lock_handle = None
     job.state["phase"] = phase
     job.state["exit_code"] = exit_code
     job.state["ended_at"] = utc_now()
@@ -763,14 +803,24 @@ def submit_job(profile_id: str, case_id: str) -> dict[str, Any]:
         command = build_command(profile["engine"], execution_script, job_dir)
         stdout_path = job_dir / "stdout.log"
         stderr_path = job_dir / "stderr.log"
-        stdout = stdout_path.open("wb")
-        stderr = stderr_path.open("wb")
         creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
         if os.name == "nt":
             creationflags |= 0x00000004  # CREATE_SUSPENDED
+        try:
+            machine_lock_handle = acquire_machine_job_lock()
+        except ValueError:
+            state["phase"] = "FAILED_START"
+            state["ended_at"] = utc_now()
+            state["reason"] = "CROSS_PROCESS_JOB_ALREADY_ACTIVE"
+            write_state_data(state_path, state)
+            raise
+        stdout: IO[bytes] | None = None
+        stderr: IO[bytes] | None = None
         process: subprocess.Popen[bytes] | None = None
         job_handle: int | None = None
         try:
+            stdout = stdout_path.open("wb")
+            stderr = stderr_path.open("wb")
             process = subprocess.Popen(
                 command,
                 cwd=job_dir,
@@ -799,14 +849,22 @@ def submit_job(profile_id: str, case_id: str) -> dict[str, Any]:
                     process.wait(timeout=5)
                 except (OSError, subprocess.TimeoutExpired):
                     pass
-            stdout.close()
-            stderr.close()
+            if stdout is not None:
+                stdout.close()
+            if stderr is not None:
+                stderr.close()
+            try:
+                close_windows_handle(machine_lock_handle)
+            except OSError:
+                pass
             state["phase"] = "FAILED_START"
             state["ended_at"] = utc_now()
             state["reason"] = "PROCESS_START_OR_JOB_ASSIGN_FAILED"
             write_state_data(state_path, state)
             raise
 
+        if stdout is None or stderr is None:
+            raise RuntimeError("BLOCKED_INTERNAL_LOG_HANDLE_MISSING")
         state["pid"] = process.pid
         state["phase"] = "RUNNING"
         job = Job(
@@ -817,6 +875,7 @@ def submit_job(profile_id: str, case_id: str) -> dict[str, Any]:
             state=state,
             timeout_seconds=profile["timeout_seconds"],
             job_handle=job_handle,
+            machine_lock_handle=machine_lock_handle,
             reports=tuple(profile["reports"]),
         )
         JOBS[job_id] = job

@@ -133,6 +133,7 @@ $Required = @(
     'codex-skills\airjet-ansys-automation\references\gate-evidence.md',
     'codex-skills\airjet-ansys-automation\scripts\bootstrap_windows.ps1',
     'codex-skills\airjet-ansys-automation\scripts\airjet_ansys_mcp.py',
+    'codex-skills\airjet-ansys-automation\scripts\run_t0_suite.py',
     'codex-skills\airjet-ansys-automation\scripts\test_airjet_ansys_mcp_policy.py',
     'codex-skills\skills-manifest.json',
     'install-skills.ps1',
@@ -1288,7 +1289,7 @@ if (Test-Path -LiteralPath $ManifestPath) {
         $Manifest = (Read-Utf8 $ManifestPath) | ConvertFrom-Json
         $Skills = @($Manifest.skills)
         $ExpectedManifest = @{
-            'airjet-ansys-automation' = [pscustomobject]@{ kind='project'; source='codex-skills/airjet-ansys-automation'; required=@('SKILL.md','agents/openai.yaml','references/official-automation-routes.md','references/gate-evidence.md','scripts/bootstrap_windows.ps1','scripts/airjet_ansys_mcp.py','scripts/test_airjet_ansys_mcp_policy.py') }
+            'airjet-ansys-automation' = [pscustomobject]@{ kind='project'; source='codex-skills/airjet-ansys-automation'; required=@('SKILL.md','agents/openai.yaml','references/official-automation-routes.md','references/gate-evidence.md','scripts/bootstrap_windows.ps1','scripts/airjet_ansys_mcp.py','scripts/run_t0_suite.py','scripts/test_airjet_ansys_mcp_policy.py') }
             'airjet-product-reconstruction' = [pscustomobject]@{ kind='project'; source='codex-skills/airjet-product-reconstruction'; required=@('SKILL.md','agents/openai.yaml','references/evidence-rules.md','references/stage-routing.md','references/windows-operation.md','scripts/audit_project.py') }
             'jupyter-notebook' = [pscustomobject]@{ kind='official'; source='skills/.curated/jupyter-notebook'; required=@('LICENSE.txt','SKILL.md','agents/openai.yaml','assets/experiment-template.ipynb','assets/jupyter-small.svg','assets/jupyter.png','assets/tutorial-template.ipynb','references/experiment-patterns.md','references/notebook-structure.md','references/quality-checklist.md','references/tutorial-patterns.md','scripts/new_notebook.py') }
             'pdf' = [pscustomobject]@{ kind='official'; source='skills/.curated/pdf'; required=@('LICENSE.txt','SKILL.md','agents/openai.yaml','assets/pdf.png') }

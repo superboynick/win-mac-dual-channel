@@ -15,6 +15,7 @@ REPO = Path(r"C:\Users\admin\win-mac-dual-channel") if sys.platform == "win32" e
 SERVER = SKILL_ROOT / "scripts" / "airjet_ansys_mcp.py"
 POLICY = REPO / "airjet-simulation" / "automation" / "ansys" / "profiles.json"
 APPROVED = REPO / "airjet-simulation" / "automation" / "ansys" / "approved"
+T0_RUNNER = SKILL_ROOT / "scripts" / "run_t0_suite.py"
 
 
 def fail(message: str) -> None:
@@ -74,8 +75,16 @@ if 'return [str(executable), "-I", "-B", str(script)]' not in source:
     fail("Python profiles must use isolated mode")
 if "read_git_blob(head" not in source or "verify-commit" not in source:
     fail("approved scripts must come from a verified Git commit blob")
+if "BLOCKED_MCP_SERVER_COPY_MISMATCH" not in source or "SERVER_GIT_PATH" not in source:
+    fail("installed MCP server must match the verified Git server blob")
 if "CREATE_SUSPENDED" not in source or "TerminateJobObject" not in source:
     fail("Windows process-tree containment is missing")
+if (
+    "CreateEventW" not in source
+    or 'MACHINE_JOB_LOCK_NAME = r"Global\\AirJetAnsysAutomation-OneJob"' not in source
+    or "BLOCKED_ONE_JOB_AT_A_TIME_CROSS_PROCESS" not in source
+):
+    fail("cross-process one-job lock is missing")
 submit_calls = {
     node.func.id
     for node in ast.walk(functions["submit_job"])
@@ -83,6 +92,16 @@ submit_calls = {
 }
 if "require_runtime_readiness" not in submit_calls:
     fail("submit_job must enforce runtime readiness independently of inventory")
+
+runner_source = T0_RUNNER.read_text(encoding="utf-8")
+for invariant in (
+    "BLOCKED_T0_RUNNER_COPY_MISMATCH",
+    "PASS_CONTROL_SET",
+    "NOT_EVALUATED_T0_ONLY",
+    "artifact_manifest",
+):
+    if invariant not in runner_source:
+        fail(f"T0 suite runner lacks invariant: {invariant}")
 
 policy = json.loads(POLICY.read_text(encoding="utf-8"))
 if set(policy) != {"schema_version", "profiles"} or policy["schema_version"] != 1:

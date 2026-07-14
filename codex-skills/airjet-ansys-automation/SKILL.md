@@ -59,6 +59,9 @@ scope, while this skill owns deterministic Windows execution.
 - Use `scripts/bootstrap_windows.ps1` only after reviewing the pinned dependencies and Git state.
 - The installed MCP entry point is `scripts/airjet_ansys_mcp.py` and requires the local
   `airjet-ansys` Codex MCP registration.
+- Use `scripts/run_t0_suite.py` for the fixed, no-argument four-engine 005 control suite. It still
+  uses MCP `inventory`/`submit_job`/`poll_job`/`artifact_manifest`; it only removes LLM polling
+  overhead and cannot claim any engineering capability or P1-P6 Gate.
 
 If the MCP is unavailable, report that tooling blocker. Do not fall back to repeated generic Codex
 prompts or coordinate-based GUI automation.

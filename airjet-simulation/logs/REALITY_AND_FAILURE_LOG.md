@@ -124,6 +124,53 @@
   Windows 兼容性与失败恢复描述。
 - 状态：CLOSED_IN_CODE_PENDING_BOOTSTRAP_RERUN
 
+## REAL-20260714-011：非交互 Codex 把 MCP 批准等待记为 user cancelled
+
+- Stage/task：005 / MCP inventory 首次调用
+- 实际：Codex 成功发现 `airjet-ansys.inventory`，但 `codex exec -s read-only` 无人工批准通道，
+  tool result 为 `user cancelled MCP tool call`；未启动 ANSYS。
+- 区分实验：在用户已明确授权 YOLO 的前提下，仅对该非交互 Codex 会话启用免批准；服务端
+  profile、Git 签名、SHA、固定路径、最小环境和 Job Object 边界保持不变。
+- 结果：inventory `ready=true`，四个 executable 均 `Valid / ANSYS Inc.`，包版本与 Git commit
+  精确匹配。
+- 原始日志：Windows Downloads 下 `AIRJET_ANSYS_MCP_INVENTORY_20260714*.jsonl`。
+- 状态：CLOSED_BY_SCOPED_NONINTERACTIVE_APPROVAL
+
+## REAL-20260714-012：LLM 可以调 MCP，但不适合作为一秒一次的轮询器
+
+- Stage/task：SpaceClaim T0 与后续四引擎 suite
+- 观察：SpaceClaim 约 20 秒完成；Codex 为等待终态重复输出完整 job JSON，单次 T0 消耗大量
+  上下文，虽正确但低效，也会让运行记录被自然语言噪声淹没。
+- 处置：保留 Codex/MCP 首次贯通证据，同时增加无参数 `run_t0_suite.py`。它通过官方 MCP
+  Python client 调用同一五工具接口，固定四个 profile，不能接受路径、命令或环境输入；每秒
+  poll，一次写出 suite JSON。MCP 仍是唯一 ANSYS 执行边界。
+- 安全复审附带发现：安装到 `.codex` 的 server 副本需要与签名 Git commit 中的 server blob
+  自校验；现已在每次 inventory/submit 的 Git invariant 中加入 SHA 比对，防止安装副本漂移。
+  suite runner 也在 inventory PASS 后将自身字节与该精确 commit 的 runner blob 比对；输出名使用
+  微秒 UTC 与随机后缀，避免两个调度器同秒覆盖汇总证据。
+- 对论文的影响：区分“LLM 选择已审 profile”和“确定性状态机等待求解”；方法可复现性提高，
+  但 T0 仍不构成工程能力结果。
+- 状态：CLOSED_IN_CODE_PENDING_SUITE_RUN
+
+## REAL-20260714-013：进程内 RLock 不能阻止两个 MCP server 同时提交
+
+- Stage/task：T0 suite release review
+- 发现：Codex 注册的 stdio server 与确定性 suite runner 会各自启动一个 Python 进程；原
+  `JOBS_LOCK` 和活动任务表仅在进程内有效，两个入口同时 submit 可绕过全机单任务约束。
+- 风险：Student 资源竞争、输出/许可 checkout 并发以及两个 Job Object 同时运行；不会扩大
+  命令面，但会降低无人值守确定性。
+- 处置：submit 在启动前创建 `Global\AirJetAnsysAutomation-OneJob` 固定名 Windows event；
+  `Global` 跨 Windows session 生效；若对象已存在立即
+  `BLOCKED_ONE_JOB_AT_A_TIME_CROSS_PROCESS`。handle 冻结进 Job，只有任务真正终态才关闭；
+  server 异常退出时 Windows 关闭进程全部 handle，对象随之消失，不留下永久锁。
+- 验证计划：suite 前后检查无残留 ANSYS/MCP；负测试并行启动第二个固定 profile，必须在
+  进程创建前被拒绝。
+- Windows 候选测试：同一 server 内第二次 acquire 被拒绝、释放后可重新 acquire；两个独立
+  SSH/Python 进程同时竞争时第二个也被拒绝。现场进程显示 SSH 为 Session 0、可见 Codex 为
+  Session 1；代码已使用 `Global`，但没有为测试临时注册 Scheduled Task 或注入 GUI 进程，
+  因此实际跨 session acquire/release 仍记为未直接观察。
+- 状态：CODE_AND_CROSS_PROCESS_PASS_CROSS_SESSION_NOT_DIRECTLY_OBSERVED
+
 ## 新条目模板
 
 ```text
