@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "profiles": [
     {
       "profile_id": "ajm005-spaceclaim-t0-v1",
@@ -10,7 +10,8 @@
       "output_root_id": "student_smoke_005",
       "reports": [
         "spaceclaim_probe.json"
-      ]
+      ],
+      "predecessor": null
     },
     {
       "profile_id": "ajm005-workbench-t0-v1",
@@ -21,7 +22,8 @@
       "output_root_id": "student_smoke_005",
       "reports": [
         "workbench_probe.json"
-      ]
+      ],
+      "predecessor": null
     },
     {
       "profile_id": "ajm005-pymechanical-t0-v1",
@@ -32,7 +34,8 @@
       "output_root_id": "student_smoke_005",
       "reports": [
         "pymechanical_probe.json"
-      ]
+      ],
+      "predecessor": null
     },
     {
       "profile_id": "ajm005-pyfluent-t0-v1",
@@ -43,7 +46,52 @@
       "output_root_id": "student_smoke_005",
       "reports": [
         "pyfluent_probe.json"
-      ]
+      ],
+      "predecessor": null
+    },
+    {
+      "profile_id": "ajm005-spaceclaim-cad-t1-v1",
+      "engine": "spaceclaim",
+      "script": "005/spaceclaim_cad_t1.py",
+      "sha256": "a402d0ba42389bdf8afb214aa7aafa761c351d716825ad18ec5039cce22f1735",
+      "timeout_seconds": 900,
+      "output_root_id": "student_smoke_005",
+      "reports": [
+        "spaceclaim_cad_t1.json"
+      ],
+      "predecessor": null
+    },
+    {
+      "profile_id": "ajm005-workbench-transfer-t1-v1",
+      "engine": "workbench",
+      "script": "005/workbench_transfer_t1.wbjn",
+      "sha256": "96b1ce638afc61a731a5dcac730204503dd000355215384b91bce7b8b208a76e",
+      "timeout_seconds": 1200,
+      "output_root_id": "student_smoke_005",
+      "reports": [
+        "workbench_transfer_t1.json",
+        "workbench_model_inspection.json"
+      ],
+      "predecessor": {
+        "profile_id": "ajm005-spaceclaim-cad-t1-v1",
+        "report": "spaceclaim_cad_t1.json",
+        "required_probe": "spaceclaim_cad_t1",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
+        "required_assertions": [
+          "script_parameterization_equivalent",
+          "named_selections",
+          "volume_extract_or_equivalent",
+          "fluid_connectivity",
+          "native_save",
+          "native_reopen",
+          "step_export_reimport"
+        ],
+        "artifacts": [
+          "spaceclaim_cad_t1.json",
+          "spaceclaim_cad_t1.scdocx",
+          "spaceclaim_cad_t1.step"
+        ]
+      }
     }
   ]
 }

@@ -19,6 +19,9 @@ Use these automation result states consistently:
 
 - `PASS_CONTROL`: the official API launched, answered deterministic assertions, and exited; no
   engineering capability or stage Gate is implied.
+- `PASS_PARTIAL_CAD_CAPABILITY`: the fixed script-rebuild, geometry, save/reopen or transfer
+  assertions for the declared partial CAD profile passed; native driving parameters and the full
+  005 CAD readiness contract remain blocked unless separately proven.
 - `PASS_005_CAPABILITY`: the corresponding 005 geometry, transfer, solve, or conservation
   assertions and required artifacts passed.
 - `FAIL_DIRECT`: the tested route itself failed.

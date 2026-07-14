@@ -83,8 +83,11 @@ $Required = @(
     'airjet-simulation\automation\ansys\approved\005\workbench_t0.wbjn',
     'airjet-simulation\automation\ansys\approved\005\pymechanical_t0.py',
     'airjet-simulation\automation\ansys\approved\005\pyfluent_t0.py',
+    'airjet-simulation\automation\ansys\approved\005\spaceclaim_cad_t1.py',
+    'airjet-simulation\automation\ansys\approved\005\workbench_transfer_t1.wbjn',
     'airjet-simulation\learning\README.md',
     'airjet-simulation\learning\ANSYS_AUTOMATION_AND_005_LAB.md',
+    'airjet-simulation\learning\T1_CAD_TRANSFER_WORKBOOK.md',
     'airjet-simulation\learning\PAPER_METHOD_EVIDENCE_MAP.md',
     'airjet-simulation\logs\REALITY_AND_FAILURE_LOG.md',
     'airjet-simulation\logs\run-index.csv',
@@ -134,6 +137,8 @@ $Required = @(
     'codex-skills\airjet-ansys-automation\scripts\bootstrap_windows.ps1',
     'codex-skills\airjet-ansys-automation\scripts\airjet_ansys_mcp.py',
     'codex-skills\airjet-ansys-automation\scripts\run_t0_suite.py',
+    'codex-skills\airjet-ansys-automation\scripts\run_t1_cad_suite.py',
+    'codex-skills\airjet-ansys-automation\scripts\test_t1_predecessor_negative.py',
     'codex-skills\airjet-ansys-automation\scripts\test_airjet_ansys_mcp_policy.py',
     'codex-skills\skills-manifest.json',
     'install-skills.ps1',
@@ -1289,7 +1294,7 @@ if (Test-Path -LiteralPath $ManifestPath) {
         $Manifest = (Read-Utf8 $ManifestPath) | ConvertFrom-Json
         $Skills = @($Manifest.skills)
         $ExpectedManifest = @{
-            'airjet-ansys-automation' = [pscustomobject]@{ kind='project'; source='codex-skills/airjet-ansys-automation'; required=@('SKILL.md','agents/openai.yaml','references/official-automation-routes.md','references/gate-evidence.md','scripts/bootstrap_windows.ps1','scripts/airjet_ansys_mcp.py','scripts/run_t0_suite.py','scripts/test_airjet_ansys_mcp_policy.py') }
+            'airjet-ansys-automation' = [pscustomobject]@{ kind='project'; source='codex-skills/airjet-ansys-automation'; required=@('SKILL.md','agents/openai.yaml','references/official-automation-routes.md','references/gate-evidence.md','scripts/bootstrap_windows.ps1','scripts/airjet_ansys_mcp.py','scripts/run_t0_suite.py','scripts/run_t1_cad_suite.py','scripts/test_t1_predecessor_negative.py','scripts/test_airjet_ansys_mcp_policy.py') }
             'airjet-product-reconstruction' = [pscustomobject]@{ kind='project'; source='codex-skills/airjet-product-reconstruction'; required=@('SKILL.md','agents/openai.yaml','references/evidence-rules.md','references/stage-routing.md','references/windows-operation.md','scripts/audit_project.py') }
             'jupyter-notebook' = [pscustomobject]@{ kind='official'; source='skills/.curated/jupyter-notebook'; required=@('LICENSE.txt','SKILL.md','agents/openai.yaml','assets/experiment-template.ipynb','assets/jupyter-small.svg','assets/jupyter.png','assets/tutorial-template.ipynb','references/experiment-patterns.md','references/notebook-structure.md','references/quality-checklist.md','references/tutorial-patterns.md','scripts/new_notebook.py') }
             'pdf' = [pscustomobject]@{ kind='official'; source='skills/.curated/pdf'; required=@('LICENSE.txt','SKILL.md','agents/openai.yaml','assets/pdf.png') }
@@ -1346,11 +1351,20 @@ if (Test-Path -LiteralPath $AnsysProfilesPath) {
         $ProfileData = (Read-Utf8 $AnsysProfilesPath) | ConvertFrom-Json
         $Entries = @($ProfileData.profiles)
         $ProfileIds = @($Entries | ForEach-Object { [string]$_.profile_id })
-        $RequiredProfileFields = @('profile_id','engine','script','sha256','timeout_seconds','output_root_id','reports')
+        $RequiredProfileFields = @('profile_id','engine','script','sha256','timeout_seconds','output_root_id','reports','predecessor')
+        $ExpectedProfileIds = @(
+            'ajm005-spaceclaim-t0-v1',
+            'ajm005-workbench-t0-v1',
+            'ajm005-pymechanical-t0-v1',
+            'ajm005-pyfluent-t0-v1',
+            'ajm005-spaceclaim-cad-t1-v1',
+            'ajm005-workbench-transfer-t1-v1'
+        )
         $RootFields = @($ProfileData.PSObject.Properties.Name)
-        if ($ProfileData.schema_version -ne 1 -or
+        if ($ProfileData.schema_version -ne 2 -or
             @(Compare-Object @('profiles','schema_version') ($RootFields | Sort-Object)).Count -gt 0 -or
-            $Entries.Count -ne 4 -or @($ProfileIds | Select-Object -Unique).Count -ne $Entries.Count) {
+            @(Compare-Object ($ExpectedProfileIds | Sort-Object) ($ProfileIds | Sort-Object)).Count -gt 0 -or
+            @($ProfileIds | Select-Object -Unique).Count -ne $Entries.Count) {
             Add-Failure 'ANSYS profile policy identity/schema/unique-name lock failed'
         }
         $ApprovedRoot = Join-Path $RepoRoot 'airjet-simulation\automation\ansys\approved'
@@ -1377,6 +1391,23 @@ if (Test-Path -LiteralPath $AnsysProfilesPath) {
             $Reports = @($Entry.reports)
             if ($Reports.Count -eq 0 -or @($Reports | Where-Object { -not ([string]$_).EndsWith('.json') }).Count -gt 0) {
                 Add-Failure "invalid ANSYS declared reports: $($Entry.profile_id)"
+            }
+            if ($null -ne $Entry.predecessor) {
+                $PredecessorFields = @($Entry.predecessor.PSObject.Properties.Name)
+                $RequiredPredecessorFields = @('profile_id','report','required_probe','required_status','required_assertions','artifacts')
+                $Upstream = @($Entries | Where-Object { [string]$_.profile_id -ceq [string]$Entry.predecessor.profile_id })
+                $Artifacts = @($Entry.predecessor.artifacts)
+                $RequiredAssertions = @($Entry.predecessor.required_assertions)
+                if (@(Compare-Object ($RequiredPredecessorFields | Sort-Object) ($PredecessorFields | Sort-Object)).Count -gt 0 -or
+                    $Upstream.Count -ne 1 -or
+                    [string]::IsNullOrWhiteSpace([string]$Entry.predecessor.required_probe) -or
+                    @('PASS_005_CAPABILITY','PASS_PARTIAL_CAD_CAPABILITY') -cnotcontains [string]$Entry.predecessor.required_status -or
+                    $RequiredAssertions.Count -eq 0 -or
+                    -not (@($Upstream[0].reports) -ccontains [string]$Entry.predecessor.report) -or
+                    -not ($Artifacts -ccontains [string]$Entry.predecessor.report) -or
+                    [string]$Upstream[0].output_root_id -cne [string]$Entry.output_root_id) {
+                    Add-Failure "invalid ANSYS predecessor linkage: $($Entry.profile_id)"
+                }
             }
         }
     } catch {

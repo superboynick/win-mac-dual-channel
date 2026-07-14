@@ -236,6 +236,71 @@
   模型或 ANSYS 工程求解能力”。
 - 状态：CLOSED_BY_EVIDENCE_SEMANTICS_T1_REQUIRED
 
+## REAL-20260714-017：跨 zsh→SSH→PowerShell 的 `$_.Name` 被外层错误解释
+
+- UTC：2026-07-14
+- Stage/task：005 T1 / 查找本机 v261 官方示例，只读资料定位
+- 期望：递归筛选安装目录中的 SpaceClaim/Workbench 脚本和 XML。
+- 实际观察：一条包含 PowerShell `Where-Object { $_.Name ... }` 的远程命令转义层次错误；外层
+  shell 破坏了 `$_`，PowerShell 输出大量属性/语法错误。随后一次用 `cmd where` 处理含空格
+  路径也因参数拆分失败。两次均为只读，没有启动 ANSYS、修改安装或读取许可内容。
+- 根因及置信度：命令依次经过本机 zsh、SSH 远端命令行和 PowerShell parser，`$`、引号与空格
+  有三层语义；高置信度。
+- 处置：停止宽泛递归命令，改用已知 literal path、无 `$_` 的 `Select-String`，并用 `scp` 只取
+  两个已定位官方样例到临时目录核对。后续复杂 PowerShell 应采用已审脚本/编码传输，不在一行
+  命令中叠加三层插值。
+- 对 Gate/论文主张的影响：没有工程能力运行，P1–P6 不变；该问题只属于复现基础设施现实。
+- 状态：CLOSED_BY_LITERAL_PATH_AND_SCOPED_COPY
+
+## REAL-20260714-018：CylinderBody 的“三点”不是轴两端加半径点
+
+- UTC：2026-07-14
+- Stage/task：005 T1 / SC-CAD-T1 发布前审查
+- 初稿：入口三点为 `(10,5,1)`、`(10,5,0)`、`(11,5,0)` mm，并预期得到沿 z 的直径 2 mm
+  圆柱。
+- 实际证据：本机 `SpaceClaim.Api.V261.Scripting.xml` 明确定义
+  `centerPoint` 为定义圆圆心、`startPoint` 为圆周起点、`endPoint` 为该圆周点的挤出终点。
+  初稿会混置半径和轴向，后续 `π mm³` 与 `z=0` 入口断言没有成立基础。
+- 处置：在签名提交和 ANSYS 实跑前改为 `(10,5,0)`、`(11,5,0)`、`(11,5,1)`；最终仍由
+  body 体积、bbox、入口面积及重开结果复核，而不是因 API 调用未报错就判 PASS。
+- 对论文的影响：方法记录“同版本参数语义 + 解析几何指纹”的双重验证；没有生成产品结论。
+- 状态：CLOSED_IN_CODE_PENDING_SIGNED_RUN
+
+## REAL-20260714-019：脚本重建参数变化不等于原生参数化
+
+- UTC：2026-07-14
+- Stage/task：005 T1 / 原生参数化硬门槛
+- 初稿：依次创建 `16×5×2` 与 `16×6×2 mm` 临时块，验证体积从 160 变 192 mm³ 后删除，
+  并把断言命名为 `parametric_geometry`。
+- 发布审查：这只能证明 `SCRIPT_EQUIVALENT_TWO_BUILDS`；最终 `.scdocx` 没有已验证的 driving
+  dimension/native parameter，也没有证明保存重开后参数仍可修改。若据此把
+  `P1_CAD_TOOLCHAIN_READINESS` 写 PASS，会越过 005 的原生参数化硬门槛。
+- 处置：断言改名为 `script_parameterization_equivalent`，报告显式写
+  `native_parameterization=NOT_RUN` 与 `p1_cad_hard_gate=BLOCKED_NATIVE_PARAMETERIZATION`。
+  CAD→Workbench 小链路即使全过也只写 `PASS_CAD_TRANSFER_SET`，P1 readiness 保持 BLOCKED。
+- 拒绝的 workaround：不把“可以改 Python 常量”改写为“原生参数化”；不因急于开始整机 CAD
+  而放宽 Gate。
+- 下一步：通过同版本官方 API、受控 GUI record 或可审计 feature/parameter route 建立并重开
+  真正 driving parameter，再用新 profile 关闭该硬门槛。
+- 状态：OPEN_KNOWN_TOOLCHAIN_GAP_PARTIAL_T1_ALLOWED
+
+## REAL-20260714-020：终态文件的现场哈希不能代替冻结 manifest
+
+- UTC：2026-07-14
+- Stage/task：005 T1 / MCP predecessor 证据链审查
+- 初稿：下游提交时读取上游终态报告，现场计算源文件 SHA，复制后再计算目标 SHA。
+- 审查发现：上游终态到下游提交之间，同一 OS 用户仍可同时改写报告与原生文件；复制前后相等
+  只能证明“复制一致”，不能证明它仍是先前 suite 看见的产物。
+- 处置：第一次 `artifact_manifest()` 在 MCP 内存中冻结完整 manifest；下游必须来自同一 MCP
+  进程，并把每个 policy artifact 的当前 size/SHA 与冻结值比较。服务器同时核对 profile、case、
+  commit、output root、probe、required assertions、P1 Gate 和许可参数标记，再生成只读 predecessor
+  manifest。冻结后的改写会与内存快照不符并 fail-closed；第一次 manifest 之前的文件状态就是
+  首次快照的权威输入，无法识别同一 OS 用户在冻结前已做的篡改。
+- 残余边界：冻结前仍属于当前 OS-user trust boundary；脚本也仍以当前 OS 用户权限运行，MCP
+  不是 OS sandbox。防线依赖签名 commit、脚本
+  SHA、静态审查和冻结 handoff，而不是声称子进程无法读取其他用户可读文件。
+- 状态：CLOSED_IN_CODE_PENDING_WINDOWS_NEGATIVE_TEST
+
 ## 新条目模板
 
 ```text

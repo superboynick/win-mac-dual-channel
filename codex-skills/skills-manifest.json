@@ -10,7 +10,7 @@
       "name": "airjet-ansys-automation",
       "kind": "project",
       "source": "codex-skills/airjet-ansys-automation",
-      "skill_md_sha256": "7a4d586fdf703de889705a2897cd0b7a626caa020b32d7675835f4e58d405f1f",
+      "skill_md_sha256": "0055a2c8688377437000d8f81e46bc27c8544b25dbaf1e972c55c2c8d1b27c80",
       "required_files": [
         "SKILL.md",
         "agents/openai.yaml",
@@ -19,6 +19,8 @@
         "scripts/bootstrap_windows.ps1",
         "scripts/airjet_ansys_mcp.py",
         "scripts/run_t0_suite.py",
+        "scripts/run_t1_cad_suite.py",
+        "scripts/test_t1_predecessor_negative.py",
         "scripts/test_airjet_ansys_mcp_policy.py"
       ]
     },

@@ -16,7 +16,7 @@
 | paper_section | question_or_claim | stage | model_scale | evidence_class | inputs | numerical_method | engine/profile/script | verification | run_ids/artifacts | allowed_wording | limitations | status |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Methods / toolchain | ANSYS 自动化是否可确定执行 | 005 T0 | 工具小模型 | C | 固定 v261 路径与版本 | 官方 batch/gRPC 控制探针 | 四个 `ajm005-*-t0-v1` | API 版本、确定断言、正常退出、报告/原生文件 hash | 首轮 `AJM005_T0_SUITE_20260714T174206637091Z_61fb4628` 保留 FAIL；签名重试 `AJM005_T0_SUITE_20260714T175525010049Z_2b301826` 为 4/4 PASS | “在签名 commit 6265043 上验证了 SpaceClaim、Workbench、Mechanical 与 Fluent 官方接口的确定性可控性” | 仅 T0；005 工程能力和 P1–P6 均未运行；可见性未由用户观察 | AVAILABLE_FOR_WRITING |
-| Methods / CAD readiness | 参数化流体几何是否可传递 | 005 T1 | 可删除流道 | C | 005 §3 尺寸 | 参数更新、Boolean/Volume Extract、STEP/Workbench transfer | 待批准 T1 profiles | 重开尺寸、单连通体、Named Selection cardinality | 待运行 | 仅在完整断言通过后写“CAD 工具链就绪” | 不等于 P1 整机 CAD | NOT_RUN |
+| Methods / CAD readiness | 脚本参数驱动流体几何是否可传递 | 005 T1 partial | 可删除流道 | C | 005 §3 尺寸 | 两次脚本重建、negative-volume union、原生/STEP 重开、Workbench/Mechanical transfer | `ajm005-spaceclaim-cad-t1-v1` + `ajm005-workbench-transfer-t1-v1` | 解析体积/bbox、单连通体、Named Selection cardinality、粗网格、报告—manifest 交叉哈希 | 待签名运行 | 仅在本轮完整断言通过后写“验证了部分 CAD/传递能力” | 原生 driving parameter 与实际 Volume Extract 均 NOT_RUN；不等于 P1 CAD readiness 或 P1 整机 CAD | NOT_RUN |
 | Methods / solver readiness | 结构与流动最小求解 | 005 T1 | 可删除小模型 | C | 005 §4--5 | 静力 FEA；稳态层流 CFD | 待批准 T1 profiles | 有限结果、结果导出、质量平衡、case/data 重开 | 待运行 | 仅报告实际通过和受限功能 | 不等于 AirJet 结构/气动结果 | NOT_RUN |
 | Geometry method | 整机 CAD 候选生成 | P1 | 全产品 | D/P/I/C/U | P1 registry/contracts | 同一母版 9 variants | 006 profiles 待建 | 252 Gate rows + independent review | 无 | 尚不可写成完成结果 | 005 与 006/007 未完成 | NOT_RUN |
 

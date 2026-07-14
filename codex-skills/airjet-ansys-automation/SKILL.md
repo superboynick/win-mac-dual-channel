@@ -62,6 +62,13 @@ scope, while this skill owns deterministic Windows execution.
 - Use `scripts/run_t0_suite.py` for the fixed, no-argument four-engine 005 control suite. It still
   uses MCP `inventory`/`submit_job`/`poll_job`/`artifact_manifest`; it only removes LLM polling
   overhead and cannot claim any engineering capability or P1-P6 Gate.
+- Use `scripts/run_t1_cad_suite.py` for the fixed SpaceClaim CAD plus Workbench transfer pair.
+  The downstream profile may receive only server-copied artifacts from its exact terminal
+  predecessor job in the same case, Git commit, output root, and MCP process. The runner may mark
+  `P1_CAD_TOOLCHAIN_READINESS`, but it must keep the overall 005 result partial and P1-P6 NOT_RUN.
+- Before the first T1 CAD run after an MCP change, use
+  `scripts/test_t1_predecessor_negative.py`. It starts no ANSYS engine and verifies that missing,
+  unexpected and unknown predecessor IDs leave auditable `FAILED_START` states with no PID.
 
 If the MCP is unavailable, report that tooling blocker. Do not fall back to repeated generic Codex
 prompts or coordinate-based GUI automation.

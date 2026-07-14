@@ -1,0 +1,197 @@
+# AJM-005 Workbench transfer capability probe; this is a disposable tool model.
+import hashlib
+import json
+import os
+import traceback
+
+
+job_dir = os.environ["AIRJET_JOB_DIR"]
+predecessor_dir = os.environ["AIRJET_PREDECESSOR_DIR"]
+report_path = os.path.join(job_dir, "workbench_transfer_t1.json")
+inspection_path = os.path.join(job_dir, "workbench_model_inspection.json")
+project_path = os.path.join(job_dir, "workbench_transfer_t1.wbpj")
+native_path = os.path.join(predecessor_dir, "spaceclaim_cad_t1.scdocx")
+upstream_report_path = os.path.join(predecessor_dir, "spaceclaim_cad_t1.json")
+upstream_manifest_path = os.path.join(predecessor_dir, "predecessor-manifest.json")
+
+assertion_names = (
+    "predecessor_identity",
+    "geometry_transfer",
+    "named_selection_transfer",
+    "mesh_generation",
+    "project_save",
+)
+result = {
+    "schema_version": 1,
+    "task": "AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
+    "probe": "workbench_transfer_t1",
+    "status": "FAIL_DIRECT",
+    "engineering_capability": "FAIL_DIRECT",
+    "p1_stage_gate": "NOT_RUN",
+    "visibility": "NOT_USER_OBSERVED",
+    "p1_cad_hard_gate": "BLOCKED_UPSTREAM_NATIVE_PARAMETERIZATION",
+    "license_arguments_added": False,
+    "assertions": dict((name, False) for name in assertion_names),
+}
+
+
+def sha256_file(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        while True:
+            chunk = handle.read(1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+try:
+    with open(upstream_report_path, "r") as handle:
+        upstream_report = json.load(handle)
+    with open(upstream_manifest_path, "r") as handle:
+        upstream_manifest = json.load(handle)
+    manifest_artifacts = dict(
+        (item["relative_path"], item)
+        for item in upstream_manifest.get("artifacts", [])
+    )
+    native_sha256 = sha256_file(native_path)
+    report_sha256 = sha256_file(upstream_report_path)
+    expected_native_sha256 = upstream_report["files"]["transfer_native"]["sha256"]
+    predecessor_identity_ok = (
+        upstream_report.get("status") == "PASS_PARTIAL_CAD_CAPABILITY"
+        and upstream_report.get("engineering_capability") == "PASS_PARTIAL_CAD_CAPABILITY"
+        and upstream_report.get("license_arguments_added") is False
+        and upstream_manifest.get("required_status")
+        == "PASS_PARTIAL_CAD_CAPABILITY"
+        and manifest_artifacts.get("spaceclaim_cad_t1.scdocx", {}).get("sha256")
+        == native_sha256
+        and manifest_artifacts.get("spaceclaim_cad_t1.json", {}).get("sha256")
+        == report_sha256
+        and native_sha256 == expected_native_sha256
+    )
+    result["predecessor"] = {
+        "job_id": upstream_manifest.get("predecessor_job_id"),
+        "profile_id": upstream_manifest.get("predecessor_profile_id"),
+        "git_head": upstream_manifest.get("git_head"),
+        "native_sha256": native_sha256,
+        "report_sha256": report_sha256,
+    }
+    result["predecessor_job_id"] = upstream_manifest.get("predecessor_job_id")
+    result["assertions"]["predecessor_identity"] = predecessor_identity_ok
+    if not predecessor_identity_ok:
+        raise Exception("PREDECESSOR_IDENTITY_ASSERTION_FAILED")
+
+    Reset()
+    static_template = GetTemplate(TemplateName="Static Structural", Solver="ANSYS")
+    static_system = static_template.CreateSystem()
+    geometry = static_system.GetContainer(ComponentName="Geometry")
+    geometry_properties = geometry.GetGeometryProperties()
+    geometry_properties.GeometryImportNamedSelections = True
+    geometry_properties.GeometryImportNamedSelectionsFilter = ""
+    geometry.SetFile(FilePath=native_path)
+
+    model_component = static_system.GetComponent(Name="Model")
+    model_component.UpdateUpstreamComponents()
+    model_component.Refresh()
+    model_container = static_system.GetContainer(ComponentName="Model")
+
+    model_script = """
+import json
+
+inspection_path = %r
+body_objects = Model.GetChildren(DataModelObjectCategory.Body, True)
+named_object_counts = {}
+named_entity_counts = {}
+for name in ("INLET", "OUTLET", "WALLS"):
+    objects = DataModel.GetObjectsByName(name)
+    named_object_counts[name] = int(objects.Count)
+    entity_count = 0
+    if objects.Count == 1:
+        obj = objects[0]
+        try:
+            entity_count = int(obj.TotalSelection)
+        except Exception:
+            try:
+                entity_count = int(obj.Location.Ids.Count)
+            except Exception:
+                entity_count = 0
+    named_entity_counts[name] = entity_count
+
+Model.Mesh.ElementSize = Quantity("1 [mm]")
+Model.Mesh.GenerateMesh()
+node_count = 0
+element_count = 0
+body_names = []
+for body in body_objects:
+    body_names.append(str(body.Name))
+    node_count += int(body.Nodes)
+    element_count += int(body.Elements)
+
+inspection = {
+    "schema_version": 1,
+    "body_count": int(body_objects.Count),
+    "body_names": body_names,
+    "named_selection_object_counts": named_object_counts,
+    "named_selection_entity_counts": named_entity_counts,
+    "mesh_node_count": node_count,
+    "mesh_element_count": element_count,
+}
+with open(inspection_path, "w") as handle:
+    json.dump(inspection, handle, indent=2, sort_keys=True)
+""" % inspection_path
+    model_container.SendCommand(Language="Python", Command=model_script)
+
+    if not os.path.isfile(inspection_path):
+        raise Exception("WORKBENCH_MODEL_INSPECTION_MISSING")
+    with open(inspection_path, "r") as handle:
+        inspection = json.load(handle)
+    body_count = int(inspection.get("body_count", 0))
+    object_counts = inspection.get("named_selection_object_counts", {})
+    entity_counts = inspection.get("named_selection_entity_counts", {})
+    geometry_transfer_ok = body_count == 1
+    named_transfer_ok = all(
+        object_counts.get(name) == 1 and entity_counts.get(name, 0) > 0
+        for name in ("INLET", "OUTLET", "WALLS")
+    )
+    mesh_ok = (
+        int(inspection.get("mesh_node_count", 0)) > 0
+        and int(inspection.get("mesh_element_count", 0)) > 0
+    )
+
+    Save(FilePath=project_path, Overwrite=True)
+    project_save_ok = os.path.isfile(project_path) and os.path.getsize(project_path) > 0
+    result["inspection"] = inspection
+    result["files"] = {
+        "project": {
+            "path": project_path,
+            "exists": os.path.isfile(project_path),
+            "size": os.path.getsize(project_path) if os.path.isfile(project_path) else 0,
+            "sha256": sha256_file(project_path) if os.path.isfile(project_path) else None,
+        },
+        "model_inspection": {
+            "path": inspection_path,
+            "exists": os.path.isfile(inspection_path),
+            "size": os.path.getsize(inspection_path) if os.path.isfile(inspection_path) else 0,
+            "sha256": sha256_file(inspection_path) if os.path.isfile(inspection_path) else None,
+        },
+    }
+    result["assertions"]["geometry_transfer"] = geometry_transfer_ok
+    result["assertions"]["named_selection_transfer"] = named_transfer_ok
+    result["assertions"]["mesh_generation"] = mesh_ok
+    result["assertions"]["project_save"] = project_save_ok
+    if all(result["assertions"].values()):
+        result["status"] = "PASS_PARTIAL_CAD_CAPABILITY"
+        result["engineering_capability"] = "PASS_PARTIAL_CAD_CAPABILITY"
+    else:
+        result["error"] = "CAPABILITY_ASSERTION_FAILED"
+except Exception as error:
+    result["error_type"] = type(error).__name__
+    result["error"] = str(error)
+    result["traceback"] = traceback.format_exc()
+
+with open(report_path, "w") as report_handle:
+    json.dump(result, report_handle, indent=2, sort_keys=True)
+
+if result["status"] != "PASS_PARTIAL_CAD_CAPABILITY":
+    raise Exception("AJM005_WORKBENCH_TRANSFER_T1_FAILED")

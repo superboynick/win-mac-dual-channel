@@ -33,9 +33,11 @@
 2. [`DECISION_AND_REASONING_ARCHIVE.md`](../DECISION_AND_REASONING_ARCHIVE.md)：可审计的工程判断。
 3. [`SOURCE_PROVENANCE.md`](../evidence/SOURCE_PROVENANCE.md)：资料从哪里来、能支持什么。
 4. [`ANSYS_AUTOMATION_AND_005_LAB.md`](ANSYS_AUTOMATION_AND_005_LAB.md)：当前 Windows 实验。
-5. `manuals/01` 到 `manuals/06`：P1 CAD、P2 结构、P3 单 cell 标定、P4 整机气动、
+5. [`T1_CAD_TRANSFER_WORKBOOK.md`](T1_CAD_TRANSFER_WORKBOOK.md)：第一条真实 CAD→Workbench
+   能力链的几何、API 来源、预期失败和论文主张边界。
+6. `manuals/01` 到 `manuals/06`：P1 CAD、P2 结构、P3 单 cell 标定、P4 整机气动、
    P5 CHT、P6 不确定性。
-6. [`PAPER_METHOD_EVIDENCE_MAP.md`](PAPER_METHOD_EVIDENCE_MAP.md)：把运行证据映射到你自己的论文。
+7. [`PAPER_METHOD_EVIDENCE_MAP.md`](PAPER_METHOD_EVIDENCE_MAP.md)：把运行证据映射到你自己的论文。
 
 ## 4. 每个阶段都用同一学习循环
 

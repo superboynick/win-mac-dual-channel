@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import stat
 import subprocess
 import sys
@@ -82,6 +83,10 @@ EXPECTED_PACKAGES = {
     "ansys-fluent-core": "0.40.2",
     "ansys-mechanical-core": "0.12.11",
 }
+ALLOWED_PREDECESSOR_STATUSES = {
+    "PASS_005_CAPABILITY",
+    "PASS_PARTIAL_CAD_CAPABILITY",
+}
 
 
 @dataclass
@@ -95,6 +100,7 @@ class Job:
     job_handle: int | None
     machine_lock_handle: int | None
     reports: tuple[str, ...]
+    artifact_snapshot: dict[str, Any] | None = None
 
 
 JOBS: dict[str, Job] = {}
@@ -237,7 +243,7 @@ def load_profiles(head: str) -> dict[str, dict[str, Any]]:
         raise ValueError("BLOCKED_PROFILE_POLICY_INVALID_JSON") from exc
     if not isinstance(policy, dict) or set(policy) != {"schema_version", "profiles"}:
         raise ValueError("BLOCKED_PROFILE_POLICY_ROOT")
-    if policy.get("schema_version") != 1 or not isinstance(policy.get("profiles"), list):
+    if policy.get("schema_version") != 2 or not isinstance(policy.get("profiles"), list):
         raise ValueError("BLOCKED_PROFILE_POLICY_SCHEMA")
     profiles: dict[str, dict[str, Any]] = {}
     for raw in policy.get("profiles", []):
@@ -251,6 +257,7 @@ def load_profiles(head: str) -> dict[str, dict[str, Any]]:
             "timeout_seconds",
             "output_root_id",
             "reports",
+            "predecessor",
         }:
             raise ValueError("BLOCKED_PROFILE_POLICY_FIELDS")
         profile_id = raw.get("profile_id")
@@ -260,6 +267,7 @@ def load_profiles(head: str) -> dict[str, dict[str, Any]]:
         output_root_id = raw.get("output_root_id")
         timeout = raw.get("timeout_seconds")
         reports = raw.get("reports", [])
+        predecessor = raw.get("predecessor")
         if not isinstance(profile_id, str) or not SAFE_ID.fullmatch(profile_id):
             raise ValueError("BLOCKED_PROFILE_ID")
         if profile_id in profiles:
@@ -297,6 +305,58 @@ def load_profiles(head: str) -> dict[str, dict[str, Any]]:
                 or report in {"job.json", "stdout.json", "stderr.json"}
             ):
                 raise ValueError("BLOCKED_PROFILE_REPORT_PATH")
+        if predecessor is not None:
+            if not isinstance(predecessor, dict) or set(predecessor) != {
+                "profile_id",
+                "report",
+                "required_probe",
+                "required_status",
+                "required_assertions",
+                "artifacts",
+            }:
+                raise ValueError("BLOCKED_PROFILE_PREDECESSOR_FIELDS")
+            predecessor_profile = predecessor.get("profile_id")
+            predecessor_report = predecessor.get("report")
+            required_probe = predecessor.get("required_probe")
+            required_status = predecessor.get("required_status")
+            required_assertions = predecessor.get("required_assertions")
+            predecessor_artifacts = predecessor.get("artifacts")
+            if (
+                not isinstance(predecessor_profile, str)
+                or not SAFE_ID.fullmatch(predecessor_profile)
+                or not isinstance(predecessor_report, str)
+                or Path(predecessor_report).name != predecessor_report
+                or not predecessor_report.endswith(".json")
+                or not isinstance(required_probe, str)
+                or not SAFE_ID.fullmatch(required_probe)
+                or required_status not in ALLOWED_PREDECESSOR_STATUSES
+                or not isinstance(required_assertions, list)
+                or not required_assertions
+                or len(required_assertions) > 50
+                or len(required_assertions) != len(set(required_assertions))
+                or not isinstance(predecessor_artifacts, list)
+                or not predecessor_artifacts
+                or len(predecessor_artifacts) > 20
+                or predecessor_report not in predecessor_artifacts
+            ):
+                raise ValueError("BLOCKED_PROFILE_PREDECESSOR_VALUE")
+            for assertion in required_assertions:
+                if (
+                    not isinstance(assertion, str)
+                    or not re.fullmatch(r"[a-z][a-z0-9_]{0,79}", assertion)
+                ):
+                    raise ValueError("BLOCKED_PROFILE_PREDECESSOR_ASSERTION")
+            for artifact in predecessor_artifacts:
+                if (
+                    not isinstance(artifact, str)
+                    or not artifact
+                    or Path(artifact).name != artifact
+                    or artifact.startswith(".")
+                    or ":" in artifact
+                    or "\\" in artifact
+                    or artifact in {"job.json", "stdout.log", "stderr.log"}
+                ):
+                    raise ValueError("BLOCKED_PROFILE_PREDECESSOR_ARTIFACT")
         profiles[profile_id] = {
             **raw,
             "script_relative": relative_path.as_posix(),
@@ -304,6 +364,17 @@ def load_profiles(head: str) -> dict[str, dict[str, Any]]:
         }
     if not profiles:
         raise ValueError("BLOCKED_PROFILE_POLICY_EMPTY")
+    for profile in profiles.values():
+        predecessor = profile["predecessor"]
+        if predecessor is None:
+            continue
+        predecessor_profile = profiles.get(predecessor["profile_id"])
+        if predecessor_profile is None:
+            raise ValueError("BLOCKED_PROFILE_PREDECESSOR_UNKNOWN")
+        if predecessor["report"] not in predecessor_profile["reports"]:
+            raise ValueError("BLOCKED_PROFILE_PREDECESSOR_REPORT_UNDECLARED")
+        if predecessor_profile["output_root_id"] != profile["output_root_id"]:
+            raise ValueError("BLOCKED_PROFILE_PREDECESSOR_OUTPUT_ROOT_MISMATCH")
     return profiles
 
 
@@ -416,10 +487,15 @@ def build_command(engine: str, script: Path, job_dir: Path) -> list[str]:
     return [str(executable), "-I", "-B", str(script)]
 
 
-def sanitized_environment(job_dir: Path, profile_id: str, case_id: str) -> dict[str, str]:
+def sanitized_environment(
+    job_dir: Path,
+    profile_id: str,
+    case_id: str,
+    predecessor_dir: Path | None,
+) -> dict[str, str]:
     temporary = job_dir / "temp"
     temporary.mkdir()
-    return {
+    environment = {
         "SystemRoot": r"C:\Windows",
         "WINDIR": r"C:\Windows",
         "COMSPEC": r"C:\Windows\System32\cmd.exe",
@@ -446,6 +522,9 @@ def sanitized_environment(job_dir: Path, profile_id: str, case_id: str) -> dict[
         "TEMP": str(temporary),
         "TMP": str(temporary),
     }
+    if predecessor_dir is not None:
+        environment["AIRJET_PREDECESSOR_DIR"] = str(predecessor_dir)
+    return environment
 
 
 def create_windows_job_object(process: subprocess.Popen[bytes]) -> int | None:
@@ -739,10 +818,138 @@ def inventory() -> dict[str, Any]:
     }
 
 
+def prepare_predecessor_input(
+    profile: dict[str, Any],
+    predecessor_job_id: str,
+    case_id: str,
+    git_head: str,
+    input_dir: Path,
+) -> tuple[Path | None, list[dict[str, Any]]]:
+    """Copy only policy-declared artifacts from one terminal in-memory predecessor."""
+    policy = profile["predecessor"]
+    if policy is None:
+        if predecessor_job_id:
+            raise ValueError("BLOCKED_UNEXPECTED_PREDECESSOR")
+        return None, []
+    if not predecessor_job_id or not SAFE_ID.fullmatch(predecessor_job_id):
+        raise ValueError("BLOCKED_REQUIRED_PREDECESSOR_ID")
+    predecessor = JOBS.get(predecessor_job_id)
+    if predecessor is None:
+        raise ValueError("BLOCKED_UNKNOWN_OR_SERVER_RESTARTED_PREDECESSOR")
+    poll_internal_locked(predecessor)
+    state = predecessor.state
+    if state["phase"] != "PROCESS_EXITED_0" or state.get("exit_code") != 0:
+        raise ValueError("BLOCKED_PREDECESSOR_NOT_SUCCESSFULLY_TERMINAL")
+    if (
+        state.get("job_id") != predecessor_job_id
+        or state.get("case_id") != case_id
+        or state.get("profile_id") != policy["profile_id"]
+        or state.get("git_head") != git_head
+        or state.get("output_root_id") != profile["output_root_id"]
+    ):
+        raise ValueError("BLOCKED_PREDECESSOR_IDENTITY_MISMATCH")
+
+    snapshot = predecessor.artifact_snapshot
+    if snapshot is None:
+        raise ValueError("BLOCKED_PREDECESSOR_MANIFEST_NOT_FROZEN")
+    snapshot_files = snapshot.get("files")
+    if not isinstance(snapshot_files, list):
+        raise ValueError("BLOCKED_PREDECESSOR_MANIFEST_INVALID")
+    snapshot_by_relative: dict[str, dict[str, Any]] = {}
+    for entry in snapshot_files:
+        if not isinstance(entry, dict) or not isinstance(entry.get("relative_path"), str):
+            raise ValueError("BLOCKED_PREDECESSOR_MANIFEST_INVALID")
+        relative = entry["relative_path"]
+        if relative in snapshot_by_relative:
+            raise ValueError("BLOCKED_PREDECESSOR_MANIFEST_DUPLICATE")
+        snapshot_by_relative[relative] = entry
+
+    source_root = lexical(predecessor.state_path.parent)
+    reject_existing_reparse_ancestors(source_root)
+    report_path = source_root / policy["report"]
+    if not contained(report_path, source_root) or not report_path.is_file():
+        raise ValueError("BLOCKED_PREDECESSOR_REPORT_MISSING")
+    reject_existing_reparse_ancestors(report_path)
+    report_entry = snapshot_by_relative.get(policy["report"])
+    report = report_entry.get("report_json") if report_entry else None
+    assertions = report.get("assertions") if isinstance(report, dict) else None
+    if (
+        not isinstance(report, dict)
+        or report.get("probe") != policy["required_probe"]
+        or report.get("status") != policy["required_status"]
+        or report.get("engineering_capability") != policy["required_status"]
+        or report.get("p1_stage_gate") != "NOT_RUN"
+        or report.get("license_arguments_added") is not False
+        or not isinstance(assertions, dict)
+        or not all(assertions.get(name) is True for name in policy["required_assertions"])
+    ):
+        raise ValueError("BLOCKED_PREDECESSOR_REPORT_NOT_CAPABILITY_PASS")
+
+    predecessor_dir = input_dir / "predecessor"
+    predecessor_dir.mkdir()
+    reject_existing_reparse_ancestors(predecessor_dir)
+    copied: list[dict[str, Any]] = []
+    for relative in policy["artifacts"]:
+        source = source_root / relative
+        target = predecessor_dir / relative
+        frozen = snapshot_by_relative.get(relative)
+        if (
+            not contained(source, source_root)
+            or not contained(target, predecessor_dir)
+            or not source.is_file()
+            or not isinstance(frozen, dict)
+        ):
+            raise ValueError("BLOCKED_PREDECESSOR_ARTIFACT_MISSING")
+        reject_existing_reparse_ancestors(source)
+        source_size, source_sha256 = hash_file(source)
+        if (
+            frozen.get("size") != source_size
+            or frozen.get("sha256") != source_sha256
+        ):
+            raise ValueError("BLOCKED_PREDECESSOR_FROZEN_HASH_MISMATCH")
+        shutil.copyfile(source, target)
+        reject_existing_reparse_ancestors(target)
+        target_size, target_sha256 = hash_file(target)
+        if target_size != source_size or target_sha256 != source_sha256:
+            raise ValueError("BLOCKED_PREDECESSOR_COPY_HASH_MISMATCH")
+        target.chmod(stat.S_IREAD)
+        copied.append(
+            {
+                "relative_path": relative,
+                "size": target_size,
+                "sha256": target_sha256,
+            }
+        )
+    predecessor_manifest = {
+        "schema_version": 1,
+        "predecessor_job_id": predecessor_job_id,
+        "predecessor_profile_id": state["profile_id"],
+        "git_head": git_head,
+        "required_report": policy["report"],
+        "required_status": policy["required_status"],
+        "artifact_manifest_snapshot_sha256": sha256_bytes(
+            json.dumps(snapshot, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ),
+        "artifacts": copied,
+    }
+    manifest_path = predecessor_dir / "predecessor-manifest.json"
+    manifest_path.write_text(
+        json.dumps(predecessor_manifest, indent=2, sort_keys=True), encoding="utf-8"
+    )
+    manifest_path.chmod(stat.S_IREAD)
+    return predecessor_dir, copied
+
+
 @MCP.tool()
-def submit_job(profile_id: str, case_id: str) -> dict[str, Any]:
-    """Start one hash-pinned profile; callers cannot supply paths, commands, or environment."""
-    if not SAFE_ID.fullmatch(profile_id) or not SAFE_ID.fullmatch(case_id):
+def submit_job(
+    profile_id: str, case_id: str, predecessor_job_id: str = ""
+) -> dict[str, Any]:
+    """Start one hash-pinned profile with an optional policy-bound predecessor job."""
+    if (
+        not SAFE_ID.fullmatch(profile_id)
+        or not SAFE_ID.fullmatch(case_id)
+        or (predecessor_job_id and not SAFE_ID.fullmatch(predecessor_job_id))
+    ):
         raise ValueError("BLOCKED_INVALID_ID")
     with JOBS_LOCK:
         for active in JOBS.values():
@@ -770,18 +977,9 @@ def submit_job(profile_id: str, case_id: str) -> dict[str, Any]:
             raise ValueError("BLOCKED_OUTPUT_OUTSIDE_APPROVED_ROOT")
         job_dir.mkdir(parents=True, exist_ok=False)
         reject_existing_reparse_ancestors(job_dir)
-        input_dir = job_dir / "input"
-        input_dir.mkdir()
-        execution_script = input_dir / Path(profile["script_relative"]).name
-        execution_script.write_bytes(source_data)
-        if sha256_bytes(execution_script.read_bytes()) != profile["sha256"]:
-            raise ValueError("BLOCKED_EXECUTION_COPY_HASH_MISMATCH")
-        execution_script.chmod(stat.S_IREAD)
-        reject_existing_reparse_ancestors(execution_script)
-
         state_path = job_dir / "job.json"
         state: dict[str, Any] = {
-            "schema_version": 3,
+            "schema_version": 4,
             "job_id": job_id,
             "case_id": case_id,
             "profile_id": profile_id,
@@ -797,10 +995,36 @@ def submit_job(profile_id: str, case_id: str) -> dict[str, Any]:
             "ended_at": None,
             "reason": None,
             "license_arguments_added": False,
+            "predecessor_job_id": predecessor_job_id or None,
+            "predecessor_artifacts": [],
         }
         write_state_data(state_path, state)
+        try:
+            input_dir = job_dir / "input"
+            input_dir.mkdir()
+            execution_script = input_dir / Path(profile["script_relative"]).name
+            execution_script.write_bytes(source_data)
+            if sha256_bytes(execution_script.read_bytes()) != profile["sha256"]:
+                raise ValueError("BLOCKED_EXECUTION_COPY_HASH_MISMATCH")
+            execution_script.chmod(stat.S_IREAD)
+            reject_existing_reparse_ancestors(execution_script)
+            predecessor_dir, predecessor_artifacts = prepare_predecessor_input(
+                profile,
+                predecessor_job_id,
+                case_id,
+                git_head,
+                input_dir,
+            )
+            state["predecessor_artifacts"] = predecessor_artifacts
+            command = build_command(profile["engine"], execution_script, job_dir)
+            write_state_data(state_path, state)
+        except Exception as exc:
+            state["phase"] = "FAILED_START"
+            state["ended_at"] = utc_now()
+            state["reason"] = f"PREPARATION_FAILED:{type(exc).__name__}:{exc}"
+            write_state_data(state_path, state)
+            raise
 
-        command = build_command(profile["engine"], execution_script, job_dir)
         stdout_path = job_dir / "stdout.log"
         stderr_path = job_dir / "stderr.log"
         creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
@@ -808,10 +1032,12 @@ def submit_job(profile_id: str, case_id: str) -> dict[str, Any]:
             creationflags |= 0x00000004  # CREATE_SUSPENDED
         try:
             machine_lock_handle = acquire_machine_job_lock()
-        except ValueError:
+        except Exception as exc:
             state["phase"] = "FAILED_START"
             state["ended_at"] = utc_now()
-            state["reason"] = "CROSS_PROCESS_JOB_ALREADY_ACTIVE"
+            state["reason"] = (
+                f"MACHINE_LOCK_ACQUIRE_FAILED:{type(exc).__name__}:{exc}"
+            )
             write_state_data(state_path, state)
             raise
         stdout: IO[bytes] | None = None
@@ -824,7 +1050,9 @@ def submit_job(profile_id: str, case_id: str) -> dict[str, Any]:
             process = subprocess.Popen(
                 command,
                 cwd=job_dir,
-                env=sanitized_environment(job_dir, profile_id, case_id),
+                env=sanitized_environment(
+                    job_dir, profile_id, case_id, predecessor_dir
+                ),
                 stdin=subprocess.DEVNULL,
                 stdout=stdout,
                 stderr=stderr,
@@ -953,6 +1181,53 @@ def walk_artifacts(root: Path) -> list[Path]:
     return files
 
 
+def build_artifact_snapshot(job: Job) -> dict[str, Any]:
+    """Build the immutable in-memory manifest used by callers and successors."""
+    job_dir = job.state_path.parent
+    reject_existing_reparse_ancestors(job_dir)
+    declared_reports = set(job.reports)
+    entries: list[dict[str, Any]] = []
+    total_size = 0
+    for path in walk_artifacts(job_dir):
+        if not contained(path, job_dir):
+            raise ValueError("BLOCKED_ARTIFACT_OUTSIDE_JOB")
+        relative = path.relative_to(job_dir).as_posix()
+        if relative in declared_reports:
+            with path.open("rb") as handle:
+                report_bytes = handle.read(MAX_INLINE_REPORT_BYTES + 1)
+            if len(report_bytes) > MAX_INLINE_REPORT_BYTES:
+                raise ValueError("BLOCKED_DECLARED_REPORT_TOO_LARGE")
+            size = len(report_bytes)
+            digest = sha256_bytes(report_bytes)
+        else:
+            report_bytes = None
+            size, digest = hash_file(path)
+        total_size += size
+        if total_size > MAX_TOTAL_ARTIFACT_BYTES:
+            raise ValueError("BLOCKED_ARTIFACT_TOTAL_TOO_LARGE")
+        entry: dict[str, Any] = {
+            "relative_path": relative,
+            "size": size,
+            "sha256": digest,
+        }
+        if relative in declared_reports:
+            try:
+                report = json.loads(report_bytes.decode("utf-8"))
+                if not isinstance(report, dict):
+                    raise ValueError
+                entry["report_json"] = report
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError):
+                entry["report_error"] = "DECLARED_REPORT_INVALID_JSON"
+        entries.append(entry)
+    return {
+        "job_id": job.state["job_id"],
+        "phase": job.state["phase"],
+        "file_count": len(entries),
+        "total_size": total_size,
+        "files": entries,
+    }
+
+
 @MCP.tool()
 def artifact_manifest(job_id: str) -> dict[str, Any]:
     """Hash one known job directory and inline only profile-declared small reports."""
@@ -963,43 +1238,9 @@ def artifact_manifest(job_id: str) -> dict[str, Any]:
         poll_internal_locked(job)
         if job.state["phase"] == "RUNNING":
             raise ValueError("BLOCKED_JOB_STILL_RUNNING")
-        job_dir = job.state_path.parent
-        reject_existing_reparse_ancestors(job_dir)
-        declared_reports = set(job.reports)
-        entries: list[dict[str, Any]] = []
-        total_size = 0
-        for path in walk_artifacts(job_dir):
-            if not contained(path, job_dir):
-                raise ValueError("BLOCKED_ARTIFACT_OUTSIDE_JOB")
-            size, digest = hash_file(path)
-            total_size += size
-            if total_size > MAX_TOTAL_ARTIFACT_BYTES:
-                raise ValueError("BLOCKED_ARTIFACT_TOTAL_TOO_LARGE")
-            relative = path.relative_to(job_dir).as_posix()
-            entry: dict[str, Any] = {
-                "relative_path": relative,
-                "size": size,
-                "sha256": digest,
-            }
-            if relative in declared_reports:
-                if size > MAX_INLINE_REPORT_BYTES:
-                    entry["report_error"] = "DECLARED_REPORT_TOO_LARGE"
-                else:
-                    try:
-                        report = json.loads(path.read_text(encoding="utf-8"))
-                        if not isinstance(report, dict):
-                            raise ValueError
-                        entry["report_json"] = report
-                    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError):
-                        entry["report_error"] = "DECLARED_REPORT_INVALID_JSON"
-            entries.append(entry)
-        return {
-            "job_id": job_id,
-            "phase": job.state["phase"],
-            "file_count": len(entries),
-            "total_size": total_size,
-            "files": entries,
-        }
+        if job.artifact_snapshot is None:
+            job.artifact_snapshot = build_artifact_snapshot(job)
+        return json.loads(json.dumps(job.artifact_snapshot))
 
 
 if __name__ == "__main__":

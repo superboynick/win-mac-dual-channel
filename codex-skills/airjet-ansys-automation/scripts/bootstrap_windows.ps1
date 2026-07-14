@@ -30,6 +30,8 @@ $BasePython = 'C:\Users\admin\AppData\Local\Programs\Python\Python312\python.exe
 $Server = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\airjet_ansys_mcp.py'
 $PolicyTest = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\test_airjet_ansys_mcp_policy.py'
 $T0Suite = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\run_t0_suite.py'
+$T1CadSuite = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\run_t1_cad_suite.py'
+$T1PredecessorNegative = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\test_t1_predecessor_negative.py'
 [void](New-Item -ItemType Directory -Path $Root -Force)
 
 if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) {
@@ -46,7 +48,9 @@ if ($LASTEXITCODE -ne 0) { throw 'BLOCKED_AUTOMATION_IMPORT' }
 if (-not (Test-Path -LiteralPath $Server -PathType Leaf)) { throw 'BLOCKED_MCP_SERVER_MISSING' }
 if (-not (Test-Path -LiteralPath $PolicyTest -PathType Leaf)) { throw 'BLOCKED_MCP_POLICY_TEST_MISSING' }
 if (-not (Test-Path -LiteralPath $T0Suite -PathType Leaf)) { throw 'BLOCKED_T0_SUITE_MISSING' }
-& $Python -m py_compile $Server $PolicyTest $T0Suite
+if (-not (Test-Path -LiteralPath $T1CadSuite -PathType Leaf)) { throw 'BLOCKED_T1_CAD_SUITE_MISSING' }
+if (-not (Test-Path -LiteralPath $T1PredecessorNegative -PathType Leaf)) { throw 'BLOCKED_T1_PREDECESSOR_NEGATIVE_MISSING' }
+& $Python -m py_compile $Server $PolicyTest $T0Suite $T1CadSuite $T1PredecessorNegative
 if ($LASTEXITCODE -ne 0) { throw 'BLOCKED_MCP_PYTHON_SYNTAX' }
 & $Python -I -B $PolicyTest
 if ($LASTEXITCODE -ne 0) { throw 'BLOCKED_MCP_STATIC_POLICY' }

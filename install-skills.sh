@@ -40,7 +40,7 @@ has_required() {
 
 jupyter_expected=62f102e8554b25716dccef0ffab4572d4e3eaf05ccc76562d33a065bc9c521fb
 pdf_expected=d108cf2b36355ab37eb5962933f4d09785ec002f3105c506129320209306b9d2
-ansys_expected=7a4d586fdf703de889705a2897cd0b7a626caa020b32d7675835f4e58d405f1f
+ansys_expected=0055a2c8688377437000d8f81e46bc27c8544b25dbaf1e972c55c2c8d1b27c80
 jupyter_actual=$(skill_hash "$target_root/jupyter-notebook/SKILL.md" || true)
 pdf_actual=$(skill_hash "$target_root/pdf/SKILL.md" || true)
 official_needed=0
@@ -110,7 +110,8 @@ check_required airjet-product-reconstruction \
 check_required airjet-ansys-automation \
   SKILL.md agents/openai.yaml references/official-automation-routes.md \
   references/gate-evidence.md scripts/bootstrap_windows.ps1 \
-  scripts/airjet_ansys_mcp.py scripts/run_t0_suite.py \
+  scripts/airjet_ansys_mcp.py scripts/run_t0_suite.py scripts/run_t1_cad_suite.py \
+  scripts/test_t1_predecessor_negative.py \
   scripts/test_airjet_ansys_mcp_policy.py
 check_required jupyter-notebook \
   LICENSE.txt SKILL.md agents/openai.yaml assets/experiment-template.ipynb \

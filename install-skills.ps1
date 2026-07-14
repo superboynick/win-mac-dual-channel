@@ -10,7 +10,7 @@ $ExpectedSkills = @{
     'airjet-ansys-automation' = [pscustomobject]@{
         kind = 'project'
         source = 'codex-skills/airjet-ansys-automation'
-        required = @('SKILL.md', 'agents/openai.yaml', 'references/official-automation-routes.md', 'references/gate-evidence.md', 'scripts/bootstrap_windows.ps1', 'scripts/airjet_ansys_mcp.py', 'scripts/run_t0_suite.py', 'scripts/test_airjet_ansys_mcp_policy.py')
+        required = @('SKILL.md', 'agents/openai.yaml', 'references/official-automation-routes.md', 'references/gate-evidence.md', 'scripts/bootstrap_windows.ps1', 'scripts/airjet_ansys_mcp.py', 'scripts/run_t0_suite.py', 'scripts/run_t1_cad_suite.py', 'scripts/test_t1_predecessor_negative.py', 'scripts/test_airjet_ansys_mcp_policy.py')
     }
     'airjet-product-reconstruction' = [pscustomobject]@{
         kind = 'project'

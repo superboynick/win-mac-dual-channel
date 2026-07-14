@@ -16,6 +16,10 @@ SERVER = SKILL_ROOT / "scripts" / "airjet_ansys_mcp.py"
 POLICY = REPO / "airjet-simulation" / "automation" / "ansys" / "profiles.json"
 APPROVED = REPO / "airjet-simulation" / "automation" / "ansys" / "approved"
 T0_RUNNER = SKILL_ROOT / "scripts" / "run_t0_suite.py"
+T1_CAD_RUNNER = SKILL_ROOT / "scripts" / "run_t1_cad_suite.py"
+T1_PREDECESSOR_NEGATIVE = (
+    SKILL_ROOT / "scripts" / "test_t1_predecessor_negative.py"
+)
 
 
 def fail(message: str) -> None:
@@ -46,7 +50,7 @@ if tools != expected_tools:
 
 expected_arguments = {
     "inventory": [],
-    "submit_job": ["profile_id", "case_id"],
+    "submit_job": ["profile_id", "case_id", "predecessor_job_id"],
     "poll_job": ["job_id"],
     "cancel_job": ["job_id"],
     "artifact_manifest": ["job_id"],
@@ -92,6 +96,19 @@ submit_calls = {
 }
 if "require_runtime_readiness" not in submit_calls:
     fail("submit_job must enforce runtime readiness independently of inventory")
+if "prepare_predecessor_input" not in submit_calls:
+    fail("submit_job must bind and copy policy-declared predecessor artifacts")
+for invariant in (
+    "BLOCKED_UNKNOWN_OR_SERVER_RESTARTED_PREDECESSOR",
+    "BLOCKED_PREDECESSOR_IDENTITY_MISMATCH",
+    "BLOCKED_PREDECESSOR_REPORT_NOT_CAPABILITY_PASS",
+    "BLOCKED_PREDECESSOR_MANIFEST_NOT_FROZEN",
+    "BLOCKED_PREDECESSOR_FROZEN_HASH_MISMATCH",
+    "BLOCKED_PREDECESSOR_COPY_HASH_MISMATCH",
+    'environment["AIRJET_PREDECESSOR_DIR"]',
+):
+    if invariant not in source:
+        fail(f"predecessor linkage lacks invariant: {invariant}")
 
 runner_source = T0_RUNNER.read_text(encoding="utf-8")
 for invariant in (
@@ -103,8 +120,31 @@ for invariant in (
     if invariant not in runner_source:
         fail(f"T0 suite runner lacks invariant: {invariant}")
 
+t1_cad_runner_source = T1_CAD_RUNNER.read_text(encoding="utf-8")
+for invariant in (
+    "BLOCKED_T1_CAD_RUNNER_COPY_MISMATCH",
+    "PASS_CAD_TRANSFER_SET",
+    "PARTIAL_CAD_TRANSFER_ONLY",
+    "predecessor_job_id",
+    "artifact_manifest",
+    "P1_STAGE_GATE",
+):
+    if invariant.upper() not in t1_cad_runner_source.upper():
+        fail(f"T1 CAD suite runner lacks invariant: {invariant}")
+
+t1_negative_source = T1_PREDECESSOR_NEGATIVE.read_text(encoding="utf-8")
+for invariant in (
+    "BLOCKED_REQUIRED_PREDECESSOR_ID",
+    "BLOCKED_UNEXPECTED_PREDECESSOR",
+    "BLOCKED_UNKNOWN_OR_SERVER_RESTARTED_PREDECESSOR",
+    'state.get("phase") != "FAILED_START"',
+    'state.get("pid") is not None',
+):
+    if invariant not in t1_negative_source:
+        fail(f"T1 predecessor negative test lacks invariant: {invariant}")
+
 policy = json.loads(POLICY.read_text(encoding="utf-8"))
-if set(policy) != {"schema_version", "profiles"} or policy["schema_version"] != 1:
+if set(policy) != {"schema_version", "profiles"} or policy["schema_version"] != 2:
     fail("invalid profiles root")
 profile_ids: set[str] = set()
 for profile in policy["profiles"]:
@@ -116,6 +156,7 @@ for profile in policy["profiles"]:
         "timeout_seconds",
         "output_root_id",
         "reports",
+        "predecessor",
     }
     if set(profile) != required:
         fail(f"invalid fields for profile {profile.get('profile_id')}")
@@ -134,5 +175,36 @@ for profile in policy["profiles"]:
         fail(f"hash mismatch {relative}: expected={profile['sha256']} actual={digest}")
     if not profile["reports"] or any(not item.endswith(".json") for item in profile["reports"]):
         fail(f"invalid declared reports for {profile_id}")
+
+by_profile_id = {profile["profile_id"]: profile for profile in policy["profiles"]}
+for profile in policy["profiles"]:
+    predecessor = profile["predecessor"]
+    if predecessor is None:
+        continue
+    if set(predecessor) != {
+        "profile_id",
+        "report",
+        "required_probe",
+        "required_status",
+        "required_assertions",
+        "artifacts",
+    }:
+        fail(f"invalid predecessor fields for {profile['profile_id']}")
+    upstream = by_profile_id.get(predecessor["profile_id"])
+    if upstream is None:
+        fail(f"unknown predecessor for {profile['profile_id']}")
+    if predecessor["required_status"] not in {
+        "PASS_005_CAPABILITY",
+        "PASS_PARTIAL_CAD_CAPABILITY",
+    }:
+        fail(f"unsafe predecessor status for {profile['profile_id']}")
+    if not predecessor["required_probe"] or not predecessor["required_assertions"]:
+        fail(f"incomplete predecessor report contract for {profile['profile_id']}")
+    if predecessor["report"] not in upstream["reports"]:
+        fail(f"undeclared predecessor report for {profile['profile_id']}")
+    if predecessor["report"] not in predecessor["artifacts"]:
+        fail(f"predecessor report not copied for {profile['profile_id']}")
+    if upstream["output_root_id"] != profile["output_root_id"]:
+        fail(f"predecessor output root mismatch for {profile['profile_id']}")
 
 print(f"AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles={len(profile_ids)} tools={len(tools)}")

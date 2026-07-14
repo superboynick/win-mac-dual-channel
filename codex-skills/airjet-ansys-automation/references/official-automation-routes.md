@@ -62,9 +62,14 @@ project. ANSYS publishes a PyLumerical MCP for Lumerical; it is not applicable t
 The local `airjet-ansys` MCP is therefore a narrow audited adapter around the official interfaces
 above. It uses the official Python MCP SDK `mcp==1.28.1` with stdio transport.
 
-The MCP accepts only a `profile_id` and a non-path case identifier. Each profile fixes the engine,
+The MCP accepts a `profile_id`, a non-path case identifier, and, only when the selected profile
+declares one, an in-memory predecessor job identifier. Each profile fixes the engine,
 Git-tracked script, script SHA-256, timeout, output-root identifier, and declared report files in
 `airjet-simulation/automation/ansys/profiles.json`. It does not provide a shell, arbitrary file
 reader, executable path, command-line argument, working directory, environment override, or inline
-script facility. A process exit of zero means only that the wrapper process exited; the declared
+script facility. For predecessor handoff, the server supplies only policy-listed copies after
+checking the predecessor profile, case, commit, output root, terminal state, frozen artifact
+manifest, capability report and file hashes. The signed child script still runs with the current OS
+user's filesystem permissions; this adapter is not an OS sandbox, so safety also depends on Git
+signature verification, hash pinning and script review. A process exit of zero means only that the wrapper process exited; the declared
 probe report and its assertions determine control-plane success.

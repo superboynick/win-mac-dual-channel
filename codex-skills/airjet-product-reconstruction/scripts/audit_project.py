@@ -44,8 +44,11 @@ REQUIRED = [
     "airjet-simulation/automation/ansys/approved/005/workbench_t0.wbjn",
     "airjet-simulation/automation/ansys/approved/005/pymechanical_t0.py",
     "airjet-simulation/automation/ansys/approved/005/pyfluent_t0.py",
+    "airjet-simulation/automation/ansys/approved/005/spaceclaim_cad_t1.py",
+    "airjet-simulation/automation/ansys/approved/005/workbench_transfer_t1.wbjn",
     "airjet-simulation/learning/README.md",
     "airjet-simulation/learning/ANSYS_AUTOMATION_AND_005_LAB.md",
+    "airjet-simulation/learning/T1_CAD_TRANSFER_WORKBOOK.md",
     "airjet-simulation/learning/PAPER_METHOD_EVIDENCE_MAP.md",
     "airjet-simulation/logs/REALITY_AND_FAILURE_LOG.md",
     "airjet-simulation/logs/run-index.csv",
@@ -96,6 +99,8 @@ REQUIRED = [
     "codex-skills/airjet-ansys-automation/scripts/bootstrap_windows.ps1",
     "codex-skills/airjet-ansys-automation/scripts/airjet_ansys_mcp.py",
     "codex-skills/airjet-ansys-automation/scripts/run_t0_suite.py",
+    "codex-skills/airjet-ansys-automation/scripts/run_t1_cad_suite.py",
+    "codex-skills/airjet-ansys-automation/scripts/test_t1_predecessor_negative.py",
     "codex-skills/airjet-ansys-automation/scripts/test_airjet_ansys_mcp_policy.py",
     "install-skills.ps1",
     "install-skills.sh",
@@ -1325,6 +1330,8 @@ def main() -> int:
                         "scripts/bootstrap_windows.ps1",
                         "scripts/airjet_ansys_mcp.py",
                         "scripts/run_t0_suite.py",
+                        "scripts/run_t1_cad_suite.py",
+                        "scripts/test_t1_predecessor_negative.py",
                         "scripts/test_airjet_ansys_mcp_policy.py",
                     ],
                 },
@@ -1422,11 +1429,20 @@ def main() -> int:
                 "timeout_seconds",
                 "output_root_id",
                 "reports",
+                "predecessor",
+            }
+            expected_ansys_profiles = {
+                "ajm005-spaceclaim-t0-v1",
+                "ajm005-workbench-t0-v1",
+                "ajm005-pymechanical-t0-v1",
+                "ajm005-pyfluent-t0-v1",
+                "ajm005-spaceclaim-cad-t1-v1",
+                "ajm005-workbench-transfer-t1-v1",
             }
             if (
                 set(profile_data) != {"schema_version", "profiles"}
-                or profile_data.get("schema_version") != 1
-                or len(entries) != 4
+                or profile_data.get("schema_version") != 2
+                or set(profile_ids) != expected_ansys_profiles
                 or len(profile_ids) != len(set(profile_ids))
             ):
                 failures.append("ANSYS profile policy identity/schema/unique-name lock failed")
@@ -1451,6 +1467,42 @@ def main() -> int:
                     for report in entry["reports"]
                 ):
                     failures.append(f"invalid ANSYS declared reports: {entry['profile_id']}")
+            by_profile_id = {entry.get("profile_id"): entry for entry in entries}
+            for entry in entries:
+                predecessor = entry.get("predecessor")
+                if predecessor is None:
+                    continue
+                if not isinstance(predecessor, dict) or set(predecessor) != {
+                    "profile_id",
+                    "report",
+                    "required_probe",
+                    "required_status",
+                    "required_assertions",
+                    "artifacts",
+                }:
+                    failures.append(
+                        f"invalid ANSYS predecessor fields: {entry.get('profile_id')}"
+                    )
+                    continue
+                upstream = by_profile_id.get(predecessor.get("profile_id"))
+                artifacts = predecessor.get("artifacts")
+                required_assertions = predecessor.get("required_assertions")
+                if (
+                    upstream is None
+                    or not isinstance(predecessor.get("required_probe"), str)
+                    or not predecessor.get("required_probe")
+                    or predecessor.get("required_status")
+                    not in {"PASS_005_CAPABILITY", "PASS_PARTIAL_CAD_CAPABILITY"}
+                    or not isinstance(required_assertions, list)
+                    or not required_assertions
+                    or predecessor.get("report") not in upstream.get("reports", [])
+                    or not isinstance(artifacts, list)
+                    or predecessor.get("report") not in artifacts
+                    or upstream.get("output_root_id") != entry.get("output_root_id")
+                ):
+                    failures.append(
+                        f"invalid ANSYS predecessor linkage: {entry.get('profile_id')}"
+                    )
         except (AttributeError, json.JSONDecodeError, KeyError, OSError, TypeError) as exc:
             failures.append(f"ANSYS profile policy audit failed: {exc}")
 
