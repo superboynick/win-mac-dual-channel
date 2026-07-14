@@ -249,7 +249,7 @@ class AdvisorDocTemplate(BaseDocTemplate):
         canvas.line(18 * mm, 12 * mm, A4[0] - 18 * mm, 12 * mm)
         canvas.setFont("CJK", 7.2)
         canvas.setFillColor(MID_GRAY)
-        canvas.drawString(18 * mm, 8.2 * mm, "2026-07-13 | 公开证据约束模型，不等同精确数字孪生")
+        canvas.drawString(18 * mm, 8.2 * mm, "2026-07-14 | 公开证据约束模型，不等同精确数字孪生")
         canvas.drawRightString(A4[0] - 18 * mm, 8.2 * mm, f"第 {doc.page} 页")
         canvas.restoreState()
 
@@ -575,8 +575,8 @@ def build_cover(styles: dict[str, ParagraphStyle]) -> list:
         leftIndent=36 * mm,
     )
     status_data = [
-        [Paragraph("当前阶段", styles["TableHead"]), Paragraph("P0 证据冻结 PASS；准备进入 P1", styles["Table"])],
-        [Paragraph("已完成", styles["TableHead"]), Paragraph("P0 图像、专利、参数和布局候选冻结", styles["Table"])],
+        [Paragraph("当前阶段", styles["TableHead"]), Paragraph("P0 PASS；Student 基线 PASS；005 待执行", styles["Table"])],
+        [Paragraph("已完成", styles["TableHead"]), Paragraph("P0 冻结、P1 候选输入、官方 Student 清理", styles["Table"])],
         [Paragraph("未完成", styles["TableHead"]), Paragraph("P1-P6 CAD、结构、CFD、CHT 与标定", styles["Table"])],
     ]
     status_table = Table(status_data, colWidths=[30 * mm, 92 * mm], hAlign="CENTER")
@@ -606,8 +606,8 @@ def build_cover(styles: dict[str, ParagraphStyle]) -> list:
         Table([["", ""]], colWidths=[30 * mm, 92 * mm], style=[("LINEABOVE", (0, 0), (-1, 0), 2, BLUE)]),
         Spacer(1, 8 * mm),
         Paragraph("汇报人：____________", meta_style),
-        Paragraph("汇报日期：2026-07-13", meta_style),
-        Paragraph("报告版本：v1.1", meta_style),
+        Paragraph("汇报日期：2026-07-14", meta_style),
+        Paragraph("报告版本：v1.2", meta_style),
         Paragraph("技术基线：P0 evidence freeze v1", meta_style),
         Spacer(1, 10 * mm),
         status_table,

@@ -16,6 +16,11 @@ function Read-Utf8 {
     return [System.IO.File]::ReadAllText($Path, [System.Text.Encoding]::UTF8)
 }
 
+function ConvertFrom-Utf8Base64 {
+    param([string]$Value)
+    return [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($Value))
+}
+
 function Convert-InvariantDouble {
     param([object]$Value)
     return [double]::Parse(
@@ -68,6 +73,10 @@ $Required = @(
     'airjet-simulation\evidence\patent_product_component_map.csv',
     'airjet-simulation\evidence\layout_candidate_scores.csv',
     'airjet-simulation\windows-prompts\AJM_WIN_P1_READINESS_001.md',
+    'airjet-simulation\windows-prompts\AJM_WIN_ANSYS_OFFICIAL_TRIAL_INSTALL_AND_SMOKE_004.md',
+    'airjet-simulation\windows-prompts\AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md',
+    'airjet-simulation\reports\AJM_WIN_ANSYS_CAPABILITY_SMOKE_003_SUMMARY.md',
+    'airjet-simulation\reports\AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md',
     'airjet-simulation\evidence\build_layout_candidate_scores.py',
     'airjet-simulation\evidence\extract_official_image_geometry.py',
     'airjet-simulation\evidence\analyze_official_vent_views.py',
@@ -77,6 +86,9 @@ $Required = @(
     'airjet-simulation\evidence\annotated_figures\gen1_top_render_quad_annotated.png',
     'airjet-simulation\evidence\annotated_figures\gen1_cross_section_annotated.png',
     'airjet-simulation\parameters\full_product_parameter_registry.csv',
+    'airjet-simulation\parameters\build_p1_cad_inputs.py',
+    'airjet-simulation\parameters\p1_layout_configuration_matrix.csv',
+    'airjet-simulation\parameters\p1_thickness_budget.csv',
     'airjet-simulation\checklists\full_product_stage_gates.md',
     'airjet-simulation\notebooks\airjet-mini-layout-baseline.ipynb',
     'airjet-simulation\notebooks\build_layout_baseline.py',
@@ -258,6 +270,48 @@ if (Test-Path -LiteralPath $RegistryPath) {
     if (-not $ById.ContainsKey('C014') -or $ById['C014'].initial_value -ne '4_drawn_vent_objects_not_confirmed_groups') {
         Add-Failure 'C014 must distinguish drawn vents from confirmed intake groups'
     }
+    $ExpectedP1Parameters = @{
+        C015 = @('C', 'true')
+        C016 = @('C', 'true')
+        C017 = @('C', 'true')
+        C018 = @('C', 'false')
+        C019 = @('U', 'false')
+        C020 = @('C', 'true')
+    }
+    foreach ($Id in $ExpectedP1Parameters.Keys) {
+        if (-not $ById.ContainsKey($Id)) {
+            Add-Failure "parameter registry missing P1 input $Id"
+            continue
+        }
+        $Expected = $ExpectedP1Parameters[$Id]
+        if ($ById[$Id].evidence_class -ne $Expected[0] -or $ById[$Id].adjustable -ne $Expected[1]) {
+            Add-Failure "P1 parameter evidence/adjustability changed: $Id"
+        }
+    }
+    try {
+        $BottomExpected = (Convert-InvariantDouble $ById['P004'].initial_value) / 1000.0 +
+            (Convert-InvariantDouble $ById['P006'].initial_value)
+        if (-not (Test-Close $ById['C018'].initial_value $BottomExpected)) {
+            Add-Failure 'C018 must equal P004/1000 + P006'
+        }
+        $AllocatedIds = @('C015', 'P005', 'P002', 'C018', 'C016', 'P010', 'C009', 'C017')
+        $Allocated = 0.0
+        foreach ($Id in $AllocatedIds) { $Allocated += Convert-InvariantDouble $ById[$Id].initial_value }
+        $ResidualExpected = (Convert-InvariantDouble $ById['D003'].initial_value) - $Allocated
+        if (-not (Test-Close $ById['C019'].initial_value $ResidualExpected)) {
+            Add-Failure 'C019 must equal D003 minus the allocated TB0 stack'
+        }
+        $Split = Convert-InvariantDouble $ById['C020'].initial_value
+        if ($Split -lt 0.0 -or $Split -gt 1.0) {
+            Add-Failure 'C020 residual top fraction must remain within [0, 1]'
+        }
+    } catch {
+        Add-Failure 'P1 thickness derivations could not be evaluated'
+    }
+    if (-not $ById.ContainsKey('C009') -or
+        $ById['C009'].uncertainty_or_range -notlike '*no mass constraint claimed*') {
+        Add-Failure 'C009 exploratory spreader range must not claim an uncomputed 11 g constraint'
+    }
 }
 
 $LedgerPath = Join-Path $RepoRoot 'airjet-simulation\evidence\airjet_reconstruction_ledger.csv'
@@ -316,6 +370,114 @@ if (Test-Path -LiteralPath $LayoutScorePath) {
         if ($Row.score_coverage_pct -ne '20') { Add-Failure "layout score coverage changed: $($Row.candidate_id)" }
         foreach ($Pending in @('S_image','S_modal','S_power','S_flow','S_thermal')) {
             if (-not [string]::IsNullOrWhiteSpace($Row.$Pending)) { Add-Failure "layout pending score was populated: $($Row.candidate_id) $Pending" }
+        }
+    }
+}
+
+$P1LayoutPath = Join-Path $RepoRoot 'airjet-simulation\parameters\p1_layout_configuration_matrix.csv'
+if (Test-Path -LiteralPath $P1LayoutPath) {
+    $P1LayoutRows = @(Import-Csv -LiteralPath $P1LayoutPath -Encoding UTF8)
+    $ExpectedRoles = @{
+        'M-3x4-7.0' = 'PRIMARY-P0'
+        'M+S-3x5-6.0' = 'ALTERNATE-P0'
+        'L-2x4-8.0' = 'LOW-CELL-SENTINEL'
+        'S-3x5-5.5' = 'SMALL-CELL-SENTINEL'
+    }
+    $Ids = @($P1LayoutRows | ForEach-Object { $_.configuration_id })
+    $UniqueIds = @($Ids | Select-Object -Unique)
+    $ExpectedIds = @($ExpectedRoles.Keys)
+    if ($P1LayoutRows.Count -ne 4 -or $UniqueIds.Count -ne 4 -or
+        @(Compare-Object ($ExpectedIds | Sort-Object) ($UniqueIds | Sort-Object)).Count -gt 0) {
+        Add-Failure 'P1 layout matrix must contain the four unique frozen work configurations'
+    }
+    foreach ($Row in $P1LayoutRows) {
+        $Id = $Row.configuration_id
+        if (-not $ExpectedRoles.ContainsKey($Id) -or $Row.p1_role -ne $ExpectedRoles[$Id]) {
+            Add-Failure "P1 layout role changed: $Id"
+        }
+        if ($Row.evidence_class -ne 'C' -or $Row.source_evidence_classes -ne 'D;P;I') {
+            Add-Failure "P1 layout must use C with D/P/I source classes: $Id"
+        }
+        if ($Row.product_fact -ne 'false' -or $Row.hole_count_status -ne 'PROXY_NOT_CAD_LOCKED') {
+            Add-Failure "P1 layout was promoted beyond candidate/proxy status: $Id"
+        }
+        if ($Row.source_refs -notlike '*single-side integrated spout qualitative topology*') {
+            Add-Failure "P1 topology lacks official cross-section/spout source boundary: $Id"
+        }
+        try {
+            $Diameter = Convert-InvariantDouble $Row.orifice_diameter_candidate_mm
+            $Porosity = (Convert-InvariantDouble $Row.open_area_candidate_pct) / 100.0
+            $Area = Convert-InvariantDouble $Row.active_membrane_area_proxy_mm2
+            $ExpectedHoles = [Math]::Round(
+                $Porosity * $Area / ([Math]::PI * [Math]::Pow($Diameter / 2.0, 2)),
+                0,
+                [MidpointRounding]::ToEven
+            )
+            if ((Convert-InvariantDouble $Row.porosity_hole_count_proxy) -ne $ExpectedHoles) {
+                Add-Failure "P1 porosity hole-count proxy is stale: $Id"
+            }
+        } catch {
+            Add-Failure "P1 porosity proxy could not be evaluated: $Id"
+        }
+    }
+}
+
+$P1ThicknessPath = Join-Path $RepoRoot 'airjet-simulation\parameters\p1_thickness_budget.csv'
+if (Test-Path -LiteralPath $P1ThicknessPath) {
+    $P1ThicknessRows = @(Import-Csv -LiteralPath $P1ThicknessPath -Encoding UTF8)
+    if ($P1ThicknessRows.Count -ne 10) {
+        Add-Failure "P1 thickness budget must contain 10 rows, got $($P1ThicknessRows.Count)"
+    }
+    $RunningZ = 0.0
+    foreach ($Row in $P1ThicknessRows) {
+        if ($Row.evidence_class -notin @('D', 'P', 'I', 'C', 'U')) {
+            Add-Failure "P1 thickness row has invalid evidence class: $($Row.parameter_id)"
+        }
+        if ($Row.product_fact -ne 'false') {
+            Add-Failure "P1 thickness placeholder was promoted to product fact: $($Row.parameter_id)"
+        }
+        try {
+            $ZMin = Convert-InvariantDouble $Row.z_min_mm
+            $ZMax = Convert-InvariantDouble $Row.z_max_mm
+            $Thickness = Convert-InvariantDouble $Row.thickness_mm
+            if ([Math]::Abs($ZMin - $RunningZ) -gt 1e-9) {
+                Add-Failure "P1 thickness z continuity failed at $($Row.parameter_id)"
+            }
+            if ([Math]::Abs(($ZMax - $ZMin) - $Thickness) -gt 1e-9) {
+                Add-Failure "P1 thickness interval failed at $($Row.parameter_id)"
+            }
+            $RunningZ = $ZMax
+        } catch {
+            Add-Failure "P1 thickness row is non-numeric: $($Row.parameter_id)"
+        }
+    }
+    if ([Math]::Abs($RunningZ - 2.8) -gt 1e-9) {
+        Add-Failure 'P1 thickness budget must close exactly to 2.8 mm'
+    }
+    $P002Rows = @($P1ThicknessRows | Where-Object { $_.parameter_id -eq 'P002' })
+    if ($P002Rows.Count -ne 1 -or $P002Rows[0].applicability_note -notlike '*cross-size CAD placeholder*') {
+        Add-Failure 'P002 thickness must remain an explicit 8 mm cross-size P1 placeholder'
+    }
+    $GeometryOnly = @($P1ThicknessRows | Where-Object {
+        $_.parameter_id -in @('C017', 'C019_TOP', 'C019_BOTTOM')
+    })
+    if ($GeometryOnly.Count -ne 3 -or @($GeometryOnly | Where-Object {
+        $_.solver_use -ne 'GEOMETRY_ONLY_NO_MATERIAL_NO_MASS_NO_STRUCTURAL_NO_CHT'
+    }).Count -gt 0) {
+        Add-Failure 'unresolved P1 residual/support placeholders must be excluded from physics'
+    }
+}
+
+$P1BuilderPath = Join-Path $RepoRoot 'airjet-simulation\parameters\build_p1_cad_inputs.py'
+if (Test-Path -LiteralPath $P1BuilderPath) {
+    $PythonCommand = Get-Command python -ErrorAction SilentlyContinue
+    if ($null -eq $PythonCommand) { $PythonCommand = Get-Command python3 -ErrorAction SilentlyContinue }
+    if ($null -eq $PythonCommand) {
+        Add-Failure 'Python is required to verify generated P1 CAD inputs'
+    } else {
+        $BuilderOutput = @(& $PythonCommand.Source $P1BuilderPath --check 2>&1)
+        if ($LASTEXITCODE -ne 0 -or ($BuilderOutput -join "`n") -notlike '*PASS mode=check*') {
+            Add-Failure "P1 generated inputs are stale or invalid: $($BuilderOutput -join ' | ')"
         }
     }
 }
@@ -393,6 +555,67 @@ if (Test-Path -LiteralPath $WindowsPromptPath) {
     }
     if ($WindowsPromptText.Contains('HANDSHAKE_STATUS=P1_READY')) {
         Add-Failure 'Windows P1 prompt uses an ambiguous P1_READY status'
+    }
+}
+
+$TrialPromptPath = Join-Path $RepoRoot 'airjet-simulation\windows-prompts\AJM_WIN_ANSYS_OFFICIAL_TRIAL_INSTALL_AND_SMOKE_004.md'
+if (Test-Path -LiteralPath $TrialPromptPath) {
+    $TrialPromptText = Read-Utf8 $TrialPromptPath
+    foreach ($Marker in @(
+        'AnsysInstaller.exe',
+        'OFFICIAL_TRIAL_STATUS=NOT_YET_ENTITLED',
+        'OFFICIAL_TRIAL_STATUS=PASS_START_P1_WITH_LIMITATIONS',
+        (ConvertFrom-Utf8Base64 'U1RFUCDkuI3mmK8gUDEg5ZSv5LiA56Gs6Zeo5qeb'),
+        (ConvertFrom-Utf8Base64 '56aB5q2i5oiq5Y+W5ZCr6L+Z5Lqb5L+h5oGv55qE6aG16Z2i5YaF5a65'),
+        (ConvertFrom-Utf8Base64 '5b2T5YmNIGNoZWNrb3V0IOadpeiHquWumOaWuSBTdHVkZW50IOaIluW3suW8gOmAmiB0cmlhbA==')
+    )) {
+        if (-not $TrialPromptText.Contains($Marker)) {
+            Add-Failure "Windows official-trial prompt lacks invariant: $Marker"
+        }
+    }
+}
+
+$StudentPromptPath = Join-Path $RepoRoot 'airjet-simulation\windows-prompts\AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md'
+if (Test-Path -LiteralPath $StudentPromptPath) {
+    $StudentPromptText = Read-Utf8 $StudentPromptPath
+    foreach ($Marker in @(
+        'D:\ansys\ANSYS Inc\ANSYS Student\v261',
+        'git fetch origin',
+        'GIT_FETCH=PASS/FAIL',
+        'STUDENT_TOOLCHAIN_STATUS=PASS_START_P1',
+        'STUDENT_TOOLCHAIN_STATUS=PASS_START_P1_WITH_LIMITATIONS',
+        'STUDENT_TOOLCHAIN_STATUS=BLOCKED_CONTAMINATED_BASELINE',
+        'P1_CAD_TOOLCHAIN_READINESS=PASS/PASS_WITH_TRANSFER_LIMITATION/BLOCKED',
+        'P1_STAGE_GATE=NOT_RUN',
+        'NAMED_SELECTION_TRANSFER=PASS/FAIL',
+        (ConvertFrom-Utf8Base64 'U1RFUCDmmK/ph43opoHkuqTmjqXog73lipvvvIzkvYbkuI3mmK/llK/kuIDnoazpl6jmp5s='),
+        'SYSTEM_COUPLING_STATUS=UNVERIFIED_WARNING',
+        'CUDSS_STATUS=UNVERIFIED_WARNING',
+        'AIRJET_ANSYS_STUDENT_CAPABILITY_SMOKE_005.txt',
+        (ConvertFrom-Utf8Base64 '5LiN5Yib5bu65q2j5byPIEFpckpldCBDQUQ=')
+    )) {
+        if (-not $StudentPromptText.Contains($Marker)) {
+            Add-Failure "Windows Student smoke prompt lacks invariant: $Marker"
+        }
+    }
+    if ($StudentPromptText.Contains('P1_FULL_PRODUCT_CAD=')) {
+        Add-Failure 'Windows Student smoke prompt conflates toolchain readiness with the P1 stage Gate'
+    }
+}
+
+$StudentCleanupPath = Join-Path $RepoRoot 'airjet-simulation\reports\AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md'
+if (Test-Path -LiteralPath $StudentCleanupPath) {
+    $StudentCleanupText = Read-Utf8 $StudentCleanupPath
+    foreach ($Marker in @(
+        'WINDOWS_ANSYS_STUDENT_CLEANUP_STATUS=PASS',
+        (ConvertFrom-Utf8Base64 'TWFjIFNTSCDlho3pqozor4E='),
+        'python_site_syscplg',
+        'cuDSS',
+        (ConvertFrom-Utf8Base64 '5LiN6KGo56S6IFAxLS1QNSDlt6XnqIvog73lipvlt7Llhajpg6jpgJrov4c=')
+    )) {
+        if (-not $StudentCleanupText.Contains($Marker)) {
+            Add-Failure "Student cleanup report lacks boundary marker: $Marker"
+        }
     }
 }
 

@@ -216,7 +216,7 @@ Mini 数据表图中四个功耗点被近似读为：
 7. AirJet 自热在膜片/驱动区域的空间分布；
 8. 扩散板和 TIM 的真实材料与厚度；
 9. Mini 产品公开资料未提供独立的流量数值曲线，因此流量只能由喷速、背压和热性能间接约束，或等待新增资料/实测；
-10. Windows 工作站已知为 31.43 GiB RAM，且当前未发现 ANSYS/Fluent/Mechanical/SpaceClaim/Workbench/COMSOL；仍需确定 P1–P5 软件、版本和并行许可证。
+10. Windows 工作站已知为 31.43 GiB RAM；官方 ANSYS Student 2026 R1 已安装并形成干净本地许可基线，Workbench 批处理启动及 Fluent Student 功能 checkout 已有可见会话证据，Mac SSH 也复核了程序签名和旧 PLE 痕迹清零。P1–P5 的实际能力仍须通过 `AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`：尤其是 SpaceClaim 参数化/流体体积/原生传递、Mechanical 压电路径、Fluent 模型/并行/Student 限额。`python_site_syscplg` 和 `cuDSS` 解压警告使 System Coupling 与相关 GPU 稀疏求解保持未验证状态；这不是 P0 或 P1-P5 Gate PASS。
 
 这些问题不是遗漏，而是接下来证据提取、候选建模和系统标定要解决的任务。
 

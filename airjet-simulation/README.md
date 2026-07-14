@@ -26,9 +26,13 @@
 - `evidence/OFFICIAL_IMAGE_COORDINATE_METHOD.md`：双透视图 homography、像素误差、Monte Carlo、跨视图差和剖面禁用规则。
 - `evidence/patent_product_component_map.csv`：专利 FIG./页/printed column-line 到整机部件的候选映射。
 - `evidence/layout_candidate_scores.csv`：去重后的唯一布局、硬门槛、pending 分数、P0 工作主/备选和评分覆盖率。
-- `windows-prompts/AJM_WIN_P1_READINESS_001.md`：Windows Codex 下一轮只读 P1 就绪核验提示。
+- `windows-prompts/AJM_WIN_P1_READINESS_001.md`：已完成的历史只读 P1 就绪核验提示，不再是下一轮入口。
+- `windows-prompts/AJM_WIN_ANSYS_OFFICIAL_TRIAL_INSTALL_AND_SMOKE_004.md`：收到官方 entitlement 后执行的正版安装、签名核验与 P1–P5 能力复测；只有申请回执时必须停止。
+- `windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`：当前下一轮入口；在纯净官方 Student 2026 R1 上验证 P1 CAD、Mechanical 和 Fluent 的真实能力与限制。
+- `reports/AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md`：第三方 PLE 清理、官方 Student 签名、Fluent Student checkout 报告及 Mac SSH 复核边界。
 - `evidence/SOURCE_PROVENANCE.md`：每份产品卡、专利和论文能支持哪些参数，以及不能支持什么。
 - `parameters/full_product_parameter_registry.csv`：完整产品尺寸、性能、结构、流体、控制和热参数注册表。
+- `parameters/build_p1_cad_inputs.py`、`p1_layout_configuration_matrix.csv`、`p1_thickness_budget.csv`：从冻结账本生成的 P1 主/备/sentinel 布局输入、孔数代理和严格 2.8 mm 占位厚度预算；占位闭合不等于内部层厚已识别。
 - `manuals/01_FULL_PRODUCT_CAD.md`：完整产品 CAD 装配、流道和候选阵列操作规划。
 - `manuals/02_ACTUATOR_STRUCTURAL.md`：执行片结构、压电谐响应、位移场和整机功耗约束。
 - `manuals/03_CELL_TRANSIENT_CFD.md`：单 cell 可压缩动态网格校准与整机降阶接口。

@@ -24,7 +24,7 @@
 12. `airjet-simulation/parameters/full_product_parameter_registry.csv`
 13. `airjet-simulation/checklists/full_product_stage_gates.md`
 14. `airjet-simulation/manuals/01_FULL_PRODUCT_CAD.md`
-15. `airjet-simulation/windows-prompts/AJM_WIN_P1_READINESS_001.md`
+15. `airjet-simulation/windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`（当前下一轮入口）
 
 先安装并核对固定 skills：
 
@@ -56,14 +56,15 @@ Expected SHA256:
 
 ## 当前工作阶段
 
-`AJM-P0-v001` 公开证据冻结已通过；尚未进入 P1 CAD 定版。Windows Codex 应先：
+`AJM-P0-v001` 公开证据冻结已通过；尚未进入 P1 CAD 定版。第三方 PLE 已清理，当前为纯净官方 Ansys Student 2026 R1 基线；核心签名和清理状态已复核，但完整 CAD/Mechanical/Fluent 能力尚未通过 005。用户另行提交了 30 天官方试用申请，但 entitlement 尚未确认激活。Windows Codex 应先：
 
-1. 阅读 `WINDOWS_ENVIRONMENT_REPORT.md`；硬件已实测，但仍须记录实际安装的 CAD/CAE 软件、版本、许可证和求解模块；
+1. 阅读 `WINDOWS_ENVIRONMENT_REPORT.md`、`reports/AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md` 和历史 `AJM_WIN_ANSYS_CAPABILITY_SMOKE_003_SUMMARY.md`；
 2. 确认研究 ZIP 与 Mini PDF 哈希；不需要重做已经版本化的曲线、图像 homography、专利映射或 Layout 去重；
 3. 将 Windows Codex 默认 reasoning effort 设为 `high`；复杂故障/关键 Gate 审核可临时升 `xhigh`；Mac 证据协调端保持 `xhigh`；
-4. 选择 P1 CAD 路线后，用同一 27.5 x 41.5 x 2.8 mm 外壳建立 `M-3x4-7.0` 工作主候选、`M+S-3x5-6.0` 备选和两个 sentinel；
-5. 先完成 2.8 mm 厚度预算和完整入口-上下腔-孔板-冲击通道-歧管-spout 连通检查，再给任何布局正式图像/几何分；
-6. 不启动高保真单 cell 作为主线；只有 P1 Gate 通过后才进入 P2/P3。
+4. 当前先执行 `windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`；不等待 30 天试用审批；
+5. 005 的 P1 CAD 工具链就绪度通过后，用同一 27.5 x 41.5 x 2.8 mm 外壳建立 `M-3x4-7.0` 工作主候选、`M+S-3x5-6.0` 备选和两个 sentinel；005 不通过 P1 整机 Gate，P1 输入先由 `parameters/build_p1_cad_inputs.py` 生成；
+6. 先完成 2.8 mm 厚度预算和完整入口-上下腔-孔板-冲击通道-歧管-spout 连通检查，再给任何布局正式图像/几何分；
+7. 不启动高保真单 cell 作为主线；只有 P1 Gate 通过后才进入 P2/P3。
 
 可见窗口启动使用仓库脚本：
 
@@ -73,7 +74,7 @@ powershell -ExecutionPolicy Bypass -File .\launch-airjet-codex-visible.ps1
 
 该脚本只允许在当前交互桌面会话启动；若从 SSH 运行会明确拒绝，防止产生用户看不见的后台 Codex。
 
-下一轮可直接粘贴的只读 P1 就绪提示保存在 `airjet-simulation/windows-prompts/AJM_WIN_P1_READINESS_001.md`。SSH/Git 可以可靠同步该文件；QQ 当前不是项目的自动化传输依赖。
+当前下一轮入口是 `airjet-simulation/windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`。若 30 天官方试用开通，再使用 004。SSH/Git 可以可靠同步这些文件；旧 001 和 003 保留作历史记录，不再作为当前入口。
 
 ## 安全规则
 

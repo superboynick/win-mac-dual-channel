@@ -55,6 +55,25 @@ AJM_GEN1_PRODUCT
 4. 所有从图片比例得到的尺寸使用 `I-IMG-xxx` 编号，不升级为直接证据。
 5. 建立 `ENVELOPE_27P5_41P5_2P8`，后续装配任何点都不得越界，flex 除外时必须单独说明。
 
+### 3.1 P1 输入表与 2.8 mm 厚度预算
+
+建模前运行：
+
+```powershell
+python .\airjet-simulation\parameters\build_p1_cad_inputs.py
+```
+
+要求同时生成：
+
+- `parameters/p1_layout_configuration_matrix.csv`：主候选、备选和两个 model-form sentinel 的阵列输入；
+- `parameters/p1_thickness_budget.csv`：从底部热扩散面到顶盖的 `TB0-PLACEHOLDER` 坐标表。
+
+`TB0-PLACEHOLDER` 严格加和为 2.8 mm，但其中 `C019` 是未识别层厚残差，初始由 `C020=0.5` 对称分配到主动层上下。这个占位体只让第一版 CAD 能闭合、切片和检查拓扑，不证明真实产品存在两个等厚残差层。`C017`、`C019_TOP`、`C019_BOTTOM` 禁止赋予材料，禁止计入质量，禁止进入结构或 CHT 求解；只有分解成有独立证据的真实候选部件后才能升级用途。P1 必须至少比较 top-heavy、balanced、bottom-heavy 三种 `C020` 分配，并用双视图、质量预算、结构碰撞和流体连通淘汰；不得通过缩放官方示意剖面直接定层厚。
+
+`P002=0.275 mm` 来自 8 mm 专利执行片实施例。TB0 暂把它跨尺寸借给 5.5/6/7/8 mm 四个具体配置，只用于 P1 CAD 占位；进入 P2 前必须按膜片尺寸建立独立厚度/材料分支，不能声称四个布局都得到相同专利厚度支持。
+
+`porosity_hole_count_proxy` 只按 `phi_open * active_membrane_area_proxy / circular_hole_area` 估算建模规模。因为真实活动孔板面积未知、`separation s` 图义未解决，它不能直接成为最终喷孔数。初次 Boolean 可用代理孔阵列验证软件稳定性，正式 P1 Gate 仍须使实际孔数、孔径、活动面积和开孔率闭合。生成后运行 `python .\airjet-simulation\parameters\build_p1_cad_inputs.py --check`，必须无写入地返回 PASS，才说明 CSV 与注册表一致。
+
 ## 4. 第二步：建立产品层级流道
 
 先画空气经过产品的整条路线，再放膜片：
@@ -146,7 +165,7 @@ cell 子组件必须能被完整产品阵列调用，但其外壁不能重复生
 - [ ] 膜片最大位移时不碰撞顶/底板；
 - [ ] 热扩散面覆盖冲击活动区；
 - [ ] 每个未知尺寸拥有 `I/C/U` 标签；
-- [ ] Layout-L/M/S 可切换且外壳不变；
+- [ ] 三个概念族对应的四个具体配置可切换且外壳不变；
 - [ ] STEP、原生 CAD、剖面图和参数表均已导出。
 
 ## 11. 文件输出

@@ -8,6 +8,7 @@ import csv
 import hashlib
 import json
 import math
+import subprocess
 import sys
 from pathlib import Path
 
@@ -32,6 +33,10 @@ REQUIRED = [
     "airjet-simulation/evidence/patent_product_component_map.csv",
     "airjet-simulation/evidence/layout_candidate_scores.csv",
     "airjet-simulation/windows-prompts/AJM_WIN_P1_READINESS_001.md",
+    "airjet-simulation/windows-prompts/AJM_WIN_ANSYS_OFFICIAL_TRIAL_INSTALL_AND_SMOKE_004.md",
+    "airjet-simulation/windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md",
+    "airjet-simulation/reports/AJM_WIN_ANSYS_CAPABILITY_SMOKE_003_SUMMARY.md",
+    "airjet-simulation/reports/AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md",
     "airjet-simulation/evidence/build_layout_candidate_scores.py",
     "airjet-simulation/evidence/extract_official_image_geometry.py",
     "airjet-simulation/evidence/analyze_official_vent_views.py",
@@ -41,6 +46,9 @@ REQUIRED = [
     "airjet-simulation/evidence/annotated_figures/gen1_top_render_quad_annotated.png",
     "airjet-simulation/evidence/annotated_figures/gen1_cross_section_annotated.png",
     "airjet-simulation/parameters/full_product_parameter_registry.csv",
+    "airjet-simulation/parameters/build_p1_cad_inputs.py",
+    "airjet-simulation/parameters/p1_layout_configuration_matrix.csv",
+    "airjet-simulation/parameters/p1_thickness_budget.csv",
     "airjet-simulation/checklists/full_product_stage_gates.md",
     "airjet-simulation/SKILLS_AND_GIT_WORKFLOW.md",
     "airjet-simulation/notebooks/airjet-mini-layout-baseline.ipynb",
@@ -233,6 +241,39 @@ def main() -> int:
             failures.append("C004 must preserve the dual-view P0 intake candidate")
         if by_id.get("C014", {}).get("initial_value") != "4_drawn_vent_objects_not_confirmed_groups":
             failures.append("C014 must distinguish drawn vents from confirmed intake groups")
+        expected_p1_parameters = {
+            "C015": ("C", "true"),
+            "C016": ("C", "true"),
+            "C017": ("C", "true"),
+            "C018": ("C", "false"),
+            "C019": ("U", "false"),
+            "C020": ("C", "true"),
+        }
+        for row_id, (evidence_class, adjustable) in expected_p1_parameters.items():
+            row = by_id.get(row_id)
+            if row is None:
+                failures.append(f"parameter registry missing P1 input {row_id}")
+            elif row.get("evidence_class") != evidence_class or row.get("adjustable") != adjustable:
+                failures.append(f"P1 parameter evidence/adjustability changed: {row_id}")
+        try:
+            bottom_expected = float(by_id["P004"]["initial_value"]) / 1000.0 + float(
+                by_id["P006"]["initial_value"]
+            )
+            if not float_close(by_id["C018"]["initial_value"], bottom_expected):
+                failures.append("C018 must equal P004/1000 + P006")
+            allocated_ids = ("C015", "P005", "P002", "C018", "C016", "P010", "C009", "C017")
+            residual_expected = float(by_id["D003"]["initial_value"]) - sum(
+                float(by_id[row_id]["initial_value"]) for row_id in allocated_ids
+            )
+            if not float_close(by_id["C019"]["initial_value"], residual_expected):
+                failures.append("C019 must equal D003 minus the allocated TB0 stack")
+            split = float(by_id["C020"]["initial_value"])
+            if not 0.0 <= split <= 1.0:
+                failures.append("C020 residual top fraction must remain within [0, 1]")
+        except (KeyError, TypeError, ValueError):
+            failures.append("P1 thickness derivations could not be evaluated")
+        if "no mass constraint claimed" not in by_id.get("C009", {}).get("uncertainty_or_range", ""):
+            failures.append("C009 exploratory spreader range must not claim an uncomputed 11 g constraint")
 
     ledger = repo / "airjet-simulation/evidence/airjet_reconstruction_ledger.csv"
     if ledger.is_file():
@@ -307,6 +348,91 @@ def main() -> int:
                 if row.get(pending):
                     failures.append(f"layout P0 pending score was populated: {row.get('candidate_id')} {pending}")
 
+    p1_layouts = repo / "airjet-simulation/parameters/p1_layout_configuration_matrix.csv"
+    if p1_layouts.is_file():
+        with p1_layouts.open(newline="", encoding="utf-8") as handle:
+            p1_layout_rows = list(csv.DictReader(handle))
+        expected_roles = {
+            "M-3x4-7.0": "PRIMARY-P0",
+            "M+S-3x5-6.0": "ALTERNATE-P0",
+            "L-2x4-8.0": "LOW-CELL-SENTINEL",
+            "S-3x5-5.5": "SMALL-CELL-SENTINEL",
+        }
+        ids = [row.get("configuration_id", "") for row in p1_layout_rows]
+        if len(p1_layout_rows) != 4 or len(set(ids)) != 4 or set(ids) != set(expected_roles):
+            failures.append("P1 layout matrix must contain the four unique frozen work configurations")
+        for row in p1_layout_rows:
+            row_id = row.get("configuration_id", "")
+            if row.get("p1_role") != expected_roles.get(row_id):
+                failures.append(f"P1 layout role changed: {row_id}")
+            if row.get("evidence_class") != "C" or row.get("source_evidence_classes") != "D;P;I":
+                failures.append(f"P1 layout must use C with D/P/I source classes: {row_id}")
+            if row.get("product_fact") != "false" or row.get("hole_count_status") != "PROXY_NOT_CAD_LOCKED":
+                failures.append(f"P1 layout was promoted beyond candidate/proxy status: {row_id}")
+            if "single-side integrated spout qualitative topology" not in row.get("source_refs", ""):
+                failures.append(f"P1 topology lacks official cross-section/spout source boundary: {row_id}")
+            try:
+                diameter = float(row["orifice_diameter_candidate_mm"])
+                porosity = float(row["open_area_candidate_pct"]) / 100.0
+                area = float(row["active_membrane_area_proxy_mm2"])
+                expected_holes = round(porosity * area / (math.pi * (diameter / 2.0) ** 2))
+                if int(row["porosity_hole_count_proxy"]) != expected_holes:
+                    failures.append(f"P1 porosity hole-count proxy is stale: {row_id}")
+            except (KeyError, TypeError, ValueError, ZeroDivisionError):
+                failures.append(f"P1 porosity proxy could not be evaluated: {row_id}")
+
+    p1_thickness = repo / "airjet-simulation/parameters/p1_thickness_budget.csv"
+    if p1_thickness.is_file():
+        with p1_thickness.open(newline="", encoding="utf-8") as handle:
+            thickness_rows = list(csv.DictReader(handle))
+        if len(thickness_rows) != 10:
+            failures.append(f"P1 thickness budget must contain 10 rows, got {len(thickness_rows)}")
+        running_z = 0.0
+        for row in thickness_rows:
+            if row.get("evidence_class") not in {"D", "P", "I", "C", "U"}:
+                failures.append(f"P1 thickness row has invalid evidence class: {row.get('parameter_id')}")
+            if row.get("product_fact") != "false":
+                failures.append(f"P1 thickness placeholder was promoted to product fact: {row.get('parameter_id')}")
+            try:
+                z_min = float(row["z_min_mm"])
+                z_max = float(row["z_max_mm"])
+                thickness = float(row["thickness_mm"])
+                if not math.isclose(z_min, running_z, rel_tol=0.0, abs_tol=1e-9):
+                    failures.append(f"P1 thickness z continuity failed at {row.get('parameter_id')}")
+                if not math.isclose(z_max - z_min, thickness, rel_tol=0.0, abs_tol=1e-9):
+                    failures.append(f"P1 thickness interval failed at {row.get('parameter_id')}")
+                running_z = z_max
+            except (KeyError, TypeError, ValueError):
+                failures.append(f"P1 thickness row is non-numeric: {row.get('parameter_id')}")
+        if not math.isclose(running_z, 2.8, rel_tol=0.0, abs_tol=1e-9):
+            failures.append("P1 thickness budget must close exactly to 2.8 mm")
+        p002_rows = [row for row in thickness_rows if row.get("parameter_id") == "P002"]
+        if len(p002_rows) != 1 or "cross-size CAD placeholder" not in p002_rows[0].get(
+            "applicability_note", ""
+        ):
+            failures.append("P002 thickness must remain an explicit 8 mm cross-size P1 placeholder")
+        geometry_only = [
+            row for row in thickness_rows if row.get("parameter_id") in {"C017", "C019_TOP", "C019_BOTTOM"}
+        ]
+        if len(geometry_only) != 3 or any(
+            row.get("solver_use") != "GEOMETRY_ONLY_NO_MATERIAL_NO_MASS_NO_STRUCTURAL_NO_CHT"
+            for row in geometry_only
+        ):
+            failures.append("unresolved P1 residual/support placeholders must be excluded from physics")
+
+    p1_builder = repo / "airjet-simulation/parameters/build_p1_cad_inputs.py"
+    if p1_builder.is_file():
+        check = subprocess.run(
+            [sys.executable, str(p1_builder), "--check"],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if check.returncode != 0 or "PASS mode=check" not in check.stdout:
+            detail = (check.stderr or check.stdout).strip().replace("\n", " | ")
+            failures.append(f"P1 generated inputs are stale or invalid: {detail}")
+
     vent_results = repo / "airjet-simulation/evidence/annotated_figures/gen1_vent_homography_results.csv"
     if vent_results.is_file():
         with vent_results.open(newline="", encoding="utf-8") as handle:
@@ -375,6 +501,57 @@ def main() -> int:
                 failures.append(f"Windows P1 prompt lacks invariant {marker!r}")
         if "HANDSHAKE_STATUS=P1_READY" in prompt_text:
             failures.append("Windows P1 prompt uses an ambiguous P1_READY status")
+
+    trial_prompt = repo / "airjet-simulation/windows-prompts/AJM_WIN_ANSYS_OFFICIAL_TRIAL_INSTALL_AND_SMOKE_004.md"
+    if trial_prompt.is_file():
+        trial_text = read_text(trial_prompt)
+        for marker in (
+            "AnsysInstaller.exe",
+            "OFFICIAL_TRIAL_STATUS=NOT_YET_ENTITLED",
+            "OFFICIAL_TRIAL_STATUS=PASS_START_P1_WITH_LIMITATIONS",
+            "STEP 不是 P1 唯一硬门槛",
+            "禁止截取含这些信息的页面内容",
+            "当前 checkout 来自官方 Student 或已开通 trial",
+        ):
+            if marker not in trial_text:
+                failures.append(f"Windows official-trial prompt lacks invariant {marker!r}")
+
+    student_prompt = repo / "airjet-simulation/windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md"
+    if student_prompt.is_file():
+        student_text = read_text(student_prompt)
+        for marker in (
+            "D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261",
+            "git fetch origin",
+            "GIT_FETCH=PASS/FAIL",
+            "STUDENT_TOOLCHAIN_STATUS=PASS_START_P1",
+            "STUDENT_TOOLCHAIN_STATUS=PASS_START_P1_WITH_LIMITATIONS",
+            "STUDENT_TOOLCHAIN_STATUS=BLOCKED_CONTAMINATED_BASELINE",
+            "P1_CAD_TOOLCHAIN_READINESS=PASS/PASS_WITH_TRANSFER_LIMITATION/BLOCKED",
+            "P1_STAGE_GATE=NOT_RUN",
+            "NAMED_SELECTION_TRANSFER=PASS/FAIL",
+            "STEP 是重要交接能力，但不是唯一硬门槛",
+            "SYSTEM_COUPLING_STATUS=UNVERIFIED_WARNING",
+            "CUDSS_STATUS=UNVERIFIED_WARNING",
+            "AIRJET_ANSYS_STUDENT_CAPABILITY_SMOKE_005.txt",
+            "不创建正式 AirJet CAD",
+        ):
+            if marker not in student_text:
+                failures.append(f"Windows Student smoke prompt lacks invariant {marker!r}")
+        if "P1_FULL_PRODUCT_CAD=" in student_text:
+            failures.append("Windows Student smoke prompt conflates toolchain readiness with the P1 stage Gate")
+
+    student_cleanup = repo / "airjet-simulation/reports/AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md"
+    if student_cleanup.is_file():
+        cleanup_text = read_text(student_cleanup)
+        for marker in (
+            "WINDOWS_ANSYS_STUDENT_CLEANUP_STATUS=PASS",
+            "Mac SSH 再验证",
+            "python_site_syscplg",
+            "cuDSS",
+            "不表示 P1--P5 工程能力已全部通过",
+        ):
+            if marker not in cleanup_text:
+                failures.append(f"Student cleanup report lacks boundary marker {marker!r}")
 
     notebook = repo / "airjet-simulation/notebooks/airjet-mini-layout-baseline.ipynb"
     if notebook.is_file():
@@ -477,6 +654,13 @@ def main() -> int:
     agents = repo / "AGENTS.md"
     if agents.is_file() and "AIRJET_MINI_FULL_PRODUCT_MASTER_PLAN.md" not in read_text(agents):
         failures.append("AGENTS.md does not identify the full-product master plan")
+
+    powershell_audit = repo / "audit-airjet-project.ps1"
+    if powershell_audit.is_file():
+        try:
+            powershell_audit.read_bytes().decode("ascii")
+        except UnicodeDecodeError:
+            failures.append("PowerShell 5.1 audit must remain ASCII-safe; encode non-ASCII markers as UTF-8 base64")
 
     provenance = repo / "airjet-simulation/evidence/SOURCE_PROVENANCE.md"
     if provenance.is_file():

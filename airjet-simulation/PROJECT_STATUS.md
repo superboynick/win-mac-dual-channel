@@ -1,6 +1,6 @@
 # AirJet Mini 整机数字复原：当前状态
 
-更新时间：2026-07-13
+更新时间：2026-07-14
 状态口径：**P0 公开证据冻结 v1 已通过；P1–P6 CAD/物理仿真阶段尚未通过。**
 
 ## 1. 已完成
@@ -14,18 +14,20 @@
 - Mac/Windows skills 有版本锁、规范化 SHA256、必需文件清单和跨平台安装脚本。
 - 项目 Python 审计、Windows PowerShell 审计、skill 安装和曲线复算都有自动化入口。
 - Windows 硬件、软件、研究 ZIP 和 Python 已实测，结果写入 `WINDOWS_ENVIRONMENT_REPORT.md`。
+- Windows 已完成第三方 PLE 清理并保留纯净官方 Ansys Student 2026 R1；核心程序签名、旧 1055/环境变量清理经 Mac SSH 复核。Workbench/Fluent 基础 Student checkout 已由 Windows 可见会话报告，但完整 P1–P5 能力仍待 005；详见 `reports/AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md`。
 - Gen1 两张官方产品透视图已分别做 homography、10,000 次像素误差 Monte Carlo 和跨视图差比较；四个画出 vent 只作为 `I` 类顶盖候选，不用于推断 cell 数。
 - 官方剖面已标注：只锁总厚度和定性流路，不缩放内部层厚或数绿色波形。
 - 核心专利已建立产品部件映射表，定位改为本地 PDF 页码 + FIG. + printed column/line；中央锚定仍是候选，不是量产事实。
 - Layout 候选已由 34 个 family 组合去重为 32 个唯一几何；A0 下 23 个可装入，工作主/备选为 `M-3x4-7.0` 与 `M+S-3x5-6.0`，当前评分覆盖率仅 20%。
 - P0 Gate 证据与限制已冻结在 `evidence/P0_EVIDENCE_FREEZE_RECORD.md`。
+- P1 的四个工作布局已生成求解器无关配置表；`TB0-PLACEHOLDER` 厚度表严格闭合 2.8 mm，并显式保留 0.735 mm 未识别残差，未把占位层伪装成产品事实。
 
 ## 2. 尚未完成，不能声称完成
 
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 未开始 | 软件选型、参数化装配、完整流体负体积、连通/质量检查 |
+| P1 整机 CAD | 未开始（Student 工具链待 005） | 先验证参数化、Named Selections、Volume Extract 和 Workbench 传递；通过后建立完整装配/流体负体积 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -36,10 +38,11 @@
 
 ## 3. 下一步执行顺序
 
-1. 在 Windows 选择并确认 CAD/CAE 软件及许可证；当前未发现 ANSYS/COMSOL/Fluent/SpaceClaim。
-2. 以 `M-3x4-7.0` 工作主候选和 `M+S-3x5-6.0` 备选建立 P1 完整产品参数化 CAD；保留低/小 cell sentinel。
-3. 先闭合 2.8 mm 厚度预算、四个候选顶盖 vent、单侧 spout 和全流路连通，再允许给 `S_image`/`S_geometry` 正式评分。
-4. P1 Gate 通过后，才按 P2 → P3 → P4 → P5 → P6 顺序推进；不以高保真单 cell 替代整机主线。
+1. 在 Windows 可见桌面执行 `windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`；不在 SSH 后台判定 GUI PASS。
+2. 005 的 P1 CAD 工具链就绪度通过后，以 `M-3x4-7.0` 工作主候选和 `M+S-3x5-6.0` 备选建立 P1 完整产品参数化 CAD；保留低/小 cell sentinel。005 只授权开始 P1，`P1_STAGE_GATE` 仍为 `NOT_RUN`。
+3. 已提交的 Ansys 30 天官方试用申请继续等待；只有 entitlement 实际激活后才执行 004，不让等待阻塞 Student 可完成的 P1 工作。
+4. 先闭合 2.8 mm 厚度预算、四个候选顶盖 vent、单侧 spout 和全流路连通，再允许给 `S_image`/`S_geometry` 正式评分。
+5. P1 Gate 通过后，才按 P2 → P3 → P4 → P5 → P6 顺序推进；不以高保真单 cell 替代整机主线。
 
 ## 4. 用户需要理解的边界
 
