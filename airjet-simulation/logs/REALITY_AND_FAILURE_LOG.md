@@ -1037,6 +1037,43 @@
 - Gate 影响：NONE_OBSERVED；P1--P6 状态不变。
 - 状态：OBSERVED_NONBLOCKING_NO_CAUSAL_LINK
 
+## REAL-20260714-044：literal-path early sentinel 三个检查点均缺失，排除 child env 路径的充分解释
+
+- UTC：2026-07-14T23:34:50Z
+- Stage/task：005 T1 / 第十九次、connected child 可观测性单变量复测
+- run/jobs：`AJM005_T1_CONNECTED_SC_SUITE_20260714T233450354994Z_6e14c202`；SC
+  `a5c-df21627f7ebc-5782e518b714`；WB `a5c-df21627f7ebc-a117ae4ce96f`；签名 commit
+  `0b32f5d14b8e90d469e23f8de27c23f8b5406a62`。
+- 有意改动：fixture、empty-cell Edit/RunScript/Exit、predecessor control、transfer/Mechanical 合同均
+  不变；child 的 job/report/sentinel 绝对路径改由 outer journal 注入，entry sentinel 在所有 imports
+  和 SpaceClaim API 前写。环境变量只记录，不参与 child 输出寻址。
+- producer：20.364381 秒正常退出，八项 assertions 全 true；transfer native 32140 bytes，SHA-256
+  `f52632131899ad25835b1b91eef6098ef96743f78297a887641322b19eb450b6`；report SHA-256
+  `67d64539ecf7ce6142239cc16718cf4aaa9794045b65e13b15110592ffef4fb3`。
+- consumer：empty cell、Edit、RunScript、post-RunScript probe、Exit、post-Exit probe 全 RETURNED；
+  post-RunScript `1784072246.0402832`、post-Exit `1784072246.042282`、failure probe 与 post-Exit
+  相同，Exit 前后约 2 ms。三个点均为 entry sentinel absent/build report absent，且没有 probe error；
+  Workbench messages 为空。精确终态为 `FAIL_CONNECTED_EDITOR_ENTRY_SENTINEL_MISSING`。
+- 直接约束：literal path + import 前 sentinel 仍不存在，所以 child 中 `AIRJET_JOB_DIR` 缺失、陈旧或
+  指错 job 已不能作为本轮“报告写错位置”的充分解释。仍不能排除更宽泛的 editor/broker 环境、
+  file-based dispatch、错误会话或 child 对该路径无写权限。
+- 官方边界：v261 Workbench guide 与 SpaceClaim API 均明确 `.py`、`.scscript` 都受支持。因此不能
+  写“.py 非法”。下一轮若只换扩展名，测试的是当前 wrapper 的实现 dispatch 差异，不是文档合法性。
+- 原始证据：suite/MCP SHA-256 分别为
+  `d1ecddb82ae9733ad349893a1993483a73d3dab0079715e69d9ab1275195f639` 与
+  `8917489f0f80ccd9fd1eca0b8e0a57bcf551b739d1e87002998d60340a4bc686`；WB report/job-state
+  SHA-256 分别为 `f7fd0056589a55ad296f0c29cd50998acabe4108ae91cc76a2d5cc3187e4cea8` 与
+  `06f28010f61bb7a3a6d7a7f4371a27a292c058fbca4b2279052c4e5f6f019525`；
+  2026-07-14T23:39:42.1722279Z 相关进程数为 0。
+- Gate/论文影响：connected transfer 仍未到达；external `.scdocx` attach/native semantics/native
+  parameterization 均未在本轮测试。P1 readiness BLOCKED；P1--P6 `NOT_RUN`；visibility
+  `NOT_USER_OBSERVED`。
+- 下一步：先不做相同字节的 `.py`→`.scscript` 改名，因为官方只证明两种格式都受支持，没有证明
+  两者的合法序列化可逐字节等价。下一轮在同一 opened editor 用官方
+  `SendCommand(Language="Python")` 写独立 absolute sentinel，再保留现有 `.py` RunScript，形成
+  inline/file 对照；`.scscript` 只有在取得合法格式或等价性证据后再测。
+- 状态：CLOSED_CHILD_ENV_PATH_NOT_SUFFICIENT_OPEN_FILE_DISPATCH_AB
+
 ## 新条目模板
 
 ```text

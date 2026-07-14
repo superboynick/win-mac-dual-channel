@@ -606,3 +606,49 @@ CoreEvents 猜测。所有绝对路径由 job-local 外层生成，不把 Window
 Workbench CoreEvents 还记录 RSM 未安装和 ProgramData 绝对路径 warning。由于本轮没有请求远程
 队列，且 warning 后 project/Edit/RunScript/Exit 继续进行，它被保存为非因果旁路观测，不触发重装、
 许可切换或 RSM 安装。工程排障要把“同一日志里出现”与“形成调用链因果关系”分开。
+
+## 24. 第十九次实验：用三个时点而不是一个布尔值审查 child entry
+
+### 24.1 literal path 为什么是诊断变量
+
+首轮 child 在 report 初始化前读取环境变量，所以“没有 report”混合了两类情况：脚本没执行，或脚本
+执行了但输出路径不可用。第二轮把绝对 job/report/sentinel 路径写进 child 源码，环境只作为诊断值。
+sentinel 又先于 imports，因此它是比 JSON report 更低层的 entry 证据。
+
+outer journal 的时序是：
+
+```text
+Edit RETURNED
+RunScript RETURNED
+probe sentinel/report
+Exit RETURNED
+probe sentinel/report
+build contract
+failure catch probe + GetMessages snapshot
+```
+
+每个 probe 必须 best-effort。若读取一个正在写入/被锁定的文件抛异常，探针只记录 `probe_error`，不能
+提前跳入 cleanup 并改变被测时序。最终 PASS 仍独立要求 build JSON、几何指纹、groups、transfer、
+Mechanical、mesh、project 和 manifest，probe 本身不能制造 PASS。
+
+### 24.2 真实结果与正确写法
+
+三个时点的 sentinel/report 都 absent，且无 probe error；RunScript 与 Exit 仍 RETURNED，Workbench
+messages 为空。正确写法是：
+
+> literal-path early-sentinel 在同一 run 的 post-RunScript、post-Exit 和 failure 三个检查点均未被
+> 观测，connected transfer 未到达。
+
+错误写法包括：“child 三次失败”“几何构造失败”“`.py` 不支持”“SpaceClaim 许可有问题”以及
+“connected transfer 失败”。这些结论都超出 reach。
+
+### 24.3 后续 A/B 顺序
+
+1. 在同一 opened editor 先用官方
+   `SendCommand(Language="Python", Command=<builtin open marker>)` 写独立 marker，然后保留 `.py`
+   RunScript。两种调用共享同一 editor 与 absolute job root，但 marker 名不同。
+2. inline marker 有、file marker 无：查 file loader/path；两者都无：查 editor scripting channel、
+   session 或 batch integration；SendCommand 抛错：保存直接异常。
+3. 官方同时支持 `.py`/`.scscript`，却没有证明合法文件可 byte-identical；不把简单改 suffix 当严格
+   A/B。只有取得合法 `.scscript` 格式或等价性证据后才测 extension dispatch。
+4. 在 entry 可观测前，不改 fixture 几何、不启动 Mechanical/Fluent、不动许可或安装。

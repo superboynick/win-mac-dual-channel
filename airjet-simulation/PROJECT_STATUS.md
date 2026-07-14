@@ -88,6 +88,12 @@
   不能称为 connected transfer 已失败。`AIRJET_JOB_DIR` 在 SpaceClaim host 中缺失、陈旧或指向其他
   job 是优先假设而非确认根因。下一轮只嵌入绝对路径并增加 import 前 sentinel/stage/traceback，保持
   fixture、API 顺序、前驱范围和 Gate 合同不变。
+  commit `0b32f5d...` 的 literal-path early-sentinel 复测随后确认：RunScript 返回后、Exit 后和 failure
+  catch 三个同-run 检查点均没有 sentinel/build report，且无 probe error；Exit 前后约 2 ms。
+  因此 child 中 `AIRJET_JOB_DIR` 指错报告位置已不是充分解释，入口仍未被观测，transfer 仍未到达。
+  v261 官方资料明确 `.py`/`.scscript` 均受支持，但没有证明两者合法文件可逐字节等价，因此不把简单
+  改后缀当严格 A/B。下一次在同一 editor 先用官方 inline `SendCommand` 写独立 sentinel，再保留现有
+  `.py` RunScript，直接区分 scripting channel 与 file loader；API claims 不变。
 - 已新增学习入口、ANSYS/005 实验手册、现实失败日志、run index 和论文方法—证据映射；
   后续每次运行会同步保留小型脱敏机器证据和 Git 外大产物哈希。
 - Gen1 两张官方产品透视图已分别做 homography、10,000 次像素误差 Monte Carlo 和跨视图差比较；四个画出 vent 只作为 `I` 类顶盖候选，不用于推断 cell 数。
@@ -105,7 +111,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP semantic reconstruction diagnostic PASS；145-character writable native `.scdocx` 仍 attach FAIL；connected 首轮缺 build report、transfer 未到达；native Named Selection transfer/native driving parameter NOT_PROVEN；P1 BLOCKED） | hash-bound STEP+sidecar 已在可删除 fixture 上唯一重建 1/1/11 边界，四项负向检查、1063/513 粗网格和 project save 通过；这是 solver-side reconstruction。native 短路径与 hash-equal writable-staging 两轮均在 Model.Refresh direct FAIL；connected 首轮只到 Edit/RunScript/Exit 返回，下一轮先用 literal path + early sentinel 恢复子脚本可观测性，再建立独立 native parameter 合同；之后仍要完成 Mechanical/Fluent T1，才可判断 005 是否允许进入 006 |
+| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP semantic reconstruction diagnostic PASS；145-character writable native `.scdocx` 仍 attach FAIL；connected literal-path child entry 未观测、transfer 未到达；native Named Selection transfer/native driving parameter NOT_PROVEN；P1 BLOCKED） | hash-bound STEP+sidecar 已在可删除 fixture 上唯一重建 1/1/11 边界，四项负向检查、1063/513 粗网格和 project save 通过；这是 solver-side reconstruction。native 短路径与 hash-equal writable-staging 两轮均在 Model.Refresh direct FAIL；connected 两轮只到 Edit/RunScript/Exit，literal-path import 前 sentinel 仍 absent；下一轮做官方 SendCommand inline marker / `.py` RunScript file marker 同-run 对照；之后仍要建立 native parameter 合同并完成 Mechanical/Fluent T1，才可判断 005 是否允许进入 006 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -118,9 +124,12 @@
 
 1. 以已通过的 T0、SpaceClaim partial CAD 和 STEP semantic reconstruction diagnostic 为边界，在
    Windows 继续 005 T1。native 短路径和 writable-staging 已在同一点失败；connected editor 首轮
-   尚未生成内层 build report，所以 transfer 未到达。下一次保持 fixture、empty-cell Edit/RunScript/
-   Exit、predecessor report-only control、Mechanical assertions 和 Gate 边界不变，只把 job/report/
-   sentinel 绝对路径渲染进 child，并在 imports 前落 sentinel、记录实际环境和异常 stage。不得在
+   尚未生成内层 build report，所以 transfer 未到达；literal-path/import 前 sentinel 复测也在
+   RunScript 后、Exit 后和 failure catch 三处 absent。下一次保持 child 源码字节、fixture、empty-cell
+   Edit/RunScript/Exit、predecessor report-only control、Mechanical assertions 和 Gate 边界不变，
+   在同一 opened editor 先用官方 `SendCommand(Language="Python")` 写独立 absolute sentinel，再
+   保留现有 `.py` RunScript，形成 inline/file 对照。官方虽支持 `.scscript`，但未证明与 `.py` 的
+   合法序列化可逐字节等价，因此不先做简单 suffix 改名。不得在
    native profile 中用 solver-side reconstruction 补名。connected route 可观测且通过后，仍要回到
    external native transfer，并另建原生 parameter
    object/update/reopen 合同，
