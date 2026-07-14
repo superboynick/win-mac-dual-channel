@@ -564,6 +564,33 @@
   BLOCKED，P1–P6 NOT_RUN。
 - 状态：CLOSED_SHARE_UPDATE_API_HYPOTHESIS_EXPLICIT_SPACECLAIM_EDIT_PENDING
 
+## REAL-20260714-029：显式 SpaceClaim Edit/Exit 通过，下游 Model 仍无法附加
+
+- UTC：2026-07-14T20:22:14Z
+- Stage/task：005 T1 / 第九次 CAD transfer suite
+- run/jobs：`AJM005_T1_CAD_SUITE_20260714T202214703116Z_110addbb`；SC
+  `...-0685330b1eba`；WB `...-e99499f00453`。
+- 单变量假设：保持 share/save-data/Refresh 不变，只在 source SetFile 后显式
+  `Edit(Interactive=False, IsSpaceClaimGeometry=True)` 并 `Exit()`。
+- 实际结果：Edit 和 Exit 都 RETURNED；source、share、save-data 也 RETURNED。WB 总时长约
+  280.3 秒，随后 Model Refresh 仍无法附加同一 `.scdocx`，Mechanical inspection、mesh、project
+  save NOT_REACHED。运行后相关进程数为 0。
+- 结论边界：Workbench 管理的 SpaceClaim editor 能打开/关闭该文件，不等于 downstream Model 能
+  attach；不能把错误归为文件完全不可读或 CAD editor 根本无法启动。native attach 路径在 editor
+  materialization 后仍失败。
+- 原始证据：suite/MCP SHA-256 分别为
+  `178fabef7718eb1be35db5d08ef6b793adf2eb871e946ca085c062208149864a` 和
+  `8b0cf6d7392dbfa2bb71c0303037b327d9741c7936597b78d6511235b7e86127`；SC/WB report SHA-256
+  分别为 `d2719ffa3ec38f97553a820bdf915040fe1035152ffbd8d3671e9d93dc43debf` 和
+  `19fce639167035b661402784e9b1c7dc8876e7bb1cd46b20d780a2c906605387`；
+  2026-07-14T20:28:03.3201340Z 现场相关进程数为 0。
+- 下一最小实验：用本轮生产者已回读验证的 STEP 替换 `.scdocx` 作为 Workbench source，测试几何
+  body 与 mesh 管线；明确把 Named Selection transfer 预期保留为 false，不得以 STEP 几何通过
+  宣布完整 CAD transfer PASS。
+- 对 Gate/论文主张的影响：native `.scdocx` downstream attach 仍 FAIL；SC partial PASS 可复现，
+  P1 readiness BLOCKED，P1–P6 NOT_RUN。
+- 状态：OPEN_STEP_DIAGNOSTIC_TO_ISOLATE_MECHANICAL_PIPELINE
+
 ## 新条目模板
 
 ```text

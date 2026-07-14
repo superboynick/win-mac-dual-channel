@@ -352,3 +352,7 @@ container `Refresh()`，不提前把 share 建立写成完整 geometry transfer 
 第八次用官方 Model container Refresh 仍得到同一 attach 失败，关闭了 share topology 中“只因
 Update API 选错”的假设。下一轮只增加显式 SpaceClaim `Edit/Exit`，继续用到达标记把 CAD editor
 attach 与 downstream model attach 分开。
+
+第九次 `Edit/Exit` 均返回而 downstream Refresh 仍失败，证明“Workbench editor 可打开”与“Model
+可附加”不同。下一轮 STEP 只作为管线诊断；Named Selection 语义不被交换格式保证，因此不会用
+STEP body/mesh PASS 代替完整 transfer PASS。
