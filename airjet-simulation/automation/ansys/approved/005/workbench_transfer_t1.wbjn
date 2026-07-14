@@ -33,15 +33,15 @@ result = {
     "license_arguments_added": False,
     "assertions": dict((name, False) for name in assertion_names),
     "geometry_route": "INDEPENDENT_GEOMETRY_SOURCE_COMPONENTS_TO_SHARE",
-    "update_route": "MODEL_COMPONENT_UPDATE_ALL_DEPENDENCIES",
+    "update_route": "MODEL_CONTAINER_REFRESH_AFTER_COMPONENTS_SHARE",
     "execution_reach": {
         "predecessor_identity": "NOT_REACHED",
         "source_geometry_system": "NOT_REACHED",
         "source_geometry_set_file": "NOT_REACHED",
         "static_system_with_components_share": "NOT_REACHED",
         "source_geometry_file_and_save_data": "NOT_REACHED",
-        "model_update_all_dependencies": "NOT_REACHED",
-        "model_refresh": "NOT_CALLED_BY_ROUTE",
+        "model_update_all_dependencies": "NOT_CALLED_BY_ROUTE",
+        "model_refresh": "NOT_REACHED",
         "model_container": "NOT_REACHED",
         "mechanical_inspection": "NOT_REACHED",
         "project_save": "NOT_REACHED",
@@ -127,12 +127,12 @@ try:
     source_geometry.GetGeometryFileAndSaveData()
     result["execution_reach"]["source_geometry_file_and_save_data"] = "RETURNED"
 
-    model_component = static_system.GetComponent(Name="Model")
-    result["execution_reach"]["model_update_all_dependencies"] = "CALLED"
-    model_component.Update(AllDependencies=True)
-    result["execution_reach"]["model_update_all_dependencies"] = "RETURNED"
+    result["execution_reach"]["model_container"] = "CALLED"
     model_container = static_system.GetContainer(ComponentName="Model")
     result["execution_reach"]["model_container"] = "RETURNED"
+    result["execution_reach"]["model_refresh"] = "CALLED"
+    model_container.Refresh()
+    result["execution_reach"]["model_refresh"] = "RETURNED"
 
     model_script = """
 import json
