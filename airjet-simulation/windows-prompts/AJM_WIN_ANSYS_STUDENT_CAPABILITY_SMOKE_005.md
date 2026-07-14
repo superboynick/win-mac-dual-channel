@@ -163,4 +163,4 @@ STUDENT_TOOLCHAIN_STATUS=BLOCKED_CONTAMINATED_BASELINE
 
 无论最终状态如何，本任务都必须写 `P1_STAGE_GATE=NOT_RUN`；只有后续正式整机 CAD 通过完整 P1 Gate 后才能改变。
 
-完成后停止，保留临时文件，不创建正式 AirJet CAD，等待 Mac 端复核。
+完成后停止，保留临时文件，不创建正式 AirJet CAD，等待独立 peer 复核；复核角色不绑定 Mac 或 Windows。

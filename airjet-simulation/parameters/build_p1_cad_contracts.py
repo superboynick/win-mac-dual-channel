@@ -1156,7 +1156,7 @@ def build_gate_rows(variant_rows: list[dict[str, object]]) -> list[dict[str, obj
         ("G4_BRANCH_SENSITIVITY", "primary C020 0.25/0.50/0.75 branches compared", "thickness collision and connectivity results recorded", "true"),
         ("G4_SINGLE_FACTOR_ISOLATION", "derived vent orifice and exhaust variants differ from balanced parent in exactly one declared factor", "parameter diff and geometry-result diff manifest recorded", "true"),
         ("G4_OUTPUT_HASHES", "native STEP fluid screenshots logs and manifests are traceable", "SHA256 and Git commit recorded", "true"),
-        ("P1_INDEPENDENT_REVIEW", "Mac evidence and artifact review", "PENDING until external review; 006 cannot set PASS", "true"),
+        ("P1_INDEPENDENT_REVIEW", "independent peer evidence and artifact review", "PENDING until external review; 006 cannot set PASS", "true"),
     ]
     rows: list[dict[str, object]] = []
     for variant in variant_rows:
@@ -1191,7 +1191,7 @@ def build_gate_rows(variant_rows: list[dict[str, object]]) -> list[dict[str, obj
                     "date": "",
                     "git_commit": "",
                     "hard_gate": hard_gate,
-                    "notes": "006 may populate evidence but may only leave P1_STAGE_GATE pending Mac review",
+                    "notes": "006 may populate evidence but may only leave P1_STAGE_GATE pending independent peer review",
                 }
             )
     if any(row["status"] != "NOT_RUN" for row in rows):

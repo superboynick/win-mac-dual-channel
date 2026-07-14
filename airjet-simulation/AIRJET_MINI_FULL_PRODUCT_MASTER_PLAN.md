@@ -350,7 +350,7 @@ airjet-simulation/
 2. 使用两个生成器、9 个 variant、342 条参数映射、9 条内部 R0 构造规则、成对接口/Named Selections 和 252 行 Gate 作为 P1 唯一执行合同，不把候选厚度、孔数代理、几何闭合或数值 datum 称为产品事实；
 3. 005 的 P1 必需能力全部通过后执行 006，在同一 27.5 x 41.5 x 2.8 mm 母版中建立 `M-3x4-7.0` 工作主候选、`M+S-3x5-6.0` 备选、`L-2x4-8.0` 低 cell 数 sentinel、`S-3x5-5.5` 小 cell sentinel 及三个单因素派生变体；
 4. 完成完整 vent opening-共享顶腔-外围间隙-底腔-孔板-冲击-歧管-spout 流体体和连通检查；STEP 往返是交接能力，但原生参数化与 Workbench/Named Selection 传递才是 P1 必要门槛；
-5. 006 只可输出 `PENDING_MAC_REVIEW`；随后按 007 校验全部外部文件 SHA256 并独立复核 252 行 Gate，用户抽查关键原生文件；
+5. 006 只可输出 `PENDING_PEER_REVIEW`；随后由独立 peer 按 007 校验全部外部文件 SHA256 并复核 252 行 Gate，关键原生文件在可见 Windows 会话抽查；
 6. P1 实际几何确定后，重估 P2-P5 网格、时间步、RAM、Student 限额、并行能力和存储预算；`python_site_syscplg` 与 `cuDSS` 安装警告在对应功能实际使用前必须修复验证；
 7. 只有 P1 Gate 通过后，才从主布局截取单 cell 做 P2/P3 校准。
 

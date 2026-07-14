@@ -23,6 +23,7 @@ REQUIRED = [
     "airjet-simulation/MODEL_ANNOTATIONS.md",
     "airjet-simulation/WINDOWS_HANDOFF.md",
     "airjet-simulation/WINDOWS_ENVIRONMENT_REPORT.md",
+    "airjet-simulation/PEER_COLLABORATION_PROTOCOL.md",
     "airjet-simulation/evidence/SOURCE_PROVENANCE.md",
     "airjet-simulation/evidence/product_selection_matrix.csv",
     "airjet-simulation/evidence/airjet_mini_performance_curve_digitized.csv",
@@ -169,6 +170,24 @@ def main() -> int:
         for phrase in forbidden:
             if phrase in text:
                 failures.append(f"obsolete evidence claim {phrase!r} in {path.relative_to(repo)}")
+
+    peer_language_forbidden = (
+        "pending Mac review",
+        "Mac evidence and artifact review",
+        "independent Mac review",
+    )
+    peer_language_paths = [
+        path
+        for path in (repo / "airjet-simulation").rglob("*")
+        if path.is_file()
+        and path.suffix.lower() in {".md", ".csv", ".py"}
+        and path.resolve() not in archived_paths
+    ]
+    for path in peer_language_paths:
+        text = read_text(path)
+        for phrase in peer_language_forbidden:
+            if phrase in text:
+                failures.append(f"obsolete machine-hierarchy phrase {phrase!r} in {path.relative_to(repo)}")
 
     perf = repo / "airjet-simulation/evidence/airjet_mini_performance_curve_digitized.csv"
     if perf.is_file():
@@ -1084,7 +1103,7 @@ def main() -> int:
             "PARTIAL_CAD_OUTPUT",
             "COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW",
             "COMPLETE_AWAITING_REVIEW",
-            "P1_STAGE_GATE=NOT_STARTED/INCOMPLETE/PENDING_MAC_REVIEW",
+            "P1_STAGE_GATE=NOT_STARTED/INCOMPLETE/PENDING_PEER_REVIEW",
             "C017_C019_PHYSICS_GUARD=",
             "唯一剩余失败是 005 已知或 006 复现的 STEP",
             "PARAMETER_DIFF_CHECK=PASS_ALL_3_DERIVED/FAIL",
@@ -1100,9 +1119,9 @@ def main() -> int:
             "STATUS_MAP_BLOCKED_005_GATE=NOT_STARTED",
             "STATUS_MAP_BLOCKED_GIT_OR_ENVIRONMENT=NOT_STARTED",
             "STATUS_MAP_PARTIAL_CAD_OUTPUT=INCOMPLETE",
-            "STATUS_MAP_COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW=PENDING_MAC_REVIEW",
-            "STATUS_MAP_COMPLETE_AWAITING_REVIEW=PENDING_MAC_REVIEW",
-            "P1_PASS_PROHIBITED=006_CAN_ONLY_REACH_PENDING_MAC_REVIEW",
+            "STATUS_MAP_COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW=PENDING_PEER_REVIEW",
+            "STATUS_MAP_COMPLETE_AWAITING_REVIEW=PENDING_PEER_REVIEW",
+            "P1_PASS_PROHIBITED=006_CAN_ONLY_REACH_PENDING_PEER_REVIEW",
             "005_TRANSFER_LIMITATION_INHERITANCE=REQUIRED",
         ):
             if marker not in cad_text:

@@ -184,7 +184,7 @@ cell 子组件必须能被完整产品阵列调用，但其外壁不能重复生
 - [ ] `C017/C019` 参考体及中央锚/partition datum 没有材料、质量、Boolean、结构、CHT、fluid union 或求解器导出；
 - [ ] Required Named Selections 均按稳定 feature ID 重建并成功传入 Workbench；
 - [ ] 每个变体记录 vent/orifice/exhaust 三个 branch ID、实际孔数/开孔率和全部文件 SHA256；
-- [ ] 006 结束时 P1 只允许 `INCOMPLETE` 或 `PENDING_MAC_REVIEW`，不得由执行端自评 PASS。
+- [ ] 006 结束时 P1 只允许 `INCOMPLETE` 或 `PENDING_PEER_REVIEW`，不得由生成模型的同一会话自评 PASS。
 
 ## 11. 文件输出
 

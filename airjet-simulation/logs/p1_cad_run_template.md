@@ -71,7 +71,7 @@
 
 ## Gate 建议
 
-- P1 candidate status: `INCOMPLETE` / `PENDING_MAC_REVIEW`
+- P1 candidate status: `INCOMPLETE` / `PENDING_PEER_REVIEW`
 - hard failures:
-- items requiring independent Mac review:
+- items requiring independent peer review:
 - statement: 本记录不允许将 `P1_STAGE_GATE` 写为 `PASS`。

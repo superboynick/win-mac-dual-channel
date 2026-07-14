@@ -15,6 +15,7 @@
 - `WINDOWS_ENVIRONMENT_REPORT.md`：Windows 实测硬件/软件、分阶段适用性和升级门槛。
 - `reports/AIRJET_MINI_PROJECT_REPORT_FOR_ADVISOR_2026-07-13.md`：可直接交导师审阅的完整项目描述与阶段汇报；PDF 构建方法见 `reports/README.md`。
 - `SKILLS_AND_GIT_WORKFLOW.md`：Git 作为 skill 源版本、一键安装和两机哈希验证方法。
+- `PEER_COLLABORATION_PROTOCOL.md`：Mac/Windows Codex 平级权限、统一任务入口、任务领取、双向 push 和分叉处理规则。
 - `AIRJET_RECONSTRUCTION_PLAN.md`：已明确降级为 P2/P3 单元子模型历史参考；不得先于整机 P1 执行。
 - `OPERATION_MANUAL_00_EVIDENCE_TO_CAD.md`：早期单元 CAD 参考，同样只能在 P1 后使用；当前整机手册是 `manuals/01_FULL_PRODUCT_CAD.md`。
 - `MODEL_ANNOTATIONS.md`：仿真注释总表；每一个简化、设置和结果都必须在这里解释。
@@ -56,6 +57,8 @@
 
 ## 协作规则
 
-在 Windows 或 Mac 继续之前，先执行 `git status`、`git fetch origin` 并检查 ahead/behind；只在工作树干净且未分叉时执行 `git pull --ff-only`。完成一小段可检查工作后再提交并 `git push`。不要把求解结果、网格、case/data、临时文件或许可证信息直接提交；应只提交脚本、参数表、图表源文件、日志摘要和小型后处理数据。
+Mac Codex 与 Windows Codex 是平级协作者，两端都可以建立任务、修改文件、commit 和 push；执行端/复核端只是具体任务中的临时角色。完整规则见 `PEER_COLLABORATION_PROTOCOL.md`。
+
+在 Windows 或 Mac 继续之前，先执行 `git status`、`git fetch origin` 并检查 ahead/behind；只在工作树干净且未分叉时执行 `git pull --ff-only`。完成一小段可检查工作后再提交并 `git push`。两端都不得 force-push、破坏性 reset 或静默覆盖对方成果。不要把求解结果、网格、case/data、临时文件或许可证信息直接提交；应只提交脚本、参数表、图表源文件、日志摘要和小型后处理数据。
 
 交接前在 Mac 运行项目 skill 的 Python 审计器，在 Windows 运行仓库根目录的 `audit-airjet-project.ps1`。两者都通过只证明项目骨架和证据不变量一致。P0 证据 Gate 另有 `P0_EVIDENCE_FREEZE_RECORD.md`，已于 2026-07-13 通过；这仍不代表 P1–P6 的 CAD/物理仿真已经通过。实时进度以 `PROJECT_STATUS.md` 和 `checklists/full_product_stage_gates.md` 为准。

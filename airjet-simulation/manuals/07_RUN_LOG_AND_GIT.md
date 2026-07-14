@@ -36,6 +36,8 @@
 
 ## 4. Windows 工作流
 
+Windows 与 Mac 对 Git 的写入权限相同。以下是 Windows 命令形式，不表示 Windows 只能执行、不能建立任务或复核；完整平级规则见 `../PEER_COLLABORATION_PROTOCOL.md`。
+
 开始：
 
 ```powershell
@@ -54,7 +56,7 @@ git commit -m "airjet: describe completed modeling step"
 git push
 ```
 
-若 `git status` 显示不认识的修改、分支分叉或 pull 冲突，停止并先让 Codex检查，不自动 reset/rebase/force push。
+若 `git status` 显示不认识的修改、分支分叉或 pull 冲突，停止并让当前端先检查/协调，不自动 reset/rebase/force push。正常 commit/push 是两端共同权利；覆盖历史不是。
 
 ## 5. 大文件索引
 

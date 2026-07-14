@@ -61,6 +61,7 @@ $Required = @(
     'airjet-simulation\MODEL_ANNOTATIONS.md',
     'airjet-simulation\WINDOWS_HANDOFF.md',
     'airjet-simulation\WINDOWS_ENVIRONMENT_REPORT.md',
+    'airjet-simulation\PEER_COLLABORATION_PROTOCOL.md',
     'airjet-simulation\SKILLS_AND_GIT_WORKFLOW.md',
     'airjet-simulation\evidence\SOURCE_PROVENANCE.md',
     'airjet-simulation\evidence\product_selection_matrix.csv',
@@ -204,6 +205,15 @@ foreach ($File in $ActiveFiles) {
     if ($Text.Contains('delivered_airflow_chart_units') -or $Text.Contains($ObsoleteChinese) -or
         $Text.Contains('30-60,m/s') -or $Text.Contains($ObsoletePressureClaim)) {
         Add-Failure "obsolete evidence interpretation in $($File.FullName)"
+    }
+}
+$PeerLanguageFiles = Get-ChildItem -LiteralPath (Join-Path $RepoRoot 'airjet-simulation') -File -Recurse |
+    Where-Object { $_.Extension -in @('.md', '.csv', '.py') -and -not $ArchivedFullPaths.ContainsKey($_.FullName.ToLowerInvariant()) }
+foreach ($File in $PeerLanguageFiles) {
+    $Text = Read-Utf8 $File.FullName
+    if ($Text.Contains('pending Mac review') -or $Text.Contains('Mac evidence and artifact review') -or
+        $Text.Contains('independent Mac review')) {
+        Add-Failure "obsolete machine hierarchy phrase in $($File.FullName)"
     }
 }
 
@@ -1087,7 +1097,7 @@ if (Test-Path -LiteralPath $CadPromptPath) {
         'PARTIAL_CAD_OUTPUT',
         'COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW',
         'COMPLETE_AWAITING_REVIEW',
-        'P1_STAGE_GATE=NOT_STARTED/INCOMPLETE/PENDING_MAC_REVIEW',
+        'P1_STAGE_GATE=NOT_STARTED/INCOMPLETE/PENDING_PEER_REVIEW',
         'C017_C019_PHYSICS_GUARD=',
         'PARAMETER_DIFF_CHECK=PASS_ALL_3_DERIVED/FAIL',
         'GEOMETRY_RESULT_DIFF_CHECK=PASS_ALL_3_DERIVED/FAIL',
@@ -1102,9 +1112,9 @@ if (Test-Path -LiteralPath $CadPromptPath) {
         'STATUS_MAP_BLOCKED_005_GATE=NOT_STARTED',
         'STATUS_MAP_BLOCKED_GIT_OR_ENVIRONMENT=NOT_STARTED',
         'STATUS_MAP_PARTIAL_CAD_OUTPUT=INCOMPLETE',
-        'STATUS_MAP_COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW=PENDING_MAC_REVIEW',
-        'STATUS_MAP_COMPLETE_AWAITING_REVIEW=PENDING_MAC_REVIEW',
-        'P1_PASS_PROHIBITED=006_CAN_ONLY_REACH_PENDING_MAC_REVIEW',
+        'STATUS_MAP_COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW=PENDING_PEER_REVIEW',
+        'STATUS_MAP_COMPLETE_AWAITING_REVIEW=PENDING_PEER_REVIEW',
+        'P1_PASS_PROHIBITED=006_CAN_ONLY_REACH_PENDING_PEER_REVIEW',
         '005_TRANSFER_LIMITATION_INHERITANCE=REQUIRED'
     )) {
         if (-not $CadPromptText.Contains($Marker)) { Add-Failure "Windows P1 CAD prompt lacks invariant: $Marker" }

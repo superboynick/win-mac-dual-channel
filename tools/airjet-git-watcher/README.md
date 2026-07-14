@@ -1,5 +1,7 @@
 # AirJet manual Git watcher
 
+> Runtime status: `DISABLED_PENDING_HARDENING` (2026-07-14). The source is synchronized for review, but the current implementation is not approved to start. Independent review found that it automatically fast-forwards the worktree and can wake Codex for an update without a structured `target=mac` task envelope. Add and review those controls before any `start` command; source synchronization does not authorize execution.
+
 This toolkit keeps the Mac and Windows AirJet worktrees synchronized through the
 trusted GitHub `main` branch. It is deliberately manual: it does not install a
 LaunchAgent, cron job, login item, Windows service, scheduled task, or startup

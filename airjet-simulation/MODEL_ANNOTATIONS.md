@@ -136,7 +136,7 @@
 
 **真实性边界**：公开数据只把外包络锁为 D 类。vent 候选仍是 I/C，排气平面闭合是 C，`C017/C019` 仍是 U/C 几何记账。模型生成成功不会把这些项升级为量产事实，也不会关闭开放问题。
 
-**执行边界**：005 必须先证明 Student 的参数化、Named Selections、Volume Extract、连通、原生保存和 Workbench/Named Selection 传递能力；随后 006 才能建立完整产品。006 只能输出 `INCOMPLETE/PENDING_MAC_REVIEW`，不能宣布 P1 PASS。
+**执行边界**：005 必须先证明 Student 的参数化、Named Selections、Volume Extract、连通、原生保存和 Workbench/Named Selection 传递能力；随后 006 才能建立完整产品。006 只能输出 `INCOMPLETE/PENDING_PEER_REVIEW`，不能宣布 P1 PASS。独立复核角色不绑定 Mac 或 Windows。
 
 **残差数值处理**：`C017/C019` 不参与物理 Boolean，也不当空气。P1 只直接构造合同声明的流体体并 union；`FLUID_DOMAIN_CLOSURE_DATUM_C` 仅在厚度预算 Z 边界提供数值封闭。严禁用“外包络减所有候选固体”抽流体域，否则未识别残差会被错误解释为空气。
 

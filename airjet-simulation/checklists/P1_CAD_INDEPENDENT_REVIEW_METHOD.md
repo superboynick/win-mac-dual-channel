@@ -4,7 +4,7 @@
 
 ## 1. 为什么需要 007
 
-006 的职责是生成候选 CAD 和证据，只能输出 `PENDING_MAC_REVIEW`。生成模型的同一执行端不能同时给自己的 Gate 判 PASS。007 先校验 006 报告身份、005/006 Git 祖先关系、精确 006 commit 的合同 bundle、运行目录边界、9 个 variant 的必需文件角色、机器检查表、252 行证据映射以及全部外部文件大小/SHA256，再从 **006 commit** 的不可变 `NOT_RUN` Gate 模板生成独立 worksheet。
+006 的职责是生成候选 CAD 和证据，只能输出 `PENDING_PEER_REVIEW`。生成模型的同一会话不能同时给自己的 Gate 判 PASS；独立 peer 可以位于 Mac，也可以位于另一个 Windows 会话。007 先校验 006 报告身份、005/006 Git 祖先关系、精确 006 commit 的合同 bundle、运行目录边界、9 个 variant 的必需文件角色、机器检查表、252 行证据映射以及全部外部文件大小/SHA256，再从 **006 commit** 的不可变 `NOT_RUN` Gate 模板生成独立 worksheet。
 
 ## 2. 准备 review packet
 

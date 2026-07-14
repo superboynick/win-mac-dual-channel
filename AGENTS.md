@@ -15,17 +15,18 @@ This repository is the user's safe GitHub-primary collaboration toolkit for Mac 
 ## Collaboration rules
 
 1. GitHub is the primary shared remote. NAS is out of scope unless the user explicitly reintroduces it.
-2. First inspect only: check status, branch, remotes, latest commit, and divergence before changing configuration or files.
-3. Before work: run `git status`, `git fetch origin`, inspect ahead/behind, then use `git pull --ff-only` only when clean and non-divergent. After work: review, commit, and push without force.
-4. Stop on divergence, dirty worktrees, missing authentication, or ambiguous ownership. Do not auto-merge, rebase, force-push, reset, clean, or overwrite changes.
-5. Preserve user files and existing changes. Never store passwords, tokens, or private keys in repository files.
-6. For genuinely long or multi-part work, the primary Codex agent should use 1-2 bounded subagents for independent research, audit, or testing when parallel work is useful. The primary agent must read required skills itself, retain task ownership, integrate and verify subagent results, and stop all subagents before handoff. Do not use subagents merely to simulate idle persistence or to bypass stage gates, approvals, or repository safety rules.
+2. Mac Codex and Windows Codex are peer collaborators with equal read, edit, commit, and push authority. Machine-specific executor, reviewer, or task-owner labels are temporary capability roles, not a hierarchy. Read `airjet-simulation/PEER_COLLABORATION_PROTOCOL.md` before cross-machine work.
+3. First inspect only: check status, branch, remotes, latest commit, and divergence before changing configuration or files.
+4. Before work: run `git status`, `git fetch origin`, inspect ahead/behind, then use `git pull --ff-only` only when clean and non-divergent. After work: review, commit, and push without force.
+5. Stop on divergence, dirty worktrees, missing authentication, or ambiguous ownership. Do not auto-merge, rebase, force-push, reset, clean, or overwrite changes.
+6. Preserve user files and existing changes. Never store passwords, tokens, or private keys in repository files.
+7. For genuinely long or multi-part work, the task-owning Codex agent should use 1-2 bounded subagents for independent research, audit, or testing when parallel work is useful. That agent must read required skills itself, retain ownership of that task, integrate and verify subagent results, and stop all subagents before handoff. Do not use subagents merely to simulate idle persistence or to bypass stage gates, approvals, or repository safety rules.
 
 ## Toolkit scope
 
 `dual-channel.ps1` exposes safe operations including status, fetch, compare, sync-check, push-main, and backup-nas. It is designed to fetch before comparison/push and block unsafe states.
 
-The reviewed macOS manual Git watcher source is under `tools/airjet-git-watcher/`. It may be started only when the user explicitly asks; it must not install a LaunchAgent, cron job, login item, or shell-profile startup entry. Machine state remains outside Git.
+The macOS manual Git watcher source is synchronized under `tools/airjet-git-watcher/`, but its 2026-07-14 independent review did not approve runtime use: the current version automatically fast-forwards the worktree and may wake Codex for an update without a structured Mac task envelope. Do not start it until those controls are hardened, reviewed, and the user explicitly authorizes the run. It must never install a LaunchAgent, cron job, login item, or shell-profile startup entry. Machine state remains outside Git.
 
 ## Current task direction
 

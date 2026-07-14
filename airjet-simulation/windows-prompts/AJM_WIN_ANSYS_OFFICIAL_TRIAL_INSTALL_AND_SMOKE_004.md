@@ -128,4 +128,4 @@ OFFICIAL_TRIAL_STATUS=PASS_START_P1_WITH_LIMITATIONS
 
 只有 CAD 参数化/流体体积、Mechanical 最小求解和 Fluent 单核最小流动求解都通过时，才允许 `PASS_START_P1`。如果 P1 所需原生参数化、Named Selections、Volume Extract、连通和 Workbench 几何传递已经通过，但 STEP、Mechanical、压电、Fluent 或八核中的能力仍缺失，可写 `PASS_START_P1_WITH_LIMITATIONS`：允许只做 P1，并明确阻塞的 P2/P3/P4/P5 阶段。STEP 不是 P1 唯一硬门槛。如果 CAD 本身失败，则不得写任何 `PASS_START_P1*`。
 
-完成后停止，不创建正式 AirJet CAD。Mac 端复核报告后另发 P1 建模任务。
+完成后停止，不创建正式 AirJet CAD。独立 peer 复核报告后再建立 P1 建模任务。

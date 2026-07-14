@@ -95,7 +95,7 @@ check_required() {
   printf 'FILES_PASS %s count=%s\n' "$name" "$#"
 }
 
-check_skill airjet-product-reconstruction 71300b6641575b00df2966024446d491dd7e07cf6734764bdc64387422bb6f66
+check_skill airjet-product-reconstruction 56a977a9723b0b53158f93b21674308accc51937baacfdb55b00c29e3356a63f
 check_skill jupyter-notebook "$jupyter_expected"
 check_skill pdf "$pdf_expected"
 

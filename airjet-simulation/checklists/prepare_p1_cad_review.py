@@ -232,7 +232,7 @@ def require_report(values: dict[str, str]) -> None:
     expected = {
         "TASK": "AJM-WIN-P1-FULL-PRODUCT-CAD-BUILD-006",
         "COMPUTER": "LAPTOP-LCCLM2HI",
-        "P1_STAGE_GATE": "PENDING_MAC_REVIEW",
+        "P1_STAGE_GATE": "PENDING_PEER_REVIEW",
         "P0_STAGE_GATE": "PASS",
         "P2_STAGE_GATE": "NOT_RUN",
         "P3_STAGE_GATE": "NOT_RUN",

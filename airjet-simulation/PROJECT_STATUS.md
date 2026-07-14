@@ -42,7 +42,7 @@
 ## 3. 下一步执行顺序
 
 1. 在 Windows 可见桌面执行 `windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`；不在 SSH 后台判定 GUI PASS。
-2. 005 的 P1 CAD 工具链就绪度通过后，执行 `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：同一母版生成 4 个整机配置、6 个交付/残差变体和主配置 3 个有独立 ID/Gate 的单因素派生变体。006 最多写 `PENDING_MAC_REVIEW`，不能自评 P1 PASS。
+2. 005 的 P1 CAD 工具链就绪度通过后，执行 `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：同一母版生成 4 个整机配置、6 个交付/残差变体和主配置 3 个有独立 ID/Gate 的单因素派生变体。006 最多写 `PENDING_PEER_REVIEW`，不能由生成模型的同一会话自评 P1 PASS。
 3. 已提交的 Ansys 30 天官方试用申请继续等待；只有 entitlement 实际激活后才执行 004，不让等待阻塞 Student 可完成的 P1 工作。
 4. 先闭合 2.8 mm 厚度预算、四个候选顶盖 vent、单侧 spout 和全流路连通，再允许给 `S_image`/`S_geometry` 正式评分。
 5. P1 Gate 通过后，才按 P2 → P3 → P4 → P5 → P6 顺序推进；不以高保真单 cell 替代整机主线。

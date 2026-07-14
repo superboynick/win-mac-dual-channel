@@ -48,7 +48,7 @@ $Smoke = 'C:\Users\admin\Downloads\AIRJET_ANSYS_SMOKE_003'
 New-Item -ItemType Directory -Force $Smoke | Out-Null
 ```
 
-测试结束后暂时保留该目录，供 Mac 端复核；不要放入 Git。
+测试结束后暂时保留该目录，供独立 peer 复核；不要放入 Git。
 
 ## 4. CAD 技术能力测试
 

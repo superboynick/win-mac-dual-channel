@@ -19,6 +19,7 @@ Advance a complete, public-evidence-constrained AirJet product reconstruction wi
 
 ## Coordinate long-running work
 
+- Treat Mac Codex and Windows Codex as peer collaborators with equal authority to create tasks, edit, commit, and push. Executor, reviewer, and task-owner are temporary capability roles. Follow `airjet-simulation/PEER_COLLABORATION_PROTOCOL.md`; never use force-push or destructive history replacement to simulate peer synchronization.
 - For a genuinely long or multi-part task, use 1-2 bounded subagents when independent research, audit, or testing can run in parallel.
 - The primary agent must read required skills and task files itself, retain ownership, integrate the findings, verify the result, and stop all subagents before handoff.
 - Do not use subagents merely for idle persistence, or to bypass approvals, stage gates, evidence rules, Git safety, or visible-GUI requirements.
