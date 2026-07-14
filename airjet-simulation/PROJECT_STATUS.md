@@ -45,9 +45,13 @@
   失败。commit `1d1c9ee...` 第八轮改用官方 Model container Refresh 仍出现同一 attach 失败，
   已排除 share topology 中的 update API 选择；下一轮显式 SpaceClaim Edit/Exit。八轮证据和哈希
   均已保留。commit `c965c73...` 第九轮的显式 Edit/Exit 均返回，但 downstream Refresh 仍 attach
-  失败；下一轮用 STEP 诊断 Workbench→Mechanical→mesh 管线，且不会把缺失 Named Selections 的
-  STEP 路线伪报完整 PASS。审查同时确认脚本
-  两次重建只能证明等效参数驱动，
+  失败。commit `6f828fe...` 第十轮用同轮生产者已回读并冻结 SHA 的 STEP 诊断，成功到达
+  Workbench share/save-data/Model Refresh、Mechanical inspection、粗网格和 project save：1 个
+  body、1063 nodes、513 elements、50588-byte `.wbpj` 均有机器证据；但
+  `INLET/OUTLET/WALLS` 对象和实体全为 0。脚本按设计把 native canonical assertions 保持 false，
+  suite 仍为 FAIL。这证明通用 WB→Mechanical→mesh→project 管线可用，并把当前故障收窄到 native
+  `.scdocx` attach/semantic bridge；不能把 STEP 几何可达伪报为 native Named Selection transfer。
+  审查同时确认脚本两次重建只能证明等效参数驱动，
   不能证明 `.scdocx` 原生 driving parameter；因此即使本轮
   CAD/Named Selection/粗网格传递全过，也只允许写 `PASS_CAD_TRANSFER_SET`，
   `P1_CAD_TOOLCHAIN_READINESS` 仍因 `NATIVE_PARAMETERIZATION_NOT_RUN` 保持 BLOCKED。
@@ -68,7 +72,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；Workbench editor 可打开 `.scdocx` 但 downstream Model attach FAIL） | 已实测脚本参数变化、完整三段 union、Named Selections、原生重开与 STEP occurrence/master 全层指纹；下一实验用 STEP 诊断 body/mesh 管线，仍需关闭 native attach、Named Selection 语义与原生 driving parameter 硬阻塞，之后才可按 006 建立完整装配/流体负体积并独立审核 |
+| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP 诊断已证实 WB→Mechanical body/mesh/project；native `.scdocx` attach 与 semantic transfer 仍 FAIL/BLOCKED） | 已实测脚本参数变化、完整三段 union、Named Selections、原生重开与 STEP occurrence/master 全层指纹；下一实验用 frozen STEP + hash-bound semantic sidecar 在 Mechanical 确定性重建三组边界。这是 reconstruction，不是 native transfer；native attach、Named Selection transfer 与原生 driving parameter 硬阻塞仍需分别关闭，之后才可按 006 建立完整装配/流体负体积并独立审核 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -79,14 +83,13 @@
 
 ## 3. 下一步执行顺序
 
-1. 以已通过的 T0 控制集和 SpaceClaim partial CAD 为边界，在 Windows 继续 005 T1：先按同机
-   v261 官方 standard Geometry journal 把 `.scdocx` 放入独立 Geometry source，并以
-   STEP 诊断 source 建立 Static system 与 Model container Refresh，先确认 body/mesh 管线；随后
-   回到 native/semantic transfer。所有输入使用精确冻结 SHA。
-   Workbench/Mechanical 粗网格与 Named Selection 传递；这仍只形成 partial capability，不解除
-   原生参数化硬阻塞。随后分别
-   做 Mechanical 与 Fluent 可删除小模型。所有运行写 `VISIBILITY=NOT_USER_OBSERVED`，无头
-   结果不得代填 GUI visible 字段。
+1. 以已通过的 T0、SpaceClaim partial CAD 和 STEP body/mesh/project 诊断为边界，在 Windows 继续
+   005 T1：输出 frozen STEP 与 hash-bound semantic sidecar，在 Mechanical 按面几何、邻接和容差
+   唯一匹配并重建 `INLET/OUTLET/WALLS`；必须验证 1/1/11、互斥、全覆盖，并做 SHA 错、0 match、
+   multiple match、重叠和覆盖不全的负向测试。报告明确写 semantic reconstruction，不得写 native
+   transfer。随后继续独立排查 `.scdocx` attach、原生 Named Selection transfer 与原生 driving
+   parameter，再分别做 Mechanical 与 Fluent 可删除小模型。所有输入使用精确冻结 SHA；所有运行写
+   `VISIBILITY=NOT_USER_OBSERVED`，无头结果不得代填 GUI visible 字段。
 2. 只有 005 的 P1 CAD 必要字段全部通过后，才执行
    `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：同一母版生成 4 个整机配置、
    6 个交付/残差变体和主配置 3 个有独立 ID/Gate 的单因素派生变体。006 最多写

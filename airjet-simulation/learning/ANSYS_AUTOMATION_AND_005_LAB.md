@@ -356,3 +356,26 @@ attach 与 downstream model attach 分开。
 第九次 `Edit/Exit` 均返回而 downstream Refresh 仍失败，证明“Workbench editor 可打开”与“Model
 可附加”不同。下一轮 STEP 只作为管线诊断；Named Selection 语义不被交换格式保证，因此不会用
 STEP body/mesh PASS 代替完整 transfer PASS。
+
+## 19. 第十次实跑：STEP 诊断关闭了哪些问题，又没有关闭哪些问题
+
+签名 commit `6f828fe...` 把同轮 SpaceClaim 已验证的 STEP 作为 frozen predecessor。Workbench 的
+source/share/save-data/Model Refresh 全部返回；Mechanical 实际得到 1 个 body，生成 1063 nodes / 513
+elements，并保存 50588-byte `.wbpj`。因此“Workbench、Mechanical 或 mesher 在本机整体不可用”这一
+宽泛假设已被真实运行推翻。
+
+与此同时，`INLET/OUTLET/WALLS` 的对象数和实体数全为 0。脚本按设计保留 native assertions 为
+false，并以 exit 2 fail closed。因此这次结果应记为：
+
+```text
+generic body/mesh/project pipeline = PASS_DIAGNOSTIC
+upstream semantic labels           = ABSENT
+native named-selection transfer    = NOT_PROVEN / false
+suite                              = FAIL_CAD_TRANSFER_SET
+```
+
+现实工程中，“有可计算几何”与“边界条件语义仍在”是两件不同的事。求解器若只有 body 而不知道哪个
+面是 inlet/outlet，后续 CFD 仍可能把边界条件施加错。所以下一步不会手工凭 face ID 点选，而会建立
+STEP + semantic sidecar 的确定性重建：绑定 source SHA，按面几何与邻接唯一匹配，检查三组互斥和全
+覆盖，再 mesh、保存、重开复核。该路线的报告名、字段名和论文措辞都必须使用 reconstruction，不能
+把 solver-side 重建写成 native CAD transfer。

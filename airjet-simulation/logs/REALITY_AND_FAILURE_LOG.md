@@ -591,6 +591,46 @@
   P1 readiness BLOCKED，P1–P6 NOT_RUN。
 - 状态：OPEN_STEP_DIAGNOSTIC_TO_ISOLATE_MECHANICAL_PIPELINE
 
+## REAL-20260714-030：STEP 几何、Mechanical 粗网格与 Workbench 项目通过诊断，但上游三组语义为 0
+
+- UTC：2026-07-14T20:35:27Z
+- Stage/task：005 T1 / 第十次 STEP 管线诊断
+- run/jobs：`AJM005_T1_CAD_SUITE_20260714T203527395289Z_f90b26f2`；SC
+  `...-3df5c11853cd`；WB `...-f87db5b98356`；签名 commit
+  `6f828feaeaee3f61278a0d3198156592529cc7a7`。
+- 单变量假设：相对已经到达 `ComponentsToShare`、save-data 与 Model container `Refresh()` 的
+  native baseline，只把冻结 source 从 `.scdocx` 换为同轮生产者已回读验证的 STEP；不调用
+  SpaceClaim Edit，并把全部 native transfer canonical assertions 保持 false。
+- 实际到达：STEP predecessor identity、source system/`SetFile`、`ComponentsToShare`、
+  `GetGeometryFileAndSaveData()`、Model container/`Refresh()`、Mechanical inspection 与 project
+  save 全部 RETURNED。
+- 诊断观察：Mechanical 得到 1 个 body（`spaceclaim_cad_t1|AJM005_T1_FLUID`），1 mm 粗网格为
+  1063 nodes / 513 elements，`workbench_transfer_t1.wbpj` 已保存；但
+  `INLET/OUTLET/WALLS` 的对象数和实体数均为 `0/0/0`。
+- 为什么进程退出码仍为 2：这是预设的 diagnostic guard，不是 mesher crash。脚本只把 body、mesh、
+  project 观察写入 `diagnostic_result`；canonical assertions 除 predecessor identity 外全部固定为
+  false，并以 `STEP_DIAGNOSTIC_ROUTE_CANNOT_CLOSE_NATIVE_TRANSFER_GATE` fail closed。
+- 高置信结论：同机 Workbench→Mechanical 几何消费、粗网格和项目保存管线本身可用；前九轮的
+  失败范围因此收窄到 native `.scdocx` attach/semantic bridge，而不是 Mechanical 或网格整体不可用。
+- 不能外推：本轮 STEP 没有携带三组上游语义，不能据此宣称所有 STEP 导出器都必然丢名称，也不能
+  宣称 native Named Selection transfer、native driving parameter 或 P1 readiness 通过。
+- 原始证据：suite/MCP SHA-256 分别为
+  `44cf146552f2eb04d5592337da7555e286f4dfa67b396bd5489fad5425630085` 和
+  `ce2f98dd4139f3315be47b3d6496a65be124407b8b68577290ed8f5c8ee218bd`；SC/WB report SHA-256
+  分别为 `699ca4555cb62d41b407acf61354022cfab40c897288fe612edb54f4528f2d81` 和
+  `580f6927809bf765d2f502dafe5c5a60962e67824142b7aaee8e56c2907b2964`；STEP/inspection/project
+  SHA-256 分别为 `9154a265bd28204ebaa2fc61f446a8378fe53b856ff25c08ec824f825357213e`、
+  `f2948bda7a9a512d7f4f2a87bdf74f90c065fa5318438979956854419d3ebc54`、
+  `bdb3165331091483e2cb90a2b3d6b2d734e98748ac2eed4bf8d14851fc744b20`；
+  2026-07-14T20:36:44.5588359Z 现场相关进程数为 0。
+- 采取的下一路线：冻结 STEP 与 hash-bound semantic sidecar，在 Mechanical 按面几何、邻接和容差
+  唯一匹配后确定性创建 `INLET/OUTLET/WALLS`。该能力必须称 semantic reconstruction，不能称
+  native transfer；还要做 0 match、multiple match、重叠、覆盖不全和 sidecar SHA 错的负向测试。
+- 对 Gate/论文主张的影响：SC partial PASS 可复现；STEP body/mesh/project 只获诊断 PASS；native
+  attach、Named Selection transfer 与 native driving parameter 仍阻塞；P1 readiness BLOCKED，
+  P1–P6 NOT_RUN。
+- 状态：CLOSED_STEP_PIPELINE_DIAGNOSTIC_SEMANTIC_RECONSTRUCTION_PENDING
+
 ## 新条目模板
 
 ```text

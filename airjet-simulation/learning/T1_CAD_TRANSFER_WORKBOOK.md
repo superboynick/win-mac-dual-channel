@@ -545,3 +545,72 @@ Mechanical body/name/mesh             NOT_REACHED
 mesh，就说明 Workbench→Mechanical 求解管线基本可用，问题集中在 native geometry attach/semantic
 transfer；如果 STEP 也失败，则问题范围更广。STEP 不保留当前 SpaceClaim groups，所以 Named
 Selection transfer 必须继续 FAIL，完整 transfer set 仍不能 PASS。
+
+## 22. 实跑记录 10：诊断 PASS 可以与 suite FAIL 同时成立
+
+第十轮只把冻结 source 从 `.scdocx` 换成同一 producer 已回读并绑定 SHA 的 STEP。它不是替代最终
+合同，而是为了回答一个窄问题：Workbench→Mechanical→mesh→project 这段通用管线到底能不能走通。
+
+| 层级 | 真实观察 | 本轮能否关闭 |
+|---|---|---|
+| frozen STEP identity | predecessor、STEP SHA 与 producer report 全匹配 | PASS |
+| source/share/save-data | `SetFile`、`ComponentsToShare`、`GetGeometryFileAndSaveData()` 返回 | PASS as reached |
+| Model consumer | Model container `Refresh()` 返回 | PASS as reached |
+| Mechanical geometry | 1 body，名称为 `spaceclaim_cad_t1\|AJM005_T1_FLUID` | 诊断 PASS |
+| Mechanical mesh | 1063 nodes / 513 elements | 诊断 PASS |
+| project persistence | `.wbpj` 50588 bytes，保存返回且有 SHA | 诊断 PASS |
+| upstream semantic labels | `INLET/OUTLET/WALLS` 对象与实体全为 0 | FAIL / absent |
+| native transfer claim | 脚本固定为 false | 不可关闭 |
+| suite | `FAIL_CAD_TRANSFER_SET`，exit 2 | 按设计 FAIL |
+
+exit 2 不是网格器崩溃。脚本故意把 canonical transfer assertions 与 diagnostic observations 分开：
+
+```text
+canonical contract:
+  geometry_transfer=false
+  named_selection_transfer=false
+  mesh_generation=false
+  project_save=false
+
+diagnostic_result:
+  body_geometry_available=true
+  mesh_generated=true
+  project_saved=true
+  native_named_selection_transfer_claim=false
+```
+
+这类“双层结果”很重要。canonical contract 回答“原生 CAD 传递合同是否完成”；diagnostic result
+回答“为了定位故障，哪些下游能力被真实观察到”。如果为了让 suite 变绿而把 STEP 的 mesh 结果写进
+native assertion，就会把交换格式的几何可达性伪装成原生语义传递。
+
+### 22.1 传输链不止是“文件能不能打开”
+
+建议把 CAD→求解器链拆成七层：
+
+```text
+bytes identity
+  -> topology
+  -> geometry body
+  -> semantic labels
+  -> solver objects
+  -> mesh
+  -> project persistence
+```
+
+本轮关闭了 STEP 路线的 bytes、topology/geometry、mesh 和 persistence 诊断；semantic labels 没有
+出现。它由此证明通用 Workbench/Mechanical 管线可用，并把 native 问题定位得更窄，但没有跨过
+semantic/native Gate。
+
+### 22.2 下一实验为什么叫 semantic reconstruction
+
+下一步以冻结 STEP 和 hash-bound sidecar 为输入，在 Mechanical 枚举 13 个面，依据 centroid、area、
+normal、surface type、adjacency 与容差做唯一匹配，再创建三组 solver Named Selections。小模型的
+预期硬检查为：
+
+- `INLET`：唯一圆面，`z=0`，中心约 `[10,5,0] mm`，面积约 `pi mm^2`；
+- `OUTLET`：唯一端面，`x=20`，中心约 `[20,5,2] mm`，面积约 `4 mm^2`；
+- `WALLS`：剩余 11 面；三组互斥，并集覆盖全部 13 面。
+
+这条路线重建的是求解器侧语义，不是从 `.scdocx` 原生传过来的语义。即使它通过，也只能写
+`PASS_STEP_SEMANTIC_RECONSTRUCTION_DIAGNOSTIC`；`named_selection_transfer`、native attach、native
+parameterization 和 P1 readiness 仍必须保持 false/BLOCKED，除非未来另立合同并经独立审核。
