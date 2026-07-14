@@ -32,10 +32,14 @@ result = {
     "p1_cad_hard_gate": "BLOCKED_UPSTREAM_NATIVE_PARAMETERIZATION",
     "license_arguments_added": False,
     "assertions": dict((name, False) for name in assertion_names),
+    "geometry_route": "INDEPENDENT_GEOMETRY_SOURCE_TRANSFER_DATA",
     "update_route": "MODEL_COMPONENT_UPDATE_ALL_DEPENDENCIES",
     "execution_reach": {
         "predecessor_identity": "NOT_REACHED",
-        "geometry_set_file": "NOT_REACHED",
+        "source_geometry_system": "NOT_REACHED",
+        "source_geometry_set_file": "NOT_REACHED",
+        "target_static_system": "NOT_REACHED",
+        "source_to_target_transfer_data": "NOT_REACHED",
         "model_update_all_dependencies": "NOT_REACHED",
         "model_refresh": "NOT_CALLED_BY_ROUTE",
         "model_container": "NOT_REACHED",
@@ -94,15 +98,33 @@ try:
     result["execution_reach"]["predecessor_identity"] = "PASS"
 
     Reset()
+    result["execution_reach"]["source_geometry_system"] = "CALLED"
+    source_template = GetTemplate(TemplateName="Geometry")
+    source_system = source_template.CreateSystem()
+    source_geometry = source_system.GetContainer(ComponentName="Geometry")
+    source_properties = source_geometry.GetGeometryProperties()
+    source_properties.GeometryImportNamedSelections = True
+    source_properties.GeometryImportNamedSelectionsFilter = ""
+    result["execution_reach"]["source_geometry_system"] = "RETURNED"
+
+    result["execution_reach"]["source_geometry_set_file"] = "CALLED"
+    source_geometry.SetFile(FilePath=native_path)
+    result["execution_reach"]["source_geometry_set_file"] = "RETURNED"
+    source_component = source_system.GetComponent(Name="Geometry")
+
+    result["execution_reach"]["target_static_system"] = "CALLED"
     static_template = GetTemplate(TemplateName="Static Structural", Solver="ANSYS")
     static_system = static_template.CreateSystem()
-    geometry = static_system.GetContainer(ComponentName="Geometry")
-    geometry_properties = geometry.GetGeometryProperties()
-    geometry_properties.GeometryImportNamedSelections = True
-    geometry_properties.GeometryImportNamedSelectionsFilter = ""
-    result["execution_reach"]["geometry_set_file"] = "CALLED"
-    geometry.SetFile(FilePath=native_path)
-    result["execution_reach"]["geometry_set_file"] = "RETURNED"
+    target_geometry = static_system.GetContainer(ComponentName="Geometry")
+    target_properties = target_geometry.GetGeometryProperties()
+    target_properties.GeometryImportNamedSelections = True
+    target_properties.GeometryImportNamedSelectionsFilter = ""
+    target_component = static_system.GetComponent(Name="Geometry")
+    result["execution_reach"]["target_static_system"] = "RETURNED"
+
+    result["execution_reach"]["source_to_target_transfer_data"] = "CALLED"
+    source_component.TransferData(TargetComponent=target_component)
+    result["execution_reach"]["source_to_target_transfer_data"] = "RETURNED"
 
     model_component = static_system.GetComponent(Name="Model")
     result["execution_reach"]["model_update_all_dependencies"] = "CALLED"
