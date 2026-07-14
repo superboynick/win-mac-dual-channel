@@ -209,7 +209,7 @@ if (Test-Path -LiteralPath $MacWatcherTestPath -PathType Leaf) {
 }
 
 $WindowsWatcherFiles = @{
-    'AirJetWatcher.Common.ps1' = @('ENABLED_AFTER_END_TO_END','WINDOWS_TASK.env','MAC_TASK.env','gpg.minTrustLevel=fully','--no-replace-objects','BLOCKED_RELAY_NOT_ENABLED','[IO.FileMode]::CreateNew')
+    'AirJetWatcher.Common.ps1' = @('ENABLED_AFTER_END_TO_END','WINDOWS_TASK.env','MAC_TASK.env','gpg.minTrustLevel=fully','--no-replace-objects','BLOCKED_RELAY_NOT_ENABLED','[IO.FileMode]::CreateNew','GIT_SSH_VARIANT')
     'Watch-AirJetGit.ps1' = @('BLOCKED_RUNTIME_','BLOCKED_TEST_MODE_WAKE_FORBIDDEN','BLOCKED_CRITICAL_WATCHER_UPDATE','SHELL_REQUESTED_NOT_USER_OBSERVED')
     'Manage-AirJetWatcher.ps1' = @('ENABLED_AFTER_END_TO_END','REFUSED_TEST_MODE',"'start'", "'retry'")
     'Run-AwakenedCodex.ps1' = @('BLOCKED_TEST_MODE_CODEX_FORBIDDEN','ENABLED_AFTER_END_TO_END','approval_policy="never"')

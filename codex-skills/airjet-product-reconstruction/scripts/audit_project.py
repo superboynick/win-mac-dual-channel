@@ -227,6 +227,7 @@ def main() -> int:
             "--no-replace-objects",
             "BLOCKED_RELAY_NOT_ENABLED",
             "[IO.FileMode]::CreateNew",
+            "GIT_SSH_VARIANT",
         ),
         windows_watcher: (
             "BLOCKED_RUNTIME_",

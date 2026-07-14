@@ -366,13 +366,14 @@ try {
     Assert-Contains 'fixed_mac_hash' ([IO.File]::ReadAllText($Common)) '0DCA6F17DECAF03EF17C97EFA69EEDD0A54C173D01AC63D3C8B29821709661A6'
     Assert-Contains 'fixed_krl_hash' ([IO.File]::ReadAllText($Common)) '39462E5A1E80CC2065599E74BFDBCB903B54DC088AC1D69E1D612EE65B8C8EB7'
     Assert-Contains 'fixed_git_ssh_keygen' ([IO.File]::ReadAllText($Common)) 'C:\Program Files\Git\usr\bin\ssh-keygen.exe'
+    Assert-Contains 'fixed_ssh_variant' ([IO.File]::ReadAllText($Common)) '$env:GIT_SSH_VARIANT = ''ssh'''
     Assert-Contains 'runner_sandbox' ([IO.File]::ReadAllText($Runner)) 'exec -C $script:RepoRoot -s workspace-write -c ''approval_policy="never"'''
     Assert-Contains 'runner_test_mode_guard' ([IO.File]::ReadAllText($Runner)) 'BLOCKED_TEST_MODE_CODEX_FORBIDDEN'
     Assert-Contains 'atomic_processed_claim' ([IO.File]::ReadAllText($Common)) '[IO.FileMode]::CreateNew'
     Assert-Contains 'watcher_runtime_guard' ([IO.File]::ReadAllText($Watcher)) 'BLOCKED_RUNTIME_'
     Assert-Contains 'installer_default_no_register' ([IO.File]::ReadAllText($Installer)) 'if ($RegisterAtLogOn)'
 
-    $ExpectedPassCount = 50
+    $ExpectedPassCount = 51
     if ($PassCount -ne $ExpectedPassCount) { Fail "pass_count_expected_$ExpectedPassCount`_actual_$PassCount" }
     Write-Output "WINDOWS_CORE_CASES_PASS=$PassCount"
     Write-Output "EXPECTED_PASS_COUNT=$ExpectedPassCount"

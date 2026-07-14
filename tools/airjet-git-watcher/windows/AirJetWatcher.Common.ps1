@@ -83,13 +83,14 @@ function Invoke-AirJetGit {
                 'GIT_EXEC_PATH','GIT_OBJECT_DIRECTORY','GIT_ALTERNATE_OBJECT_DIRECTORIES',
                 'GIT_REPLACE_REF_BASE','GIT_COMMON_DIR','GIT_DIR','GIT_WORK_TREE','GIT_INDEX_FILE',
                 'GIT_SHALLOW_FILE','GIT_NAMESPACE','GIT_CEILING_DIRECTORIES',
-                'GIT_SSH','GIT_SSH_COMMAND','SSH_ASKPASS'
+                'GIT_SSH','GIT_SSH_COMMAND','GIT_SSH_VARIANT','SSH_ASKPASS'
             ))) {
                 $savedGitEnvironment[$entry.Name] = $entry.Value
                 Remove-Item -LiteralPath "Env:$($entry.Name)"
             }
         }
         $env:GIT_SSH_COMMAND = 'C:\Windows\System32\OpenSSH\ssh.exe -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -p 443'
+        $env:GIT_SSH_VARIANT = 'ssh'
         $all = @('--no-replace-objects','-C', $script:RepoRoot) + $Arguments
         $output = @(& $script:GitExe @all 2>&1 | ForEach-Object { $_.ToString() })
         $code = $LASTEXITCODE
@@ -99,6 +100,7 @@ function Invoke-AirJetGit {
         $env:GIT_ASKPASS = $savedAskPass
         $env:GIT_LFS_SKIP_SMUDGE = $savedLfs
         Remove-Item -LiteralPath 'Env:GIT_SSH_COMMAND' -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath 'Env:GIT_SSH_VARIANT' -ErrorAction SilentlyContinue
         foreach ($entry in $savedGitEnvironment.GetEnumerator()) { Set-Item -LiteralPath "Env:$($entry.Key)" -Value $entry.Value }
     }
     $text = ($output -join "`n").TrimEnd()
