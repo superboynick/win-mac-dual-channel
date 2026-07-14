@@ -25,6 +25,8 @@ This repository is the user's safe GitHub-primary collaboration toolkit for Mac 
 
 `dual-channel.ps1` exposes safe operations including status, fetch, compare, sync-check, push-main, and backup-nas. It is designed to fetch before comparison/push and block unsafe states.
 
+The reviewed macOS manual Git watcher source is under `tools/airjet-git-watcher/`. It may be started only when the user explicitly asks; it must not install a LaunchAgent, cron job, login item, or shell-profile startup entry. Machine state remains outside Git.
+
 ## Current task direction
 
 The GitHub setup is complete and both Mac and Windows were verified at the same initial commit. Future work should use this repository as the handoff point for cross-machine tasks.
