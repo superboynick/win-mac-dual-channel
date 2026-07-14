@@ -911,6 +911,64 @@
   Named Selection transfer 未证明；P1--P6 `NOT_RUN`；`VISIBILITY=NOT_USER_OBSERVED`。
 - 状态：CLOSED_SHORT_PATH_NOT_SUFFICIENT_OPEN_WRITABLE_STAGING_TEST
 
+## REAL-20260714-039：hash-equal writable staging 仍无法 native attach，关闭 read-only 唯一充分解释
+
+- UTC：2026-07-14T22:34:30Z
+- Stage/task：005 T1 / 第十七次 native `.scdocx` transfer writable-staging 有意干预复测
+- run/jobs：`AJM005_T1_CAD_SUITE_20260714T223430902023Z_528b9791`；SC
+  `a5n-6263df0a5eda-c8286865ca7c`；WB `a5n-6263df0a5eda-860a53afe7a2`；签名 commit
+  `3336c75d0ff9a49c738623f7dd5625e37073235f`。
+- 有意干预：MCP frozen predecessor 继续只读且不变；Workbench job 内另建初始 size/SHA 相同、
+  与 source 完整路径同为 145 characters 的 writable working copy，`SetFile` 只使用 working copy。
+  producer 每轮重新生成 native，本轮为 32143 bytes，前轮为 32148 bytes，因此不能把两轮写成
+  identical-bytes permission-only paired trial。
+- producer：SpaceClaim 21.704 秒正常退出，八项 assertions 全 true；transfer native SHA-256
+  `7e1d3729c40b40b659c02b5dc2983cdd84a0dcb4941282db1641578bbdaeb0e8`；report SHA-256
+  `b79fd3b6a50a82708652203eb4c008674f722c2a2762b3ff26a2b541739dad94`。
+- staging 证据：journal 与事后 PowerShell 均确认 source 为 `ReadOnly, Archive / IsReadOnly=true`，
+  working copy 为 `Archive / IsReadOnly=false`；两者均为 32143 bytes、相同 SHA。source 前后字节与
+  read-only 位均不变；working copy 运行结束仍存在，前后 size/SHA 未变。后者只表示未观测到文件
+  字节变化，不表示 editor 没有尝试写入或没有内部活动。
+- consumer：working-copy stage、SetFile、显式 SpaceClaim Edit/Exit、ComponentsToShare、
+  GetGeometryFileAndSaveData 和 Model container 全部 RETURNED；整个 WB job 282.115 秒，异常点仍是
+  `Model.Refresh()` 无法附加 staged `.scdocx`。journal 没有单独计时 Refresh。Mechanical inspection、
+  native Named Selection transfer、mesh 与 project save 均 `NOT_REACHED`。
+- 原始证据：suite/MCP SHA-256 分别为
+  `3f27305504e5f9a56f3e65332029871c510da840211f71691d466129aa87a7fe` 与
+  `0e13158e1b1cb946a58b6420eeb227a1afbcd90450772fc09986433fc6cc01b2`；WB report/job-state
+  SHA-256 分别为 `afa8112e57d4ad6fc2b412fb99a5b5f59669e505a83464b428e609b33d34ae94` 与
+  `4ec64e97f42165cb627cdea03063fa844354d145bbb8837a68d4d34381e98391`；
+  2026-07-14T22:40:19.9791271Z 相关进程数为 0。
+- 结论：可以关闭“job-local hash-equal writable staging 足以修复当前 native attach route”和
+  “read-only 是唯一充分解释”这两个窄假设。不能全局排除权限为多因素之一，也不能写成 SpaceClaim
+  从不需要可写文件。
+- 下一最小实验：不再叠加 chmod、复制位置或更短路径；保留 producer/frozen evidence/短 case/
+  五项 assertions，只改为 Workbench 空 Geometry cell 连接的 SpaceClaim editor 内部创建 disposable
+  native document，再 share 到 Mechanical。该实验必须是独立 diagnostic profile，禁止用 STEP
+  semantic reconstruction 冒充 external native transfer。
+- 对 Gate/论文主张的影响：suite 为 `FAIL_CAD_TRANSFER_SET`；顶层
+  `PARTIAL_CAD_TRANSFER_ONLY` 只指 SpaceClaim producer partial capability；直接 blocker 是 native
+  Refresh attach，`NATIVE_PARAMETERIZATION_NOT_RUN` 是后续仍开放的 hard blocker。P1 readiness
+  BLOCKED；P1--P6 `NOT_RUN`；`VISIBILITY=NOT_USER_OBSERVED`。
+- 状态：CLOSED_WRITABLE_STAGING_NOT_SUFFICIENT_OPEN_CONNECTED_EDITOR_DIAGNOSTIC
+
+## REAL-20260714-040：在 Windows 误用 Unix skill installer，入口选择失败但正确入口立即通过
+
+- UTC：2026-07-14T22:33:00Z
+- Stage/task：005 T1 / commit `3336c75...` Windows handoff
+- 触发：Windows 精确拉取和签名验证后，从 Git Bash 调用 `install-skills.sh`；第一条目录镜像命令返回
+  `rsync: command not found`。
+- 原因：仓库有平台专用入口。`.sh` 依赖 macOS/Unix 已有的 `rsync`；Windows 正确入口是
+  `install-skills.ps1`，其镜像后端为系统 `robocopy`。这是操作入口选择错误，不是 skill 内容、Git、
+  ANSYS 或许可故障。
+- 恢复：立即运行仓库根 `install-skills.ps1`；automation/product/jupyter/pdf 四个 skill 的规范化
+  SHA 与必需文件数全部 PASS，随后根审计 `required_files=105/manuals=7/csv_files=28` 和 MCP static
+  policy `profiles=7/tools=5` 均 PASS。
+- 教学结论：跨平台仓库不能只看文件名中的“install”；应先按平台手册选入口，并把复制工具依赖纳入
+  preflight。失败发生在第一条复制命令，未留下部分更新后的错误能力声明。
+- Gate 影响：NONE；此问题在 ANSYS suite 启动前已关闭，不能用于解释本轮 native attach 失败。
+- 状态：CLOSED_CORRECT_WINDOWS_INSTALLER_USED
+
 ## 新条目模板
 
 ```text

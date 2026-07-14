@@ -512,3 +512,35 @@ false assertions误写成 Named Selection、mesh 和 project 各自失败。
 另建 hash-equal staged `.scdocx`，然后验证它可写。若 Edit/Exit 修改了 staged file，报告应保存修改前
 和修改后 SHA，但不能把修改后文件倒写成 predecessor。若 staging 仍无法 attach，就用真实运行关闭
 这个假设，而不是继续叠加更多 workaround。
+
+## 22. 第十七次实验：先证明干预发生，再解释失败
+
+本轮的测试顺序是实验设计的关键：
+
+1. 冻结 source report/manifest/native 的身份和 SHA；
+2. 记录 source 的 read-only 属性；
+3. 复制到 job-local `stagingcopy`，显式设为 writable；
+4. 硬检查 working/source 路径不同但长度相同，size/SHA 相同；
+5. 只把 working path 传给 `SetFile`；
+6. 无论主路线成功或异常，都在写 report 前复核 working 终态和 frozen source 的字节/只读位；
+7. runner 再用 manifest 的完整 nested relative path、size 和 SHA 复核 report，不能只比 basename。
+
+两个独立静态审查先发现并关闭了三类潜在假阳性：只比 filename 可能把 predecessor 误认成 working
+copy；working file 被删除时若不写 `exists=false` 会丢失败证据；只复核 source SHA 而不复核 read-only
+位会遗漏属性变化。修好并审计后才允许 Windows 实跑。
+
+实跑中 staging 合同全部通过，Edit/Exit、share/save-data 也返回；但 WB job 最终在 Refresh attach
+失败。source 保持 `ReadOnly, Archive`，working copy 保持 `Archive`，两者前后都是 32143 bytes 和
+SHA `7e1d3729...`。因此 writable-staging 有意干预已经实施，但对当前 route 不充分。
+
+下一项 connected-editor diagnostic 必须使用独立 profile，不能覆盖既有 external native transfer
+历史。成功合同仍要检查 1 body、Named Selection objects `1/1/1`、entities `1/1/11`、mesh 非零和
+project save；同时明确 `external_scdocx_attach=NOT_RUN`、`native_parameterization=NOT_RUN`、
+`p1_stage_gate=NOT_RUN`。diagnostic PASS 也不能提前启动 006。
+
+### 22.1 一个很现实的跨平台操作错误
+
+Windows handoff 时若从 Git Bash 误跑 `install-skills.sh`，会因为系统没有 `rsync` 在第一步失败。
+正确入口是 `install-skills.ps1`，使用 Windows 自带 `robocopy`。这次随后四个 skill 哈希/必需文件、
+根审计和 MCP policy 全部 PASS。教学点不是“安装脚本坏了”，而是同一仓库存在平台专用入口，运行前
+应先按 handoff 手册选择；入口错误不能拿来解释后续 ANSYS 几何 attach 失败。

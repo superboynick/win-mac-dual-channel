@@ -812,3 +812,37 @@ SpaceClaim Edit/Exit 或 Workbench materialization 需要修改 working document
 下一实验不能解除 frozen evidence 的只读保护。正确做法是在 job root 复制一个 hash-equal working
 copy，显式使它可写，记录复制前后 SHA，再只让 Workbench 使用 staging copy。这样既保留输入证据，
 又单独测试“工作文档必须可写”这一假设。
+
+## 25. 第十七次实跑：怎样证明一个 workaround 真的生效但仍然无效
+
+第十七次没有直接把 frozen predecessor 改为可写，因为那会破坏输入证据。journal 在 WB job 的
+`input/stagingcopy` 下复制 native 文件；`stagingcopy` 与 `predecessor` 都是 11 个字符，因此 source
+与 working path 都是 145 characters。复制后先验证不同绝对路径、相同 size/SHA、source read-only、
+working writable，任何一项不满足都在启动 Workbench 几何路线前 fail closed。
+
+| observable | frozen source | working copy |
+|---|---|---|
+| before role | immutable evidence | job-local derivative |
+| before attributes | `ReadOnly, Archive` | `Archive` |
+| before size/SHA | 32143 / `7e1d3729...` | 32143 / `7e1d3729...` |
+| after size/SHA | 不变 | 不变 |
+| after read-only | true | false（事后 PowerShell） |
+
+这组观测证明 workaround 确实生效：`SetFile` 消费的是可写副本，不是只读源。它也证明 frozen source
+没有被下游偷偷改写。结果仍然失败，所以可以关闭“本轮 writable staging 足以修复”和“read-only 是
+唯一充分解释”这两个窄假设。
+
+但这不是严格的 permission-only paired trial。SpaceClaim producer 每轮重新生成 native：前轮为
+32148 bytes，本轮为 32143 bytes；journal 也增加了观测代码，目录 token 从 `predecessor` 变为
+`stagingcopy`。因此严谨说法是“唯一有意的 route intervention”，不是“两份完全相同字节只翻转一个
+权限位”。负结果足以否定整个 writable-staging package 的充分性，却不能全局排除权限可能与其他
+因素联合作用。
+
+Workbench job 总时长为 282.115 秒，traceback 的异常点是 `Model.Refresh()`；journal 没有给 Refresh
+单独计时，所以不能写“Refresh 本身耗时 282.115 秒”。`working_copy_mutated_by_editor=false` 也只
+代表前后 size/SHA 没变，不能写成 editor 没有尝试写入或没有内部活动。
+
+下一实验不再继续 chmod、换复制目录或缩路径，而是改变 materialization route：创建空 Geometry
+system，进入与该 cell 连接的 SpaceClaim editor，在 connected document 内构造同一个 disposable
+fixture，退出 editor 后再 share 到 Static Structural。它若通过，只证明 Workbench-managed connected
+document 可用；仍不证明 external `.scdocx` attach 已修复，也不证明 native parameterization 或 P1。
