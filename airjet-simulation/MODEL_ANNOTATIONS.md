@@ -229,7 +229,7 @@ mesh/shared nodes/P1 PASS。
 ## AJM-P1-GEO-006：V02 native staging Workbench observer
 
 日期：2026-07-15
-状态：15-profile policy、observer guards、144-file audit 静态 PASS；等待 Windows 实跑
+状态：Windows 实跑 PASS；972 个 shared single-face membership 已观测；mesh、正式 006 与 P1 Gate 未运行
 
 **目的**：直接观察 producer 的 `product_two_zone.scdocx` 在 Workbench/Mechanical 的实际 body/face
 拓扑，区分 STEP translator 的单侧损失与 native attach 本身的能力边界。
@@ -240,3 +240,14 @@ inventory、native reopen 四件前驱产物。native 先复制为 job-local sta
 
 **主张边界**：观察链 PASS 与路线有利/不利分开。即使接口仍丢失，只要实际 inventory 和证据闭合，
 也只写诊断观察；`formal_006_completion=false`、P1--P6 与 mesh/physics 继续 `NOT_RUN`。
+
+**实测结果**：签名 tip `0fa89686820c737f7dc98ce94dea27252e4d8b86` 的 producer
+`AJM006-V02-PRELIMINARY-a768ecd0008e` 与 observer `AJM006-V02-PRELIMINARY-0600a08e2a83`
+均 exit 0。Mechanical downstream/upstream 为 body 316/1950、978/2044 faces；两侧各 972 个
+XY 候选完整配对，972 对的 actual face ID 相同且 membership 同时含两个 body，分类为
+`972_SHARED_SINGLE_FACE / SHARED_ID_MEMBERSHIP_CONFIRMED`。native source/copy/final 哈希一致，
+未调用 Edit，冻结 predecessor 最终复核不变。
+
+**决定**：native `.scdocx` 路线进入独立无物理 mesh conformality 诊断候选；在实际网格证明 shared
+nodes/conformality 前，不写 mesh-ready、正式 006 或 P1 PASS。证据见
+`logs/evidence/AJM006_V02_NATIVE_TOPOLOGY_OBSERVER_20260715T153644708272Z_0600a08e2a83/`。

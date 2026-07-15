@@ -127,7 +127,8 @@
 - Windows 006 完整产品 CAD 任务已写好；Gen1-only production schema/validator、九个 trusted variant blueprint、campaign 与 006/007 reviewer bridge 的静态合同已通过 CPython/IronPython、负向测试、MCP policy 和双项目审计。两个 006 production profile 仍未注册，`execution_state=STATIC_CONTRACT_ONLY_NOT_REGISTERED`，所以当前必须 fail closed，不得启动正式 CAD。
 - V02 preliminary producer 已在 Windows 完成三次签名实跑并于 commit `64b57303...` PASS：主候选 `M-3x4-7.0__R50_BALANCED` 的 3×4/12-cell、972-hole、upstream/downstream 两个流体区均真实建立；两个 body 为 single-piece/closed/manifold，4/1 inlet/outlet、12/12 membrane、972/972 orifice faces 与 1 heat wall 全部闭合。十项断言和六个外部产物 size/SHA 与 MCP manifest 一致，runner 为 `PASS_PRELIMINARY_PRODUCER`。实际代理孔隙率为 `8.114445310611391%`；10% 仍是未锁定 proxy。STEP shape round-trip 最大 bbox/volume delta 为 `0.014975 mm` / `0.003996774 mm^3`，在记录的 STEP-only 容差内。
 - V02 topology observer 已在 commit `9699df565d5b93bfe8bf8354834af7fc5f79624c` 完成修正版实跑：同一 MCP 会话的 producer `...-13950bddaec8` 与 observer `...-2fb76257a827` 均 exit 0，suite 为 `PASS_PRELIMINARY_TOPOLOGY_OBSERVER`。Mechanical 中 upstream 为 body 4288/100 faces，downstream 为 body 7231/978 faces；downstream 接口保留 972 个与预期 XY 完整对应的孔印记和大面 7158，upstream 对应孔口候选为 0、972 个预期位置全缺失，shared ID/coincident pair/cross-body duplicate 均为 0。精确分类为 `MIXED_OR_OTHER / UPSTREAM_ORIFICE_GEOMETRY_LOST_DOWNSTREAM_972_IMPRINTS_RETAINED`。这说明观测流程 PASS，却否决当前 STEP→Workbench/Mechanical 两区连通路线；没有 mesh、shared-node 或 conformality 证据，不能宣称 semantic、正式 006 或 P1 PASS。
-- V02 Parasolid x_t 诊断路线的 Mac 静态包已完成：新增 SpaceClaim converter、Workbench/Mechanical observer、同一 MCP 进程三阶段 runner、两个 hash-pinned profile 和固定 Windows 指令；runner guard 16 项、MCP policy `14 profiles / 5 tools`、Mac project audit `144 required files` 均 PASS。converter 只证明 x_t 回读的两体 envelope/face-count 候选，不声称接口拓扑完全保持；observer 还会逐角色复核 solver face count/bbox/volume、逐对共面几何和 membership。Windows 尚未执行，故路线结果、mesh 和 P1--P6 均为 `NOT_RUN`。
+- V02 Parasolid x_t 诊断路线已关闭：native reopen 通过，但隐式与显式 v261 export options 均未生成 `product.x_t`；observer 按设计未启动。该失败不改变整机几何结论，且不再重试。
+- V02 native `.scdocx` observer 已在签名 tip `0fa89686820c737f7dc98ce94dea27252e4d8b86` 实跑 PASS：producer `...-a768ecd0008e` 与 observer `...-0600a08e2a83` 均 exit 0，Mechanical 枚举 downstream/upstream 为 316/978 faces 与 1950/2044 faces；两侧各 972 个 XY 候选全部配对，972 对均为同 actual face ID 且具有双 body membership，分类为 `972_SHARED_SINGLE_FACE / SHARED_ID_MEMBERSHIP_CONFIRMED`。native predecessor/staging 哈希前后一致且未 Edit；未运行 mesh，故只把该路线列为下一次无物理 mesh 诊断候选，不声称 shared nodes、conformal mesh、正式 006 或 P1 PASS。
 - 005 alternate-route v2 于 `2026-07-15T10:04:43Z--10:06:02Z` 在 commit
   `9a88b7ad26d5d5c9f35d8a5f956df7038cfca0fd` 首次同轮端到端 PASS：SpaceClaim producer 与
   Workbench consumer 均 exit 0，参数化构造、原生保存/重开、STEP 导出/重导、hash-bound semantic
@@ -142,7 +143,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 005 alternate-route v2 工具链前置已 PASS；V02 preliminary producer 与 STEP observer 均已实跑，STEP 只保留下游 972 印记；Parasolid export 在显式 v261 options 下仍未生成 x_t，路线已关闭；native staging observer 已静态注册，尚待 Windows 实跑；正式九变体 CAD 未开始，P1 BLOCKED | 运行固定 native staging observer，实测 `.scdocx` attach 后两侧 972-interface 与逐体指纹；若 attach/拓扑仍失败，转受审 solver-side upstream interface reconstruction。之后才注册正式九变体 profiles。P1–P6 仍 `NOT_RUN`。 |
+| P1 整机 CAD | 005 alternate-route v2 工具链前置已 PASS；STEP 路线单侧丢失 972-interface，Parasolid export 路线关闭；native `.scdocx` observer 已实跑并确认两侧 972 对为 shared single-face membership；正式九变体 CAD 未开始，P1 BLOCKED | 对同一 hash-bound native 两区模型执行单独的无物理 mesh 诊断，实际证明 shared nodes/conformality；关闭后才注册正式九变体 profiles。P1–P6 仍 `NOT_RUN`。 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
