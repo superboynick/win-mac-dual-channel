@@ -6,7 +6,6 @@ import os
 import traceback
 
 from System import Array, String
-from SpaceClaim.Api.V261.Scripting.Extensions import PartExtensions
 
 
 job_dir = os.environ["AIRJET_JOB_DIR"]
@@ -431,9 +430,7 @@ try:
     DocumentOpen.Execute(step_path)
     step_root_body_count = int(GetRootPart().Bodies.Count)
     step_component_count = int(GetRootPart().Components.Count)
-    step_bodies = [
-        body for body in PartExtensions.GetAllBodies(GetRootPart())
-    ]
+    step_bodies = [body for body in GetRootPart().GetAllBodies()]
     step_body = step_bodies[0] if len(step_bodies) == 1 else None
     step_fingerprint = body_fingerprint(step_body) if step_body is not None else None
     step_reimport_ok = (
@@ -457,7 +454,7 @@ try:
         )
     )
     result_data["step_reimport"] = {
-        "route": "DOCUMENT_OPEN_AND_PART_EXTENSIONS_GET_ALL_BODIES",
+        "route": "DOCUMENT_OPEN_AND_GET_ALL_BODIES",
         "root_body_count": step_root_body_count,
         "component_count": step_component_count,
         "all_body_count": len(step_bodies),
