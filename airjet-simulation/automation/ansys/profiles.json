@@ -306,6 +306,79 @@
           "step_reimport.json"
         ]
       }
+    },
+    {
+      "profile_id": "ajm006-spaceclaim-v02-parasolid-converter-v1",
+      "engine": "spaceclaim",
+      "script": "006/v02_parasolid_converter.py",
+      "sha256": "f330ce67e3fe93f0274eba0377c84f2e150a3a26fda5ac72418b259b25d5825d",
+      "timeout_seconds": 3600,
+      "output_root_id": "p1_cad_006",
+      "reports": [
+        "v02_parasolid_converter.json"
+      ],
+      "predecessor": {
+        "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
+        "report": "v02_preliminary_producer.json",
+        "required_probe": "v02_preliminary_producer",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
+        "required_assertions": [
+          "input_contract",
+          "gen1_target",
+          "full_product_scope",
+          "complete_flow_path",
+          "two_fluid_zone",
+          "native_save",
+          "native_reopen",
+          "step_export_reimport",
+          "artifact_hashes",
+          "physics_guards"
+        ],
+        "artifacts": [
+          "v02_preliminary_producer.json",
+          "product_two_zone.scdocx",
+          "v02_face_inventory.json",
+          "native_reopen.json"
+        ]
+      }
+    },
+    {
+      "profile_id": "ajm006-workbench-v02-parasolid-topology-observer-v1",
+      "engine": "workbench",
+      "script": "006/v02_parasolid_topology_observer.wbjn",
+      "sha256": "624dbb7d51ace1bf10f3f2defb5b7e75fa3c7dd1a0e601392b311632fb8d88ec",
+      "timeout_seconds": 3600,
+      "output_root_id": "p1_cad_006",
+      "reports": [
+        "v02_parasolid_topology_observer.json"
+      ],
+      "predecessor": {
+        "profile_id": "ajm006-spaceclaim-v02-parasolid-converter-v1",
+        "report": "v02_parasolid_converter.json",
+        "required_probe": "v02_parasolid_converter",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
+        "required_assertions": [
+          "predecessor_identity",
+          "predecessor_immutable",
+          "staging_copy_hash_equal",
+          "staging_workspace_exact",
+          "source_native_open",
+          "source_native_exact",
+          "parasolid_export",
+          "parasolid_reimport",
+          "parasolid_body_envelope_and_face_count_preserved",
+          "evidence_copy_hash_equal",
+          "artifact_hashes",
+          "claim_boundaries"
+        ],
+        "artifacts": [
+          "v02_parasolid_converter.json",
+          "product.x_t",
+          "parasolid_reimport.json",
+          "v02_face_inventory.json",
+          "source_chain.json"
+        ]
+      }
     }
   ]
 }

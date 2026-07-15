@@ -52,6 +52,8 @@ FULL_PRODUCT_REVIEWER = REPO / "airjet-simulation" / "checklists" / "prepare_p1_
 FULL_PRODUCT_REVIEWER_TEST = REPO / "airjet-simulation" / "checklists" / "test_prepare_p1_cad_review_static.py"
 V02_TOPOLOGY_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_topology_observer_006.py"
 V02_TOPOLOGY_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_run_v02_topology_observer_006.py"
+V02_PARASOLID_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_parasolid_topology_006.py"
+V02_PARASOLID_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_run_v02_parasolid_topology_006.py"
 T1_PREDECESSOR_NEGATIVE = (
     SKILL_ROOT / "scripts" / "test_t1_predecessor_negative.py"
 )
@@ -1383,6 +1385,8 @@ expected_profile_ids = {
     "ajm005-workbench-semantic-reconstruction-t1-v2",
     "ajm006-spaceclaim-v02-preliminary-v1",
     "ajm006-workbench-v02-topology-observer-v1",
+    "ajm006-spaceclaim-v02-parasolid-converter-v1",
+    "ajm006-workbench-v02-parasolid-topology-observer-v1",
 }
 if profile_ids != expected_profile_ids:
     fail(f"approved profile set is not exact: {sorted(profile_ids)}")
@@ -1407,6 +1411,8 @@ for required_path in (
     FULL_PRODUCT_REVIEWER_TEST,
     V02_TOPOLOGY_RUNNER,
     V02_TOPOLOGY_RUNNER_TEST,
+    V02_PARASOLID_RUNNER,
+    V02_PARASOLID_RUNNER_TEST,
 ):
     if not required_path.is_file():
         fail(f"missing mandatory v2 route file: {required_path}")
@@ -1783,6 +1789,169 @@ for invariant in (
     if invariant not in v02_observer_source:
         fail("V02 topology observer lacks invariant: " + invariant)
 for path in (V02_TOPOLOGY_RUNNER, V02_TOPOLOGY_RUNNER_TEST):
+    assert_python39_static_compatibility(path)
+
+v02_parasolid_converter_profile = by_profile_id[
+    "ajm006-spaceclaim-v02-parasolid-converter-v1"
+]
+v02_parasolid_converter_predecessor = (
+    v02_parasolid_converter_profile.get("predecessor")
+)
+expected_v02_producer_assertions = {
+    "input_contract",
+    "gen1_target",
+    "full_product_scope",
+    "complete_flow_path",
+    "two_fluid_zone",
+    "native_save",
+    "native_reopen",
+    "step_export_reimport",
+    "artifact_hashes",
+    "physics_guards",
+}
+if (
+    v02_parasolid_converter_profile.get("engine") != "spaceclaim"
+    or v02_parasolid_converter_profile.get("script")
+    != "006/v02_parasolid_converter.py"
+    or v02_parasolid_converter_profile.get("reports")
+    != ["v02_parasolid_converter.json"]
+    or v02_parasolid_converter_profile.get("output_root_id") != "p1_cad_006"
+    or not isinstance(v02_parasolid_converter_predecessor, dict)
+    or v02_parasolid_converter_predecessor.get("profile_id")
+    != "ajm006-spaceclaim-v02-preliminary-v1"
+    or v02_parasolid_converter_predecessor.get("report")
+    != "v02_preliminary_producer.json"
+    or v02_parasolid_converter_predecessor.get("required_probe")
+    != "v02_preliminary_producer"
+    or v02_parasolid_converter_predecessor.get("required_status")
+    != "PASS_PARTIAL_CAD_CAPABILITY"
+    or set(
+        v02_parasolid_converter_predecessor.get("required_assertions") or []
+    )
+    != expected_v02_producer_assertions
+    or set(v02_parasolid_converter_predecessor.get("artifacts") or [])
+    != {
+        "v02_preliminary_producer.json",
+        "product_two_zone.scdocx",
+        "v02_face_inventory.json",
+        "native_reopen.json",
+    }
+):
+    fail("V02 Parasolid converter profile contract changed")
+v02_parasolid_converter_source = (
+    APPROVED / v02_parasolid_converter_profile["script"]
+).read_text(encoding="utf-8")
+for invariant in (
+    'os.environ["AIRJET_PREDECESSOR_DIR"]',
+    "snapshot_tree",
+    "predecessor-manifest.json",
+    "expected_predecessor_tree_names",
+    "staging_workspace_exact",
+    "DocumentSave.Execute(parasolid_path)",
+    "DocumentOpen.Execute(parasolid_path)",
+    "parasolid_body_envelope_and_face_count_preserved",
+    '"source_native_mutated": False',
+    '"representation_conversion": True',
+    '"interface_topology": "NOT_EVALUATED_UNTIL_PARASOLID_OBSERVER"',
+    '"formal_006_completion": False',
+    '"p1_stage_gate": "NOT_RUN"',
+    '"p1_p6_gates": "NOT_RUN"',
+):
+    if invariant not in v02_parasolid_converter_source:
+        fail("V02 Parasolid converter lacks invariant: " + invariant)
+if 'os.environ["AIRJET_REPO_ROOT"]' in v02_parasolid_converter_source:
+    fail("V02 Parasolid converter reads mutable repository dependencies")
+
+v02_parasolid_observer_profile = by_profile_id[
+    "ajm006-workbench-v02-parasolid-topology-observer-v1"
+]
+v02_parasolid_observer_predecessor = (
+    v02_parasolid_observer_profile.get("predecessor")
+)
+expected_v02_converter_assertions = {
+    "predecessor_identity",
+    "predecessor_immutable",
+    "staging_copy_hash_equal",
+    "staging_workspace_exact",
+    "source_native_open",
+    "source_native_exact",
+    "parasolid_export",
+    "parasolid_reimport",
+    "parasolid_body_envelope_and_face_count_preserved",
+    "evidence_copy_hash_equal",
+    "artifact_hashes",
+    "claim_boundaries",
+}
+if (
+    v02_parasolid_observer_profile.get("engine") != "workbench"
+    or v02_parasolid_observer_profile.get("script")
+    != "006/v02_parasolid_topology_observer.wbjn"
+    or v02_parasolid_observer_profile.get("reports")
+    != ["v02_parasolid_topology_observer.json"]
+    or v02_parasolid_observer_profile.get("output_root_id") != "p1_cad_006"
+    or not isinstance(v02_parasolid_observer_predecessor, dict)
+    or v02_parasolid_observer_predecessor.get("profile_id")
+    != "ajm006-spaceclaim-v02-parasolid-converter-v1"
+    or v02_parasolid_observer_predecessor.get("report")
+    != "v02_parasolid_converter.json"
+    or v02_parasolid_observer_predecessor.get("required_probe")
+    != "v02_parasolid_converter"
+    or v02_parasolid_observer_predecessor.get("required_status")
+    != "PASS_PARTIAL_CAD_CAPABILITY"
+    or set(
+        v02_parasolid_observer_predecessor.get("required_assertions") or []
+    )
+    != expected_v02_converter_assertions
+    or set(v02_parasolid_observer_predecessor.get("artifacts") or [])
+    != {
+        "v02_parasolid_converter.json",
+        "product.x_t",
+        "parasolid_reimport.json",
+        "v02_face_inventory.json",
+        "source_chain.json",
+    }
+):
+    fail("V02 Parasolid topology observer profile contract changed")
+v02_parasolid_observer_source = (
+    APPROVED / v02_parasolid_observer_profile["script"]
+).read_text(encoding="utf-8")
+for invariant in (
+    'os.environ["AIRJET_PREDECESSOR_DIR"]',
+    "predecessor-manifest.json",
+    "predecessor_snapshot_before",
+    "predecessor_snapshot_after",
+    "GetGeometryFileAndSaveData",
+    'model_container.SendCommand(Language="Python", Command=model_script)',
+    "ExtAPI.DataModel.GeoData",
+    '+ relations.get("AdjacentBodies", [])',
+    "PERSISTED_BODY_NAME",
+    "role_binding_valid",
+    "observed_face_counts_match_parasolid_reimport",
+    "solver_shape_matches_parasolid_reimport",
+    "coincident_geometry_pairs == expected_orifice_count",
+    "route_assessment_basis",
+    "PASS_CANDIDATE_ROUTE_TO_MESH",
+    "NOT_EVALUATED_NO_MESH",
+    '"formal_006_completion": False',
+    '"p1_stage_gate": "NOT_RUN"',
+    '"p1_p6_gates": "NOT_RUN"',
+):
+    if invariant not in v02_parasolid_observer_source:
+        fail("V02 Parasolid topology observer lacks invariant: " + invariant)
+try:
+    compile(
+        v02_parasolid_converter_source,
+        "v02_parasolid_converter.py",
+        "exec",
+    )
+    compile(
+        v02_parasolid_observer_source,
+        "v02_parasolid_topology_observer.wbjn",
+        "exec",
+    )
+except SyntaxError as exc:
+    fail(f"V02 Parasolid approved script is invalid: {exc}")
+for path in (V02_PARASOLID_RUNNER, V02_PARASOLID_RUNNER_TEST):
     assert_python39_static_compatibility(path)
 
 native_profile = by_profile_id.get("ajm005-workbench-transfer-t1-v1")

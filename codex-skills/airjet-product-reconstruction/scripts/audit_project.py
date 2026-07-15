@@ -40,7 +40,16 @@ REQUIRED = [
     "airjet-simulation/windows-prompts/AJM_WIN_ANSYS_OFFICIAL_TRIAL_INSTALL_AND_SMOKE_004.md",
     "airjet-simulation/windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md",
     "airjet-simulation/windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md",
+    "airjet-simulation/windows-prompts/AJM_WIN_V02_TOPOLOGY_OBSERVER_006.md",
+    "airjet-simulation/windows-prompts/AJM_WIN_V02_PARASOLID_TOPOLOGY_OBSERVER_006.md",
     "airjet-simulation/automation/ansys/profiles.json",
+    "airjet-simulation/automation/ansys/approved/006/v02_preliminary_topology_observer.wbjn",
+    "airjet-simulation/automation/ansys/run_v02_topology_observer_006.py",
+    "airjet-simulation/automation/ansys/test_run_v02_topology_observer_006.py",
+    "airjet-simulation/automation/ansys/approved/006/v02_parasolid_converter.py",
+    "airjet-simulation/automation/ansys/approved/006/v02_parasolid_topology_observer.wbjn",
+    "airjet-simulation/automation/ansys/run_v02_parasolid_topology_006.py",
+    "airjet-simulation/automation/ansys/test_run_v02_parasolid_topology_006.py",
     "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
     "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
     "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py",
@@ -1565,6 +1574,8 @@ def main() -> int:
                 "ajm005-workbench-semantic-reconstruction-t1-v2",
                 "ajm006-spaceclaim-v02-preliminary-v1",
                 "ajm006-workbench-v02-topology-observer-v1",
+                "ajm006-spaceclaim-v02-parasolid-converter-v1",
+                "ajm006-workbench-v02-parasolid-topology-observer-v1",
             }
             if (
                 set(profile_data) != {"schema_version", "production_contracts", "profiles"}
@@ -1678,7 +1689,7 @@ def main() -> int:
             )
             if (
                 completed_policy.returncode != 0
-                or "AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=12 tools=5"
+                or "AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=14 tools=5"
                 not in completed_policy.stdout
             ):
                 failures.append(

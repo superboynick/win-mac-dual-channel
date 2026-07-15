@@ -1385,6 +1385,22 @@
 - Gate/论文影响：`formal_006_completion=false`；P1--P6 `NOT_RUN`。
 - 状态：PASS_PRELIMINARY_OBSERVER_ROUTE_REJECTED
 
+## REAL-20260715-058：Parasolid pilot 只完成 Mac 静态包，Windows terminal 尚未运行
+
+- Stage/task：006 V02 Parasolid x_t route discovery static preparation。
+- 实际：新增 native→x_t converter、x_t→Workbench/Mechanical observer、同进程三阶段 runner、
+  两个 hash-pinned diagnostic profiles 和固定 Windows prompt。
+- 静态结果：runner guards 16/16 PASS；MCP policy `14 profiles / 5 tools` PASS；Mac project audit
+  `144 required files` PASS；converter/observer 脚本 SHA 分别为 `f330ce67...` / `624dbb7d...`。
+- 审计修复：逐对共面几何、`AdjacentBodies`、逐角色 face-count/bbox/volume、predecessor 完整树和
+  manifest 不可变、staging exact、manifest job/phase terminal binding，以及过强 topology-preserved
+  措辞均已收紧。
+- 未观察：Windows/ANSYS 未运行；没有 `product.x_t`、converter report、Mechanical inventory、
+  `.wbpj` 或 route assessment 的真实 terminal evidence。
+- Gate/论文影响：NONE；只能写“静态诊断包已准备”，不能写 x_t 路线成功/失败、mesh 或 P1 结果。
+- 下一步：等待用户确认 Windows 恢复，再从 signed `GIT_READY` 执行唯一固定 runner；失败也原样保留。
+- 状态：STATIC_READY_WINDOWS_NOT_RUN
+
 ## 新条目模板
 
 ```text

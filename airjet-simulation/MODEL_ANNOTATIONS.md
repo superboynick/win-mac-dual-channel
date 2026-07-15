@@ -198,3 +198,30 @@
 **决定**：否决当前 STEP 两区 handoff。下一步改变 native/connected/re-authoring 或受审 solver-side interface reconstruction 表示，并重新 observer；修复前不注册正式九变体 profiles。`formal_006_completion=false`，P1--P6 均 `NOT_RUN`。
 
 **追溯**：`automation/ansys/approved/006/v02_preliminary_topology_observer.wbjn`、`automation/ansys/run_v02_topology_observer_006.py`、`windows-prompts/AJM_WIN_V02_TOPOLOGY_OBSERVER_006.md`、`logs/evidence/AJM006_V02_TOPOLOGY_OBSERVER_20260715T122907417508Z_2fb76257a827/`。
+
+## AJM-P1-GEO-005：V02 Parasolid x_t solver-handoff 诊断候选
+
+日期：2026-07-15
+状态：Mac 静态包 PASS；Windows/ANSYS `NOT_RUN`；正式 006 与 P1 Gate 未运行
+
+**单一改变**：保持完整 V02、12-cell/972-hole、两流体区、参数和 Mechanical 分类目标不变，
+只把 solver handoff 候选从 STEP 改为 Parasolid x_t。STEP 继续输出/保留作归档，不把 x_t 冒充
+通用 STEP transfer。
+
+**转换边界**：converter 只从冻结 native 的 job-local staging 副本导出 x_t 并回读，要求两体
+single-piece/closed/manifold、逐体 face count、bbox/volume envelope 在记录容差内；它明确是
+representation conversion，不声称 interface topology 已证明，也不修改 predecessor native。
+
+**observer 硬门**：Workbench/Mechanical 按 name/z 绑定角色，逐角色比较 solver 与 x_t 回读的
+face count、bbox、volume；孔口 shared/coincident 判定还要求 972 点 XY、`AdjacentBodies` 和逐对
+centroid/plane/bbox/area/normal。观察链 PASS 与 `PASS_CANDIDATE_ROUTE_TO_MESH` 分离；后者也不等于
+mesh/shared nodes/P1 PASS。
+
+**当前结果**：仅 CPython/embedded-script 静态检查、16 项 runner guard、14-profile MCP policy 和
+144-file Mac audit PASS。没有真实 `product.x_t`、Mechanical inventory 或 `.wbpj`，故不得写路线成功
+或失败。
+
+**追溯**：`automation/ansys/approved/006/v02_parasolid_converter.py`、
+`automation/ansys/approved/006/v02_parasolid_topology_observer.wbjn`、
+`automation/ansys/run_v02_parasolid_topology_006.py`、
+`windows-prompts/AJM_WIN_V02_PARASOLID_TOPOLOGY_OBSERVER_006.md`。
