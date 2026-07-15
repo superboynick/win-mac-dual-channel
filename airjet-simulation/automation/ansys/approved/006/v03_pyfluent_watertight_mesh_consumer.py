@@ -93,6 +93,10 @@ STUDENT_ENTITY_LIMIT = 1_000_000
 THROAT_COUNT = 972
 THROAT_RADIUS_MM = 0.125
 THROAT_Z_MID_MM = 1.5675
+SURFACE_MIN_SIZE_MM = 0.05
+SURFACE_MAX_SIZE_MM = 0.75
+THROAT_LOCAL_SIZE_MM = 0.075
+VOLUME_MAX_SIZE_MM = 0.75
 
 
 def sha256_file(path: Path) -> str:
@@ -399,10 +403,11 @@ result: dict[str, Any] = {
         "precision": "DOUBLE",
         "processor_count": 1,
         "ui_mode": "NO_GUI_OR_GRAPHICS",
-        "surface_min_size_mm": 0.025,
-        "surface_max_size_mm": 0.5,
-        "throat_local_size_mm": 0.05,
-        "volume_max_size_mm": 0.5,
+        "surface_min_size_mm": SURFACE_MIN_SIZE_MM,
+        "surface_max_size_mm": SURFACE_MAX_SIZE_MM,
+        "throat_local_size_mm": THROAT_LOCAL_SIZE_MM,
+        "volume_max_size_mm": VOLUME_MAX_SIZE_MM,
+        "resolution_class": "STUDENT_COARSE_TOPOLOGY_DIAGNOSTIC_C1",
         "cad_one_zone_per": "face",
         "student_cell_limit": STUDENT_ENTITY_LIMIT,
         "student_node_limit": STUDENT_ENTITY_LIMIT,
@@ -540,10 +545,10 @@ try:
     local = workflow.add_local_sizing_wtm
     child = local.add_child_and_update(
         state={
-            "boi_control_name": "throat-face-size-0p05mm",
+            "boi_control_name": "throat-face-size-0p075mm",
             "boi_zoneor_label": "zone",
             "boi_face_zone_list": throat_zone_names,
-            "boi_size": 0.05,
+            "boi_size": THROAT_LOCAL_SIZE_MM,
         },
         defer_update=False,
     )
@@ -552,8 +557,8 @@ try:
     result["assertions"]["throat_local_sizing_contract"] = True
 
     surface = workflow.create_surface_mesh
-    surface.cfd_surface_mesh_controls.min_size = 0.025
-    surface.cfd_surface_mesh_controls.max_size = 0.5
+    surface.cfd_surface_mesh_controls.min_size = SURFACE_MIN_SIZE_MM
+    surface.cfd_surface_mesh_controls.max_size = SURFACE_MAX_SIZE_MM
     surface()
     result["assertions"]["surface_mesh"] = True
 
@@ -601,7 +606,7 @@ try:
     workflow.update_regions()
     volume_mesh = workflow.create_volume_mesh_wtm
     volume_mesh.volume_fill = "poly-hexcore"
-    volume_mesh.volume_fill_controls.hex_max_cell_length = 0.5
+    volume_mesh.volume_fill_controls.hex_max_cell_length = VOLUME_MAX_SIZE_MM
     volume_mesh()
     result["assertions"]["volume_mesh"] = True
 

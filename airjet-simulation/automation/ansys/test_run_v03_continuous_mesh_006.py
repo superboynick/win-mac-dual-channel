@@ -100,10 +100,11 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "precision": "DOUBLE",
             "processor_count": 1,
             "ui_mode": "NO_GUI_OR_GRAPHICS",
-            "surface_min_size_mm": 0.025,
-            "surface_max_size_mm": 0.5,
-            "throat_local_size_mm": 0.05,
-            "volume_max_size_mm": 0.5,
+            "surface_min_size_mm": 0.05,
+            "surface_max_size_mm": 0.75,
+            "throat_local_size_mm": 0.075,
+            "volume_max_size_mm": 0.75,
+            "resolution_class": "STUDENT_COARSE_TOPOLOGY_DIAGNOSTIC_C1",
             "student_cell_limit": 1_000_000,
             "student_node_limit": 1_000_000,
         },
@@ -144,7 +145,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
 
 def test_consumer_report_accepts_exact_contract() -> None:
     assert runner.CONSUMER_SCRIPT_SHA256 == (
-        "74c6829edf88e35e7a80e49cdba048063b6bf188ad706cf0f3a6c4417f9a88ce"
+        "8e397683c7bbb534213e632f71b40e15516e94fd1abe337aae16f0a3f348db35"
     )
     report, state, manifest = valid_report_state_manifest()
     assert runner.validate_consumer_report(manifest, state, HEAD) == report

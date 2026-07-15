@@ -49,6 +49,10 @@ def test_exact_profile_and_assertion_contract() -> None:
     assert len(assertions) == 17 and len(set(assertions)) == 17
     assert values["STUDENT_ENTITY_LIMIT"] == 1_000_000
     assert values["THROAT_COUNT"] == 972
+    assert values["SURFACE_MIN_SIZE_MM"] == 0.05
+    assert values["SURFACE_MAX_SIZE_MM"] == 0.75
+    assert values["THROAT_LOCAL_SIZE_MM"] == 0.075
+    assert values["VOLUME_MAX_SIZE_MM"] == 0.75
 
 
 def test_launch_is_v261_mesh_only_and_single_process() -> None:
@@ -109,10 +113,10 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         '"import_face_zone_inventory_completed"',
         "local.add_child_and_update(",
         '"boi_face_zone_list": throat_zone_names',
-        '"boi_size": 0.05',
+        '"boi_size": THROAT_LOCAL_SIZE_MM',
         "workflow.create_surface_mesh",
-        "surface.cfd_surface_mesh_controls.min_size = 0.025",
-        "surface.cfd_surface_mesh_controls.max_size = 0.5",
+        "surface.cfd_surface_mesh_controls.min_size = SURFACE_MIN_SIZE_MM",
+        "surface.cfd_surface_mesh_controls.max_size = SURFACE_MAX_SIZE_MM",
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=False)",
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=True)",
         "workflow.update_boundaries.boundary_zone_list",
@@ -123,7 +127,7 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.update_regions()",
         "workflow.create_volume_mesh_wtm",
         'volume_mesh.volume_fill = "poly-hexcore"',
-        "volume_mesh.volume_fill_controls.hex_max_cell_length = 0.5",
+        "volume_mesh.volume_fill_controls.hex_max_cell_length = VOLUME_MAX_SIZE_MM",
     ):
         assert required in SOURCE
     for forbidden in (

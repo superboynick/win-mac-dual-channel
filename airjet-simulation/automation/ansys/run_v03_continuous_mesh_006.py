@@ -26,7 +26,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "74c6829edf88e35e7a80e49cdba048063b6bf188ad706cf0f3a6c4417f9a88ce"
+CONSUMER_SCRIPT_SHA256 = "8e397683c7bbb534213e632f71b40e15516e94fd1abe337aae16f0a3f348db35"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -253,10 +253,11 @@ def validate_consumer_report(
         "precision": "DOUBLE",
         "processor_count": 1,
         "ui_mode": "NO_GUI_OR_GRAPHICS",
-        "surface_min_size_mm": 0.025,
-        "surface_max_size_mm": 0.5,
-        "throat_local_size_mm": 0.05,
-        "volume_max_size_mm": 0.5,
+        "surface_min_size_mm": 0.05,
+        "surface_max_size_mm": 0.75,
+        "throat_local_size_mm": 0.075,
+        "volume_max_size_mm": 0.75,
+        "resolution_class": "STUDENT_COARSE_TOPOLOGY_DIAGNOSTIC_C1",
         "student_cell_limit": 1_000_000,
         "student_node_limit": 1_000_000,
     }:
