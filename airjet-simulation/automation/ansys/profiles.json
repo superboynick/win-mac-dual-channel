@@ -539,6 +539,18 @@
           "v03_source_chain.json"
         ]
       }
+    },
+    {
+      "profile_id": "ajm008-spaceclaim-p2-s0-equivalent-plate-v1",
+      "engine": "spaceclaim",
+      "script": "008/p2_s0_equivalent_plate_producer.py",
+      "sha256": "8681318dadbb14556980dd38bd7d49be681f2e85fa4f39e24a0f84aa171619f4",
+      "timeout_seconds": 900,
+      "output_root_id": "p2_structural_008",
+      "reports": [
+        "p2_s0_equivalent_plate_producer.json"
+      ],
+      "predecessor": null
     }
   ]
 }

@@ -1,0 +1,92 @@
+{
+  "case_id": "AJM-P2-S0-EQ-M7-C005",
+  "claim_ceiling": "PASS_PRE_GATE_P2_S0_EQUIVALENT_PLATE_BASELINE",
+  "formal_p2_gate": "NOT_RUN",
+  "geometry": {
+    "anchor": {
+      "boolean_overlap_mm": 0.001,
+      "depth_mm": 0.05,
+      "evidence_class": "C",
+      "product_fact": false,
+      "status": "topology_placeholder",
+      "width_mm": 2.25
+    },
+    "expected_bbox_max_mm": [
+      3.5,
+      3.5,
+      0.275
+    ],
+    "expected_bbox_min_mm": [
+      -3.5,
+      -3.5,
+      -0.05
+    ],
+    "expected_union_volume_mm3": 13.728125,
+    "plate_side_mm": 7.0,
+    "plate_thickness": {
+      "evidence_class": "P",
+      "product_fact": false,
+      "source_boundary": "8_mm_patent_example_cross_size_placeholder",
+      "value_mm": 0.275
+    },
+    "perimeter_constraint": "FREE_NO_CAD_CONSTRAINT_DEFINED",
+    "representation": "one_connected_solid_plate_plus_central_anchor",
+    "step_named_selection_transfer": "NOT_ASSUMED"
+  },
+  "material_contract": {
+    "candidate_table": "airjet-simulation/parameters/p2_s0_equivalent_material_candidates.csv",
+    "design": "paired_candidate_bundle_not_factorial",
+    "interpretation": "controlled_equivalent_property_sensitivity_not_product_material_identification",
+    "required_evidence_class": "C"
+  },
+  "p1_p6_gates": "NOT_RUN",
+  "product_id": "AIRJET_MINI_GEN1",
+  "schema_version": 1,
+  "semantic_roles": {
+    "NS_ANCHOR_FIXED": 1,
+    "NS_EQ_BODY": 1,
+    "NS_MEMBRANE_ALL": 1,
+    "NS_MEMBRANE_TOP": 1,
+    "NS_TIP_X_MINUS": 1,
+    "NS_TIP_X_PLUS": 1
+  },
+  "source_cell": {
+    "cell_id": "CELL_005",
+    "frame_origin_mm": [
+      0.0,
+      -3.625,
+      0.0
+    ],
+    "local_model_origin_reset": true
+  },
+  "source_configuration_id": "AJM006_GEN1_CFG_M-3x4-7.0",
+  "source_variant_id": "M-3x4-7.0__R50_BALANCED",
+  "task": "AJM_P2_S0_EQUIVALENT_CENTRAL_ANCHOR_CONTRACT",
+  "workflow": {
+    "harmonic": {
+      "damping_candidates": [
+        0.005,
+        0.015,
+        0.03
+      ],
+      "frequency_max_hz": 30000.0,
+      "frequency_min_hz": 15000.0,
+      "unit_pressure_pa": 1.0
+    },
+    "mesh_size_candidates_mm": [
+      0.25,
+      0.16,
+      0.1
+    ],
+    "modal": {
+      "maximum_modes": 20,
+      "search_max_hz": 50000.0,
+      "search_min_hz": 1000.0,
+      "target_prior_hz": 22000.0,
+      "target_prior_range_hz": [
+        20000.0,
+        25000.0
+      ]
+    }
+  }
+}

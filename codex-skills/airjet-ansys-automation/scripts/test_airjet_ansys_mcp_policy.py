@@ -62,6 +62,10 @@ V03_CONTINUOUS_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys"
 V03_MESH_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v03_continuous_mesh_006.py"
 V03_MESH_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_run_v03_continuous_mesh_006.py"
 V03_MESH_CONSUMER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_v03_pyfluent_watertight_mesh_consumer.py"
+P2_S0_CONTRACT_TEST = V2_CONTRACT_ROOT / "test_p2_s0_equivalent_plate_v1.py"
+P2_S0_PRODUCER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_p2_s0_equivalent_plate_producer.py"
+P2_S0_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_p2_s0_equivalent_plate_008.py"
+P2_S0_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_run_p2_s0_equivalent_plate_008.py"
 T1_PREDECESSOR_NEGATIVE = (
     SKILL_ROOT / "scripts" / "test_t1_predecessor_negative.py"
 )
@@ -318,6 +322,11 @@ expected_dependency_git_paths = {
         "airjet-simulation/parameters/full_product_parameter_registry.csv",
         "airjet-simulation/automation/ansys/contracts/v03_finite_throat_route_v1.json",
         "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
+        "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
+    ),
+    "ajm008-spaceclaim-p2-s0-equivalent-plate-v1": (
+        "airjet-simulation/automation/ansys/contracts/p2_s0_equivalent_plate_v1.json",
+        "airjet-simulation/parameters/p2_s0_equivalent_material_candidates.csv",
         "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
     ),
 }
@@ -1422,6 +1431,7 @@ expected_profile_ids = {
     "ajm006-workbench-v02-parasolid-topology-observer-v1",
     "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
     "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
+    "ajm008-spaceclaim-p2-s0-equivalent-plate-v1",
 }
 if profile_ids != expected_profile_ids:
     fail(f"approved profile set is not exact: {sorted(profile_ids)}")
@@ -1935,6 +1945,77 @@ for path in (
     v03_mesh_source_path,
 ):
     assert_python39_static_compatibility(path)
+
+p2_s0_profile = by_profile_id[
+    "ajm008-spaceclaim-p2-s0-equivalent-plate-v1"
+]
+p2_s0_source_path = APPROVED / p2_s0_profile["script"]
+if (
+    p2_s0_profile.get("engine") != "spaceclaim"
+    or p2_s0_profile.get("script")
+    != "008/p2_s0_equivalent_plate_producer.py"
+    or p2_s0_profile.get("timeout_seconds") != 900
+    or p2_s0_profile.get("output_root_id") != "p2_structural_008"
+    or p2_s0_profile.get("reports")
+    != ["p2_s0_equivalent_plate_producer.json"]
+    or p2_s0_profile.get("predecessor") is not None
+):
+    fail("P2 S0 equivalent-plate producer profile contract changed")
+if (
+    hashlib.sha256(p2_s0_source_path.read_bytes()).hexdigest()
+    != p2_s0_profile.get("sha256")
+):
+    fail("P2 S0 equivalent-plate producer script hash differs")
+p2_s0_source = p2_s0_source_path.read_text(encoding="utf-8")
+for invariant in (
+    'os.environ["AIRJET_PROFILE_DEPENDENCY_DIR"]',
+    "verify_dependency_bundle",
+    '"p2_s0_equivalent_plate_v1.json"',
+    '"p2_s0_equivalent_material_candidates.csv"',
+    '"variant_02_m_3x4_7_0_r50_balanced.json"',
+    "Combine.Merge(",
+    '"NS_ANCHOR_FIXED": 1',
+    '"step_named_selection_transfer": "NOT_ASSUMED"',
+    '"formal_p2_completion": False',
+    '"p2_stage_gate": "NOT_RUN"',
+    '"mechanical": "NOT_RUN"',
+    '"modal": "NOT_RUN"',
+    '"harmonic": "NOT_RUN"',
+    '"status"] = "PASS_PARTIAL_CAD_CAPABILITY"',
+):
+    if invariant not in p2_s0_source:
+        fail("P2 S0 equivalent-plate producer lacks invariant: " + invariant)
+for forbidden in (
+    'os.environ["AIRJET_REPO_ROOT"]',
+    "PASS_P2_GATE",
+    "launch_fluent(",
+    "pymechanical",
+):
+    if forbidden in p2_s0_source:
+        fail("P2 S0 equivalent-plate producer contains forbidden action: " + forbidden)
+for path in (
+    p2_s0_source_path,
+    P2_S0_CONTRACT_TEST,
+    P2_S0_PRODUCER_TEST,
+    P2_S0_RUNNER,
+    P2_S0_RUNNER_TEST,
+):
+    assert_python39_static_compatibility(path)
+for test_path, success_token in (
+    (P2_S0_CONTRACT_TEST, "AJM_P2_S0_EQUIVALENT_PLATE_CONTRACT=PASS_ALL"),
+    (P2_S0_PRODUCER_TEST, "AJM_P2_S0_EQUIVALENT_PLATE_PRODUCER_GUARDS=PASS_ALL"),
+    (P2_S0_RUNNER_TEST, "AJM_P2_S0_EQUIVALENT_PLATE_RUNNER_GUARDS=PASS_ALL"),
+):
+    completed = subprocess.run(
+        [sys.executable, "-B", str(test_path)],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+        env=test_environment,
+    )
+    if completed.returncode != 0 or success_token not in completed.stdout:
+        fail("P2 S0 static regression failed: " + str(test_path))
 
 v02_observer_profile = by_profile_id[
     "ajm006-workbench-v02-topology-observer-v1"

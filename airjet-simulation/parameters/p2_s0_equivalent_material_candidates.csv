@@ -1,0 +1,4 @@
+candidate_id,youngs_modulus_GPa,poissons_ratio,density_kg_m3,damping_ratio,evidence_class,status,source_logic,product_fact,allowed_claim
+EQ-A-Z005,70,0.30,7800,0.005,C,engineering_sensitivity_candidate,low_stiffness_bracket_with_density_held_fixed,false,equivalent_property_sensitivity_only
+EQ-B-Z015,120,0.30,7800,0.015,C,engineering_sensitivity_candidate,mid_stiffness_and_damping_bracket_with_density_held_fixed,false,equivalent_property_sensitivity_only
+EQ-C-Z030,200,0.30,7800,0.030,C,engineering_sensitivity_candidate,high_stiffness_and_damping_bracket_with_density_held_fixed,false,equivalent_property_sensitivity_only

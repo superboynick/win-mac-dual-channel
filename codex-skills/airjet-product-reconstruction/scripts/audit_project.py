@@ -62,6 +62,13 @@ REQUIRED = [
     "airjet-simulation/automation/ansys/run_v03_continuous_mesh_006.py",
     "airjet-simulation/automation/ansys/test_run_v03_continuous_mesh_006.py",
     "airjet-simulation/automation/ansys/test_v03_pyfluent_watertight_mesh_consumer.py",
+    "airjet-simulation/automation/ansys/approved/008/p2_s0_equivalent_plate_producer.py",
+    "airjet-simulation/automation/ansys/test_p2_s0_equivalent_plate_producer.py",
+    "airjet-simulation/automation/ansys/run_p2_s0_equivalent_plate_008.py",
+    "airjet-simulation/automation/ansys/test_run_p2_s0_equivalent_plate_008.py",
+    "airjet-simulation/automation/ansys/contracts/p2_s0_equivalent_plate_v1.json",
+    "airjet-simulation/automation/ansys/contracts/test_p2_s0_equivalent_plate_v1.py",
+    "airjet-simulation/parameters/p2_s0_equivalent_material_candidates.csv",
     "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
     "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
     "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py",
@@ -1593,6 +1600,7 @@ def main() -> int:
                 "ajm006-workbench-v02-parasolid-topology-observer-v1",
                 "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
                 "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
+                "ajm008-spaceclaim-p2-s0-equivalent-plate-v1",
             }
             if (
                 set(profile_data) != {"schema_version", "production_contracts", "profiles"}
@@ -1706,7 +1714,7 @@ def main() -> int:
             )
             if (
                 completed_policy.returncode != 0
-                or "AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=19 tools=5"
+                or "AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=20 tools=5"
                 not in completed_policy.stdout
             ):
                 failures.append(

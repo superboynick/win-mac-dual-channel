@@ -51,6 +51,7 @@ OUTPUT_ROOTS = {
         r"C:\Users\admin\Downloads\AIRJET_ANSYS_STUDENT_SMOKE_005"
     ),
     "p1_cad_006": Path(r"D:\AirJet_P1\AJM-P1-CAD-006"),
+    "p2_structural_008": Path(r"D:\AirJet_P2\AJM-P2-STRUCTURAL-008"),
 }
 ENGINE_EXECUTABLES = {
     "spaceclaim": SPACECLAIM,
@@ -137,6 +138,11 @@ PROFILE_DEPENDENCY_GIT_PATHS = {
         "airjet-simulation/parameters/full_product_parameter_registry.csv",
         "airjet-simulation/automation/ansys/contracts/v03_finite_throat_route_v1.json",
         "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
+        "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
+    ),
+    "ajm008-spaceclaim-p2-s0-equivalent-plate-v1": (
+        "airjet-simulation/automation/ansys/contracts/p2_s0_equivalent_plate_v1.json",
+        "airjet-simulation/parameters/p2_s0_equivalent_material_candidates.csv",
         "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
     ),
 }
