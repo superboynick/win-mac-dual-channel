@@ -41,10 +41,13 @@ REQUIRED = [
     "airjet-simulation/windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md",
     "airjet-simulation/windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md",
     "airjet-simulation/windows-prompts/AJM_WIN_V02_TOPOLOGY_OBSERVER_006.md",
+    "airjet-simulation/windows-prompts/AJM_WIN_V02_NATIVE_MESH_CONFORMALITY_006.md",
     "airjet-simulation/windows-prompts/AJM_WIN_V02_PARASOLID_TOPOLOGY_OBSERVER_006.md",
     "airjet-simulation/automation/ansys/profiles.json",
     "airjet-simulation/automation/ansys/approved/006/v02_preliminary_topology_observer.wbjn",
     "airjet-simulation/automation/ansys/run_v02_topology_observer_006.py",
+    "airjet-simulation/automation/ansys/run_v02_native_topology_observer_006.py",
+    "airjet-simulation/automation/ansys/run_v02_native_mesh_conformality_006.py",
     "airjet-simulation/automation/ansys/test_run_v02_topology_observer_006.py",
     "airjet-simulation/automation/ansys/approved/006/v02_parasolid_converter.py",
     "airjet-simulation/automation/ansys/approved/006/v02_parasolid_topology_observer.wbjn",
@@ -1575,6 +1578,7 @@ def main() -> int:
                 "ajm006-spaceclaim-v02-preliminary-v1",
                 "ajm006-workbench-v02-topology-observer-v1",
                 "ajm006-workbench-v02-native-topology-observer-v1",
+                "ajm006-workbench-v02-native-mesh-conformality-observer-v1",
                 "ajm006-spaceclaim-v02-parasolid-converter-v1",
                 "ajm006-spaceclaim-v02-split-step-converter-v1",
                 "ajm006-workbench-v02-parasolid-topology-observer-v1",
@@ -1691,7 +1695,7 @@ def main() -> int:
             )
             if (
                 completed_policy.returncode != 0
-                or "AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=16 tools=5"
+                or "AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=17 tools=5"
                 not in completed_policy.stdout
             ):
                 failures.append(

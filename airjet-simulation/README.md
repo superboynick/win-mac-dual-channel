@@ -50,6 +50,7 @@
 - `windows-prompts/AJM_WIN_V02_TOPOLOGY_OBSERVER_006.md`：已完成的 V02 Workbench/Mechanical topology observer 历史入口；修正版确认当前 STEP handoff 只保留 downstream 972 个孔印记而丢失 upstream 对应界面，不重复运行。
 - `windows-prompts/AJM_WIN_V02_PARASOLID_TOPOLOGY_OBSERVER_006.md`：已完成的失败诊断入口；官方 v261 export options 下仍未生成 x_t，未启动 observer，不代表整机几何失败。
 - `automation/ansys/run_v02_native_topology_observer_006.py`：一轮实跑确认 972 shared single-face membership，另一轮在 Workbench Refresh attach 失败；当前进入 repeatability/mesh conformality 诊断，P1 未通过。
+- `automation/ansys/run_v02_native_mesh_conformality_006.py`：已冻结的 0.5 mm、无物理 Mechanical 共节点诊断；静态审计完成，Windows 实跑结果尚未写入。
 - `automation/ansys/run_v02_split_step_converter_006.py`：已静态冻结的 fallback；仅在 native 重复性路线继续失败时运行独立 upstream/downstream STEP 转换与回读。
 - `logs/evidence/AJM006_V02_PRELIMINARY_20260715T113939945030Z_1082d551ee85/`：V02 PASS 凝练证据；三轮 113-file 原始副本另存 Mac/Windows Downloads ZIP，六产物与 ZIP 的大小/SHA 见该目录 `evidence-summary.json`。正式 P1 的 `logs/external-files.csv` 在 P1 前保持 canonical empty。
 - `logs/evidence/AJM006_V02_TOPOLOGY_OBSERVER_20260715T122149298547Z_2bdb5b95702a/` 与 `...T122907417508Z_2fb76257a827/`：首次及修正版 topology observer 凝练证据；首次 inventory 保留但角色分类被修正版取代。修正版 PASS 表示观测闭合，不是 mesh、formal 006 或 P1 PASS。

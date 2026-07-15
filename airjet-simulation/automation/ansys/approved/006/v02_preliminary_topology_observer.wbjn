@@ -11,17 +11,27 @@ job_dir = os.environ["AIRJET_JOB_DIR"]
 predecessor_dir = os.environ["AIRJET_PREDECESSOR_DIR"]
 profile_id = os.environ.get("AIRJET_PROFILE_ID")
 NATIVE_PROFILE = "ajm006-workbench-v02-native-topology-observer-v1"
-native_route = profile_id == NATIVE_PROFILE
+NATIVE_MESH_PROFILE = (
+    "ajm006-workbench-v02-native-mesh-conformality-observer-v1"
+)
+mesh_route = profile_id == NATIVE_MESH_PROFILE
+native_route = profile_id in (NATIVE_PROFILE, NATIVE_MESH_PROFILE)
 report_name = (
-    "v02_native_topology_observer.json"
+    "v02_native_mesh_conformality_observer.json"
+    if mesh_route
+    else "v02_native_topology_observer.json"
     if native_route else "v02_preliminary_topology_observer.json"
 )
 inspection_name = (
-    "v02_native_solver_topology_inventory.json"
+    "v02_native_mesh_conformality_inventory.json"
+    if mesh_route
+    else "v02_native_solver_topology_inventory.json"
     if native_route else "v02_solver_topology_inventory.json"
 )
 project_name = (
-    "v02_native_topology_observer.wbpj"
+    "v02_native_mesh_conformality_observer.wbpj"
+    if mesh_route
+    else "v02_native_topology_observer.wbpj"
     if native_route else "v02_preliminary_topology_observer.wbpj"
 )
 report_path = os.path.join(job_dir, report_name)
@@ -64,11 +74,15 @@ REQUIRED_ASSERTIONS = (
 result = {
     "schema_version": 1,
     "task": (
-        "AJM006_V02_NATIVE_TOPOLOGY_OBSERVER"
+        "AJM006_V02_NATIVE_MESH_CONFORMALITY_OBSERVER"
+        if mesh_route
+        else "AJM006_V02_NATIVE_TOPOLOGY_OBSERVER"
         if native_route else "AJM006_V02_PRELIMINARY_TOPOLOGY_OBSERVER"
     ),
     "probe": (
-        "v02_native_topology_observer"
+        "v02_native_mesh_conformality_observer"
+        if mesh_route
+        else "v02_native_topology_observer"
         if native_route else "v02_preliminary_topology_observer"
     ),
     "status": "FAIL_PRELIMINARY_OBSERVER",
@@ -78,11 +92,17 @@ result = {
     "p1_p6_gates": "NOT_RUN",
     "license_arguments_added": False,
     "diagnostic_only": True,
+    "mesh": "PENDING_DIAGNOSTIC" if mesh_route else "NOT_RUN",
+    "physics": "NOT_RUN",
+    "visibility": "NOT_USER_OBSERVED",
     "geometry_route": (
         "HASH_BOUND_NATIVE_STAGING_TO_WORKBENCH_MECHANICAL_GEODATA"
         if native_route else "HASH_BOUND_STEP_TO_WORKBENCH_MECHANICAL_GEODATA"
     ),
     "claim_boundary": (
+        "PRELIMINARY_MECHANICAL_SHARED_INTERFACE_NODE_ID_EVIDENCE_ONLY_"
+        "NOT_FLUENT_NOT_MESH_INDEPENDENCE_NOT_PHYSICS_NOT_FORMAL_006_NOT_P1"
+        if mesh_route else
         "IMPORT_TOPOLOGY_DISCOVERY_ONLY_NOT_MESH_OR_SHARED_NODE_PROOF"
     ),
     "topology_result": "NOT_EVALUATED",
@@ -101,10 +121,13 @@ result = {
         "geometry_import": "NOT_REACHED",
         "mechanical_inventory": "NOT_REACHED",
         "topology_classification": "NOT_REACHED",
+        "mesh_generation": "NOT_REACHED",
         "project_save": "NOT_REACHED",
     },
     "error": None,
 }
+if mesh_route:
+    result["assertions"]["mesh_conformality"] = False
 
 
 def sha256_file(path):
@@ -307,6 +330,7 @@ import traceback
 inspection_path = %r
 expected_geometry_sha256 = %r
 geometry_route = %r
+mesh_route = %r
 source_face_inventory_path = %r
 source_role_inventory_path = %r
 expected_orifice_count = %d
@@ -314,7 +338,10 @@ interface_z_mm = %.12f
 orifice_area_mm2 = %.16f
 inspection = {
     "schema_version": 1,
-    "probe": "v02_solver_topology_inventory",
+    "probe": (
+        "v02_native_mesh_conformality_inventory"
+        if mesh_route else "v02_solver_topology_inventory"
+    ),
     "status": "FAIL_OBSERVATION",
     "diagnostic_only": True,
     "formal_006_completion": False,
@@ -775,6 +802,171 @@ try:
         else:
             topology_detail = "UNRESOLVED_MIXED"
 
+    mesh_summary = {
+        "status": "NOT_RUN",
+        "conformality": "NOT_EVALUATED_NO_MESH",
+        "generation_reach": "NOT_REACHED",
+    }
+    if mesh_route:
+        try:
+            if (
+                topology_result != "972_SHARED_SINGLE_FACE"
+                or topology_detail != "SHARED_ID_MEMBERSHIP_CONFIRMED"
+                or len(shared_interface_candidate_ids) != expected_orifice_count
+            ):
+                raise Exception(
+                    "NATIVE_MESH_REQUIRES_SHARED_INTERFACE_TOPOLOGY"
+                )
+            mesh_summary.update({
+                "status": "PENDING",
+                "conformality": "NOT_EVALUATED_MESH_PENDING",
+                "generation_reach": "CALLED",
+                "element_size_mm": 0.5,
+            })
+            connection_objects = []
+            for connection in list(Model.Connections.Children):
+                connection_objects.append({
+                    "id": int(connection.ObjectId),
+                    "name": str(connection.Name),
+                    "category": str(connection.DataModelObjectCategory),
+                })
+            mesh_summary["connection_state"] = (
+                "PASS_NO_CONTACT_OR_CONNECTION_OBJECTS"
+                if not connection_objects
+                else "FAIL_UNEXPECTED_CONTACT_OR_CONNECTION_OBJECTS"
+            )
+            mesh_summary["connection_object_count"] = len(
+                connection_objects
+            )
+            mesh_summary["connection_objects"] = connection_objects
+            if connection_objects:
+                raise Exception(
+                    "NATIVE_MESH_UNEXPECTED_CONTACT_OR_CONNECTION_OBJECTS"
+                )
+            Model.Mesh.ElementSize = Quantity("0.5 [mm]")
+            Model.Mesh.GenerateMesh()
+            mesh_summary["generation_reach"] = "RETURNED"
+            mesh_data = ExtAPI.DataModel.MeshDataByName("Global")
+
+            def mesh_region(geometry_id):
+                return mesh_data.MeshRegionById(int(geometry_id))
+
+            upstream_body_region = mesh_region(upstream_id)
+            downstream_body_region = mesh_region(downstream_id)
+            upstream_body_node_ids = set(
+                int(item) for item in upstream_body_region.NodeIds
+            )
+            downstream_body_node_ids = set(
+                int(item) for item in downstream_body_region.NodeIds
+            )
+            shared_body_node_ids = (
+                upstream_body_node_ids & downstream_body_node_ids
+            )
+            interface_node_ids = set()
+            empty_interface_regions = []
+            nonshared_interface_regions = []
+            per_face_node_counts = {}
+            for face_id in shared_interface_candidate_ids:
+                face_node_ids = set(
+                    int(item) for item in mesh_region(face_id).NodeIds
+                )
+                per_face_node_counts[str(face_id)] = len(face_node_ids)
+                if not face_node_ids:
+                    empty_interface_regions.append(face_id)
+                if not face_node_ids <= shared_body_node_ids:
+                    nonshared_interface_regions.append(face_id)
+                interface_node_ids.update(face_node_ids)
+            unexpected_shared_node_ids = (
+                shared_body_node_ids - interface_node_ids
+            )
+            global_node_count = int(mesh_data.NodeCount)
+            global_element_count = int(mesh_data.ElementCount)
+            upstream_body_element_count = int(
+                upstream_body_region.ElementCount
+            )
+            downstream_body_element_count = int(
+                downstream_body_region.ElementCount
+            )
+            positive_mesh_counts = (
+                global_node_count > 0
+                and global_element_count > 0
+                and len(upstream_body_node_ids) > 0
+                and len(downstream_body_node_ids) > 0
+                and upstream_body_element_count > 0
+                and downstream_body_element_count > 0
+            )
+            mesh_conformal = (
+                positive_mesh_counts
+                and len(per_face_node_counts) == expected_orifice_count
+                and not empty_interface_regions
+                and not nonshared_interface_regions
+                and interface_node_ids
+                and interface_node_ids == shared_body_node_ids
+            )
+            mesh_summary.update({
+                "status": (
+                    "PASS_MESH_GENERATED" if mesh_conformal else "FAIL"
+                ),
+                "conformality": (
+                    "PASS_SHARED_INTERFACE_NODE_IDS"
+                    if mesh_conformal
+                    else "FAIL_SHARED_INTERFACE_NODE_IDS"
+                ),
+                "global_node_count": global_node_count,
+                "global_element_count": global_element_count,
+                "upstream_body_node_count": len(upstream_body_node_ids),
+                "upstream_body_element_count": upstream_body_element_count,
+                "downstream_body_node_count": len(downstream_body_node_ids),
+                "downstream_body_element_count": downstream_body_element_count,
+                "shared_body_node_count": len(shared_body_node_ids),
+                "interface_face_count": len(per_face_node_counts),
+                "interface_node_count": len(interface_node_ids),
+                "minimum_nodes_per_interface_face": (
+                    min(per_face_node_counts.values())
+                    if per_face_node_counts else 0
+                ),
+                "maximum_nodes_per_interface_face": (
+                    max(per_face_node_counts.values())
+                    if per_face_node_counts else 0
+                ),
+                "empty_interface_face_ids": sorted(empty_interface_regions),
+                "nonshared_interface_face_ids": sorted(
+                    nonshared_interface_regions
+                ),
+                "unexpected_shared_node_count": len(
+                    unexpected_shared_node_ids
+                ),
+                "unexpected_shared_node_ids_sample": sorted(
+                    unexpected_shared_node_ids
+                )[:100],
+            })
+            if not mesh_conformal:
+                raise Exception(
+                    "NATIVE_MESH_CONFORMALITY_ASSERTION_FAILED"
+                )
+        except Exception as mesh_error:
+            mesh_summary["status"] = "FAIL"
+            mesh_summary["error_type"] = type(mesh_error).__name__
+            mesh_summary["error"] = str(mesh_error)
+            if mesh_summary.get("generation_reach") == "CALLED":
+                mesh_summary["generation_reach"] = "FAILED"
+            inspection.update({
+                "topology_result": topology_result,
+                "topology_detail": topology_detail,
+                "partial_topology": {
+                    "body_count": len(body_details),
+                    "upstream_orifice_candidates": len(upstream_candidates),
+                    "downstream_orifice_candidates": len(
+                        downstream_candidates
+                    ),
+                    "shared_interface_candidate_count": len(
+                        shared_interface_candidate_ids
+                    ),
+                },
+                "mesh_summary": mesh_summary,
+            })
+            raise
+
     summary = {
         "body_count": len(body_details),
         "body_face_counts": [item["face_count"] for item in body_details],
@@ -828,7 +1020,12 @@ try:
             "area_is_diagnostic_not_match_anchor": True,
         },
         "shared_node_or_conformal_mesh": "NOT_EVALUATED_NO_MESH",
+        "mesh_summary": mesh_summary,
     }
+    if mesh_route:
+        summary["shared_node_or_conformal_mesh"] = mesh_summary[
+            "conformality"
+        ]
     inspection.update({
         "status": "PASS_OBSERVATION",
         "cad_unit": cad_unit,
@@ -853,6 +1050,7 @@ if inspection.get("status") != "PASS_OBSERVATION":
         inspection_path,
         expected_geometry_sha256,
         result["geometry_route"],
+        mesh_route,
         face_inventory_path,
         source_role_inventory_path,
         EXPECTED_ORIFICE_COUNT,
@@ -860,8 +1058,12 @@ if inspection.get("status") != "PASS_OBSERVATION":
         ORIFICE_AREA_MM2,
     )
     result["execution_reach"]["mechanical_inventory"] = "CALLED"
+    if mesh_route:
+        result["execution_reach"]["mesh_generation"] = "CALLED"
     model_container.SendCommand(Language="Python", Command=model_script)
     result["execution_reach"]["mechanical_inventory"] = "RETURNED"
+    if mesh_route:
+        result["execution_reach"]["mesh_generation"] = "RETURNED"
 
     inspection = read_json(inspection_path)
     summary = inspection.get("summary", {})
@@ -905,6 +1107,30 @@ if inspection.get("status") != "PASS_OBSERVATION":
     )
     result["assertions"]["solver_entity_inventory"] = inventory_ok
     result["assertions"]["topology_classified"] = topology_classified_ok
+    if mesh_route:
+        mesh_summary = summary.get("mesh_summary", {})
+        mesh_ok = (
+            mesh_summary.get("status") == "PASS_MESH_GENERATED"
+            and mesh_summary.get("conformality")
+            == "PASS_SHARED_INTERFACE_NODE_IDS"
+            and mesh_summary.get("interface_face_count")
+            == EXPECTED_ORIFICE_COUNT
+            and mesh_summary.get("interface_node_count", 0) > 0
+            and mesh_summary.get("global_node_count", 0) > 0
+            and mesh_summary.get("global_element_count", 0) > 0
+            and mesh_summary.get("connection_state")
+            == "PASS_NO_CONTACT_OR_CONNECTION_OBJECTS"
+            and mesh_summary.get("connection_object_count") == 0
+            and mesh_summary.get("upstream_body_element_count", 0) > 0
+            and mesh_summary.get("downstream_body_element_count", 0) > 0
+            and mesh_summary.get("unexpected_shared_node_count") == 0
+            and mesh_summary.get("empty_interface_face_ids") == []
+            and mesh_summary.get("nonshared_interface_face_ids") == []
+        )
+        result["assertions"]["mesh_conformality"] = mesh_ok
+        result["mesh"] = (
+            "PASS_SHARED_INTERFACE_NODE_IDS" if mesh_ok else "FAIL"
+        )
     result["topology_result"] = topology_result
     result["topology_detail"] = topology_detail
     compact_summary = {}
@@ -933,7 +1159,9 @@ if inspection.get("status") != "PASS_OBSERVATION":
             topology_detail
             == "UPSTREAM_ORIFICE_GEOMETRY_LOST_DOWNSTREAM_972_IMPRINTS_RETAINED"
         ),
-        "mesh_conformality": "NOT_EVALUATED_NO_MESH",
+        "mesh_conformality": summary.get(
+            "shared_node_or_conformal_mesh", "NOT_EVALUATED_NO_MESH"
+        ),
         "formal_semantic_contract": "NOT_EVALUATED_DISCOVERY_ONLY",
     }
 
@@ -947,6 +1175,13 @@ if inspection.get("status") != "PASS_OBSERVATION":
         and result["p1_stage_gate"] == "NOT_RUN"
         and result["p1_p6_gates"] == "NOT_RUN"
         and result["diagnostic_only"] is True
+        and result["visibility"] == "NOT_USER_OBSERVED"
+        and result["physics"] == "NOT_RUN"
+        and result["mesh"]
+        == (
+            "PASS_SHARED_INTERFACE_NODE_IDS"
+            if mesh_route else "NOT_RUN"
+        )
     )
     files = {}
     for role, path in (
@@ -988,7 +1223,9 @@ if inspection.get("status") != "PASS_OBSERVATION":
             and result["staging"]["unchanged_after_import"]
         )
     pass_status = (
-        "PASS_PRELIMINARY_NATIVE_TOPOLOGY_OBSERVATION"
+        "PASS_PRELIMINARY_NATIVE_MESH_CONFORMALITY_OBSERVATION"
+        if mesh_route
+        else "PASS_PRELIMINARY_NATIVE_TOPOLOGY_OBSERVATION"
         if native_route else "PASS_PRELIMINARY_TOPOLOGY_OBSERVATION"
     )
     if all(result["assertions"].values()):
@@ -1004,7 +1241,9 @@ except Exception as error:
 with open(report_path, "w") as handle:
     json.dump(result, handle, indent=2, sort_keys=True)
 expected_pass_status = (
-    "PASS_PRELIMINARY_NATIVE_TOPOLOGY_OBSERVATION"
+    "PASS_PRELIMINARY_NATIVE_MESH_CONFORMALITY_OBSERVATION"
+    if mesh_route
+    else "PASS_PRELIMINARY_NATIVE_TOPOLOGY_OBSERVATION"
     if native_route else "PASS_PRELIMINARY_TOPOLOGY_OBSERVATION"
 )
 if result["status"] != expected_pass_status:

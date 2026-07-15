@@ -45,7 +45,7 @@ PRODUCER_SCRIPT_SHA256 = producer_runner.PROFILE_SCRIPT_SHA256
 OBSERVER_PROFILE_ID = "ajm006-workbench-v02-topology-observer-v1"
 OBSERVER_SCRIPT_RELATIVE = "006/v02_preliminary_topology_observer.wbjn"
 OBSERVER_SCRIPT_SHA256 = (
-    "d41ffd4a53fb3c9cd7c9c95bd7240c6eda71ce4962673e3c3d696bfa5f152999"
+    "3df9bef91be72337e3f1b24a567b2125482d2c17e21b0e9a7be5a74029d6fcb0"
 )
 CASE_ID = producer_runner.CASE_ID
 EXPECTED_TOOLS = producer_runner.EXPECTED_TOOLS
@@ -82,6 +82,12 @@ EXPECTED_OBSERVER_ASSERTIONS = {
     "artifact_hashes",
     "claim_boundaries",
 }
+EXPECTED_REPORT_MESH = "NOT_RUN"
+EXPECTED_REPORT_PHYSICS = "NOT_RUN"
+EXPECTED_MESH_CONFORMALITY = "NOT_EVALUATED_NO_MESH"
+MESH_DIAGNOSTIC_REQUIRED = False
+OBSERVER_REPETITIONS = 1
+FIXED_INPUT_REPEATABILITY_REQUIRED = False
 VALID_TOPOLOGY_RESULTS = {
     "972_SHARED_SINGLE_FACE",
     "972_COINCIDENT_FACE_PAIRS",
@@ -139,6 +145,14 @@ def combined_preflight() -> dict[str, Any]:
                     or profile.get("reports") != [OBSERVER_REPORT]
                     or not isinstance(predecessor, dict)
                     or predecessor.get("profile_id") != PRODUCER_PROFILE_ID
+                    or predecessor.get("report")
+                    != "v02_preliminary_producer.json"
+                    or predecessor.get("required_probe")
+                    != "v02_preliminary_producer"
+                    or predecessor.get("required_status")
+                    != "PASS_PARTIAL_CAD_CAPABILITY"
+                    or set(predecessor.get("required_assertions") or [])
+                    != producer_runner.EXPECTED_REPORT_ASSERTIONS
                     or set(predecessor.get("artifacts") or [])
                     != EXPECTED_PREDECESSOR_ARTIFACTS
                 ):
@@ -294,6 +308,9 @@ def validate_observer_report(
         or report.get("p1_p6_gates") != "NOT_RUN"
         or report.get("diagnostic_only") is not True
         or report.get("license_arguments_added") is not False
+        or report.get("mesh") != EXPECTED_REPORT_MESH
+        or report.get("physics") != EXPECTED_REPORT_PHYSICS
+        or report.get("visibility") != "NOT_USER_OBSERVED"
     ):
         raise RuntimeError("OBSERVER_CLAIM_BOUNDARY_VIOLATION")
     identity = report.get("identity")
@@ -320,6 +337,23 @@ def validate_observer_report(
         or not all(assertions.values())
     ):
         raise RuntimeError("OBSERVER_ASSERTIONS_FAILED")
+    if OBSERVER_PROFILE_ID.startswith("ajm006-workbench-v02-native-"):
+        staging = report.get("staging")
+        predecessor_geometry_sha256 = report.get("predecessor", {}).get(
+            "geometry_sha256"
+        )
+        if (
+            not isinstance(staging, dict)
+            or not isinstance(predecessor_geometry_sha256, str)
+            or not re.fullmatch(r"[0-9a-f]{64}", predecessor_geometry_sha256)
+            or staging.get("source_sha256") != predecessor_geometry_sha256
+            or staging.get("copy_sha256") != predecessor_geometry_sha256
+            or staging.get("final_sha256") != predecessor_geometry_sha256
+            or staging.get("hash_equal") is not True
+            or staging.get("unchanged_after_import") is not True
+            or staging.get("edit_called") is not False
+        ):
+            raise RuntimeError("OBSERVER_NATIVE_STAGING_IDENTITY_MISMATCH")
     topology_result = report.get("topology_result")
     topology_detail = report.get("topology_detail")
     summary = report.get("observer_summary")
@@ -333,9 +367,45 @@ def validate_observer_report(
         or summary.get("total_body_face_references", 0) <= 0
         or summary.get("role_binding_by_predecessor_face_counts") is not True
         or summary.get("shared_node_or_conformal_mesh")
-        != "NOT_EVALUATED_NO_MESH"
+        != EXPECTED_MESH_CONFORMALITY
     ):
         raise RuntimeError("OBSERVER_TOPOLOGY_SUMMARY_INVALID")
+    if MESH_DIAGNOSTIC_REQUIRED:
+        mesh_summary = summary.get("mesh_summary")
+        claim_interpretation = report.get("claim_interpretation")
+        if (
+            topology_result != "972_SHARED_SINGLE_FACE"
+            or topology_detail != "SHARED_ID_MEMBERSHIP_CONFIRMED"
+            or not isinstance(mesh_summary, dict)
+            or mesh_summary.get("status") != "PASS_MESH_GENERATED"
+            or mesh_summary.get("conformality")
+            != "PASS_SHARED_INTERFACE_NODE_IDS"
+            or mesh_summary.get("generation_reach") != "RETURNED"
+            or mesh_summary.get("element_size_mm") != 0.5
+            or mesh_summary.get("global_node_count", 0) <= 0
+            or mesh_summary.get("global_element_count", 0) <= 0
+            or mesh_summary.get("connection_state")
+            != "PASS_NO_CONTACT_OR_CONNECTION_OBJECTS"
+            or mesh_summary.get("connection_object_count") != 0
+            or mesh_summary.get("upstream_body_node_count", 0) <= 0
+            or mesh_summary.get("upstream_body_element_count", 0) <= 0
+            or mesh_summary.get("downstream_body_node_count", 0) <= 0
+            or mesh_summary.get("downstream_body_element_count", 0) <= 0
+            or mesh_summary.get("interface_face_count") != 972
+            or mesh_summary.get("interface_node_count", 0) <= 0
+            or mesh_summary.get("shared_body_node_count")
+            != mesh_summary.get("interface_node_count")
+            or mesh_summary.get("minimum_nodes_per_interface_face", 0) <= 0
+            or mesh_summary.get("maximum_nodes_per_interface_face", 0)
+            < mesh_summary.get("minimum_nodes_per_interface_face", 0)
+            or mesh_summary.get("empty_interface_face_ids") != []
+            or mesh_summary.get("nonshared_interface_face_ids") != []
+            or mesh_summary.get("unexpected_shared_node_count") != 0
+            or not isinstance(claim_interpretation, dict)
+            or claim_interpretation.get("mesh_conformality")
+            != "PASS_SHARED_INTERFACE_NODE_IDS"
+        ):
+            raise RuntimeError("OBSERVER_MESH_SUMMARY_INVALID")
     report_files = report.get("files")
     if not isinstance(report_files, dict) or set(report_files) != set(
         EXPECTED_OBSERVER_FILES
@@ -361,6 +431,54 @@ def validate_observer_report(
     return report
 
 
+def validate_fixed_input_repeatability(
+    reports: list[dict[str, Any]],
+) -> dict[str, Any]:
+    if len(reports) != OBSERVER_REPETITIONS or len(reports) < 2:
+        raise RuntimeError("OBSERVER_REPEAT_COUNT_MISMATCH")
+    source_hashes = [
+        report.get("staging", {}).get("source_sha256") for report in reports
+    ]
+    if (
+        any(not isinstance(item, str) for item in source_hashes)
+        or len(set(source_hashes)) != 1
+    ):
+        raise RuntimeError("OBSERVER_REPEAT_INPUT_HASH_MISMATCH")
+
+    def signature(report: dict[str, Any]) -> tuple[Any, ...]:
+        summary = report.get("observer_summary", {})
+        mesh_summary = summary.get("mesh_summary", {})
+        return (
+            report.get("topology_result"),
+            report.get("topology_detail"),
+            tuple(sorted(summary.get("body_face_counts") or [])),
+            summary.get("upstream_orifice_candidates"),
+            summary.get("downstream_orifice_candidates"),
+            summary.get("shared_interface_candidate_count"),
+            summary.get("shared_membership_pair_count"),
+            summary.get("shared_node_or_conformal_mesh"),
+            mesh_summary.get("global_node_count"),
+            mesh_summary.get("global_element_count"),
+            mesh_summary.get("interface_face_count"),
+            mesh_summary.get("interface_node_count"),
+            mesh_summary.get("unexpected_shared_node_count"),
+            mesh_summary.get("connection_state"),
+        )
+
+    signatures = [signature(report) for report in reports]
+    if len(set(signatures)) != 1:
+        raise RuntimeError("OBSERVER_REPEAT_OBSERVATION_MISMATCH")
+    return {
+        "status": "PASS_FIXED_INPUT_REPEATABILITY",
+        "repeat_count": len(reports),
+        "source_native_sha256": source_hashes[0],
+        "observation_signature_equal": True,
+        "terminal_process_tree_cleanup": (
+            "PASS_PROCESS_EXITED_0_REQUIRES_ZERO_ACTIVE_JOB_PROCESSES"
+        ),
+    }
+
+
 async def run_suite() -> int:
     stamp = (
         datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
@@ -381,6 +499,10 @@ async def run_suite() -> int:
         "inventory": None,
         "producer": None,
         "observer": None,
+        "observer_repeats": [],
+        "repeatability": (
+            "PENDING" if FIXED_INPUT_REPEATABILITY_REQUIRED else "NOT_RUN"
+        ),
         "topology_result": None,
         "topology_detail": None,
         "error": None,
@@ -496,57 +618,74 @@ async def run_suite() -> int:
                         "report": producer_report,
                     }
 
-                    observer_state = await call_json(
-                        session,
-                        "submit_job",
-                        {
-                            "profile_id": OBSERVER_PROFILE_ID,
-                            "case_id": CASE_ID,
-                            "predecessor_job_id": producer_state["job_id"],
-                        },
-                        timeout_seconds=600,
-                    )
-                    validate_submit_state(
-                        observer_state,
-                        profile_id=OBSERVER_PROFILE_ID,
-                        engine="workbench",
-                        script_sha256=OBSERVER_SCRIPT_SHA256,
-                        profile_contract_sha256=observer_contract,
-                        git_head=expected_git_head,
-                        predecessor_job_id=producer_state["job_id"],
-                    )
-                    copied = observer_state.get("predecessor_artifacts")
-                    if (
-                        not isinstance(copied, list)
-                        or {item.get("relative_path") for item in copied}
-                        != EXPECTED_PREDECESSOR_ARTIFACTS
-                        or observer_state.get("profile_dependency_artifacts") != []
-                        or observer_state.get("profile_dependency_manifest_sha256")
-                        is not None
-                    ):
-                        raise RuntimeError("OBSERVER_PREDECESSOR_BUNDLE_INVALID")
-                    observer_state = await wait_terminal(
-                        session, observer_state, OBSERVER_WAIT_SECONDS
-                    )
-                    observer_manifest = await call_json(
-                        session,
-                        "artifact_manifest",
-                        {"job_id": observer_state["job_id"]},
-                        timeout_seconds=1200,
-                    )
-                    if observer_state.get("phase") != "PROCESS_EXITED_0":
-                        raise RuntimeError("OBSERVER_NOT_PROCESS_EXITED_0")
-                    observer_report = validate_observer_report(
-                        observer_manifest,
-                        observer_state,
-                        expected_git_head,
-                        producer_state["job_id"],
-                    )
-                    result["observer"] = {
-                        "job_state": observer_state,
-                        "manifest": observer_manifest,
-                        "report": observer_report,
-                    }
+                    observer_reports = []
+                    for repeat_index in range(OBSERVER_REPETITIONS):
+                        observer_state = await call_json(
+                            session,
+                            "submit_job",
+                            {
+                                "profile_id": OBSERVER_PROFILE_ID,
+                                "case_id": CASE_ID,
+                                "predecessor_job_id": producer_state["job_id"],
+                            },
+                            timeout_seconds=600,
+                        )
+                        validate_submit_state(
+                            observer_state,
+                            profile_id=OBSERVER_PROFILE_ID,
+                            engine="workbench",
+                            script_sha256=OBSERVER_SCRIPT_SHA256,
+                            profile_contract_sha256=observer_contract,
+                            git_head=expected_git_head,
+                            predecessor_job_id=producer_state["job_id"],
+                        )
+                        copied = observer_state.get("predecessor_artifacts")
+                        if (
+                            not isinstance(copied, list)
+                            or {item.get("relative_path") for item in copied}
+                            != EXPECTED_PREDECESSOR_ARTIFACTS
+                            or observer_state.get(
+                                "profile_dependency_artifacts"
+                            ) != []
+                            or observer_state.get(
+                                "profile_dependency_manifest_sha256"
+                            ) is not None
+                        ):
+                            raise RuntimeError(
+                                "OBSERVER_PREDECESSOR_BUNDLE_INVALID"
+                            )
+                        observer_state = await wait_terminal(
+                            session, observer_state, OBSERVER_WAIT_SECONDS
+                        )
+                        observer_manifest = await call_json(
+                            session,
+                            "artifact_manifest",
+                            {"job_id": observer_state["job_id"]},
+                            timeout_seconds=1200,
+                        )
+                        repeat_record = {
+                            "repeat_index": repeat_index + 1,
+                            "job_state": observer_state,
+                            "manifest": observer_manifest,
+                            "report": None,
+                        }
+                        result["observer_repeats"].append(repeat_record)
+                        if observer_state.get("phase") != "PROCESS_EXITED_0":
+                            raise RuntimeError("OBSERVER_NOT_PROCESS_EXITED_0")
+                        observer_report = validate_observer_report(
+                            observer_manifest,
+                            observer_state,
+                            expected_git_head,
+                            producer_state["job_id"],
+                        )
+                        repeat_record["report"] = observer_report
+                        observer_reports.append(observer_report)
+                    result["observer"] = result["observer_repeats"][0]
+                    if FIXED_INPUT_REPEATABILITY_REQUIRED:
+                        result["repeatability"] = (
+                            validate_fixed_input_repeatability(observer_reports)
+                        )
+                    observer_report = observer_reports[-1]
                     result["topology_result"] = observer_report[
                         "topology_result"
                     ]

@@ -53,6 +53,7 @@ FULL_PRODUCT_REVIEWER_TEST = REPO / "airjet-simulation" / "checklists" / "test_p
 V02_TOPOLOGY_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_topology_observer_006.py"
 V02_TOPOLOGY_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_run_v02_topology_observer_006.py"
 V02_NATIVE_TOPOLOGY_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_native_topology_observer_006.py"
+V02_NATIVE_MESH_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_native_mesh_conformality_006.py"
 V02_PARASOLID_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_parasolid_topology_006.py"
 V02_PARASOLID_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_run_v02_parasolid_topology_006.py"
 V02_SPLIT_STEP_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_split_step_converter_006.py"
@@ -1388,6 +1389,7 @@ expected_profile_ids = {
     "ajm006-spaceclaim-v02-preliminary-v1",
     "ajm006-workbench-v02-topology-observer-v1",
     "ajm006-workbench-v02-native-topology-observer-v1",
+    "ajm006-workbench-v02-native-mesh-conformality-observer-v1",
     "ajm006-spaceclaim-v02-parasolid-converter-v1",
     "ajm006-spaceclaim-v02-split-step-converter-v1",
     "ajm006-workbench-v02-parasolid-topology-observer-v1",
@@ -1416,6 +1418,7 @@ for required_path in (
     V02_TOPOLOGY_RUNNER,
     V02_TOPOLOGY_RUNNER_TEST,
     V02_NATIVE_TOPOLOGY_RUNNER,
+    V02_NATIVE_MESH_RUNNER,
     V02_PARASOLID_RUNNER,
     V02_PARASOLID_RUNNER_TEST,
     V02_SPLIT_STEP_RUNNER,
@@ -1829,13 +1832,82 @@ for invariant in (
 ):
     if invariant not in v02_observer_source:
         fail("V02 native topology observer lacks invariant: " + invariant)
-for forbidden in ("GenerateMesh(", ".Solve(", "SetFile(FilePath=native_path)"):
+for forbidden in (".Solve(", "SetFile(FilePath=native_path)"):
     if forbidden in v02_observer_source:
         fail("V02 native topology observer contains forbidden action: " + forbidden)
+
+v02_native_mesh_profile = by_profile_id[
+    "ajm006-workbench-v02-native-mesh-conformality-observer-v1"
+]
+v02_native_mesh_predecessor = v02_native_mesh_profile.get("predecessor")
+if (
+    v02_native_mesh_profile.get("engine") != "workbench"
+    or v02_native_mesh_profile.get("script")
+    != "006/v02_preliminary_topology_observer.wbjn"
+    or v02_native_mesh_profile.get("reports")
+    != ["v02_native_mesh_conformality_observer.json"]
+    or not isinstance(v02_native_mesh_predecessor, dict)
+    or v02_native_mesh_predecessor.get("profile_id")
+    != "ajm006-spaceclaim-v02-preliminary-v1"
+    or v02_native_mesh_predecessor.get("report")
+    != "v02_preliminary_producer.json"
+    or v02_native_mesh_predecessor.get("required_probe")
+    != "v02_preliminary_producer"
+    or v02_native_mesh_predecessor.get("required_status")
+    != "PASS_PARTIAL_CAD_CAPABILITY"
+    or set(v02_native_mesh_predecessor.get("required_assertions") or [])
+    != {
+        "input_contract",
+        "gen1_target",
+        "full_product_scope",
+        "complete_flow_path",
+        "two_fluid_zone",
+        "native_save",
+        "native_reopen",
+        "step_export_reimport",
+        "artifact_hashes",
+        "physics_guards",
+    }
+    or set(v02_native_mesh_predecessor.get("artifacts") or [])
+    != {
+        "v02_preliminary_producer.json",
+        "product_two_zone.scdocx",
+        "v02_face_inventory.json",
+        "native_reopen.json",
+    }
+):
+    fail("V02 native mesh conformality profile contract changed")
+for invariant in (
+    'NATIVE_MESH_PROFILE = (',
+    'mesh_route = profile_id == NATIVE_MESH_PROFILE',
+    'Model.Mesh.ElementSize = Quantity("0.5 [mm]")',
+    "Model.Mesh.GenerateMesh()",
+    "MeshRegionById",
+    "Model.Connections.Children",
+    "PASS_NO_CONTACT_OR_CONNECTION_OBJECTS",
+    "PASS_SHARED_INTERFACE_NODE_IDS",
+    '"physics": "NOT_RUN"',
+    '"p1_stage_gate": "NOT_RUN"',
+):
+    if invariant not in v02_observer_source:
+        fail("V02 native mesh observer lacks invariant: " + invariant)
+for invariant in (
+    "ajm006-workbench-v02-native-mesh-conformality-observer-v1",
+    'base.EXPECTED_REPORT_PHYSICS = "NOT_RUN"',
+    "base.MESH_DIAGNOSTIC_REQUIRED = True",
+    "base.OBSERVER_REPETITIONS = 2",
+    "base.FIXED_INPUT_REPEATABILITY_REQUIRED = True",
+    "PASS_PRELIMINARY_NATIVE_MESH_CONFORMALITY_OBSERVATION",
+):
+    if invariant not in V02_NATIVE_MESH_RUNNER.read_text(encoding="utf-8"):
+        fail("V02 native mesh runner lacks invariant: " + invariant)
+if ".Solve(" in v02_observer_source:
+    fail("V02 native mesh observer contains physics solve")
 for path in (
     V02_TOPOLOGY_RUNNER,
     V02_TOPOLOGY_RUNNER_TEST,
     V02_NATIVE_TOPOLOGY_RUNNER,
+    V02_NATIVE_MESH_RUNNER,
 ):
     assert_python39_static_compatibility(path)
 

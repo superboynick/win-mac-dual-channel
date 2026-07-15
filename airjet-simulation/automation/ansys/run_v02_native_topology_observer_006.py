@@ -26,7 +26,7 @@ base.OBSERVER_PROFILE_ID = (
     "ajm006-workbench-v02-native-topology-observer-v1"
 )
 base.OBSERVER_SCRIPT_SHA256 = (
-    "d41ffd4a53fb3c9cd7c9c95bd7240c6eda71ce4962673e3c3d696bfa5f152999"
+    "3df9bef91be72337e3f1b24a567b2125482d2c17e21b0e9a7be5a74029d6fcb0"
 )
 base.OBSERVER_REPORT = "v02_native_topology_observer.json"
 base.OBSERVER_PROBE = "v02_native_topology_observer"
