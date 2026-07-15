@@ -285,7 +285,7 @@ R0 顶部配气空间取“选定四个 vent polygon 与完整 cell tile footpri
 
 ### 为什么 006 不能自评 PASS
 
-模型生成端会同时控制脚本、几何和日志，缺少独立性。006 只能到 `PENDING_PEER_REVIEW`。007 保留原始 Windows 路径和 manifest，用 `PureWindowsPath` 安全映射完整副本；从精确 006 commit 重算合同 bundle，并验证 9 个 variant 的固定文件角色、机器检查 CSV、252 行证据键、目录全文件闭合及全部大小/SHA256，随后才生成独立 worksheet。复核 peer 若无法打开原生 SpaceClaim，还需要用户或另一可见 Windows 会话抽查关键原生文件。只有 243 个 hard gates 全部独立通过、9 个 STEP 行通过或合规接受限制，后续单独审核提交才可推荐 P1 PASS。
+模型生成端会同时控制脚本、几何和日志，缺少独立性。006 只能到 `PENDING_PEER_REVIEW`。007 保留原始 Windows 路径和 manifest，用 `PureWindowsPath` 安全映射完整副本；从精确 006 commit 重算合同 bundle，并验证 9 个 variant 的固定文件角色、机器检查 CSV、252 行证据键、目录全文件闭合及全部大小/SHA256，随后才生成独立 worksheet。复核 peer 若无法打开原生 SpaceClaim，还需要用户或另一可见 Windows 会话抽查关键原生文件。只有 252/252 个 hard gates 全部独立通过，其中 9 个 STEP 行以及相应 Workbench STEP import、solver-side semantic reconstruction、唯一键/基数/邻接和 hash chain 全部 PASS，后续单独审核提交才可推荐 P1 PASS；transfer limitation 不可接受。
 
 原先把膜片中心、中央锚、底腔和分区压在一个 cell rule 中，仍会让 CAD 操作者猜中央锚形状、底腔平面和 partition 的实体含义。现拆成 9 条显式 R0：底腔是每 cell 的 `P001` 方形流体体；中央锚是 `P012` 方形、膜片 Z 区间内的非物理 datum；partition 是只用于 ownership/naming 的内部零厚度中面，不做 Boolean、不占据已经由 perimeter-gap 流体使用的空间。它们都是 C 类候选闭合，不是产品事实。
 

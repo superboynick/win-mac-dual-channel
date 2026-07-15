@@ -145,3 +145,16 @@
 **独立复核**：006 完成后由 007 校验报告唯一键、Git 祖先、run-root 和全部外部文件 SHA256，再生成 252 行 review worksheet。准备 PASS、仓库审计 PASS 和 006 完成状态都不等于 P1 PASS。
 
 **追溯**：`parameters/P1_CAD_CONTRACT_METHOD.md`、`parameters/build_p1_cad_contracts.py`、`geometry/contracts/`、`checklists/p1_cad_gate_matrix.csv`、`windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`。
+
+## AJM-P1-TOOL-003：Phase B 冻结交接路径与 252/252 硬门禁
+
+日期：2026-07-15
+状态：Gate/复核合同迁移完成；alternate-route v2 组合确认与正式 006 尚未运行
+
+**取代范围**：本条取代 `AJM-P1-TOOL-002` 与 `AJM-P1-GEO-002` 中把 external native attach、native parameterization 或 native Named Selection transfer 视为 P1 启动必要条件的旧执行边界；历史观测保留，不改写为成功。
+
+**冻结路径**：签名 SpaceClaim 脚本参数化建模 → native save/reopen → STEP export/reimport → hash-bound semantic sidecar/binding → Workbench/Mechanical STEP import → solver-side semantic reconstruction。重建必须逐实体校验唯一 semantic key、cardinality、adjacency 与完整 hash chain。`EXTERNAL_NATIVE_ATTACH`、`NATIVE_PARAMETERIZATION`、`NATIVE_NAMED_SELECTION_TRANSFER` 保持 `NOT_PROVEN`，不得从替代路径 PASS 推导为原生路径 PASS。
+
+**Gate 影响**：P1 Gate matrix 的 252/252 行全部为 hard Gate；9 个 `G4_STEP_TRANSFER` 和 9 个 `G4_WB_TRANSFER` 都不能接受 transfer limitation。005 仍只判定是否允许开始 P1，必须保持 `P1_STAGE_GATE=NOT_RUN`；006 即使生成全部证据也只能到 `PENDING_PEER_REVIEW`，不能自评 P1 PASS。
+
+**追溯**：`parameters/P1_CAD_CONTRACT_METHOD.md`、`checklists/p1_cad_gate_matrix.csv`、`checklists/P1_CAD_INDEPENDENT_REVIEW_METHOD.md`、`windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`。

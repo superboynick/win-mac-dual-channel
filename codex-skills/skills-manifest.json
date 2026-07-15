@@ -10,7 +10,7 @@
       "name": "airjet-ansys-automation",
       "kind": "project",
       "source": "codex-skills/airjet-ansys-automation",
-      "skill_md_sha256": "8d3bc1217812df87ed4d4a267adb97f240d8436e62f573d2761fb1e4665f0e7b",
+      "skill_md_sha256": "5ab3cba84df6d17d5dcbd078737b253ff5bfbb9eaf9112fd00a1f6b2668f81e3",
       "required_files": [
         "SKILL.md",
         "agents/openai.yaml",
@@ -22,6 +22,10 @@
         "scripts/run_t1_cad_suite.py",
         "scripts/run_t1_connected_spaceclaim_suite.py",
         "scripts/run_t1_semantic_reconstruction_suite.py",
+        "scripts/run_t1_alternate_route_confirmation_suite.py",
+        "scripts/ajm005_closeout_v2.py",
+        "scripts/test_ajm005_closeout_v2.py",
+        "scripts/test_ajm005_runner_guards.py",
         "scripts/test_t1_predecessor_negative.py",
         "scripts/test_airjet_ansys_mcp_policy.py"
       ]

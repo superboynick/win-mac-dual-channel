@@ -1,0 +1,152 @@
+{
+  "contract_id": "AIRJET_FULL_PRODUCT_SEMANTIC_CAMPAIGN_V1",
+  "expected_variant_count": 9,
+  "product_id": "AIRJET_MINI_GEN1",
+  "schema_version": 1,
+  "scope": "FULL_PRODUCT",
+  "source_contracts": [
+    {
+      "contract_key": "full_product_validator",
+      "git_path": "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
+      "sha256": "a34440e9dc9936f081ebd58d72432b194a1d5ba29a1379079c91827cfd315666"
+    },
+    {
+      "contract_key": "full_product_schema",
+      "git_path": "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
+      "sha256": "75cd95525e5189a4ef11a979a5621a7dd8db96efeb59e209cede794bb129ea30"
+    },
+    {
+      "contract_key": "full_product_core_test",
+      "git_path": "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py",
+      "sha256": "cae9a1face8c1a3b3aca2a8b7d2dbda3bc3192b9f9a4d0d880a16468bd15b9c6"
+    },
+    {
+      "contract_key": "trusted_variant_generator",
+      "git_path": "airjet-simulation/automation/ansys/contracts/build_full_product_trusted_variants.py",
+      "sha256": "3f53db0df971f2045c84bca9e2a88e19406157bd46a1e5c8a980d3fc2159d3fa"
+    },
+    {
+      "contract_key": "trusted_variant_test",
+      "git_path": "airjet-simulation/automation/ansys/contracts/test_full_product_trusted_variants.py",
+      "sha256": "a1c105e68646a78dff1c4b0766d477ef12dcd8abf49b03075ea2dec07eac605f"
+    },
+    {
+      "contract_key": "p1_model_form_variants",
+      "git_path": "airjet-simulation/parameters/p1_model_form_variants.csv",
+      "sha256": "9ed76f2847836529e0f9df11c7b5c43a76e90e04d2d152d93b5235df9096e277"
+    },
+    {
+      "contract_key": "p1_layout_configuration_matrix",
+      "git_path": "airjet-simulation/parameters/p1_layout_configuration_matrix.csv",
+      "sha256": "f8a08e8477812d27a3e3cde1be951f4262848b56829f4a0b2e4fb6b93d8a1012"
+    },
+    {
+      "contract_key": "p1_internal_geometry_rules",
+      "git_path": "airjet-simulation/parameters/p1_internal_geometry_rules.csv",
+      "sha256": "9c2ae25423469e8dac5f9ae769e0e44f12027686795b771241869378df2885f8"
+    },
+    {
+      "contract_key": "p1_cad_parameter_map",
+      "git_path": "airjet-simulation/parameters/p1_cad_parameter_map.csv",
+      "sha256": "88d95dafc2ccaf063d14123da959b2e454b3dfa56b6c5a6d1a11b991b64ad9d3"
+    },
+    {
+      "contract_key": "p1_orifice_pattern_candidates",
+      "git_path": "airjet-simulation/parameters/p1_orifice_pattern_candidates.csv",
+      "sha256": "e2ea0e007a4cb7b25b6f2c7ba03e1cb6f60c19433d4c7664217b0e9727f32570"
+    },
+    {
+      "contract_key": "p1_vent_geometry_candidates",
+      "git_path": "airjet-simulation/parameters/p1_vent_geometry_candidates.csv",
+      "sha256": "54cc8b657d38453ba27b8ccb6c6863f085679b2fa61f0b5bd6528d1033c62f9f"
+    },
+    {
+      "contract_key": "p1_planform_exhaust_candidates",
+      "git_path": "airjet-simulation/parameters/p1_planform_exhaust_candidates.csv",
+      "sha256": "de560f672da729477a1bde727aec6e6fb20e2a684d31874ffa032b5c642a81db"
+    }
+  ],
+  "variant_contracts": [
+    {
+      "blueprint_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_01_m_3x4_7_0_r25_bottom_heavy.json",
+      "blueprint_sha256": "2c16b33325f4e8c6792d61f357ad8767b7257e94b10ad2d683ea825414925dc5",
+      "cell_count": 12,
+      "configuration_id": "AJM006_GEN1_CFG_M-3x4-7.0",
+      "semantic_entity_count": 1003,
+      "source_variant_id": "M-3x4-7.0__R25_BOTTOM_HEAVY",
+      "variant_id": "AJM006_GEN1_V01_M-3x4-7.0__R25_BOTTOM_HEAVY"
+    },
+    {
+      "blueprint_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
+      "blueprint_sha256": "642286db56dea62e482f22323de72d91fd3a255be7b2bdc4e5f0b71658c11e2c",
+      "cell_count": 12,
+      "configuration_id": "AJM006_GEN1_CFG_M-3x4-7.0",
+      "semantic_entity_count": 1003,
+      "source_variant_id": "M-3x4-7.0__R50_BALANCED",
+      "variant_id": "AJM006_GEN1_V02_M-3x4-7.0__R50_BALANCED"
+    },
+    {
+      "blueprint_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_03_m_3x4_7_0_r75_top_heavy.json",
+      "blueprint_sha256": "d69d6ff867505be7e4ed446d88561be18a16b6f96f6aafa60bd8afc601b47a7a",
+      "cell_count": 12,
+      "configuration_id": "AJM006_GEN1_CFG_M-3x4-7.0",
+      "semantic_entity_count": 1003,
+      "source_variant_id": "M-3x4-7.0__R75_TOP_HEAVY",
+      "variant_id": "AJM006_GEN1_V03_M-3x4-7.0__R75_TOP_HEAVY"
+    },
+    {
+      "blueprint_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_04_m_s_3x5_6_0_r50_balanced.json",
+      "blueprint_sha256": "31cd4e55119ae390fba3f405d23a1d7b86abcbe96ecce73bcb9b176000c49744",
+      "cell_count": 15,
+      "configuration_id": "AJM006_GEN1_CFG_M_S-3x5-6.0",
+      "semantic_entity_count": 1252,
+      "source_variant_id": "M+S-3x5-6.0__R50_BALANCED",
+      "variant_id": "AJM006_GEN1_V04_M_S-3x5-6.0__R50_BALANCED"
+    },
+    {
+      "blueprint_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_05_l_2x4_8_0_r50_balanced.json",
+      "blueprint_sha256": "074dfc798060b99698965db3d2c371f1ace4b758de603d62bda118616137ba47",
+      "cell_count": 8,
+      "configuration_id": "AJM006_GEN1_CFG_L-2x4-8.0",
+      "semantic_entity_count": 991,
+      "source_variant_id": "L-2x4-8.0__R50_BALANCED",
+      "variant_id": "AJM006_GEN1_V05_L-2x4-8.0__R50_BALANCED"
+    },
+    {
+      "blueprint_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_06_s_3x5_5_5_r50_balanced.json",
+      "blueprint_sha256": "e046e6cf18c9f444035e4c0abb755078433d26e938ca55ba9410b59d49fb5b55",
+      "cell_count": 15,
+      "configuration_id": "AJM006_GEN1_CFG_S-3x5-5.5",
+      "semantic_entity_count": 772,
+      "source_variant_id": "S-3x5-5.5__R50_BALANCED",
+      "variant_id": "AJM006_GEN1_V06_S-3x5-5.5__R50_BALANCED"
+    },
+    {
+      "blueprint_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_07_m_3x4_7_0_r50_vent_upper.json",
+      "blueprint_sha256": "d81feaecdcd9faf6913a9825635934b2ef82fdadfebbf837780a047f8c707bf9",
+      "cell_count": 12,
+      "configuration_id": "AJM006_GEN1_CFG_M-3x4-7.0",
+      "semantic_entity_count": 1003,
+      "source_variant_id": "M-3x4-7.0__R50_VENT_UPPER",
+      "variant_id": "AJM006_GEN1_V07_M-3x4-7.0__R50_VENT_UPPER"
+    },
+    {
+      "blueprint_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_08_m_3x4_7_0_r50_orifice_edge_gap.json",
+      "blueprint_sha256": "cff5991d43f56aaf20868d62f3222c9115db410e0a5378b3c5d547daaf68583d",
+      "cell_count": 12,
+      "configuration_id": "AJM006_GEN1_CFG_M-3x4-7.0",
+      "semantic_entity_count": 1003,
+      "source_variant_id": "M-3x4-7.0__R50_ORIFICE_EDGE_GAP",
+      "variant_id": "AJM006_GEN1_V08_M-3x4-7.0__R50_ORIFICE_EDGE_GAP"
+    },
+    {
+      "blueprint_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_09_m_3x4_7_0_r50_exhaust_half_taper.json",
+      "blueprint_sha256": "fc4d6faff5511eb9a23540a212129f735ee3bd09389b54663351c5b3a2d2e021",
+      "cell_count": 12,
+      "configuration_id": "AJM006_GEN1_CFG_M-3x4-7.0",
+      "semantic_entity_count": 1003,
+      "source_variant_id": "M-3x4-7.0__R50_EXHAUST_HALF_TAPER",
+      "variant_id": "AJM006_GEN1_V09_M-3x4-7.0__R50_EXHAUST_HALF_TAPER"
+    }
+  ]
+}

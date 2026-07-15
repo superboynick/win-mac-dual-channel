@@ -2,6 +2,8 @@
 
 目标：在 005 已证明 P1 CAD 必需工具链可用后，从仓库生成的合同表建立 AirJet Mini Gen1 **完整产品候选 CAD**、完整流体负体积和可复核交接物。本任务不是单 cell，不做物理求解，不宣告 P1 Gate PASS。
 
+唯一建模目标是第一代 AirJet Mini Gen1。AirJet Mini G2 只能保留为产品选择比较证据；不得把任何 G2 几何、数值、参数、校准或 variant 混入本任务。
+
 仓库：`C:\Users\admin\win-mac-dual-channel`
 
 ## 1. 启动硬门槛
@@ -32,14 +34,25 @@ NAMED_SELECTIONS=PASS
 VOLUME_EXTRACT=PASS
 FLUID_CONNECTIVITY=PASS
 NATIVE_SAVE=PASS
-WORKBENCH_GEOMETRY_TRANSFER=PASS
-NAMED_SELECTION_TRANSFER=PASS
+STEP_EXPORT_REIMPORT=PASS
+WORKBENCH_STEP_IMPORT=PASS
+SOLVER_SEMANTIC_RECONSTRUCTION=PASS
+SEMANTIC_KEY_CARDINALITY_CHECK=PASS
+CAD_AUTHORING_ROUTE=SPACECLAIM_SIGNED_SCRIPT_PARAMETRIC
+SOLVER_HANDOFF_ROUTE=HASH_BOUND_STEP_SEMANTIC_SIDECAR
+EXTERNAL_NATIVE_ATTACH=NOT_PROVEN
+NATIVE_PARAMETERIZATION=NOT_PROVEN
+NATIVE_NAMED_SELECTION_TRANSFER=NOT_PROVEN
 P1_STAGE_GATE=NOT_RUN
-P1_CAD_TOOLCHAIN_READINESS=PASS 或 PASS_WITH_TRANSFER_LIMITATION
-STUDENT_TOOLCHAIN_STATUS=PASS_START_P1 或 PASS_START_P1_WITH_LIMITATIONS
+P1_CAD_TOOLCHAIN_SCOPE=ALTERNATE_ROUTE_ONLY
+P1_CAD_TOOLCHAIN_READINESS=PASS
+STUDENT_TOOLCHAIN_STATUS=PASS_START_P1
 ```
 
-任一字段缺失/失败、报告不存在，或发现旧 PLE/1055 污染基线，写 `CAD_BUILD_STATUS=BLOCKED_005_GATE` 并停止。STEP 失败本身不阻止开始，但必须继承 005 的传递限制。
+任一字段缺失/失败、报告不存在，或发现旧 PLE/1055 污染基线，写
+`CAD_BUILD_STATUS=BLOCKED_005_GATE` 并停止。STEP 是当前 solver handoff route 的硬要求；STEP、binding、
+Workbench STEP import 或 solver-side semantic reconstruction 任一失败都不得作为 limitation 接受。
+三个 native 字段保持 `NOT_PROVEN` 是准确边界，不构成 alternate route 的失败，也不得被 006 升级。
 
 读取 005 的 `GIT_COMMIT` 为 `$Report005Commit`，要求：
 
@@ -79,6 +92,8 @@ python .\airjet-simulation\parameters\build_p1_cad_contracts.py --check
 ```
 
 要求 fetch 本次明确成功、origin 精确为 `https://github.com/superboynick/win-mac-dual-channel.git`、当前分支为 `main`、upstream 为 `origin/main`、工作树干净、ahead/behind=`0/0`、审计 PASS、两个生成器 PASS。任一命令非零或条件不符，写 `CAD_BUILD_STATUS=BLOCKED_GIT_OR_ENVIRONMENT`，记录原始错误并停止。禁止使用 fetch 失败前缓存的 `origin/main` 判定 0/0；禁止 pull 后继续处理未知修改，禁止 reset/clean/rebase/force。
+
+还必须从当前 commit 的 `airjet-simulation/automation/ansys/profiles.json` 严格验证 production contract。目标只能是 `AIRJET_MINI_GEN1`，scope 必须是 `FULL_PRODUCT`，variant 数必须为 9，producer/observer profile 必须分别为 `ajm006-spaceclaim-full-product-producer-v1` 和 `ajm006-workbench-full-product-observer-v1`。只有 `execution_state=REGISTERED_SIGNED_PROFILES`、两个 profile 均已在同一 Git blob 中注册且脚本/profile/predecessor 哈希链完整时才允许启动 ANSYS。当前若仍为 `STATIC_CONTRACT_ONLY_NOT_REGISTERED`，必须写 `CAD_BUILD_STATUS=BLOCKED_GIT_OR_ENVIRONMENT` 并停止；静态 schema、validator 或九个 blueprint 通过不等于可执行能力。
 
 还要求开始时 `C:` 可用空间至少 10 GiB、`D:` 至少 20 GiB、可用物理内存至少 8 GiB；不足时按环境阻断，不打开 CAD。
 
@@ -198,9 +213,15 @@ selected_orifice_grid_rule_id=ORIFICE_PER_CELL_CENTERED_CLIP_R0
 - `P004+P006` 位移包络下的最小间隙；
 - 所有 required Named Selections 的预期/实际 cardinality；`{NNN}` 展开为 `001..N_CELL`，每个 interface 的 A/B selection 必须分别属于 A/B feature，不能用同一个 owner 的面集冒充两侧；
 - 原生保存并重开；
-- STEP 导出/重导入；
-- Workbench 几何传递和 Named Selections 传递；
-- 原生 CAD、STEP、流体体、Workbench、脚本、截图、日志的大小与 SHA256。
+- STEP 导出/重导入及其与 semantic sidecar/binding 的完整哈希链；
+- Workbench STEP import，以及求解器侧按 unique key、owner、cell/local coordinates、cardinality 和
+  adjacency 执行的 semantic reconstruction；
+- 原生 CAD、STEP、semantic sidecar、binding、key/cardinality/adjacency report、流体体、Workbench、
+  脚本、截图、日志的大小与 SHA256。
+
+这里的 Workbench Gate 只表示 `STEP import + solver-side semantic reconstruction`。不得写成 external
+native attach、native parameterization 或 native Named Selection transfer；这三个字段始终保持
+`NOT_PROVEN`，除非未来出现独立直接证据。
 
 切片截图至少包含 XY 顶视、XZ/ YZ 中剖面、完整外形、全部 cell、入口、孔板、冲击通道、歧管、出口和流体连通视图。截图必须能区分实体候选和流体体。
 
@@ -224,8 +245,18 @@ VARIANT_PARAMETER_RECORD
 NATIVE_CAD
 NATIVE_REOPEN_LOG
 FLUID_GEOMETRY
+STEP_GEOMETRY
+STEP_REIMPORT_LOG
+SEMANTIC_SIDECAR
+SEMANTIC_BINDING
+SEMANTIC_OBSERVATION
+SEMANTIC_KEY_CARDINALITY_REPORT
 WORKBENCH_PROJECT
-WORKBENCH_TRANSFER_LOG
+PRODUCER_JOB_RECORD
+PRODUCER_ARTIFACT_MANIFEST
+OBSERVER_JOB_RECORD
+OBSERVER_ARTIFACT_MANIFEST
+WORKBENCH_STEP_SEMANTIC_LOG
 AUTOMATED_CHECKS_CSV
 SCREENSHOT_XY
 SCREENSHOT_XZ
@@ -234,17 +265,31 @@ FLUID_CONNECTIVITY_VIEW
 VARIANT_BUILD_LOG
 ```
 
-三个派生 variant 还必须各有 `PARENT_PARAMETER_DIFF` 和 `PARENT_GEOMETRY_RESULT_DIFF`。`COMPLETE_AWAITING_REVIEW` 每个 variant 必须再有 `STEP_GEOMETRY` 和 `STEP_REIMPORT_LOG`；transfer-limited 状态允许某个 variant 用 `STEP_LIMITATION_LOG` 代替这两项，但至少一个 variant 必须有该限制日志。`$RunRoot` 中除 manifest 自身以外的每个普通文件都必须出现在 manifest，禁止 symlink；不能只列成功文件。`REPORT_005_COPY` 必须是原始 005 报告的逐字节副本，其 SHA256 与最终报告的 `REPORT_005_SHA256` 相同。
+三个派生 variant 还必须各有 `PARENT_PARAMETER_DIFF` 和 `PARENT_GEOMETRY_RESULT_DIFF`。上述 STEP、
+sidecar、binding、semantic report 角色对 9 个 variant 全部是硬要求；任何 transfer limitation
+状态或日志都不能代替它们。`$RunRoot` 中除 manifest 自身以外的每个普通文件都必须出现
+在 manifest，禁止 symlink；不能只列成功文件。`REPORT_005_COPY` 必须是原始 005 报告的逐字节
+副本，其 SHA256 与最终报告的 `REPORT_005_SHA256` 相同。
+
+每个 job record 必须是严格 UTF-8 JSON 身份记录。producer 必须包含 exact Git head、profile ID、profile-contract SHA、script SHA、runtime case/job/output-root、`PROCESS_EXITED_0` 和其独立 artifact-manifest SHA；observer 还必须逐字段绑定 producer predecessor，并绑定实际导入 STEP 的 artifact ID、相对路径、字节数和 SHA。两个 artifact-manifest SHA 必须分别等于 manifest 中 `PRODUCER_ARTIFACT_MANIFEST`、`OBSERVER_ARTIFACT_MANIFEST` 文件的实际 SHA，不能是自报常量。producer/observer artifact-manifest 是 MCP job 完成时冻结的上游快照，不得包含随后生成的 normalized job record 或最终外部 manifest；normalized job record、快照和 detached binding 最终由外部 manifest 统一哈希，保持证据链无环。
+
+`SEMANTIC_KEY_CARDINALITY_REPORT` 必须逐字段保存 validator 的实际计算结果：`missing_keys`、`unexpected_keys`、`dangling_adjacency`、`orphan_critical_surfaces`、`body_surface_coverage_ok`、`assignment_solution_count`、`topology_observed`、`cardinality_observed`、三个 observed count、`actual_artifact_count`、`detached_binding_valid`、`trusted_contract_sha256` 和 `status`。完成状态要求四个数组为空、coverage/topology/cardinality/detached binding 为 true、assignment solution count 为 1；禁止用字面空数组、字面 1 或硬编码 PASS 替代 solver observation 后的计算。
 
 ### 8.2 机器可读检查表
 
 每个 `AUTOMATED_CHECKS_CSV` 恰好一行，header 固定为：
 
 ```text
-variant_id,configuration_id,cell_count,connected_cell_count,isolated_fluid_count,interference_count,sliver_count,duplicate_face_count,excluded_datum_feature_ids,actual_orifice_count,blind_or_lost_orifice_count,actual_open_area_pct,minimum_clearance_mm,envelope_x_mm,envelope_y_mm,envelope_z_mm,thickness_closure_error_mm,named_selection_check,native_reopen,workbench_geometry_transfer,named_selection_transfer,step_transfer,c017_c019_physics_guard,anchor_partition_nonphysical_guard
+variant_id,configuration_id,cell_count,connected_cell_count,isolated_fluid_count,interference_count,sliver_count,duplicate_face_count,excluded_datum_feature_ids,actual_orifice_count,blind_or_lost_orifice_count,actual_open_area_pct,minimum_clearance_mm,envelope_x_mm,envelope_y_mm,envelope_z_mm,thickness_closure_error_mm,named_selection_check,native_reopen,step_transfer,workbench_step_import,solver_semantic_reconstruction,semantic_adjacency_check,c017_c019_physics_guard,anchor_partition_nonphysical_guard
 ```
 
-完成状态要求 cell 连通数等于配置值，isolated/interference/sliver/duplicate/blind-or-lost 均为 0，实际孔数大于 0，开孔率 8--12%，最小间隙非负，包络误差和厚度闭合误差不大于 `1e-6 mm`，命名/重开/传递和两个 physics guard 字段均为 `PASS`。interference/sliver/duplicate 只统计导出的物理候选实体和 required fluid bodies；`excluded_datum_feature_ids` 必须逐字记录 `ENVELOPE_REF;SIDE_FRAME_PROXY_U;FLEX_KEEP_OUT_U;CELL_PARTITION_CAND_TEMPLATE;CENTRAL_ANCHOR_CAND_TEMPLATE;C017_SUPPORT_ALLOWANCE_REF;C019_TOP_REF;C019_BOTTOM_REF;FLUID_DOMAIN_CLOSURE_DATUM_C;SPOUT_SOLID_CAND_U;TIM_EQUIVALENT_C;CHIP_HEAT_SOURCE_C`，不允许操作者现场决定计数范围。正常完成的 `step_transfer=PASS`；限制状态至少一个 variant 为 `LIMITATION_RECORDED`，且该 variant 必须同时具有 `STEP_LIMITATION_LOG` 和 `G4_STEP_TRANSFER=LIMITATION_RECORDED`。
+完成状态要求 cell 连通数等于配置值，isolated/interference/sliver/duplicate/blind-or-lost 均为 0，
+实际孔数大于 0，开孔率 8--12%，最小间隙非负，包络误差和厚度闭合误差不大于 `1e-6 mm`，
+命名、原生重开、STEP、Workbench STEP import、solver semantic reconstruction、adjacency 和两个
+physics guard 字段均为 `PASS`。interference/sliver/duplicate 只统计导出的物理候选实体和 required
+fluid bodies；`excluded_datum_feature_ids` 必须逐字记录
+`ENVELOPE_REF;SIDE_FRAME_PROXY_U;FLEX_KEEP_OUT_U;CELL_PARTITION_CAND_TEMPLATE;CENTRAL_ANCHOR_CAND_TEMPLATE;C017_SUPPORT_ALLOWANCE_REF;C019_TOP_REF;C019_BOTTOM_REF;FLUID_DOMAIN_CLOSURE_DATUM_C;SPOUT_SOLID_CAND_U;TIM_EQUIVALENT_C;CHIP_HEAT_SOURCE_C`，
+不允许操作者现场决定计数范围。9 个 variant 的 `step_transfer` 都必须为 `PASS`。
 
 全局 `GATE_EVIDENCE_006_CSV` 必须与冻结 Gate 模板具有完全相同的 252 个键，header 固定为：
 
@@ -252,7 +297,14 @@ variant_id,configuration_id,cell_count,connected_cell_count,isolated_fluid_count
 gate_item_id,variant_id,measured_value,evidence_original_path,evidence_sha256,secondary_evidence_original_path,secondary_evidence_sha256,006_suggested_status,notes
 ```
 
-每行必须引用 manifest 中同一路径/哈希；不用第二证据时两个 secondary 字段同时留空。九条 `G0_005_TOOLCHAIN` 必须直接引用 `REPORT_005_COPY`。三个派生 variant 的 `G4_SINGLE_FACTOR_ISOLATION` 必须用 primary/secondary 两组引用同时覆盖本 variant 的 `PARENT_PARAMETER_DIFF` 和 `PARENT_GEOMETRY_RESULT_DIFF`。006 对已完成 build gate 只能建议 `PASS`；`P1_INDEPENDENT_REVIEW` 九行必须为 `BLOCKED`；transfer-limited 状态下 `G4_STEP_TRANSFER` 才可建议 `LIMITATION_RECORDED`。这些只是 006 建议，不得写入独立 reviewer 状态。
+每行必须引用 manifest 中同一路径/哈希；不用第二证据时两个 secondary 字段同时留空。九条
+`G0_005_TOOLCHAIN` 必须直接引用 `REPORT_005_COPY`。三个派生 variant 的
+`G4_SINGLE_FACTOR_ISOLATION` 必须用 primary/secondary 两组引用同时覆盖本 variant 的
+`PARENT_PARAMETER_DIFF` 和 `PARENT_GEOMETRY_RESULT_DIFF`。`G4_WB_TRANSFER` 的 primary/secondary 必须
+恰好引用同一 variant 的 `WORKBENCH_STEP_SEMANTIC_LOG` 和 `SEMANTIC_KEY_CARDINALITY_REPORT`；
+`G4_STEP_TRANSFER` 必须恰好引用同一 variant 的 `STEP_REIMPORT_LOG` 和 `SEMANTIC_BINDING`。006 对已完成
+build gate 只能建议 `PASS`；`P1_INDEPENDENT_REVIEW` 九行必须为 `BLOCKED`。
+不得建议或记录任何 transfer limitation acceptance。这些只是 006 建议，不得写入独立 reviewer 状态。
 
 ### 8.3 固定输入 commit 和哈希
 
@@ -275,6 +327,22 @@ airjet-simulation/geometry/contracts/p1_cad_named_selections.csv
 airjet-simulation/geometry/contracts/p1_cad_open_questions.csv
 airjet-simulation/parameters/build_p1_cad_inputs.py
 airjet-simulation/parameters/build_p1_cad_contracts.py
+airjet-simulation/automation/ansys/profiles.json
+airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py
+airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json
+airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py
+airjet-simulation/automation/ansys/contracts/build_full_product_trusted_variants.py
+airjet-simulation/automation/ansys/contracts/test_full_product_trusted_variants.py
+airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json
+airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_01_m_3x4_7_0_r25_bottom_heavy.json
+airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json
+airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_03_m_3x4_7_0_r75_top_heavy.json
+airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_04_m_s_3x5_6_0_r50_balanced.json
+airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_05_l_2x4_8_0_r50_balanced.json
+airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_06_s_3x5_5_5_r50_balanced.json
+airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_07_m_3x4_7_0_r50_vent_upper.json
+airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_08_m_3x4_7_0_r50_orifice_edge_gap.json
+airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_09_m_3x4_7_0_r50_exhaust_half_taper.json
 ```
 
 算法是：对每个 `git show <GIT_COMMIT>:<repo-relative-path>` 的原始字节取 SHA256，再按仓库相对路径排序，拼成每行 `path<TAB>sha256<LF>`，最后对整段 UTF-8 字节取 SHA256。把逐文件表保存为 `INPUT_CONTRACT_HASHES`，并报告 bundle、Gate、variant、internal-rules 四个哈希。007 会从 006 commit 独立重算，不接受当前 HEAD 的替代文件。
@@ -314,6 +382,7 @@ LICENSE_SAFETY_CHECK=PASS/FAIL
 REPORT_005_PATH=
 REPORT_005_SHA256=
 REPORT_005_GIT_COMMIT=
+P1_CAD_TOOLCHAIN_SCOPE=ALTERNATE_ROUTE_ONLY
 P1_CAD_TOOLCHAIN_READINESS=
 EXTERNAL_RUN_DIRECTORY=
 MASTER_MODEL_PATH=
@@ -322,6 +391,18 @@ P1_CONTRACT_BUNDLE_SHA256=
 GATE_TEMPLATE_SHA256=
 VARIANT_TABLE_SHA256=
 INTERNAL_RULES_SHA256=
+PRODUCT_TARGET=AIRJET_MINI_GEN1
+PRODUCTION_CONTRACT_ID=AJM006_GEN1_FULL_PRODUCT_SEMANTIC_PRODUCTION_V1
+PRODUCTION_SCOPE=FULL_PRODUCT
+PRODUCTION_CONTRACT_EXECUTION_STATE=REGISTERED_SIGNED_PROFILES
+PRODUCER_PROFILE_ID=ajm006-spaceclaim-full-product-producer-v1
+OBSERVER_PROFILE_ID=ajm006-workbench-full-product-observer-v1
+FULL_PRODUCT_VALIDATOR_SHA256=
+FULL_PRODUCT_SCHEMA_SHA256=
+FULL_PRODUCT_CORE_TEST_SHA256=
+TRUSTED_VARIANT_GENERATOR_SHA256=
+TRUSTED_VARIANT_TEST_SHA256=
+TRUSTED_CAMPAIGN_SHA256=
 CONFIGURATIONS_REQUESTED=4
 CONFIGURATIONS_BUILT=
 BASE_OR_RESIDUAL_VARIANTS_REQUESTED=6
@@ -350,17 +431,23 @@ BLIND_OR_LOST_ORIFICE_COUNT_BY_VARIANT=
 MINIMUM_CLEARANCE_BY_VARIANT=
 NAMED_SELECTION_CARDINALITY_CHECK=PASS_ALL_9/FAIL
 NATIVE_SAVE_REOPEN=PASS_ALL_9/FAIL
-STEP_EXPORT_REIMPORT=PASS_ALL_9/LIMITATION_RECORDED/FAIL
-WORKBENCH_GEOMETRY_TRANSFER=PASS_ALL_9/FAIL
-NAMED_SELECTION_TRANSFER=PASS_ALL_9/FAIL
+STEP_EXPORT_REIMPORT=PASS_ALL_9/FAIL
+WORKBENCH_STEP_IMPORT=PASS_ALL_9/FAIL
+SOLVER_SEMANTIC_RECONSTRUCTION=PASS_ALL_9/FAIL
+SEMANTIC_ADJACENCY_CHECK=PASS_ALL_9/FAIL
+SEMANTIC_BUNDLE_VALIDATION=PASS_ALL_9/FAIL
 C017_C019_PHYSICS_GUARD=PASS_ALL_9/FAIL
 ANCHOR_PARTITION_NONPHYSICAL_GUARD=PASS_ALL_9/FAIL
+CAD_AUTHORING_ROUTE=SPACECLAIM_SIGNED_SCRIPT_PARAMETRIC
+SOLVER_HANDOFF_ROUTE=HASH_BOUND_STEP_SEMANTIC_SIDECAR
+EXTERNAL_NATIVE_ATTACH=NOT_PROVEN
+NATIVE_PARAMETERIZATION=NOT_PROVEN
+NATIVE_NAMED_SELECTION_TRANSFER=NOT_PROVEN
 UNRESOLVED_MASS_ACCOUNT=
 EXTERNAL_FILE_MANIFEST=
 EXTERNAL_FILE_MANIFEST_SHA256=
 MANIFEST_DATA_ROW_COUNT=
 ERROR_MESSAGES=
-TRANSFER_LIMITATION_SCOPE=NONE/STEP_ONLY
 P0_STAGE_GATE=PASS
 P1_STAGE_GATE=NOT_STARTED/INCOMPLETE/PENDING_PEER_REVIEW
 P2_STAGE_GATE=NOT_RUN
@@ -377,7 +464,6 @@ CAD_BUILD_STATUS=
 BLOCKED_005_GATE
 BLOCKED_GIT_OR_ENVIRONMENT
 PARTIAL_CAD_OUTPUT
-COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW
 COMPLETE_AWAITING_REVIEW
 ```
 
@@ -387,9 +473,13 @@ COMPLETE_AWAITING_REVIEW
 
 - `BLOCKED_005_GATE`：005 身份、唯一键、主机/版本/安装根、commit 祖先关系、纯净许可基线或 P1 必需能力任一失败；`P1_STAGE_GATE=NOT_STARTED`。
 - `BLOCKED_GIT_OR_ENVIRONMENT`：正式建模前的 fetch/origin/upstream/clean/0-0/audit/generator/磁盘/内存任一失败；`P1_STAGE_GATE=NOT_STARTED`。
-- `PARTIAL_CAD_OUTPUT`：已经开始建模，但 4 配置、9 个有独立 ID/Gate 的 variants、单因素 diff、9 条内部几何规则、原生重开、完整连通、零孤立体、零干涉/碎片/盲孔、required 成对 Named Selections、Workbench 几何/Named Selection 传递或完整 SHA256 manifest 任一未完成；`P1_STAGE_GATE=INCOMPLETE`。
-- `COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW`：上一条全部完成，唯一剩余失败是 005 已知或 006 复现的 STEP 导出/重导入限制；`P1_STAGE_GATE=PENDING_PEER_REVIEW`。
-- `COMPLETE_AWAITING_REVIEW`：4 个配置、9 个变体及全部硬检查、原生/STEP/Workbench 传递和 manifest 均完成；`P1_STAGE_GATE=PENDING_PEER_REVIEW`。
+- `PARTIAL_CAD_OUTPUT`：已经开始建模，但 4 配置、9 个有独立 ID/Gate 的 variants、单因素 diff、
+  9 条内部几何规则、原生重开、完整连通、零孤立体、零干涉/碎片/盲孔、required semantic keys、
+  STEP export/reimport、Workbench STEP import、solver-side semantic reconstruction、adjacency 或完整
+  SHA256 manifest 任一未完成；`P1_STAGE_GATE=INCOMPLETE`。
+- `COMPLETE_AWAITING_REVIEW`：4 个配置、9 个变体及全部 252 个 hard Gate 的 006 构建证据、原生
+  save/reopen、STEP、Workbench STEP import、solver-side semantic reconstruction 和 manifest 均完成；
+  `P1_STAGE_GATE=PENDING_PEER_REVIEW`。
 
 报告的 `CAD_BUILD_STATUS` 和 `P1_STAGE_GATE` 必须各出现一次，不能同时列出多个值。完成状态仍然只是等待独立复核，不是 P1 PASS。
 
@@ -406,8 +496,10 @@ GIT_RECHECK=BEFORE_BUILD_AFTER_EACH_VARIANT_AFTER_FINAL_MANIFEST
 STATUS_MAP_BLOCKED_005_GATE=NOT_STARTED
 STATUS_MAP_BLOCKED_GIT_OR_ENVIRONMENT=NOT_STARTED
 STATUS_MAP_PARTIAL_CAD_OUTPUT=INCOMPLETE
-STATUS_MAP_COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW=PENDING_PEER_REVIEW
 STATUS_MAP_COMPLETE_AWAITING_REVIEW=PENDING_PEER_REVIEW
 P1_PASS_PROHIBITED=006_CAN_ONLY_REACH_PENDING_PEER_REVIEW
-005_TRANSFER_LIMITATION_INHERITANCE=REQUIRED
+P1_GATE_COUNT=252
+P1_HARD_GATE_COUNT=252
+STEP_LIMITATION_ACCEPTANCE=PROHIBITED
+NATIVE_ROUTE_CLAIMS=NOT_PROVEN
 ```

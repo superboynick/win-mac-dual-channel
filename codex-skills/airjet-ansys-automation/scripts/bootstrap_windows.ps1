@@ -33,6 +33,10 @@ $T0Suite = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\run_t0
 $T1CadSuite = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\run_t1_cad_suite.py'
 $T1ConnectedSuite = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\run_t1_connected_spaceclaim_suite.py'
 $T1SemanticSuite = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\run_t1_semantic_reconstruction_suite.py'
+$T1AlternateSuite = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\run_t1_alternate_route_confirmation_suite.py'
+$Ajm005Closeout = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\ajm005_closeout_v2.py'
+$Ajm005CloseoutTest = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\test_ajm005_closeout_v2.py'
+$Ajm005RunnerGuard = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\test_ajm005_runner_guards.py'
 $T1PredecessorNegative = Join-Path $HOME '.codex\skills\airjet-ansys-automation\scripts\test_t1_predecessor_negative.py'
 [void](New-Item -ItemType Directory -Path $Root -Force)
 
@@ -53,9 +57,17 @@ if (-not (Test-Path -LiteralPath $T0Suite -PathType Leaf)) { throw 'BLOCKED_T0_S
 if (-not (Test-Path -LiteralPath $T1CadSuite -PathType Leaf)) { throw 'BLOCKED_T1_CAD_SUITE_MISSING' }
 if (-not (Test-Path -LiteralPath $T1ConnectedSuite -PathType Leaf)) { throw 'BLOCKED_T1_CONNECTED_SUITE_MISSING' }
 if (-not (Test-Path -LiteralPath $T1SemanticSuite -PathType Leaf)) { throw 'BLOCKED_T1_SEMANTIC_SUITE_MISSING' }
+if (-not (Test-Path -LiteralPath $T1AlternateSuite -PathType Leaf)) { throw 'BLOCKED_T1_ALTERNATE_SUITE_MISSING' }
+if (-not (Test-Path -LiteralPath $Ajm005Closeout -PathType Leaf)) { throw 'BLOCKED_AJM005_CLOSEOUT_MISSING' }
+if (-not (Test-Path -LiteralPath $Ajm005CloseoutTest -PathType Leaf)) { throw 'BLOCKED_AJM005_CLOSEOUT_TEST_MISSING' }
+if (-not (Test-Path -LiteralPath $Ajm005RunnerGuard -PathType Leaf)) { throw 'BLOCKED_AJM005_RUNNER_GUARD_MISSING' }
 if (-not (Test-Path -LiteralPath $T1PredecessorNegative -PathType Leaf)) { throw 'BLOCKED_T1_PREDECESSOR_NEGATIVE_MISSING' }
-& $Python -m py_compile $Server $PolicyTest $T0Suite $T1CadSuite $T1ConnectedSuite $T1SemanticSuite $T1PredecessorNegative
+& $Python -m py_compile $Server $PolicyTest $T0Suite $T1CadSuite $T1ConnectedSuite $T1SemanticSuite $T1AlternateSuite $Ajm005Closeout $Ajm005CloseoutTest $Ajm005RunnerGuard $T1PredecessorNegative
 if ($LASTEXITCODE -ne 0) { throw 'BLOCKED_MCP_PYTHON_SYNTAX' }
+& $Python -B $Ajm005CloseoutTest
+if ($LASTEXITCODE -ne 0) { throw 'BLOCKED_AJM005_CLOSEOUT_CONTRACT' }
+& $Python -B $Ajm005RunnerGuard
+if ($LASTEXITCODE -ne 0) { throw 'BLOCKED_AJM005_RUNNER_GUARDS' }
 & $Python -I -B $PolicyTest
 if ($LASTEXITCODE -ne 0) { throw 'BLOCKED_MCP_STATIC_POLICY' }
 

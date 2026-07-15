@@ -8,7 +8,12 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+import os
+import stat
+import subprocess
 import sys
+import tempfile
+from unittest import mock
 
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
@@ -24,6 +29,27 @@ T1_SEMANTIC_RUNNER = (
 T1_CONNECTED_RUNNER = (
     SKILL_ROOT / "scripts" / "run_t1_connected_spaceclaim_suite.py"
 )
+T1_ALTERNATE_RUNNER = (
+    SKILL_ROOT / "scripts" / "run_t1_alternate_route_confirmation_suite.py"
+)
+AJM005_CLOSEOUT_HELPER = SKILL_ROOT / "scripts" / "ajm005_closeout_v2.py"
+AJM005_CLOSEOUT_TEST = SKILL_ROOT / "scripts" / "test_ajm005_closeout_v2.py"
+AJM005_RUNNER_GUARD = SKILL_ROOT / "scripts" / "test_ajm005_runner_guards.py"
+MCP_POLICY_TEST = Path(__file__).resolve()
+V2_CONTRACT_ROOT = REPO / "airjet-simulation" / "automation" / "ansys" / "contracts"
+V2_ROUTE = V2_CONTRACT_ROOT / "ajm005_alternate_route_v2.json"
+V2_JUDGMENT = V2_CONTRACT_ROOT / "ajm005_semantic_judgment_v2.json"
+V2_SCHEMA = V2_CONTRACT_ROOT / "semantic_sidecar_v2.schema.json"
+V2_VALIDATOR = V2_CONTRACT_ROOT / "semantic_sidecar_v2_contract.py"
+V2_CONTRACT_TEST = V2_CONTRACT_ROOT / "test_semantic_sidecar_v2_contract.py"
+FULL_PRODUCT_ENGINE = V2_CONTRACT_ROOT / "full_product_semantic_contract_v1.py"
+FULL_PRODUCT_SCHEMA = V2_CONTRACT_ROOT / "full_product_semantic_sidecar_v1.schema.json"
+FULL_PRODUCT_CORE_TEST = V2_CONTRACT_ROOT / "test_full_product_semantic_contract_v1.py"
+FULL_PRODUCT_VARIANT_GENERATOR = V2_CONTRACT_ROOT / "build_full_product_trusted_variants.py"
+FULL_PRODUCT_VARIANT_TEST = V2_CONTRACT_ROOT / "test_full_product_trusted_variants.py"
+FULL_PRODUCT_CAMPAIGN = V2_CONTRACT_ROOT / "trusted_full_product_gen1" / "campaign.json"
+FULL_PRODUCT_REVIEWER = REPO / "airjet-simulation" / "checklists" / "prepare_p1_cad_review.py"
+FULL_PRODUCT_REVIEWER_TEST = REPO / "airjet-simulation" / "checklists" / "test_prepare_p1_cad_review_static.py"
 T1_PREDECESSOR_NEGATIVE = (
     SKILL_ROOT / "scripts" / "test_t1_predecessor_negative.py"
 )
@@ -41,6 +67,170 @@ functions = {
     for node in tree.body
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
 }
+
+
+def module_literal(name: str):
+    matches = [
+        node.value
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and node.targets[0].id == name
+    ]
+    if len(matches) != 1:
+        fail(f"server assignment is not unique: {name}")
+    try:
+        return ast.literal_eval(matches[0])
+    except (TypeError, ValueError) as exc:
+        fail(f"server assignment is not literal: {name}: {exc}")
+
+
+def keyed_dict_values(root: ast.AST, key: str) -> list[ast.AST]:
+    values: list[ast.AST] = []
+    for candidate in ast.walk(root):
+        if not isinstance(candidate, ast.Dict):
+            continue
+        if len(candidate.keys) != len(candidate.values):
+            fail("AST dictionary key/value cardinality mismatch")
+        for candidate_key, candidate_value in zip(candidate.keys, candidate.values):
+            if isinstance(candidate_key, ast.Constant) and candidate_key.value == key:
+                values.append(candidate_value)
+    return values
+
+
+def assert_python39_static_compatibility(path: Path) -> None:
+    compatibility_source = path.read_text(encoding="utf-8")
+    try:
+        compatibility_tree = ast.parse(
+            compatibility_source,
+            filename=str(path),
+            feature_version=9,
+        )
+    except SyntaxError as exc:
+        fail(f"Python 3.9 grammar regression: {path}: {exc}")
+    for call in (
+        node for node in ast.walk(compatibility_tree) if isinstance(node, ast.Call)
+    ):
+        if (
+            isinstance(call.func, ast.Attribute)
+            and call.func.attr == "write_text"
+            and any(keyword.arg == "newline" for keyword in call.keywords)
+        ):
+            fail(f"Python 3.9 Path.write_text newline regression: {path}")
+        if (
+            isinstance(call.func, ast.Name)
+            and call.func.id == "zip"
+            and any(keyword.arg == "strict" for keyword in call.keywords)
+        ):
+            fail(f"Python 3.9 zip strict regression: {path}")
+        if (
+            isinstance(call.func, ast.Attribute)
+            and call.func.attr == "stat"
+            and any(keyword.arg == "follow_symlinks" for keyword in call.keywords)
+            and not (
+                isinstance(call.func.value, ast.Name)
+                and call.func.value.id == "os"
+            )
+        ):
+            fail(f"Python 3.9 Path.stat follow_symlinks regression: {path}")
+
+
+for python39_static_path in (
+    SERVER,
+    AJM005_CLOSEOUT_TEST,
+    AJM005_RUNNER_GUARD,
+    MCP_POLICY_TEST,
+):
+    assert_python39_static_compatibility(python39_static_path)
+
+
+def parsed_expression(expression: str) -> ast.AST:
+    return ast.parse(expression, mode="eval").body
+
+
+def same_expression(actual: ast.AST, expected: str) -> bool:
+    return ast.dump(actual, include_attributes=False) == ast.dump(
+        parsed_expression(expected), include_attributes=False
+    )
+
+
+def assert_hash_file_python39_runtime() -> None:
+    """Exercise the Python 3.9-safe hash and fail-closed symlink walk paths."""
+
+    namespace = {
+        "os": os,
+        "stat": stat,
+        "hashlib": hashlib,
+        "Path": Path,
+        "MAX_ARTIFACT_BYTES": 1024 * 1024,
+        "MAX_ARTIFACTS": 100,
+        "reject_existing_reparse_ancestors": lambda path: None,
+        "is_reparse_point": lambda path: False,
+    }
+    runtime_module = ast.Module(
+        body=[copy.deepcopy(functions["hash_file"]), copy.deepcopy(functions["walk_artifacts"])],
+        type_ignores=[],
+    )
+    ast.fix_missing_locations(runtime_module)
+    exec(compile(runtime_module, "<python39-hash-file-regression>", "exec"), namespace)
+    hash_file_runtime = namespace["hash_file"]
+    walk_artifacts_runtime = namespace["walk_artifacts"]
+    payload = b"airjet-python39-hash-file\n"
+    with tempfile.TemporaryDirectory(prefix="airjet-hash-file-py39-") as temporary:
+        root = Path(temporary)
+        regular = root / "regular.bin"
+        regular.write_bytes(payload)
+        size, digest = hash_file_runtime(regular)
+        if size != len(payload) or digest != hashlib.sha256(payload).hexdigest():
+            fail("Python 3.9 hash_file runtime regression")
+        link = root / "link.bin"
+        try:
+            os.symlink(str(regular), str(link))
+            used_real_symlink = True
+        except OSError:
+            link.write_bytes(payload)
+            used_real_symlink = False
+        try:
+            if used_real_symlink:
+                walk_artifacts_runtime(root)
+            else:
+                original_is_symlink = Path.is_symlink
+
+                def synthetic_is_symlink(path):
+                    return path.name == "link.bin" or original_is_symlink(path)
+
+                with mock.patch.object(Path, "is_symlink", synthetic_is_symlink):
+                    walk_artifacts_runtime(root)
+        except ValueError as exc:
+            if str(exc) != "BLOCKED_ARTIFACT_REPARSE_POINT":
+                fail("Python 3.9 symlink rejection code changed: " + str(exc))
+        else:
+            fail("Python 3.9 artifact walk followed a symlink path")
+
+
+assert_hash_file_python39_runtime()
+
+
+def subscript_assignments(
+    root: ast.AST, container: str, key: str
+) -> list[ast.Assign]:
+    matches: list[ast.Assign] = []
+    for candidate in ast.walk(root):
+        if not isinstance(candidate, ast.Assign) or len(candidate.targets) != 1:
+            continue
+        target = candidate.targets[0]
+        if (
+            isinstance(target, ast.Subscript)
+            and isinstance(target.value, ast.Name)
+            and target.value.id == container
+            and isinstance(target.slice, ast.Constant)
+            and target.slice.value == key
+        ):
+            matches.append(candidate)
+    return matches
+
+
 tools = {
     node.name
     for node in functions.values()
@@ -66,6 +256,286 @@ for name, arguments in expected_arguments.items():
     actual = [argument.arg for argument in functions[name].args.args]
     if actual != arguments:
         fail(f"unsafe tool arguments for {name}: {actual}")
+
+expected_dependency_git_paths = {
+    "ajm005-spaceclaim-cad-t1-v2": (
+        "airjet-simulation/automation/ansys/approved/005/spaceclaim_cad_t1.py",
+        "airjet-simulation/automation/ansys/contracts/semantic_sidecar_v2_contract.py",
+        "airjet-simulation/automation/ansys/contracts/semantic_sidecar_v2.schema.json",
+        "airjet-simulation/automation/ansys/contracts/ajm005_semantic_judgment_v2.json",
+        "airjet-simulation/automation/ansys/contracts/ajm005_alternate_route_v2.json",
+    ),
+    "ajm005-workbench-semantic-reconstruction-t1-v2": (
+        "airjet-simulation/automation/ansys/approved/005/workbench_semantic_reconstruction_t1.wbjn",
+        "airjet-simulation/automation/ansys/contracts/semantic_sidecar_v2_contract.py",
+        "airjet-simulation/automation/ansys/contracts/semantic_sidecar_v2.schema.json",
+        "airjet-simulation/automation/ansys/contracts/ajm005_semantic_judgment_v2.json",
+        "airjet-simulation/automation/ansys/contracts/ajm005_alternate_route_v2.json",
+    ),
+}
+actual_dependency_git_paths = module_literal("PROFILE_DEPENDENCY_GIT_PATHS")
+if actual_dependency_git_paths != expected_dependency_git_paths:
+    fail("profile dependency Git allowlist changed")
+if module_literal("PROFILE_DEPENDENCY_MANIFEST") != "dependency-manifest.json":
+    fail("profile dependency manifest name changed")
+
+sanitized_arguments = [
+    argument.arg for argument in functions["sanitized_environment"].args.args
+]
+expected_sanitized_arguments = [
+    "job_dir",
+    "profile_id",
+    "case_id",
+    "predecessor_dir",
+    "profile_dependency_dir",
+    "git_head",
+    "script_sha256",
+    "profile_contract_sha256",
+]
+if sanitized_arguments != expected_sanitized_arguments:
+    fail(f"unsafe sanitized_environment arguments: {sanitized_arguments}")
+
+profile_contract_values = keyed_dict_values(
+    functions["load_profiles"], "profile_contract_sha256"
+)
+expected_profile_contract_expression = (
+    'sha256_bytes(json.dumps(raw, ensure_ascii=True, sort_keys=True, '
+    'separators=(",", ":")).encode("utf-8"))'
+)
+if len(profile_contract_values) != 1 or not same_expression(
+    profile_contract_values[0], expected_profile_contract_expression
+):
+    fail("profile contract hash is not canonical and commit-bound")
+
+for environment_key, expected_value in {
+    "AIRJET_GIT_HEAD": "git_head",
+    "AIRJET_SCRIPT_SHA256": "script_sha256",
+    "AIRJET_PROFILE_CONTRACT_SHA256": "profile_contract_sha256",
+}.items():
+    values = keyed_dict_values(functions["sanitized_environment"], environment_key)
+    if len(values) != 1 or not same_expression(values[0], expected_value):
+        fail(f"sanitized environment binding changed: {environment_key}")
+
+sanitized_parent_by_node: dict[ast.AST, ast.AST] = {}
+for parent in ast.walk(functions["sanitized_environment"]):
+    for child in ast.iter_child_nodes(parent):
+        sanitized_parent_by_node[child] = parent
+dependency_environment_assignments = subscript_assignments(
+    functions["sanitized_environment"],
+    "environment",
+    "AIRJET_PROFILE_DEPENDENCY_DIR",
+)
+dependency_environment_mentions = [
+    node
+    for node in ast.walk(functions["sanitized_environment"])
+    if isinstance(node, ast.Constant)
+    and node.value == "AIRJET_PROFILE_DEPENDENCY_DIR"
+]
+if (
+    len(dependency_environment_assignments) != 1
+    or len(dependency_environment_mentions) != 1
+    or not same_expression(
+        dependency_environment_assignments[0].value,
+        "str(profile_dependency_dir)",
+    )
+):
+    fail("profile dependency environment must name only the frozen directory")
+dependency_environment_guard = sanitized_parent_by_node.get(
+    dependency_environment_assignments[0]
+)
+if not (
+    isinstance(dependency_environment_guard, ast.If)
+    and same_expression(
+        dependency_environment_guard.test,
+        "profile_dependency_dir is not None",
+    )
+    and dependency_environment_guard.body == dependency_environment_assignments
+    and not dependency_environment_guard.orelse
+):
+    fail("profile dependency environment assignment is not fail-closed")
+
+for function_name, key, expected_value in (
+    (
+        "inventory",
+        "profile_contract_sha256",
+        '{profile_id: profile["profile_contract_sha256"] '
+        "for profile_id, profile in sorted(profiles.items())}",
+    ),
+    (
+        "submit_job",
+        "profile_contract_sha256",
+        'profile["profile_contract_sha256"]',
+    ),
+    ("submit_job", "profile_dependency_artifacts", "[]"),
+    ("submit_job", "profile_dependency_manifest_sha256", "None"),
+    (
+        "prepare_predecessor_input",
+        "predecessor_script_sha256",
+        'state["script_sha256"]',
+    ),
+    (
+        "prepare_predecessor_input",
+        "predecessor_profile_contract_sha256",
+        'state["profile_contract_sha256"]',
+    ),
+):
+    values = keyed_dict_values(functions[function_name], key)
+    if len(values) != 1 or not same_expression(values[0], expected_value):
+        fail(f"commit provenance state binding changed: {function_name}.{key}")
+
+dependency_function = functions.get("prepare_profile_dependencies")
+if dependency_function is None:
+    fail("profile dependency freezer is missing")
+dependency_arguments = [argument.arg for argument in dependency_function.args.args]
+if dependency_arguments != ["profile_id", "git_head", "input_dir"]:
+    fail(f"unsafe profile dependency freezer arguments: {dependency_arguments}")
+dependency_calls = [
+    node
+    for node in ast.walk(dependency_function)
+    if isinstance(node, ast.Call)
+]
+git_blob_calls = [
+    node
+    for node in dependency_calls
+    if isinstance(node.func, ast.Name) and node.func.id == "read_git_blob"
+]
+if (
+    len(git_blob_calls) != 1
+    or len(git_blob_calls[0].args) != 2
+    or not same_expression(git_blob_calls[0].args[0], "git_head")
+    or not same_expression(git_blob_calls[0].args[1], "git_path")
+    or git_blob_calls[0].keywords
+):
+    fail("profile dependencies must come from the saved verified Git commit")
+reparse_calls = [
+    node
+    for node in dependency_calls
+    if isinstance(node.func, ast.Name)
+    and node.func.id == "reject_existing_reparse_ancestors"
+]
+hash_calls = [
+    node
+    for node in dependency_calls
+    if isinstance(node.func, ast.Name) and node.func.id == "hash_file"
+]
+if len(reparse_calls) < 7 or len(hash_calls) < 3:
+    fail("profile dependency freeze lacks reparse or hash revalidation")
+dependency_source = ast.get_source_segment(source, dependency_function) or ""
+for dependency_invariant in (
+    "BLOCKED_PROFILE_DEPENDENCY_CONFIGURATION",
+    "BLOCKED_PROFILE_DEPENDENCY_MISSING",
+    "BLOCKED_PROFILE_DEPENDENCY_TOO_LARGE",
+    "BLOCKED_PROFILE_DEPENDENCY_EXTRA",
+    "BLOCKED_PROFILE_DEPENDENCY_COPY_HASH_MISMATCH",
+    "BLOCKED_PROFILE_DEPENDENCY_MANIFEST_HASH_MISMATCH",
+    "dependency_dir = input_dir / \"dependencies\"",
+    "target.chmod(stat.S_IREAD)",
+    "manifest_path.chmod(stat.S_IREAD)",
+    "if observed_before_manifest != expected_files",
+    "if observed_after_manifest != expected_files | {PROFILE_DEPENDENCY_MANIFEST}",
+    "return dependency_dir, copied, manifest_sha256",
+):
+    if dependency_invariant not in dependency_source:
+        fail(f"profile dependency freezer lacks invariant: {dependency_invariant}")
+for manifest_key, expected_value in {
+    "schema_version": "1",
+    "profile_id": "profile_id",
+    "git_head": "git_head",
+    "artifacts": "copied",
+}.items():
+    values = keyed_dict_values(dependency_function, manifest_key)
+    if len(values) != 1 or not same_expression(values[0], expected_value):
+        fail(f"profile dependency manifest binding changed: {manifest_key}")
+
+submit_parent_by_node: dict[ast.AST, ast.AST] = {}
+for parent in ast.walk(functions["submit_job"]):
+    for child in ast.iter_child_nodes(parent):
+        submit_parent_by_node[child] = parent
+prepare_dependency_calls = [
+    node
+    for node in ast.walk(functions["submit_job"])
+    if isinstance(node, ast.Call)
+    and isinstance(node.func, ast.Name)
+    and node.func.id == "prepare_profile_dependencies"
+]
+if (
+    len(prepare_dependency_calls) != 1
+    or [ast.dump(argument, include_attributes=False) for argument in prepare_dependency_calls[0].args]
+    != [
+        ast.dump(parsed_expression(expression), include_attributes=False)
+        for expression in ("profile_id", "git_head", "input_dir")
+    ]
+    or prepare_dependency_calls[0].keywords
+):
+    fail("submit_job does not freeze dependencies from its saved Git head")
+prepare_dependency_assignment = submit_parent_by_node.get(
+    prepare_dependency_calls[0]
+)
+expected_dependency_targets = [
+    "profile_dependency_dir",
+    "profile_dependency_artifacts",
+    "profile_dependency_manifest_sha256",
+]
+if not (
+    isinstance(prepare_dependency_assignment, ast.Assign)
+    and len(prepare_dependency_assignment.targets) == 1
+    and isinstance(prepare_dependency_assignment.targets[0], ast.Tuple)
+    and [
+        element.id
+        for element in prepare_dependency_assignment.targets[0].elts
+        if isinstance(element, ast.Name)
+    ]
+    == expected_dependency_targets
+    and len(prepare_dependency_assignment.targets[0].elts)
+    == len(expected_dependency_targets)
+):
+    fail("submit_job does not retain the frozen dependency provenance")
+for state_key, expected_value in (
+    ("profile_dependency_artifacts", "profile_dependency_artifacts"),
+    (
+        "profile_dependency_manifest_sha256",
+        "profile_dependency_manifest_sha256",
+    ),
+):
+    assignments = subscript_assignments(functions["submit_job"], "state", state_key)
+    if len(assignments) != 1 or not same_expression(
+        assignments[0].value, expected_value
+    ):
+        fail(f"submit_job does not persist dependency provenance: {state_key}")
+
+sanitized_calls = [
+    node
+    for node in ast.walk(functions["submit_job"])
+    if isinstance(node, ast.Call)
+    and isinstance(node.func, ast.Name)
+    and node.func.id == "sanitized_environment"
+]
+expected_sanitized_call_arguments = (
+    "job_dir",
+    "profile_id",
+    "case_id",
+    "predecessor_dir",
+    "profile_dependency_dir",
+    "git_head",
+    'profile["sha256"]',
+    'profile["profile_contract_sha256"]',
+)
+if len(sanitized_calls) != 1:
+    fail("submit_job environment is not bound to frozen commit provenance")
+sanitized_call = sanitized_calls[0]
+if len(sanitized_call.args) != len(expected_sanitized_call_arguments):
+    fail("submit_job environment is not bound to frozen commit provenance")
+if (
+    any(
+        not same_expression(actual, expected)
+        for actual, expected in zip(
+            sanitized_call.args,
+            expected_sanitized_call_arguments,
+        )
+    )
+    or sanitized_call.keywords
+):
+    fail("submit_job environment is not bound to frozen commit provenance")
 
 for node in ast.walk(tree):
     if isinstance(node, ast.Call):
@@ -765,8 +1235,80 @@ for invariant in (
         fail(f"T1 predecessor negative test lacks invariant: {invariant}")
 
 policy = json.loads(POLICY.read_text(encoding="utf-8"))
-if set(policy) != {"schema_version", "profiles"} or policy["schema_version"] != 2:
+if set(policy) != {"schema_version", "production_contracts", "profiles"} or policy["schema_version"] != 2:
     fail("invalid profiles root")
+production = policy["production_contracts"]
+if not isinstance(production, dict) or set(production) != {
+    "schema_version", "contract_id", "scope", "product_id",
+    "expected_variant_count", "producer_profile_id", "observer_profile_id",
+    "execution_state", "p1_p6_gates", "components",
+}:
+    fail("invalid production contract fields")
+if (
+    production["schema_version"] != 1
+    or production["contract_id"] != "AJM006_GEN1_FULL_PRODUCT_SEMANTIC_PRODUCTION_V1"
+    or production["scope"] != "FULL_PRODUCT"
+    or production["product_id"] != "AIRJET_MINI_GEN1"
+    or production["expected_variant_count"] != 9
+    or production["producer_profile_id"] != "ajm006-spaceclaim-full-product-producer-v1"
+    or production["observer_profile_id"] != "ajm006-workbench-full-product-observer-v1"
+    or production["execution_state"] != "STATIC_CONTRACT_ONLY_NOT_REGISTERED"
+    or production["p1_p6_gates"] != "NOT_RUN"
+):
+    fail("production contract identity changed")
+expected_production_components = {
+    "full_product_validator": "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
+    "full_product_schema": "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
+    "full_product_core_test": "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py",
+    "trusted_variant_generator": "airjet-simulation/automation/ansys/contracts/build_full_product_trusted_variants.py",
+    "trusted_variant_test": "airjet-simulation/automation/ansys/contracts/test_full_product_trusted_variants.py",
+    "trusted_campaign": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
+}
+components = production["components"]
+if not isinstance(components, list) or len(components) != len(expected_production_components):
+    fail("production component count changed")
+production_by_key = {}
+for item in components:
+    if not isinstance(item, dict) or set(item) != {"contract_key", "git_path", "sha256"}:
+        fail("production component fields changed")
+    key = item["contract_key"]
+    if key in production_by_key:
+        fail("duplicate production component key")
+    production_by_key[key] = item
+if set(production_by_key) != set(expected_production_components):
+    fail("production component set changed")
+for key, git_path in expected_production_components.items():
+    item = production_by_key[key]
+    path = REPO / git_path
+    if (
+        item["git_path"] != git_path
+        or not path.is_file()
+        or item["sha256"] != hashlib.sha256(path.read_bytes()).hexdigest()
+    ):
+        fail("production component hash/path differs: " + key)
+campaign = json.loads((REPO / expected_production_components["trusted_campaign"]).read_text(encoding="ascii"))
+if (
+    campaign.get("product_id") != "AIRJET_MINI_GEN1"
+    or campaign.get("expected_variant_count") != 9
+    or len(campaign.get("variant_contracts", [])) != 9
+):
+    fail("Gen1 trusted campaign identity changed")
+for record in campaign["variant_contracts"]:
+    blueprint_path = REPO / record["blueprint_path"]
+    if (
+        not blueprint_path.is_file()
+        or hashlib.sha256(blueprint_path.read_bytes()).hexdigest()
+        != record["blueprint_sha256"]
+    ):
+        fail("trusted blueprint hash differs: " + str(record.get("source_variant_id")))
+    blueprint = json.loads(blueprint_path.read_text(encoding="ascii"))
+    if (
+        blueprint.get("product_id") != "AIRJET_MINI_GEN1"
+        or blueprint.get("configuration", {}).get("product_id")
+        != "AIRJET_MINI_GEN1"
+        or "G2" in json.dumps(blueprint, ensure_ascii=True).upper()
+    ):
+        fail("non-Gen1 value entered trusted blueprint")
 profile_ids: set[str] = set()
 for profile in policy["profiles"]:
     required = {
@@ -797,7 +1339,361 @@ for profile in policy["profiles"]:
     if not profile["reports"] or any(not item.endswith(".json") for item in profile["reports"]):
         fail(f"invalid declared reports for {profile_id}")
 
+future_dependency_profiles = set(expected_dependency_git_paths)
+present_dependency_profiles = future_dependency_profiles & profile_ids
+if present_dependency_profiles != future_dependency_profiles:
+    fail("both v2 dependency-bearing profiles are mandatory")
+
+expected_profile_ids = {
+    "ajm005-spaceclaim-t0-v1",
+    "ajm005-workbench-t0-v1",
+    "ajm005-pymechanical-t0-v1",
+    "ajm005-pyfluent-t0-v1",
+    "ajm005-spaceclaim-cad-t1-v1",
+    "ajm005-workbench-transfer-t1-v1",
+    "ajm005-workbench-semantic-reconstruction-t1-v1",
+    "ajm005-workbench-connected-spaceclaim-t1-v1",
+    "ajm005-spaceclaim-cad-t1-v2",
+    "ajm005-workbench-semantic-reconstruction-t1-v2",
+}
+if profile_ids != expected_profile_ids:
+    fail(f"approved profile set is not exact: {sorted(profile_ids)}")
+
+for required_path in (
+    T1_ALTERNATE_RUNNER,
+    V2_ROUTE,
+    V2_JUDGMENT,
+    V2_SCHEMA,
+    V2_VALIDATOR,
+    V2_CONTRACT_TEST,
+    AJM005_CLOSEOUT_HELPER,
+    AJM005_CLOSEOUT_TEST,
+    AJM005_RUNNER_GUARD,
+    FULL_PRODUCT_ENGINE,
+    FULL_PRODUCT_SCHEMA,
+    FULL_PRODUCT_CORE_TEST,
+    FULL_PRODUCT_VARIANT_GENERATOR,
+    FULL_PRODUCT_VARIANT_TEST,
+    FULL_PRODUCT_CAMPAIGN,
+    FULL_PRODUCT_REVIEWER,
+    FULL_PRODUCT_REVIEWER_TEST,
+):
+    if not required_path.is_file():
+        fail(f"missing mandatory v2 route file: {required_path}")
+
+route = json.loads(V2_ROUTE.read_text(encoding="utf-8"))
+judgment = json.loads(V2_JUDGMENT.read_text(encoding="utf-8"))
+if route.get("contract_id") != "AJM005_ALTERNATE_ROUTE_V2":
+    fail("invalid v2 route contract identity")
+if route.get("scope") != "DISPOSABLE_CAPABILITY_FIXTURE_ONLY":
+    fail("005 v2 route must remain fixture-only")
+if route.get("route") != {
+    "cad_authoring": "SPACECLAIM_SIGNED_SCRIPT_PARAMETRIC",
+    "solver_handoff": "HASH_BOUND_STEP_SEMANTIC_SIDECAR",
+    "connected_route": "DEFERRED_CURRENT_HOST_ROUTE",
+    "step_is_route_hard_requirement": True,
+}:
+    fail("v2 route execution boundary changed")
+if route.get("claim_boundaries") != {
+    "p1_cad_toolchain_scope": "ALTERNATE_ROUTE_ONLY",
+    "external_native_attach": "NOT_PROVEN",
+    "native_parameterization": "NOT_PROVEN",
+    "native_named_selection_transfer": "NOT_PROVEN",
+    "p1_stage_gate": "NOT_RUN",
+    "p1_p6_gates": "NOT_RUN",
+}:
+    fail("v2 route claim boundaries changed")
+if route.get("producer", {}).get("required_assertions") != judgment.get(
+    "producer_required_assertions"
+):
+    fail("v2 producer judgment/route assertion sets differ")
+if route.get("consumer", {}).get("required_assertions") != judgment.get(
+    "consumer_required_assertions"
+):
+    fail("v2 consumer judgment/route assertion sets differ")
+if judgment.get("suite_pass_status") != "PASS_ALTERNATE_ROUTE_SEMANTIC_CONFIRMATION":
+    fail("v2 judgment suite status changed")
+if route.get("confirmation") != {
+    "old_v1_evidence_reusable_for_v2_closeout": False,
+    "post_freeze_combined_run_required": True,
+    "connected_route_rerun_required": False,
+}:
+    fail("v2 confirmation policy changed")
+
 by_profile_id = {profile["profile_id"]: profile for profile in policy["profiles"]}
+for role, profile_id in (
+    ("producer", "ajm005-spaceclaim-cad-t1-v2"),
+    ("consumer", "ajm005-workbench-semantic-reconstruction-t1-v2"),
+):
+    raw_profile = by_profile_id[profile_id]
+    profile_contract_sha256 = hashlib.sha256(
+        json.dumps(
+            raw_profile,
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    route_role = route[role]
+    if route_role.get("profile_id") != profile_id:
+        fail(f"v2 route {role} profile id differs")
+    if route_role.get("profile_contract_sha256") != profile_contract_sha256:
+        fail(f"v2 route {role} profile contract hash differs")
+    if route_role.get("script_sha256") != raw_profile["sha256"]:
+        fail(f"v2 route {role} script hash differs")
+
+expected_contract_hashes = {
+    "schema_sha256": hashlib.sha256(V2_SCHEMA.read_bytes()).hexdigest(),
+    "judgment_sha256": hashlib.sha256(V2_JUDGMENT.read_bytes()).hexdigest(),
+    "validator_sha256": hashlib.sha256(V2_VALIDATOR.read_bytes()).hexdigest(),
+}
+if route.get("contract_hashes") != expected_contract_hashes:
+    fail("v2 route contract dependency hashes differ")
+if route.get("runner") != {
+    "path": "codex-skills/airjet-ansys-automation/scripts/run_t1_alternate_route_confirmation_suite.py",
+    "sha256": hashlib.sha256(T1_ALTERNATE_RUNNER.read_bytes()).hexdigest(),
+    "guard_test_path": "codex-skills/airjet-ansys-automation/scripts/test_ajm005_runner_guards.py",
+    "guard_test_sha256": hashlib.sha256(AJM005_RUNNER_GUARD.read_bytes()).hexdigest(),
+}:
+    fail("v2 route runner identity differs")
+if route.get("closeout") != {
+    "helper": {
+        "git_path": "codex-skills/airjet-ansys-automation/scripts/ajm005_closeout_v2.py",
+        "sha256": hashlib.sha256(AJM005_CLOSEOUT_HELPER.read_bytes()).hexdigest(),
+    },
+    "test": {
+        "git_path": "codex-skills/airjet-ansys-automation/scripts/test_ajm005_closeout_v2.py",
+        "sha256": hashlib.sha256(AJM005_CLOSEOUT_TEST.read_bytes()).hexdigest(),
+    },
+}:
+    fail("v2 route closeout supply chain differs")
+if route.get("mcp_server") != {
+    "path": "codex-skills/airjet-ansys-automation/scripts/airjet_ansys_mcp.py",
+    "sha256": hashlib.sha256(SERVER.read_bytes()).hexdigest(),
+}:
+    fail("v2 route MCP server identity differs")
+
+alternate_source = T1_ALTERNATE_RUNNER.read_text(encoding="utf-8")
+for invariant in (
+    "PASS_ALTERNATE_ROUTE_SEMANTIC_CONFIRMATION",
+    'SC_PROFILE = "ajm005-spaceclaim-cad-t1-v2"',
+    'WB_PROFILE = "ajm005-workbench-semantic-reconstruction-t1-v2"',
+    "AIRJET_ANSYS_STUDENT_CAPABILITY_SMOKE_005.txt",
+    "ALTERNATE_ROUTE_ONLY",
+    "DEFERRED_CURRENT_HOST_ROUTE",
+    '"native_parameterization"',
+    "NOT_PROVEN",
+    '"p1_stage_gate"',
+    "NOT_RUN",
+    "profile_dependency_manifest_sha256",
+):
+    if invariant not in alternate_source:
+        fail(f"alternate route runner lacks invariant: {invariant}")
+for forbidden in (
+    "PASS_WITH_TRANSFER_LIMITATION",
+    "PASS_START_P1_WITH_LIMITATIONS",
+    "PASS_CAD_TRANSFER_SET",
+    "P1_STAGE_GATE=PASS",
+):
+    if forbidden in alternate_source:
+        fail(f"alternate route runner contains forbidden claim: {forbidden}")
+try:
+    compile(alternate_source, str(T1_ALTERNATE_RUNNER), "exec")
+except SyntaxError as exc:
+    fail(f"alternate route runner is invalid: {exc}")
+
+test_environment = dict(os.environ)
+test_environment["PYTHONDONTWRITEBYTECODE"] = "1"
+contract_test = subprocess.run(
+    [sys.executable, "-B", str(V2_CONTRACT_TEST)],
+    capture_output=True,
+    text=True,
+    timeout=30,
+    check=False,
+    env=test_environment,
+)
+if (
+    contract_test.returncode != 0
+    or "AJM005_SEMANTIC_SIDECAR_V2_NEGATIVE_TESTS=PASS" not in contract_test.stdout
+    or "real_artifacts=2" not in contract_test.stdout
+):
+    fail(
+        "v2 semantic contract regression failed: "
+        + contract_test.stdout
+        + contract_test.stderr
+    )
+
+for static_test_path, marker in (
+    (AJM005_CLOSEOUT_TEST, "AJM005_CLOSEOUT_V2_TESTS=PASS cases=9 fields=99"),
+    (AJM005_RUNNER_GUARD, "AJM005_RUNNER_GUARDS=PASS"),
+):
+    test_python = sys.executable
+    if static_test_path == AJM005_RUNNER_GUARD and sys.platform == "win32":
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if not local_app_data:
+            fail("approved AirJet audit venv root is unavailable")
+        approved_python = (
+            Path(local_app_data)
+            / "AirJetAnsysAutomation" / ".venv" / "Scripts" / "python.exe"
+        )
+        if not approved_python.is_file():
+            fail("approved AirJet audit venv interpreter is missing")
+        venv_probe = subprocess.run(
+            [
+                str(approved_python), "-B", "-c",
+                "from importlib.metadata import version; import mcp; "
+                "print('MCP=' + version('mcp'))",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+            env=test_environment,
+        )
+        if venv_probe.returncode != 0 or venv_probe.stdout.strip() != "MCP=1.28.1":
+            fail(
+                "approved AirJet audit venv dependency check failed: "
+                + venv_probe.stdout
+                + venv_probe.stderr
+            )
+        test_python = str(approved_python)
+    static_test = subprocess.run(
+        [test_python, "-B", str(static_test_path)],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+        env=test_environment,
+    )
+    if static_test.returncode != 0 or marker not in static_test.stdout:
+        fail(
+            "005 closeout supply-chain regression failed: "
+            + static_test.stdout
+            + static_test.stderr
+        )
+
+for command, marker in (
+    ([sys.executable, "-B", str(FULL_PRODUCT_CORE_TEST)], "FULL_PRODUCT_SEMANTIC_CONTRACT_V1_TESTS=PASS positive=1 negative=28"),
+    ([sys.executable, "-B", str(FULL_PRODUCT_VARIANT_GENERATOR), "--check"], "FULL_PRODUCT_TRUSTED_VARIANTS=PASS product=AIRJET_MINI_GEN1 variants=9 mode=check"),
+    ([sys.executable, "-B", str(FULL_PRODUCT_VARIANT_TEST)], "FULL_PRODUCT_TRUSTED_VARIANT_TESTS=PASS product=AIRJET_MINI_GEN1 variants=9"),
+    ([sys.executable, "-B", str(FULL_PRODUCT_REVIEWER_TEST)], "P1_REVIEWER_STATIC_TESTS=PASS product=AIRJET_MINI_GEN1 variants=9"),
+):
+    production_test = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=False,
+        env=test_environment,
+    )
+    if production_test.returncode != 0 or marker not in production_test.stdout:
+        fail(
+            "full-product production contract regression failed: "
+            + production_test.stdout
+            + production_test.stderr
+        )
+if sys.platform == "win32":
+    ironpython = Path(r"D:\ansys\ANSYS Inc\ANSYS Student\v261\commonfiles\IronPython\ipy64.exe")
+    if not ironpython.is_file():
+        fail("approved ANSYS IronPython compatibility interpreter is missing")
+    ironpython_test = subprocess.run(
+        [str(ironpython), "-X:Frames", str(FULL_PRODUCT_CORE_TEST)],
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=False,
+        env=test_environment,
+    )
+    if (
+        ironpython_test.returncode != 0
+        or "FULL_PRODUCT_SEMANTIC_CONTRACT_V1_TESTS=PASS positive=1 negative=28"
+        not in ironpython_test.stdout
+    ):
+        fail(
+            "full-product IronPython compatibility regression failed: "
+            + ironpython_test.stdout
+            + ironpython_test.stderr
+        )
+
+v2_producer_profile = by_profile_id["ajm005-spaceclaim-cad-t1-v2"]
+v2_consumer_profile = by_profile_id[
+    "ajm005-workbench-semantic-reconstruction-t1-v2"
+]
+if v2_producer_profile.get("reports") != [
+    "spaceclaim_cad_t1.json",
+    "spaceclaim_cad_t1_v2.json",
+]:
+    fail("v2 producer report policy differs")
+v2_predecessor = v2_consumer_profile.get("predecessor") or {}
+if (
+    v2_predecessor.get("profile_id") != "ajm005-spaceclaim-cad-t1-v2"
+    or v2_predecessor.get("report") != "spaceclaim_cad_t1_v2.json"
+    or v2_predecessor.get("required_probe") != "spaceclaim_cad_t1_v2"
+    or v2_predecessor.get("required_status") != "PASS_PARTIAL_CAD_CAPABILITY"
+    or v2_predecessor.get("required_assertions")
+    != judgment["producer_required_assertions"]
+):
+    fail("v2 consumer predecessor judgment policy differs")
+required_v2_predecessor_artifacts = {
+    "spaceclaim_cad_t1.json",
+    "spaceclaim_cad_t1_v2.json",
+    "spaceclaim_cad_t1.scdocx",
+    "spaceclaim_cad_t1.step",
+    "spaceclaim_semantic_sidecar.json",
+    "spaceclaim_semantic_sidecar_v2.json",
+    "spaceclaim_semantic_binding_v2.json",
+}
+if set(v2_predecessor.get("artifacts", [])) != required_v2_predecessor_artifacts:
+    fail("v2 consumer predecessor artifact set differs")
+
+v2_producer_source = (
+    APPROVED / v2_producer_profile["script"]
+).read_text(encoding="utf-8")
+v2_consumer_source = (
+    APPROVED / v2_consumer_profile["script"]
+).read_text(encoding="utf-8")
+for name, wrapper_source in (
+    ("producer", v2_producer_source),
+    ("consumer", v2_consumer_source),
+):
+    if 'os.environ["AIRJET_PROFILE_DEPENDENCY_DIR"]' not in wrapper_source:
+        fail(f"v2 {name} does not consume frozen dependencies")
+    if 'os.environ["AIRJET_REPO_ROOT"]' in wrapper_source:
+        fail(f"v2 {name} reads mutable repository dependencies")
+    if "verify_dependency_bundle" not in wrapper_source:
+        fail(f"v2 {name} lacks dependency manifest revalidation")
+    try:
+        compile(wrapper_source, f"v2_{name}_wrapper", "exec")
+    except SyntaxError as exc:
+        fail(f"v2 {name} wrapper is invalid: {exc}")
+for invariant in (
+    "actual_sources",
+    "sha256_file(actual_sources",
+    "artifact_hash_checks",
+    "detached_sidecar_raw_hash",
+    "actual_source_files_hashed",
+):
+    if invariant not in v2_producer_source:
+        fail(f"v2 producer lacks actual artifact invariant: {invariant}")
+for invariant in (
+    "actual_step_sha256",
+    "actual_native_sha256",
+    "actual_sidecar_sha256",
+    "actual_binding_sha256",
+    "normal_at_centroid",
+    "direction_matches",
+    "observed_owner_by_key",
+    "body_surface_coverage_ok",
+    "assignment_solution_count",
+    "required_negative_codes",
+    "artifact_hash_checks",
+    "AJM005_V2_COMPUTED_SEMANTIC_OBSERVATION_FAILED",
+):
+    if invariant not in v2_consumer_source:
+        fail(f"v2 consumer lacks computed semantic invariant: {invariant}")
+if '"artifact_hash_chain": True' in v2_consumer_source:
+    fail("v2 consumer hardcodes artifact hash-chain success")
+
 native_profile = by_profile_id.get("ajm005-workbench-transfer-t1-v1")
 if not isinstance(native_profile, dict):
     fail("missing native T1 Workbench transfer profile")

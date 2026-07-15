@@ -26,6 +26,12 @@ Use these automation result states consistently:
   was uniquely mapped to solver-side boundary objects and its diagnostic mesh/project checks
   passed. This is reconstruction, not native attach or Named Selection transfer; it never unlocks
   P1 readiness by itself.
+- `PASS_ALTERNATE_ROUTE_SEMANTIC_CONFIRMATION`: the signed v2 producer and consumer, frozen
+  dependency bundle, actual STEP/native/sidecar/binding byte hashes, exact semantic keys,
+  geometry/direction, BODY ownership, adjacency, cardinality, mesh/project, and all judgment
+  negative controls passed on the disposable 005 fixture. This can set route-scoped
+  `P1_CAD_TOOLCHAIN_READINESS=PASS` and unlock 006, while all native-transfer claims remain
+  `NOT_PROVEN` and every formal P1-P6 Gate remains `NOT_RUN`.
 - `PASS_CONNECTED_SPACECLAIM_TRANSFER_DIAGNOSTIC`: a Workbench-managed empty SpaceClaim Geometry
   cell built the disposable fixture and transferred its body/groups to Mechanical with mesh and
   project evidence. This is not external `.scdocx` attach, native parameterization, full-product
@@ -48,8 +54,10 @@ perimeter transfer gaps, bottom chambers, actual orifice throats, full impingeme
 manifold, and one product outlet. Preserve all evidence classes and R0 branch identifiers.
 
 Require native CAD, STEP, fluid volume, Workbench project, scripts, logs, screenshots, parameter
-diffs, connectivity checks, Named Selection cardinalities, and SHA256 manifests. The 006 result is
-at most `PENDING_PEER_REVIEW`.
+diffs, connectivity checks, production full-product semantic sidecars/bindings, actual solver
+entity observations, cell/local frames, BODY ownership, bidirectional topology, cardinalities, and
+SHA256 manifests for all nine variants. The fixture-only 005 schema is not a production 006
+contract. The 006 result is at most `PENDING_PEER_REVIEW`.
 
 ## 007 independent review
 

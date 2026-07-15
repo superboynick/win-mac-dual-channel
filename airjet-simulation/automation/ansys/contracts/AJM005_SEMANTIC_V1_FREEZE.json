@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "status": "HISTORICAL_DIAGNOSTIC_FROZEN",
+  "producer_profile_id": "ajm005-spaceclaim-cad-t1-v1",
+  "producer_script_sha256": "4fdaf2f1f5ae2063f79b99adc8ac6ae91a147032c1386fc4119b5abd4ceff17e",
+  "consumer_profile_id": "ajm005-workbench-semantic-reconstruction-t1-v1",
+  "consumer_script_sha256": "c60beb14e03d3f77274f62d843a802131c5f8ec07501d9a8fc83cbb7c39e3098",
+  "runner_sha256": "579ab306dcce4be083f7aa56c668774573cfea4b28e22422ce101d1997f438f9",
+  "pass_suite_id": "AJM005_T1_SEMANTIC_RECON_SUITE_20260714T214944170151Z_221eac96",
+  "pass_commit": "7a7f8e098adf51743c7121dbdfb25ebf4756336d",
+  "claim_boundary": "DISPOSABLE_V1_SOLVER_SIDE_DIAGNOSTIC_NOT_NATIVE_TRANSFER_NOT_V2_CLOSEOUT",
+  "p1_stage_gate": "NOT_RUN"
+}

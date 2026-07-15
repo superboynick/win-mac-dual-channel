@@ -40,7 +40,7 @@ has_required() {
 
 jupyter_expected=62f102e8554b25716dccef0ffab4572d4e3eaf05ccc76562d33a065bc9c521fb
 pdf_expected=d108cf2b36355ab37eb5962933f4d09785ec002f3105c506129320209306b9d2
-ansys_expected=8d3bc1217812df87ed4d4a267adb97f240d8436e62f573d2761fb1e4665f0e7b
+ansys_expected=5ab3cba84df6d17d5dcbd078737b253ff5bfbb9eaf9112fd00a1f6b2668f81e3
 jupyter_actual=$(skill_hash "$target_root/jupyter-notebook/SKILL.md" || true)
 pdf_actual=$(skill_hash "$target_root/pdf/SKILL.md" || true)
 official_needed=0
@@ -113,6 +113,9 @@ check_required airjet-ansys-automation \
   scripts/airjet_ansys_mcp.py scripts/run_t0_suite.py scripts/run_t1_cad_suite.py \
   scripts/run_t1_connected_spaceclaim_suite.py \
   scripts/run_t1_semantic_reconstruction_suite.py \
+  scripts/run_t1_alternate_route_confirmation_suite.py \
+  scripts/ajm005_closeout_v2.py scripts/test_ajm005_closeout_v2.py \
+  scripts/test_ajm005_runner_guards.py \
   scripts/test_t1_predecessor_negative.py \
   scripts/test_airjet_ansys_mcp_policy.py
 check_required jupyter-notebook \

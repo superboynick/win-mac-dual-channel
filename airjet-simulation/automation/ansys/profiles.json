@@ -1,5 +1,48 @@
 {
   "schema_version": 2,
+  "production_contracts": {
+    "schema_version": 1,
+    "contract_id": "AJM006_GEN1_FULL_PRODUCT_SEMANTIC_PRODUCTION_V1",
+    "scope": "FULL_PRODUCT",
+    "product_id": "AIRJET_MINI_GEN1",
+    "expected_variant_count": 9,
+    "producer_profile_id": "ajm006-spaceclaim-full-product-producer-v1",
+    "observer_profile_id": "ajm006-workbench-full-product-observer-v1",
+    "execution_state": "STATIC_CONTRACT_ONLY_NOT_REGISTERED",
+    "p1_p6_gates": "NOT_RUN",
+    "components": [
+      {
+        "contract_key": "full_product_validator",
+        "git_path": "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
+        "sha256": "a34440e9dc9936f081ebd58d72432b194a1d5ba29a1379079c91827cfd315666"
+      },
+      {
+        "contract_key": "full_product_schema",
+        "git_path": "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
+        "sha256": "75cd95525e5189a4ef11a979a5621a7dd8db96efeb59e209cede794bb129ea30"
+      },
+      {
+        "contract_key": "full_product_core_test",
+        "git_path": "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py",
+        "sha256": "cae9a1face8c1a3b3aca2a8b7d2dbda3bc3192b9f9a4d0d880a16468bd15b9c6"
+      },
+      {
+        "contract_key": "trusted_variant_generator",
+        "git_path": "airjet-simulation/automation/ansys/contracts/build_full_product_trusted_variants.py",
+        "sha256": "3f53db0df971f2045c84bca9e2a88e19406157bd46a1e5c8a980d3fc2159d3fa"
+      },
+      {
+        "contract_key": "trusted_variant_test",
+        "git_path": "airjet-simulation/automation/ansys/contracts/test_full_product_trusted_variants.py",
+        "sha256": "a1c105e68646a78dff1c4b0766d477ef12dcd8abf49b03075ea2dec07eac605f"
+      },
+      {
+        "contract_key": "trusted_campaign",
+        "git_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
+        "sha256": "9381db87c4b120d4640186a79c79d3994934b474d2af638cf5dfe18f99c30de5"
+      }
+    ]
+  },
   "profiles": [
     {
       "profile_id": "ajm005-spaceclaim-t0-v1",
@@ -154,6 +197,65 @@
         ],
         "artifacts": [
           "spaceclaim_cad_t1.json"
+        ]
+      }
+    },
+    {
+      "profile_id": "ajm005-spaceclaim-cad-t1-v2",
+      "engine": "spaceclaim",
+      "script": "005/spaceclaim_cad_t1_v2.py",
+      "sha256": "59504858b4e68179d5ee47f2d2a38770ab32caf650280b7439c524da5c50b7b8",
+      "timeout_seconds": 900,
+      "output_root_id": "student_smoke_005",
+      "reports": [
+        "spaceclaim_cad_t1.json",
+        "spaceclaim_cad_t1_v2.json"
+      ],
+      "predecessor": null
+    },
+    {
+      "profile_id": "ajm005-workbench-semantic-reconstruction-t1-v2",
+      "engine": "workbench",
+      "script": "005/workbench_semantic_reconstruction_t1_v2.wbjn",
+      "sha256": "2e4f67742ab8b2aef67a7b5aceec9983055f06076f2f286ae703c49347f8c8a6",
+      "timeout_seconds": 1200,
+      "output_root_id": "student_smoke_005",
+      "reports": [
+        "workbench_semantic_reconstruction_t1.json",
+        "workbench_semantic_reconstruction_inspection.json",
+        "workbench_semantic_reconstruction_t1_v2.json",
+        "semantic_key_cardinality_report_v2.json"
+      ],
+      "predecessor": {
+        "profile_id": "ajm005-spaceclaim-cad-t1-v2",
+        "report": "spaceclaim_cad_t1_v2.json",
+        "required_probe": "spaceclaim_cad_t1_v2",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
+        "required_assertions": [
+          "script_parameterization_equivalent",
+          "named_selections",
+          "volume_extract_or_equivalent",
+          "fluid_connectivity",
+          "native_save",
+          "native_reopen",
+          "step_export_reimport",
+          "semantic_sidecar",
+          "semantic_schema_identity",
+          "semantic_keys_exact",
+          "semantic_cardinality_declared",
+          "semantic_topology_nonorphan",
+          "detached_sidecar_raw_hash",
+          "artifact_hash_chain",
+          "actual_source_files_hashed"
+        ],
+        "artifacts": [
+          "spaceclaim_cad_t1.json",
+          "spaceclaim_cad_t1_v2.json",
+          "spaceclaim_cad_t1.scdocx",
+          "spaceclaim_cad_t1.step",
+          "spaceclaim_semantic_sidecar.json",
+          "spaceclaim_semantic_sidecar_v2.json",
+          "spaceclaim_semantic_binding_v2.json"
         ]
       }
     }

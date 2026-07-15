@@ -1130,7 +1130,12 @@ def build_open_question_rows(registry: dict[str, dict[str, str]]) -> list[dict[s
 def build_gate_rows(variant_rows: list[dict[str, object]]) -> list[dict[str, object]]:
     items = [
         ("G0_INPUT_GENERATORS", "both P1 generators pass --check", "PASS text and input hashes recorded", "true"),
-        ("G0_005_TOOLCHAIN", "005 authorizes P1 CAD toolchain", "P1_CAD_TOOLCHAIN_READINESS is PASS or PASS_WITH_TRANSFER_LIMITATION", "true"),
+        (
+            "G0_005_TOOLCHAIN",
+            "005 authorizes the frozen alternate P1 CAD toolchain route",
+            "P1_CAD_TOOLCHAIN_READINESS is PASS with P1_CAD_TOOLCHAIN_SCOPE=ALTERNATE_ROUTE_ONLY CAD authoring by signed SpaceClaim script and solver handoff by hash-bound STEP semantic sidecar; native attach parameterization and named-selection transfer may remain NOT_PROVEN",
+            "true",
+        ),
         ("G1_ENVELOPE", "external envelope equals 27.5 x 41.5 x 2.8 mm", "exact driving dimensions; measured export recorded", "true"),
         ("G1_CONFIGURATION", "Nx Ny cell count membrane size and spans match input map", "zero unexplained parameter deviations", "true"),
         ("G1_ALL_BODIES_INSIDE", "all product candidate bodies remain inside envelope", "zero out-of-envelope product bodies except declared flex reference", "true"),
@@ -1148,9 +1153,19 @@ def build_gate_rows(variant_rows: list[dict[str, object]]) -> list[dict[str, obj
         ("G4_OPEN_AREA", "actual CAD open area fraction", "8 to 12 percent preferred; deviation requires documented branch review", "true"),
         ("G4_CLEARANCE", "maximum candidate membrane displacement clearance", "no collision at P004 amplitude plus P006 margin", "true"),
         ("G4_NAMED_SELECTIONS", "all required named selections exist", "expected cardinalities pass", "true"),
-        ("G4_WB_TRANSFER", "geometry and named selections transfer to Workbench", "both transfer checks PASS", "true"),
+        (
+            "G4_WB_TRANSFER",
+            "STEP import into Workbench plus solver-side semantic reconstruction from the hash-bound sidecar",
+            "STEP import and unique-key cardinality adjacency and hash-bound solver-side semantic reconstruction checks PASS; do not claim native named-selection transfer",
+            "true",
+        ),
         ("G4_NATIVE_SAVE", "native CAD and fluid volume save", "files reopen and hashes recorded", "true"),
-        ("G4_STEP_TRANSFER", "STEP export reimport comparison", "record body count envelope volume and any limitation", "false"),
+        (
+            "G4_STEP_TRANSFER",
+            "route-dependent STEP export reimport and handoff identity",
+            "STEP export and reimport PASS with body envelope volume and full handoff hash chain recorded; no transfer limitation may be accepted",
+            "true",
+        ),
         ("G4_MASS_BUDGET", "mass reporting is evidence-honest", "candidate known mass plus unresolved mass reported separately; no false 11 g closure", "true"),
         ("G4_FOUR_CONFIGS", "same master model supports all four configurations", "all four configuration IDs built without envelope drift", "true"),
         ("G4_BRANCH_SENSITIVITY", "primary C020 0.25/0.50/0.75 branches compared", "thickness collision and connectivity results recorded", "true"),
@@ -1194,6 +1209,28 @@ def build_gate_rows(variant_rows: list[dict[str, object]]) -> list[dict[str, obj
                     "notes": "006 may populate evidence but may only leave P1_STAGE_GATE pending independent peer review",
                 }
             )
+    if len(rows) != 252:
+        raise ValueError("generated P1 gate matrix must contain exactly 252 rows")
+    if any(row["hard_gate"] != "true" for row in rows):
+        raise ValueError("all 252 P1 gate rows must be hard gates")
+    toolchain_rows = [row for row in rows if row["gate_item_id"] == "G0_005_TOOLCHAIN"]
+    if len(toolchain_rows) != 9 or any(
+        "P1_CAD_TOOLCHAIN_SCOPE=ALTERNATE_ROUTE_ONLY" not in row["tolerance_or_acceptance"]
+        or "hash-bound STEP semantic sidecar" not in row["tolerance_or_acceptance"]
+        or "NOT_PROVEN" not in row["tolerance_or_acceptance"]
+        for row in toolchain_rows
+    ):
+        raise ValueError("all nine toolchain gates must retain alternate-route scope and native boundaries")
+    step_rows = [row for row in rows if row["gate_item_id"] == "G4_STEP_TRANSFER"]
+    if len(step_rows) != 9 or any(row["hard_gate"] != "true" for row in step_rows):
+        raise ValueError("all nine route-dependent STEP gates must be hard gates")
+    workbench_rows = [row for row in rows if row["gate_item_id"] == "G4_WB_TRANSFER"]
+    if len(workbench_rows) != 9 or any(
+        "solver-side semantic reconstruction" not in row["requirement"]
+        or "native named-selection transfer" not in row["tolerance_or_acceptance"]
+        for row in workbench_rows
+    ):
+        raise ValueError("all nine Workbench gates must use STEP semantic reconstruction")
     if any(row["status"] != "NOT_RUN" for row in rows):
         raise ValueError("generated P1 gate matrix must start entirely NOT_RUN")
     return rows

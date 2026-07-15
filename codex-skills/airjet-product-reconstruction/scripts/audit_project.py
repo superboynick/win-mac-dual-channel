@@ -8,6 +8,7 @@ import csv
 import hashlib
 import json
 import math
+import os
 import re
 import subprocess
 import sys
@@ -40,12 +41,36 @@ REQUIRED = [
     "airjet-simulation/windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md",
     "airjet-simulation/windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md",
     "airjet-simulation/automation/ansys/profiles.json",
+    "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
+    "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
+    "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py",
+    "airjet-simulation/automation/ansys/contracts/build_full_product_trusted_variants.py",
+    "airjet-simulation/automation/ansys/contracts/test_full_product_trusted_variants.py",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_01_m_3x4_7_0_r25_bottom_heavy.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_03_m_3x4_7_0_r75_top_heavy.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_04_m_s_3x5_6_0_r50_balanced.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_05_l_2x4_8_0_r50_balanced.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_06_s_3x5_5_5_r50_balanced.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_07_m_3x4_7_0_r50_vent_upper.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_08_m_3x4_7_0_r50_orifice_edge_gap.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_09_m_3x4_7_0_r50_exhaust_half_taper.json",
     "airjet-simulation/automation/ansys/approved/005/spaceclaim_t0.py",
     "airjet-simulation/automation/ansys/approved/005/workbench_t0.wbjn",
     "airjet-simulation/automation/ansys/approved/005/pymechanical_t0.py",
     "airjet-simulation/automation/ansys/approved/005/pyfluent_t0.py",
     "airjet-simulation/automation/ansys/approved/005/spaceclaim_cad_t1.py",
     "airjet-simulation/automation/ansys/approved/005/workbench_transfer_t1.wbjn",
+    "airjet-simulation/automation/ansys/approved/005/spaceclaim_cad_t1_v2.py",
+    "airjet-simulation/automation/ansys/approved/005/workbench_semantic_reconstruction_t1_v2.wbjn",
+    "airjet-simulation/automation/ansys/contracts/semantic_sidecar_v2_contract.py",
+    "airjet-simulation/automation/ansys/contracts/semantic_sidecar_v2.schema.json",
+    "airjet-simulation/automation/ansys/contracts/test_semantic_sidecar_v2_contract.py",
+    "airjet-simulation/automation/ansys/contracts/ajm005_semantic_judgment_v2.json",
+    "airjet-simulation/automation/ansys/contracts/ajm005_alternate_route_v2.json",
+    "airjet-simulation/automation/ansys/contracts/fixtures/AJM005_REAL_20260714_PRODUCER_39299CAC.json.b64",
+    "airjet-simulation/automation/ansys/contracts/fixtures/AJM005_REAL_20260714_INSPECTION_D0C6AC7C.json.b64",
     "airjet-simulation/learning/README.md",
     "airjet-simulation/learning/ANSYS_AUTOMATION_AND_005_LAB.md",
     "airjet-simulation/learning/T1_CAD_TRANSFER_WORKBOOK.md",
@@ -86,6 +111,7 @@ REQUIRED = [
     "airjet-simulation/checklists/p1_cad_gate_matrix.csv",
     "airjet-simulation/checklists/P1_CAD_INDEPENDENT_REVIEW_METHOD.md",
     "airjet-simulation/checklists/prepare_p1_cad_review.py",
+    "airjet-simulation/checklists/test_prepare_p1_cad_review_static.py",
     "airjet-simulation/logs/p1_cad_run_template.md",
     "airjet-simulation/logs/external-files.csv",
     "airjet-simulation/SKILLS_AND_GIT_WORKFLOW.md",
@@ -102,6 +128,10 @@ REQUIRED = [
     "codex-skills/airjet-ansys-automation/scripts/run_t1_cad_suite.py",
     "codex-skills/airjet-ansys-automation/scripts/run_t1_connected_spaceclaim_suite.py",
     "codex-skills/airjet-ansys-automation/scripts/run_t1_semantic_reconstruction_suite.py",
+    "codex-skills/airjet-ansys-automation/scripts/run_t1_alternate_route_confirmation_suite.py",
+    "codex-skills/airjet-ansys-automation/scripts/ajm005_closeout_v2.py",
+    "codex-skills/airjet-ansys-automation/scripts/test_ajm005_closeout_v2.py",
+    "codex-skills/airjet-ansys-automation/scripts/test_ajm005_runner_guards.py",
     "codex-skills/airjet-ansys-automation/scripts/test_t1_predecessor_negative.py",
     "codex-skills/airjet-ansys-automation/scripts/test_airjet_ansys_mcp_policy.py",
     "install-skills.ps1",
@@ -1027,6 +1057,40 @@ def main() -> int:
             failures.append("P1 CAD gate matrix must contain 252 rows across nine variants")
         if any(row.get("status") != "NOT_RUN" for row in gate_rows):
             failures.append("generated P1 CAD gate matrix must remain entirely NOT_RUN")
+        if sum(row.get("hard_gate") == "true" for row in gate_rows) != 252:
+            failures.append("P1 CAD gate matrix must contain exactly 252 hard gates")
+        toolchain_gate_rows = [row for row in gate_rows if row.get("gate_item_id") == "G0_005_TOOLCHAIN"]
+        if len(toolchain_gate_rows) != 9 or any(
+            "P1_CAD_TOOLCHAIN_SCOPE=ALTERNATE_ROUTE_ONLY"
+            not in row.get("tolerance_or_acceptance", "")
+            or "hash-bound STEP semantic sidecar" not in row.get("tolerance_or_acceptance", "")
+            or "NOT_PROVEN" not in row.get("tolerance_or_acceptance", "")
+            for row in toolchain_gate_rows
+        ):
+            failures.append(
+                "all nine P1 toolchain rows must retain alternate-route scope and native NOT_PROVEN boundaries"
+            )
+        step_gate_rows = [row for row in gate_rows if row.get("gate_item_id") == "G4_STEP_TRANSFER"]
+        if len(step_gate_rows) != 9 or any(
+            row.get("hard_gate") != "true"
+            or "no transfer limitation may be accepted" not in row.get("tolerance_or_acceptance", "")
+            for row in step_gate_rows
+        ):
+            failures.append(
+                "all nine P1 STEP rows must remain hard gates with limitation acceptance prohibited"
+            )
+        workbench_gate_rows = [row for row in gate_rows if row.get("gate_item_id") == "G4_WB_TRANSFER"]
+        if len(workbench_gate_rows) != 9 or any(
+            row.get("hard_gate") != "true"
+            or "STEP import into Workbench" not in row.get("requirement", "")
+            or "solver-side semantic reconstruction" not in row.get("requirement", "")
+            or "do not claim native named-selection transfer"
+            not in row.get("tolerance_or_acceptance", "")
+            for row in workbench_gate_rows
+        ):
+            failures.append(
+                "all nine Workbench rows must enforce STEP import plus solver semantic reconstruction without native-transfer claims"
+            )
         if not required_gate_columns.issubset(gate_columns):
             failures.append("P1 CAD gate matrix lacks explicit model-form branch fields")
         scoped_health = {
@@ -1081,7 +1145,12 @@ def main() -> int:
             '"secondary_evidence_sha256"',
             '"--finalize-worksheet"',
             '"--spot-check-record"',
-            "validate_step_limitation_consistency",
+            "validate_no_transfer_limitation",
+            "WORKBENCH_STEP_SEMANTIC_LOG",
+            "SEMANTIC_KEY_CARDINALITY_REPORT",
+            "route Gate does not cite its two required evidence roles",
+            "HARD_GATE_PASS_COUNT=252",
+            "STEP_GATE_PASS_COUNT=9",
             "P1_REVIEW_RECOMMENDATION=PASS",
             "P1_STAGE_GATE=PENDING_REVIEW_RECORD_COMMIT",
         ):
@@ -1094,7 +1163,10 @@ def main() -> int:
         for marker in (
             "P1_REVIEW_RECOMMENDATION=PASS",
             "252",
-            "LIMITATION_ACCEPTED",
+            "252 行全部是 hard Gate",
+            "STEP limitation acceptance 被明确禁止",
+            "solver semantic reconstruction",
+            "NATIVE_NAMED_SELECTION_TRANSFER",
             "NOT_REVIEWED",
             "PureWindowsPath",
             "006 commit",
@@ -1195,12 +1267,19 @@ def main() -> int:
             "git fetch origin",
             "GIT_FETCH=PASS/FAIL",
             "STUDENT_TOOLCHAIN_STATUS=PASS_START_P1",
-            "STUDENT_TOOLCHAIN_STATUS=PASS_START_P1_WITH_LIMITATIONS",
             "STUDENT_TOOLCHAIN_STATUS=BLOCKED_CONTAMINATED_BASELINE",
-            "P1_CAD_TOOLCHAIN_READINESS=PASS/PASS_WITH_TRANSFER_LIMITATION/BLOCKED",
+            "P1_CAD_TOOLCHAIN_READINESS=PASS/BLOCKED",
             "P1_STAGE_GATE=NOT_RUN",
-            "NAMED_SELECTION_TRANSFER=PASS/FAIL",
-            "STEP 是重要交接能力，但不是唯一硬门槛",
+            "STEP_EXPORT_REIMPORT=PASS/FAIL",
+            "WORKBENCH_STEP_IMPORT=PASS/FAIL",
+            "SOLVER_SEMANTIC_RECONSTRUCTION=PASS/FAIL",
+            "SEMANTIC_KEY_CARDINALITY_CHECK=PASS/FAIL",
+            "CAD_AUTHORING_ROUTE=SPACECLAIM_SIGNED_SCRIPT_PARAMETRIC",
+            "SOLVER_HANDOFF_ROUTE=HASH_BOUND_STEP_SEMANTIC_SIDECAR",
+            "EXTERNAL_NATIVE_ATTACH=NOT_PROVEN",
+            "NATIVE_PARAMETERIZATION=NOT_PROVEN",
+            "NATIVE_NAMED_SELECTION_TRANSFER=NOT_PROVEN",
+            "P1_CAD_TOOLCHAIN_SCOPE=ALTERNATE_ROUTE_ONLY",
             "SYSTEM_COUPLING_STATUS=UNVERIFIED_WARNING",
             "CUDSS_STATUS=UNVERIFIED_WARNING",
             "AIRJET_ANSYS_STUDENT_CAPABILITY_SMOKE_005.txt",
@@ -1210,6 +1289,17 @@ def main() -> int:
                 failures.append(f"Windows Student smoke prompt lacks invariant {marker!r}")
         if "P1_FULL_PRODUCT_CAD=" in student_text:
             failures.append("Windows Student smoke prompt conflates toolchain readiness with the P1 stage Gate")
+        for forbidden_marker in (
+            "PASS_START_P1_WITH_LIMITATIONS",
+            "PASS_WITH_TRANSFER_LIMITATION",
+            "NAMED_SELECTION_TRANSFER=PASS/FAIL",
+            "LIMITATION_RECORDED",
+        ):
+            if forbidden_marker in student_text:
+                failures.append(
+                    "Windows Student smoke prompt retains prohibited transfer-limitation semantics "
+                    f"{forbidden_marker!r}"
+                )
 
     cad_prompt = repo / "airjet-simulation/windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md"
     if cad_prompt.is_file():
@@ -1259,16 +1349,22 @@ def main() -> int:
             "BLOCKED_005_GATE",
             "BLOCKED_GIT_OR_ENVIRONMENT",
             "PARTIAL_CAD_OUTPUT",
-            "COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW",
             "COMPLETE_AWAITING_REVIEW",
             "P1_STAGE_GATE=NOT_STARTED/INCOMPLETE/PENDING_PEER_REVIEW",
             "C017_C019_PHYSICS_GUARD=",
-            "唯一剩余失败是 005 已知或 006 复现的 STEP",
             "PARAMETER_DIFF_CHECK=PASS_ALL_3_DERIVED/FAIL",
             "GEOMETRY_RESULT_DIFF_CHECK=PASS_ALL_3_DERIVED/FAIL",
-            "STEP_EXPORT_REIMPORT=PASS_ALL_9/LIMITATION_RECORDED/FAIL",
+            "STEP_EXPORT_REIMPORT=PASS_ALL_9/FAIL",
+            "WORKBENCH_STEP_IMPORT=PASS_ALL_9/FAIL",
+            "SOLVER_SEMANTIC_RECONSTRUCTION=PASS_ALL_9/FAIL",
+            "SEMANTIC_ADJACENCY_CHECK=PASS_ALL_9/FAIL",
             "ANCHOR_PARTITION_NONPHYSICAL_GUARD=PASS_ALL_9/FAIL",
-            "TRANSFER_LIMITATION_SCOPE=NONE/STEP_ONLY",
+            "CAD_AUTHORING_ROUTE=SPACECLAIM_SIGNED_SCRIPT_PARAMETRIC",
+            "SOLVER_HANDOFF_ROUTE=HASH_BOUND_STEP_SEMANTIC_SIDECAR",
+            "EXTERNAL_NATIVE_ATTACH=NOT_PROVEN",
+            "NATIVE_PARAMETERIZATION=NOT_PROVEN",
+            "NATIVE_NAMED_SELECTION_TRANSFER=NOT_PROVEN",
+            "P1_CAD_TOOLCHAIN_SCOPE=ALTERNATE_ROUTE_ONLY",
             "REPORT_005_PARSE=UNIQUE_KEYS_REJECT_DUPLICATES_AND_CONFLICTS",
             "REPORT_005_IDENTITY=TASK_COMPUTER_ANSYS_VERSION_INSTALL_ROOT_COMMIT",
             "LICENSE_POLICY=NO_LICENSE_FILE_POOL_SERVICE_REGISTRY_ENV_PRIORITY_CHECKOUT_MUTATION",
@@ -1277,15 +1373,29 @@ def main() -> int:
             "STATUS_MAP_BLOCKED_005_GATE=NOT_STARTED",
             "STATUS_MAP_BLOCKED_GIT_OR_ENVIRONMENT=NOT_STARTED",
             "STATUS_MAP_PARTIAL_CAD_OUTPUT=INCOMPLETE",
-            "STATUS_MAP_COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW=PENDING_PEER_REVIEW",
             "STATUS_MAP_COMPLETE_AWAITING_REVIEW=PENDING_PEER_REVIEW",
             "P1_PASS_PROHIBITED=006_CAN_ONLY_REACH_PENDING_PEER_REVIEW",
-            "005_TRANSFER_LIMITATION_INHERITANCE=REQUIRED",
+            "P1_GATE_COUNT=252",
+            "P1_HARD_GATE_COUNT=252",
+            "STEP_LIMITATION_ACCEPTANCE=PROHIBITED",
+            "NATIVE_ROUTE_CLAIMS=NOT_PROVEN",
         ):
             if marker not in cad_text:
                 failures.append(f"Windows P1 CAD prompt lacks invariant {marker!r}")
         if re.search(r"(?mi)^\s*(?:[-*+]\s*)?`?P1_STAGE_GATE\s*=\s*PASS(?:\s|`|$)", cad_text):
             failures.append("Windows P1 CAD prompt is allowed to report P1 PASS")
+        for forbidden_marker in (
+            "COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW",
+            "LIMITATION_RECORDED",
+            "TRANSFER_LIMITATION_SCOPE=",
+            "PASS_WITH_TRANSFER_LIMITATION",
+            "NAMED_SELECTION_TRANSFER=PASS/FAIL",
+        ):
+            if forbidden_marker in cad_text:
+                failures.append(
+                    "Windows P1 CAD prompt retains prohibited transfer-limitation semantics "
+                    f"{forbidden_marker!r}"
+                )
 
     student_cleanup = repo / "airjet-simulation/reports/AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md"
     if student_cleanup.is_file():
@@ -1335,6 +1445,10 @@ def main() -> int:
                         "scripts/run_t1_cad_suite.py",
                         "scripts/run_t1_connected_spaceclaim_suite.py",
                         "scripts/run_t1_semantic_reconstruction_suite.py",
+                        "scripts/run_t1_alternate_route_confirmation_suite.py",
+                        "scripts/ajm005_closeout_v2.py",
+                        "scripts/test_ajm005_closeout_v2.py",
+                        "scripts/test_ajm005_runner_guards.py",
                         "scripts/test_t1_predecessor_negative.py",
                         "scripts/test_airjet_ansys_mcp_policy.py",
                     ],
@@ -1444,14 +1558,47 @@ def main() -> int:
                 "ajm005-workbench-transfer-t1-v1",
                 "ajm005-workbench-connected-spaceclaim-t1-v1",
                 "ajm005-workbench-semantic-reconstruction-t1-v1",
+                "ajm005-spaceclaim-cad-t1-v2",
+                "ajm005-workbench-semantic-reconstruction-t1-v2",
             }
             if (
-                set(profile_data) != {"schema_version", "profiles"}
+                set(profile_data) != {"schema_version", "production_contracts", "profiles"}
                 or profile_data.get("schema_version") != 2
                 or set(profile_ids) != expected_ansys_profiles
                 or len(profile_ids) != len(set(profile_ids))
             ):
                 failures.append("ANSYS profile policy identity/schema/unique-name lock failed")
+            production = profile_data.get("production_contracts")
+            production_fields = {
+                "schema_version",
+                "contract_id",
+                "scope",
+                "product_id",
+                "expected_variant_count",
+                "producer_profile_id",
+                "observer_profile_id",
+                "execution_state",
+                "p1_p6_gates",
+                "components",
+            }
+            if (
+                not isinstance(production, dict)
+                or set(production) != production_fields
+                or production.get("schema_version") != 1
+                or production.get("contract_id")
+                != "AJM006_GEN1_FULL_PRODUCT_SEMANTIC_PRODUCTION_V1"
+                or production.get("scope") != "FULL_PRODUCT"
+                or production.get("product_id") != "AIRJET_MINI_GEN1"
+                or production.get("expected_variant_count") != 9
+                or production.get("producer_profile_id")
+                != "ajm006-spaceclaim-full-product-producer-v1"
+                or production.get("observer_profile_id")
+                != "ajm006-workbench-full-product-observer-v1"
+                or production.get("execution_state")
+                != "STATIC_CONTRACT_ONLY_NOT_REGISTERED"
+                or production.get("p1_p6_gates") != "NOT_RUN"
+            ):
+                failures.append("ANSYS Gen1 production contract identity/state lock failed")
             approved_root = repo / "airjet-simulation/automation/ansys/approved"
             for entry in entries:
                 if set(entry) != required_profile_fields:
@@ -1509,6 +1656,53 @@ def main() -> int:
                     failures.append(
                         f"invalid ANSYS predecessor linkage: {entry.get('profile_id')}"
                     )
+            ansys_policy_test = (
+                repo
+                / "codex-skills/airjet-ansys-automation/scripts/test_airjet_ansys_mcp_policy.py"
+            )
+            policy_environment = dict(os.environ)
+            policy_environment["PYTHONDONTWRITEBYTECODE"] = "1"
+            completed_policy = subprocess.run(
+                [sys.executable, "-B", str(ansys_policy_test)],
+                cwd=repo,
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=False,
+                env=policy_environment,
+            )
+            if (
+                completed_policy.returncode != 0
+                or "AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=10 tools=5"
+                not in completed_policy.stdout
+            ):
+                failures.append(
+                    "mandatory ANSYS v2 route/policy audit failed: "
+                    + completed_policy.stdout
+                    + completed_policy.stderr
+                )
+            reviewer_test = (
+                repo / "airjet-simulation/checklists/test_prepare_p1_cad_review_static.py"
+            )
+            completed_reviewer = subprocess.run(
+                [sys.executable, "-B", str(reviewer_test)],
+                cwd=repo,
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=False,
+                env=policy_environment,
+            )
+            if (
+                completed_reviewer.returncode != 0
+                or "P1_REVIEWER_STATIC_TESTS=PASS product=AIRJET_MINI_GEN1 variants=9"
+                not in completed_reviewer.stdout
+            ):
+                failures.append(
+                    "mandatory Gen1 006/007 reviewer bridge audit failed: "
+                    + completed_reviewer.stdout
+                    + completed_reviewer.stderr
+                )
         except (AttributeError, json.JSONDecodeError, KeyError, OSError, TypeError) as exc:
             failures.append(f"ANSYS profile policy audit failed: {exc}")
 

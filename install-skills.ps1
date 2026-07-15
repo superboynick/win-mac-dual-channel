@@ -10,7 +10,7 @@ $ExpectedSkills = @{
     'airjet-ansys-automation' = [pscustomobject]@{
         kind = 'project'
         source = 'codex-skills/airjet-ansys-automation'
-        required = @('SKILL.md', 'agents/openai.yaml', 'references/official-automation-routes.md', 'references/gate-evidence.md', 'scripts/bootstrap_windows.ps1', 'scripts/airjet_ansys_mcp.py', 'scripts/run_t0_suite.py', 'scripts/run_t1_cad_suite.py', 'scripts/run_t1_connected_spaceclaim_suite.py', 'scripts/run_t1_semantic_reconstruction_suite.py', 'scripts/test_t1_predecessor_negative.py', 'scripts/test_airjet_ansys_mcp_policy.py')
+        required = @('SKILL.md', 'agents/openai.yaml', 'references/official-automation-routes.md', 'references/gate-evidence.md', 'scripts/bootstrap_windows.ps1', 'scripts/airjet_ansys_mcp.py', 'scripts/run_t0_suite.py', 'scripts/run_t1_cad_suite.py', 'scripts/run_t1_connected_spaceclaim_suite.py', 'scripts/run_t1_semantic_reconstruction_suite.py', 'scripts/run_t1_alternate_route_confirmation_suite.py', 'scripts/ajm005_closeout_v2.py', 'scripts/test_ajm005_closeout_v2.py', 'scripts/test_ajm005_runner_guards.py', 'scripts/test_t1_predecessor_negative.py', 'scripts/test_airjet_ansys_mcp_policy.py')
     }
     'airjet-product-reconstruction' = [pscustomobject]@{
         kind = 'project'

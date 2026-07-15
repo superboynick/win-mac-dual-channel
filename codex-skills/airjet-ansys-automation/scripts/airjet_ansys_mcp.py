@@ -69,6 +69,7 @@ SHA256 = re.compile(r"^[0-9a-f]{64}$")
 MAX_ARTIFACTS = 500
 MAX_INLINE_REPORT_BYTES = 128 * 1024
 MAX_SCRIPT_BYTES = 1024 * 1024
+MAX_PROFILE_DEPENDENCY_BYTES = 1024 * 1024
 MAX_ARTIFACT_BYTES = 16 * 1024 * 1024 * 1024
 MAX_TOTAL_ARTIFACT_BYTES = 64 * 1024 * 1024 * 1024
 FILE_ATTRIBUTE_REPARSE_POINT = 0x400
@@ -87,6 +88,23 @@ ALLOWED_PREDECESSOR_STATUSES = {
     "PASS_005_CAPABILITY",
     "PASS_PARTIAL_CAD_CAPABILITY",
 }
+PROFILE_DEPENDENCY_GIT_PATHS = {
+    "ajm005-spaceclaim-cad-t1-v2": (
+        "airjet-simulation/automation/ansys/approved/005/spaceclaim_cad_t1.py",
+        "airjet-simulation/automation/ansys/contracts/semantic_sidecar_v2_contract.py",
+        "airjet-simulation/automation/ansys/contracts/semantic_sidecar_v2.schema.json",
+        "airjet-simulation/automation/ansys/contracts/ajm005_semantic_judgment_v2.json",
+        "airjet-simulation/automation/ansys/contracts/ajm005_alternate_route_v2.json",
+    ),
+    "ajm005-workbench-semantic-reconstruction-t1-v2": (
+        "airjet-simulation/automation/ansys/approved/005/workbench_semantic_reconstruction_t1.wbjn",
+        "airjet-simulation/automation/ansys/contracts/semantic_sidecar_v2_contract.py",
+        "airjet-simulation/automation/ansys/contracts/semantic_sidecar_v2.schema.json",
+        "airjet-simulation/automation/ansys/contracts/ajm005_semantic_judgment_v2.json",
+        "airjet-simulation/automation/ansys/contracts/ajm005_alternate_route_v2.json",
+    ),
+}
+PROFILE_DEPENDENCY_MANIFEST = "dependency-manifest.json"
 
 
 @dataclass
@@ -236,15 +254,150 @@ def read_approved_file(head: str, relative: str, expected_sha256: str) -> bytes:
     return data
 
 
+def validate_production_contract_policy(head: str, value: Any) -> None:
+    """Fail closed on the Gen1-only static 006 contract and trusted campaign."""
+
+    if not isinstance(value, dict) or set(value) != {
+        "schema_version", "contract_id", "scope", "product_id",
+        "expected_variant_count", "producer_profile_id", "observer_profile_id",
+        "execution_state", "p1_p6_gates", "components",
+    }:
+        raise ValueError("BLOCKED_PRODUCTION_CONTRACT_FIELDS")
+    if (
+        value.get("schema_version") != 1
+        or value.get("contract_id") != "AJM006_GEN1_FULL_PRODUCT_SEMANTIC_PRODUCTION_V1"
+        or value.get("scope") != "FULL_PRODUCT"
+        or value.get("product_id") != "AIRJET_MINI_GEN1"
+        or value.get("expected_variant_count") != 9
+        or value.get("producer_profile_id")
+        != "ajm006-spaceclaim-full-product-producer-v1"
+        or value.get("observer_profile_id")
+        != "ajm006-workbench-full-product-observer-v1"
+        or value.get("execution_state") != "STATIC_CONTRACT_ONLY_NOT_REGISTERED"
+        or value.get("p1_p6_gates") != "NOT_RUN"
+    ):
+        raise ValueError("BLOCKED_PRODUCTION_CONTRACT_IDENTITY")
+    components = value.get("components")
+    if not isinstance(components, list):
+        raise ValueError("BLOCKED_PRODUCTION_COMPONENTS")
+    expected_keys = {
+        "full_product_validator", "full_product_schema", "full_product_core_test",
+        "trusted_variant_generator", "trusted_variant_test", "trusted_campaign",
+    }
+    by_key: dict[str, dict[str, str]] = {}
+    for item in components:
+        if not isinstance(item, dict) or set(item) != {
+            "contract_key", "git_path", "sha256",
+        }:
+            raise ValueError("BLOCKED_PRODUCTION_COMPONENT_FIELDS")
+        contract_key = item.get("contract_key")
+        git_path = item.get("git_path")
+        digest = item.get("sha256")
+        if (
+            not isinstance(contract_key, str)
+            or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", contract_key)
+            or contract_key in by_key
+            or not isinstance(git_path, str)
+            or not git_path.startswith("airjet-simulation/")
+            or "\\" in git_path
+            or ".." in Path(git_path).parts
+            or not isinstance(digest, str)
+            or not SHA256.fullmatch(digest)
+            or sha256_bytes(read_git_blob(head, git_path)) != digest
+        ):
+            raise ValueError("BLOCKED_PRODUCTION_COMPONENT_IDENTITY")
+        by_key[contract_key] = item
+    if set(by_key) != expected_keys:
+        raise ValueError("BLOCKED_PRODUCTION_COMPONENT_SET")
+    campaign_item = by_key["trusted_campaign"]
+    try:
+        campaign = json.loads(
+            read_git_blob(head, campaign_item["git_path"]).decode("ascii")
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("BLOCKED_PRODUCTION_CAMPAIGN_JSON") from exc
+    if (
+        not isinstance(campaign, dict)
+        or campaign.get("contract_id")
+        != "AIRJET_FULL_PRODUCT_SEMANTIC_CAMPAIGN_V1"
+        or campaign.get("scope") != "FULL_PRODUCT"
+        or campaign.get("product_id") != "AIRJET_MINI_GEN1"
+        or campaign.get("expected_variant_count") != 9
+        or not isinstance(campaign.get("variant_contracts"), list)
+        or len(campaign["variant_contracts"]) != 9
+    ):
+        raise ValueError("BLOCKED_PRODUCTION_CAMPAIGN_IDENTITY")
+    blueprint_paths: set[str] = set()
+    source_variant_ids: set[str] = set()
+    for record in campaign["variant_contracts"]:
+        if not isinstance(record, dict):
+            raise ValueError("BLOCKED_PRODUCTION_VARIANT_RECORD")
+        path = record.get("blueprint_path")
+        digest = record.get("blueprint_sha256")
+        source_variant_id = record.get("source_variant_id")
+        if (
+            not isinstance(path, str)
+            or path in blueprint_paths
+            or not path.startswith(
+                "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/"
+            )
+            or not isinstance(digest, str)
+            or not SHA256.fullmatch(digest)
+            or not isinstance(source_variant_id, str)
+            or source_variant_id in source_variant_ids
+        ):
+            raise ValueError("BLOCKED_PRODUCTION_VARIANT_IDENTITY")
+        blueprint_blob = read_git_blob(head, path)
+        if sha256_bytes(blueprint_blob) != digest:
+            raise ValueError("BLOCKED_PRODUCTION_BLUEPRINT_HASH")
+        try:
+            blueprint = json.loads(blueprint_blob.decode("ascii"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ValueError("BLOCKED_PRODUCTION_BLUEPRINT_JSON") from exc
+        if (
+            blueprint.get("product_id") != "AIRJET_MINI_GEN1"
+            or blueprint.get("source_variant_id") != source_variant_id
+            or blueprint.get("configuration", {}).get("product_id")
+            != "AIRJET_MINI_GEN1"
+            or blueprint.get("producer_profile_id") != value["producer_profile_id"]
+            or blueprint.get("observer_profile_id") != value["observer_profile_id"]
+            or "G2" in json.dumps(blueprint, ensure_ascii=True).upper()
+        ):
+            raise ValueError("BLOCKED_PRODUCTION_BLUEPRINT_TARGET")
+        blueprint_paths.add(path)
+        source_variant_ids.add(source_variant_id)
+    source_records = campaign.get("source_contracts")
+    if not isinstance(source_records, list) or not source_records:
+        raise ValueError("BLOCKED_PRODUCTION_CAMPAIGN_SOURCES")
+    source_paths: set[str] = set()
+    for record in source_records:
+        if not isinstance(record, dict):
+            raise ValueError("BLOCKED_PRODUCTION_CAMPAIGN_SOURCE")
+        path = record.get("git_path")
+        digest = record.get("sha256")
+        if (
+            not isinstance(path, str)
+            or path in source_paths
+            or not isinstance(digest, str)
+            or not SHA256.fullmatch(digest)
+            or sha256_bytes(read_git_blob(head, path)) != digest
+        ):
+            raise ValueError("BLOCKED_PRODUCTION_CAMPAIGN_SOURCE_IDENTITY")
+        source_paths.add(path)
+
+
 def load_profiles(head: str) -> dict[str, dict[str, Any]]:
     try:
         policy = json.loads(read_git_blob(head, POLICY_GIT_PATH).decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError("BLOCKED_PROFILE_POLICY_INVALID_JSON") from exc
-    if not isinstance(policy, dict) or set(policy) != {"schema_version", "profiles"}:
+    if not isinstance(policy, dict) or set(policy) != {
+        "schema_version", "production_contracts", "profiles",
+    }:
         raise ValueError("BLOCKED_PROFILE_POLICY_ROOT")
     if policy.get("schema_version") != 2 or not isinstance(policy.get("profiles"), list):
         raise ValueError("BLOCKED_PROFILE_POLICY_SCHEMA")
+    validate_production_contract_policy(head, policy.get("production_contracts"))
     profiles: dict[str, dict[str, Any]] = {}
     for raw in policy.get("profiles", []):
         if not isinstance(raw, dict):
@@ -361,6 +514,14 @@ def load_profiles(head: str) -> dict[str, dict[str, Any]]:
             **raw,
             "script_relative": relative_path.as_posix(),
             "reports": reports,
+            "profile_contract_sha256": sha256_bytes(
+                json.dumps(
+                    raw,
+                    ensure_ascii=True,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ),
         }
     if not profiles:
         raise ValueError("BLOCKED_PROFILE_POLICY_EMPTY")
@@ -492,6 +653,10 @@ def sanitized_environment(
     profile_id: str,
     case_id: str,
     predecessor_dir: Path | None,
+    profile_dependency_dir: Path | None,
+    git_head: str,
+    script_sha256: str,
+    profile_contract_sha256: str,
 ) -> dict[str, str]:
     temporary = job_dir / "temp"
     temporary.mkdir()
@@ -519,11 +684,18 @@ def sanitized_environment(
         "AIRJET_PROFILE_ID": profile_id,
         "AIRJET_CASE_ID": case_id,
         "AIRJET_REPO_ROOT": str(REPO),
+        "AIRJET_GIT_HEAD": git_head,
+        "AIRJET_SCRIPT_SHA256": script_sha256,
+        "AIRJET_PROFILE_CONTRACT_SHA256": profile_contract_sha256,
         "TEMP": str(temporary),
         "TMP": str(temporary),
     }
     if predecessor_dir is not None:
         environment["AIRJET_PREDECESSOR_DIR"] = str(predecessor_dir)
+    if profile_dependency_dir is not None:
+        environment["AIRJET_PROFILE_DEPENDENCY_DIR"] = str(
+            profile_dependency_dir
+        )
     return environment
 
 
@@ -814,8 +986,130 @@ def inventory() -> dict[str, Any]:
         "automation_python": {"path": str(VENV_PYTHON), "exists": VENV_PYTHON.is_file()},
         "packages": packages,
         "approved_profiles": sorted(profiles),
+        "profile_contract_sha256": {
+            profile_id: profile["profile_contract_sha256"]
+            for profile_id, profile in sorted(profiles.items())
+        },
         "license_data_read": False,
     }
+
+
+def prepare_profile_dependencies(
+    profile_id: str, git_head: str, input_dir: Path
+) -> tuple[Path | None, list[dict[str, Any]], str | None]:
+    """Freeze the fixed v2 dependency bundle from the same verified Git commit."""
+    git_paths = PROFILE_DEPENDENCY_GIT_PATHS.get(profile_id)
+    if git_paths is None:
+        return None, [], None
+    if not git_paths or len(git_paths) != len(set(git_paths)):
+        raise ValueError("BLOCKED_PROFILE_DEPENDENCY_CONFIGURATION")
+
+    relative_names = tuple(Path(git_path).name for git_path in git_paths)
+    if (
+        len(relative_names) != len(set(relative_names))
+        or PROFILE_DEPENDENCY_MANIFEST in relative_names
+    ):
+        raise ValueError("BLOCKED_PROFILE_DEPENDENCY_CONFIGURATION")
+    for git_path, relative_name in zip(git_paths, relative_names):
+        path = Path(git_path)
+        if (
+            path.is_absolute()
+            or ".." in path.parts
+            or ":" in git_path
+            or "\\" in git_path
+            or path.name != relative_name
+            or not git_path.startswith("airjet-simulation/automation/ansys/")
+        ):
+            raise ValueError("BLOCKED_PROFILE_DEPENDENCY_CONFIGURATION")
+
+    reject_existing_reparse_ancestors(input_dir)
+    dependency_dir = input_dir / "dependencies"
+    if dependency_dir.exists():
+        raise ValueError("BLOCKED_PROFILE_DEPENDENCY_EXTRA")
+    dependency_dir.mkdir()
+    reject_existing_reparse_ancestors(dependency_dir)
+
+    copied: list[dict[str, Any]] = []
+    expected_files: set[str] = set()
+    for git_path, relative_name in zip(git_paths, relative_names):
+        try:
+            source_data = read_git_blob(git_head, git_path)
+        except ValueError as exc:
+            raise ValueError("BLOCKED_PROFILE_DEPENDENCY_MISSING") from exc
+        if len(source_data) > MAX_PROFILE_DEPENDENCY_BYTES:
+            raise ValueError("BLOCKED_PROFILE_DEPENDENCY_TOO_LARGE")
+
+        target = dependency_dir / relative_name
+        if (
+            not contained(target, dependency_dir)
+            or target.exists()
+            or relative_name in expected_files
+        ):
+            raise ValueError("BLOCKED_PROFILE_DEPENDENCY_EXTRA")
+        target.write_bytes(source_data)
+        reject_existing_reparse_ancestors(target)
+        target_size, target_sha256 = hash_file(target)
+        source_sha256 = sha256_bytes(source_data)
+        if target_size != len(source_data) or target_sha256 != source_sha256:
+            raise ValueError("BLOCKED_PROFILE_DEPENDENCY_COPY_HASH_MISMATCH")
+        target.chmod(stat.S_IREAD)
+        expected_files.add(relative_name)
+        copied.append(
+            {
+                "git_path": git_path,
+                "relative_path": relative_name,
+                "size": target_size,
+                "sha256": target_sha256,
+            }
+        )
+
+    observed_before_manifest = set()
+    for item in dependency_dir.iterdir():
+        reject_existing_reparse_ancestors(item)
+        if not item.is_file():
+            raise ValueError("BLOCKED_PROFILE_DEPENDENCY_EXTRA")
+        observed_before_manifest.add(item.name)
+    if observed_before_manifest != expected_files:
+        raise ValueError("BLOCKED_PROFILE_DEPENDENCY_EXTRA")
+
+    dependency_manifest = {
+        "schema_version": 1,
+        "profile_id": profile_id,
+        "git_head": git_head,
+        "artifacts": copied,
+    }
+    manifest_bytes = json.dumps(
+        dependency_manifest, indent=2, sort_keys=True
+    ).encode("utf-8")
+    manifest_path = dependency_dir / PROFILE_DEPENDENCY_MANIFEST
+    manifest_path.write_bytes(manifest_bytes)
+    reject_existing_reparse_ancestors(manifest_path)
+    manifest_size, manifest_sha256 = hash_file(manifest_path)
+    if (
+        manifest_size != len(manifest_bytes)
+        or manifest_sha256 != sha256_bytes(manifest_bytes)
+    ):
+        raise ValueError("BLOCKED_PROFILE_DEPENDENCY_MANIFEST_HASH_MISMATCH")
+    manifest_path.chmod(stat.S_IREAD)
+
+    observed_after_manifest = set()
+    for item in dependency_dir.iterdir():
+        reject_existing_reparse_ancestors(item)
+        if not item.is_file():
+            raise ValueError("BLOCKED_PROFILE_DEPENDENCY_EXTRA")
+        observed_after_manifest.add(item.name)
+    if observed_after_manifest != expected_files | {PROFILE_DEPENDENCY_MANIFEST}:
+        raise ValueError("BLOCKED_PROFILE_DEPENDENCY_EXTRA")
+    for artifact in copied:
+        target = dependency_dir / artifact["relative_path"]
+        reject_existing_reparse_ancestors(target)
+        target_size, target_sha256 = hash_file(target)
+        if (
+            target_size != artifact["size"]
+            or target_sha256 != artifact["sha256"]
+        ):
+            raise ValueError("BLOCKED_PROFILE_DEPENDENCY_COPY_HASH_MISMATCH")
+    return dependency_dir, copied, manifest_sha256
 
 
 def prepare_predecessor_input(
@@ -927,6 +1221,10 @@ def prepare_predecessor_input(
         "git_head": git_head,
         "required_report": policy["report"],
         "required_status": policy["required_status"],
+        "predecessor_script_sha256": state["script_sha256"],
+        "predecessor_profile_contract_sha256": state[
+            "profile_contract_sha256"
+        ],
         "artifact_manifest_snapshot_sha256": sha256_bytes(
             json.dumps(snapshot, sort_keys=True, separators=(",", ":")).encode("utf-8")
         ),
@@ -985,6 +1283,7 @@ def submit_job(
             "profile_id": profile_id,
             "engine": profile["engine"],
             "script_sha256": profile["sha256"],
+            "profile_contract_sha256": profile["profile_contract_sha256"],
             "git_head": git_head,
             "output_root_id": profile["output_root_id"],
             "job_directory": str(job_dir),
@@ -997,6 +1296,8 @@ def submit_job(
             "license_arguments_added": False,
             "predecessor_job_id": predecessor_job_id or None,
             "predecessor_artifacts": [],
+            "profile_dependency_artifacts": [],
+            "profile_dependency_manifest_sha256": None,
         }
         write_state_data(state_path, state)
         try:
@@ -1008,6 +1309,15 @@ def submit_job(
                 raise ValueError("BLOCKED_EXECUTION_COPY_HASH_MISMATCH")
             execution_script.chmod(stat.S_IREAD)
             reject_existing_reparse_ancestors(execution_script)
+            (
+                profile_dependency_dir,
+                profile_dependency_artifacts,
+                profile_dependency_manifest_sha256,
+            ) = prepare_profile_dependencies(profile_id, git_head, input_dir)
+            state["profile_dependency_artifacts"] = profile_dependency_artifacts
+            state["profile_dependency_manifest_sha256"] = (
+                profile_dependency_manifest_sha256
+            )
             predecessor_dir, predecessor_artifacts = prepare_predecessor_input(
                 profile,
                 predecessor_job_id,
@@ -1051,7 +1361,14 @@ def submit_job(
                 command,
                 cwd=job_dir,
                 env=sanitized_environment(
-                    job_dir, profile_id, case_id, predecessor_dir
+                    job_dir,
+                    profile_id,
+                    case_id,
+                    predecessor_dir,
+                    profile_dependency_dir,
+                    git_head,
+                    profile["sha256"],
+                    profile["profile_contract_sha256"],
                 ),
                 stdin=subprocess.DEVNULL,
                 stdout=stdout,
@@ -1147,7 +1464,7 @@ def cancel_job(job_id: str) -> dict[str, Any]:
 
 
 def hash_file(path: Path) -> tuple[int, str]:
-    size = path.stat(follow_symlinks=False).st_size
+    size = os.stat(path, follow_symlinks=False).st_size
     if size > MAX_ARTIFACT_BYTES:
         raise ValueError("BLOCKED_ARTIFACT_FILE_TOO_LARGE")
     digest = hashlib.sha256()

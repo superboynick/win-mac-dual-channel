@@ -79,12 +79,36 @@ $Required = @(
     'airjet-simulation\windows-prompts\AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md',
     'airjet-simulation\windows-prompts\AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md',
     'airjet-simulation\automation\ansys\profiles.json',
+    'airjet-simulation\automation\ansys\contracts\full_product_semantic_contract_v1.py',
+    'airjet-simulation\automation\ansys\contracts\full_product_semantic_sidecar_v1.schema.json',
+    'airjet-simulation\automation\ansys\contracts\test_full_product_semantic_contract_v1.py',
+    'airjet-simulation\automation\ansys\contracts\build_full_product_trusted_variants.py',
+    'airjet-simulation\automation\ansys\contracts\test_full_product_trusted_variants.py',
+    'airjet-simulation\automation\ansys\contracts\trusted_full_product_gen1\campaign.json',
+    'airjet-simulation\automation\ansys\contracts\trusted_full_product_gen1\variant_01_m_3x4_7_0_r25_bottom_heavy.json',
+    'airjet-simulation\automation\ansys\contracts\trusted_full_product_gen1\variant_02_m_3x4_7_0_r50_balanced.json',
+    'airjet-simulation\automation\ansys\contracts\trusted_full_product_gen1\variant_03_m_3x4_7_0_r75_top_heavy.json',
+    'airjet-simulation\automation\ansys\contracts\trusted_full_product_gen1\variant_04_m_s_3x5_6_0_r50_balanced.json',
+    'airjet-simulation\automation\ansys\contracts\trusted_full_product_gen1\variant_05_l_2x4_8_0_r50_balanced.json',
+    'airjet-simulation\automation\ansys\contracts\trusted_full_product_gen1\variant_06_s_3x5_5_5_r50_balanced.json',
+    'airjet-simulation\automation\ansys\contracts\trusted_full_product_gen1\variant_07_m_3x4_7_0_r50_vent_upper.json',
+    'airjet-simulation\automation\ansys\contracts\trusted_full_product_gen1\variant_08_m_3x4_7_0_r50_orifice_edge_gap.json',
+    'airjet-simulation\automation\ansys\contracts\trusted_full_product_gen1\variant_09_m_3x4_7_0_r50_exhaust_half_taper.json',
     'airjet-simulation\automation\ansys\approved\005\spaceclaim_t0.py',
     'airjet-simulation\automation\ansys\approved\005\workbench_t0.wbjn',
     'airjet-simulation\automation\ansys\approved\005\pymechanical_t0.py',
     'airjet-simulation\automation\ansys\approved\005\pyfluent_t0.py',
     'airjet-simulation\automation\ansys\approved\005\spaceclaim_cad_t1.py',
     'airjet-simulation\automation\ansys\approved\005\workbench_transfer_t1.wbjn',
+    'airjet-simulation\automation\ansys\approved\005\spaceclaim_cad_t1_v2.py',
+    'airjet-simulation\automation\ansys\approved\005\workbench_semantic_reconstruction_t1_v2.wbjn',
+    'airjet-simulation\automation\ansys\contracts\semantic_sidecar_v2_contract.py',
+    'airjet-simulation\automation\ansys\contracts\semantic_sidecar_v2.schema.json',
+    'airjet-simulation\automation\ansys\contracts\test_semantic_sidecar_v2_contract.py',
+    'airjet-simulation\automation\ansys\contracts\ajm005_semantic_judgment_v2.json',
+    'airjet-simulation\automation\ansys\contracts\ajm005_alternate_route_v2.json',
+    'airjet-simulation\automation\ansys\contracts\fixtures\AJM005_REAL_20260714_PRODUCER_39299CAC.json.b64',
+    'airjet-simulation\automation\ansys\contracts\fixtures\AJM005_REAL_20260714_INSPECTION_D0C6AC7C.json.b64',
     'airjet-simulation\learning\README.md',
     'airjet-simulation\learning\ANSYS_AUTOMATION_AND_005_LAB.md',
     'airjet-simulation\learning\T1_CAD_TRANSFER_WORKBOOK.md',
@@ -125,6 +149,7 @@ $Required = @(
     'airjet-simulation\checklists\p1_cad_gate_matrix.csv',
     'airjet-simulation\checklists\P1_CAD_INDEPENDENT_REVIEW_METHOD.md',
     'airjet-simulation\checklists\prepare_p1_cad_review.py',
+    'airjet-simulation\checklists\test_prepare_p1_cad_review_static.py',
     'airjet-simulation\logs\p1_cad_run_template.md',
     'airjet-simulation\logs\external-files.csv',
     'airjet-simulation\notebooks\airjet-mini-layout-baseline.ipynb',
@@ -140,6 +165,10 @@ $Required = @(
     'codex-skills\airjet-ansys-automation\scripts\run_t1_cad_suite.py',
     'codex-skills\airjet-ansys-automation\scripts\run_t1_connected_spaceclaim_suite.py',
     'codex-skills\airjet-ansys-automation\scripts\run_t1_semantic_reconstruction_suite.py',
+    'codex-skills\airjet-ansys-automation\scripts\run_t1_alternate_route_confirmation_suite.py',
+    'codex-skills\airjet-ansys-automation\scripts\ajm005_closeout_v2.py',
+    'codex-skills\airjet-ansys-automation\scripts\test_ajm005_closeout_v2.py',
+    'codex-skills\airjet-ansys-automation\scripts\test_ajm005_runner_guards.py',
     'codex-skills\airjet-ansys-automation\scripts\test_t1_predecessor_negative.py',
     'codex-skills\airjet-ansys-automation\scripts\test_airjet_ansys_mcp_policy.py',
     'codex-skills\skills-manifest.json',
@@ -972,6 +1001,30 @@ if (Test-Path -LiteralPath $GateMatrixPath) {
         @($GateRows | Where-Object { $_.status -ne 'NOT_RUN' }).Count -gt 0) {
         Add-Failure 'P1 CAD gate matrix must contain 252 NOT_RUN rows across nine variants'
     }
+    if (@($GateRows | Where-Object { $_.hard_gate -eq 'true' }).Count -ne 252) {
+        Add-Failure 'P1 CAD gate matrix must contain exactly 252 hard gates'
+    }
+    $ToolchainGateRows = @($GateRows | Where-Object { $_.gate_item_id -eq 'G0_005_TOOLCHAIN' })
+    if ($ToolchainGateRows.Count -ne 9 -or @($ToolchainGateRows | Where-Object {
+        $_.tolerance_or_acceptance -notlike '*P1_CAD_TOOLCHAIN_SCOPE=ALTERNATE_ROUTE_ONLY*hash-bound STEP semantic sidecar*NOT_PROVEN*'
+    }).Count -gt 0) {
+        Add-Failure 'all nine P1 toolchain rows must retain alternate-route scope and native NOT_PROVEN boundaries'
+    }
+    $StepGateRows = @($GateRows | Where-Object { $_.gate_item_id -eq 'G4_STEP_TRANSFER' })
+    if ($StepGateRows.Count -ne 9 -or @($StepGateRows | Where-Object {
+        $_.hard_gate -ne 'true' -or
+        $_.tolerance_or_acceptance -notlike '*no transfer limitation may be accepted*'
+    }).Count -gt 0) {
+        Add-Failure 'all nine P1 STEP rows must remain hard gates with limitation acceptance prohibited'
+    }
+    $WorkbenchGateRows = @($GateRows | Where-Object { $_.gate_item_id -eq 'G4_WB_TRANSFER' })
+    if ($WorkbenchGateRows.Count -ne 9 -or @($WorkbenchGateRows | Where-Object {
+        $_.hard_gate -ne 'true' -or
+        $_.requirement -notlike '*STEP import into Workbench*solver-side semantic reconstruction*' -or
+        $_.tolerance_or_acceptance -notlike '*do not claim native named-selection transfer*'
+    }).Count -gt 0) {
+        Add-Failure 'all nine Workbench rows must enforce STEP import plus solver semantic reconstruction without native-transfer claims'
+    }
     if ($GateRows.Count -gt 0) {
         $GateProperties = @($GateRows[0].PSObject.Properties.Name)
         foreach ($RequiredProperty in @(
@@ -1034,7 +1087,12 @@ if (Test-Path -LiteralPath $ReviewScriptPath) {
         '"secondary_evidence_sha256"',
         '"--finalize-worksheet"',
         '"--spot-check-record"',
-        'validate_step_limitation_consistency',
+        'validate_no_transfer_limitation',
+        'WORKBENCH_STEP_SEMANTIC_LOG',
+        'SEMANTIC_KEY_CARDINALITY_REPORT',
+        'route Gate does not cite its two required evidence roles',
+        'HARD_GATE_PASS_COUNT=252',
+        'STEP_GATE_PASS_COUNT=9',
         'P1_REVIEW_RECOMMENDATION=PASS',
         'P1_STAGE_GATE=PENDING_REVIEW_RECORD_COMMIT',
         'Preparation PASS does not mean P1 PASS'
@@ -1049,7 +1107,10 @@ if (Test-Path -LiteralPath $ReviewMethodPath) {
     foreach ($Marker in @(
         'P1_REVIEW_RECOMMENDATION=PASS',
         '252',
-        'LIMITATION_ACCEPTED',
+        (ConvertFrom-Utf8Base64 'MjUyIOihjOWFqOmDqOaYryBoYXJkIEdhdGU='),
+        (ConvertFrom-Utf8Base64 'U1RFUCBsaW1pdGF0aW9uIGFjY2VwdGFuY2Ug6KKr5piO56Gu56aB5q2i'),
+        'solver semantic reconstruction',
+        'NATIVE_NAMED_SELECTION_TRANSFER',
         'NOT_REVIEWED',
         'PureWindowsPath',
         '006 commit',
@@ -1161,12 +1222,19 @@ if (Test-Path -LiteralPath $StudentPromptPath) {
         'git fetch origin',
         'GIT_FETCH=PASS/FAIL',
         'STUDENT_TOOLCHAIN_STATUS=PASS_START_P1',
-        'STUDENT_TOOLCHAIN_STATUS=PASS_START_P1_WITH_LIMITATIONS',
         'STUDENT_TOOLCHAIN_STATUS=BLOCKED_CONTAMINATED_BASELINE',
-        'P1_CAD_TOOLCHAIN_READINESS=PASS/PASS_WITH_TRANSFER_LIMITATION/BLOCKED',
+        'P1_CAD_TOOLCHAIN_READINESS=PASS/BLOCKED',
         'P1_STAGE_GATE=NOT_RUN',
-        'NAMED_SELECTION_TRANSFER=PASS/FAIL',
-        (ConvertFrom-Utf8Base64 'U1RFUCDmmK/ph43opoHkuqTmjqXog73lipvvvIzkvYbkuI3mmK/llK/kuIDnoazpl6jmp5s='),
+        'STEP_EXPORT_REIMPORT=PASS/FAIL',
+        'WORKBENCH_STEP_IMPORT=PASS/FAIL',
+        'SOLVER_SEMANTIC_RECONSTRUCTION=PASS/FAIL',
+        'SEMANTIC_KEY_CARDINALITY_CHECK=PASS/FAIL',
+        'CAD_AUTHORING_ROUTE=SPACECLAIM_SIGNED_SCRIPT_PARAMETRIC',
+        'SOLVER_HANDOFF_ROUTE=HASH_BOUND_STEP_SEMANTIC_SIDECAR',
+        'EXTERNAL_NATIVE_ATTACH=NOT_PROVEN',
+        'NATIVE_PARAMETERIZATION=NOT_PROVEN',
+        'NATIVE_NAMED_SELECTION_TRANSFER=NOT_PROVEN',
+        'P1_CAD_TOOLCHAIN_SCOPE=ALTERNATE_ROUTE_ONLY',
         'SYSTEM_COUPLING_STATUS=UNVERIFIED_WARNING',
         'CUDSS_STATUS=UNVERIFIED_WARNING',
         'AIRJET_ANSYS_STUDENT_CAPABILITY_SMOKE_005.txt',
@@ -1178,6 +1246,16 @@ if (Test-Path -LiteralPath $StudentPromptPath) {
     }
     if ($StudentPromptText.Contains('P1_FULL_PRODUCT_CAD=')) {
         Add-Failure 'Windows Student smoke prompt conflates toolchain readiness with the P1 stage Gate'
+    }
+    foreach ($ForbiddenMarker in @(
+        'PASS_START_P1_WITH_LIMITATIONS',
+        'PASS_WITH_TRANSFER_LIMITATION',
+        'NAMED_SELECTION_TRANSFER=PASS/FAIL',
+        'LIMITATION_RECORDED'
+    )) {
+        if ($StudentPromptText.Contains($ForbiddenMarker)) {
+            Add-Failure "Windows Student smoke prompt retains prohibited transfer-limitation semantics: $ForbiddenMarker"
+        }
     }
 }
 
@@ -1229,15 +1307,22 @@ if (Test-Path -LiteralPath $CadPromptPath) {
         'BLOCKED_005_GATE',
         'BLOCKED_GIT_OR_ENVIRONMENT',
         'PARTIAL_CAD_OUTPUT',
-        'COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW',
         'COMPLETE_AWAITING_REVIEW',
         'P1_STAGE_GATE=NOT_STARTED/INCOMPLETE/PENDING_PEER_REVIEW',
         'C017_C019_PHYSICS_GUARD=',
         'PARAMETER_DIFF_CHECK=PASS_ALL_3_DERIVED/FAIL',
         'GEOMETRY_RESULT_DIFF_CHECK=PASS_ALL_3_DERIVED/FAIL',
-        'STEP_EXPORT_REIMPORT=PASS_ALL_9/LIMITATION_RECORDED/FAIL',
+        'STEP_EXPORT_REIMPORT=PASS_ALL_9/FAIL',
+        'WORKBENCH_STEP_IMPORT=PASS_ALL_9/FAIL',
+        'SOLVER_SEMANTIC_RECONSTRUCTION=PASS_ALL_9/FAIL',
+        'SEMANTIC_ADJACENCY_CHECK=PASS_ALL_9/FAIL',
         'ANCHOR_PARTITION_NONPHYSICAL_GUARD=PASS_ALL_9/FAIL',
-        'TRANSFER_LIMITATION_SCOPE=NONE/STEP_ONLY',
+        'CAD_AUTHORING_ROUTE=SPACECLAIM_SIGNED_SCRIPT_PARAMETRIC',
+        'SOLVER_HANDOFF_ROUTE=HASH_BOUND_STEP_SEMANTIC_SIDECAR',
+        'EXTERNAL_NATIVE_ATTACH=NOT_PROVEN',
+        'NATIVE_PARAMETERIZATION=NOT_PROVEN',
+        'NATIVE_NAMED_SELECTION_TRANSFER=NOT_PROVEN',
+        'P1_CAD_TOOLCHAIN_SCOPE=ALTERNATE_ROUTE_ONLY',
         'REPORT_005_PARSE=UNIQUE_KEYS_REJECT_DUPLICATES_AND_CONFLICTS',
         'REPORT_005_IDENTITY=TASK_COMPUTER_ANSYS_VERSION_INSTALL_ROOT_COMMIT',
         'LICENSE_POLICY=NO_LICENSE_FILE_POOL_SERVICE_REGISTRY_ENV_PRIORITY_CHECKOUT_MUTATION',
@@ -1246,15 +1331,28 @@ if (Test-Path -LiteralPath $CadPromptPath) {
         'STATUS_MAP_BLOCKED_005_GATE=NOT_STARTED',
         'STATUS_MAP_BLOCKED_GIT_OR_ENVIRONMENT=NOT_STARTED',
         'STATUS_MAP_PARTIAL_CAD_OUTPUT=INCOMPLETE',
-        'STATUS_MAP_COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW=PENDING_PEER_REVIEW',
         'STATUS_MAP_COMPLETE_AWAITING_REVIEW=PENDING_PEER_REVIEW',
         'P1_PASS_PROHIBITED=006_CAN_ONLY_REACH_PENDING_PEER_REVIEW',
-        '005_TRANSFER_LIMITATION_INHERITANCE=REQUIRED'
+        'P1_GATE_COUNT=252',
+        'P1_HARD_GATE_COUNT=252',
+        'STEP_LIMITATION_ACCEPTANCE=PROHIBITED',
+        'NATIVE_ROUTE_CLAIMS=NOT_PROVEN'
     )) {
         if (-not $CadPromptText.Contains($Marker)) { Add-Failure "Windows P1 CAD prompt lacks invariant: $Marker" }
     }
     if ($CadPromptText -match '(?mi)^\s*(?:[-*+]\s*)?`?P1_STAGE_GATE\s*=\s*PASS(?:\s|`|$)') {
         Add-Failure 'Windows P1 CAD prompt is allowed to report P1 PASS'
+    }
+    foreach ($ForbiddenMarker in @(
+        'COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW',
+        'LIMITATION_RECORDED',
+        'TRANSFER_LIMITATION_SCOPE=',
+        'PASS_WITH_TRANSFER_LIMITATION',
+        'NAMED_SELECTION_TRANSFER=PASS/FAIL'
+    )) {
+        if ($CadPromptText.Contains($ForbiddenMarker)) {
+            Add-Failure "Windows P1 CAD prompt retains prohibited transfer-limitation semantics: $ForbiddenMarker"
+        }
     }
 }
 
@@ -1296,7 +1394,7 @@ if (Test-Path -LiteralPath $ManifestPath) {
         $Manifest = (Read-Utf8 $ManifestPath) | ConvertFrom-Json
         $Skills = @($Manifest.skills)
         $ExpectedManifest = @{
-            'airjet-ansys-automation' = [pscustomobject]@{ kind='project'; source='codex-skills/airjet-ansys-automation'; required=@('SKILL.md','agents/openai.yaml','references/official-automation-routes.md','references/gate-evidence.md','scripts/bootstrap_windows.ps1','scripts/airjet_ansys_mcp.py','scripts/run_t0_suite.py','scripts/run_t1_cad_suite.py','scripts/run_t1_connected_spaceclaim_suite.py','scripts/run_t1_semantic_reconstruction_suite.py','scripts/test_t1_predecessor_negative.py','scripts/test_airjet_ansys_mcp_policy.py') }
+            'airjet-ansys-automation' = [pscustomobject]@{ kind='project'; source='codex-skills/airjet-ansys-automation'; required=@('SKILL.md','agents/openai.yaml','references/official-automation-routes.md','references/gate-evidence.md','scripts/bootstrap_windows.ps1','scripts/airjet_ansys_mcp.py','scripts/run_t0_suite.py','scripts/run_t1_cad_suite.py','scripts/run_t1_connected_spaceclaim_suite.py','scripts/run_t1_semantic_reconstruction_suite.py','scripts/run_t1_alternate_route_confirmation_suite.py','scripts/ajm005_closeout_v2.py','scripts/test_ajm005_closeout_v2.py','scripts/test_ajm005_runner_guards.py','scripts/test_t1_predecessor_negative.py','scripts/test_airjet_ansys_mcp_policy.py') }
             'airjet-product-reconstruction' = [pscustomobject]@{ kind='project'; source='codex-skills/airjet-product-reconstruction'; required=@('SKILL.md','agents/openai.yaml','references/evidence-rules.md','references/stage-routing.md','references/windows-operation.md','scripts/audit_project.py') }
             'jupyter-notebook' = [pscustomobject]@{ kind='official'; source='skills/.curated/jupyter-notebook'; required=@('LICENSE.txt','SKILL.md','agents/openai.yaml','assets/experiment-template.ipynb','assets/jupyter-small.svg','assets/jupyter.png','assets/tutorial-template.ipynb','references/experiment-patterns.md','references/notebook-structure.md','references/quality-checklist.md','references/tutorial-patterns.md','scripts/new_notebook.py') }
             'pdf' = [pscustomobject]@{ kind='official'; source='skills/.curated/pdf'; required=@('LICENSE.txt','SKILL.md','agents/openai.yaml','assets/pdf.png') }
@@ -1362,14 +1460,34 @@ if (Test-Path -LiteralPath $AnsysProfilesPath) {
             'ajm005-spaceclaim-cad-t1-v1',
             'ajm005-workbench-transfer-t1-v1',
             'ajm005-workbench-connected-spaceclaim-t1-v1',
-            'ajm005-workbench-semantic-reconstruction-t1-v1'
+            'ajm005-workbench-semantic-reconstruction-t1-v1',
+            'ajm005-spaceclaim-cad-t1-v2',
+            'ajm005-workbench-semantic-reconstruction-t1-v2'
         )
         $RootFields = @($ProfileData.PSObject.Properties.Name)
         if ($ProfileData.schema_version -ne 2 -or
-            @(Compare-Object @('profiles','schema_version') ($RootFields | Sort-Object)).Count -gt 0 -or
+            @(Compare-Object @('production_contracts','profiles','schema_version') ($RootFields | Sort-Object)).Count -gt 0 -or
             @(Compare-Object ($ExpectedProfileIds | Sort-Object) ($ProfileIds | Sort-Object)).Count -gt 0 -or
             @($ProfileIds | Select-Object -Unique).Count -ne $Entries.Count) {
             Add-Failure 'ANSYS profile policy identity/schema/unique-name lock failed'
+        }
+        $Production = $ProfileData.production_contracts
+        $ProductionFields = @($Production.PSObject.Properties.Name)
+        $ExpectedProductionFields = @(
+            'schema_version','contract_id','scope','product_id','expected_variant_count',
+            'producer_profile_id','observer_profile_id','execution_state','p1_p6_gates','components'
+        )
+        if (@(Compare-Object ($ExpectedProductionFields | Sort-Object) ($ProductionFields | Sort-Object)).Count -gt 0 -or
+            $Production.schema_version -ne 1 -or
+            [string]$Production.contract_id -ne 'AJM006_GEN1_FULL_PRODUCT_SEMANTIC_PRODUCTION_V1' -or
+            [string]$Production.scope -ne 'FULL_PRODUCT' -or
+            [string]$Production.product_id -ne 'AIRJET_MINI_GEN1' -or
+            [int]$Production.expected_variant_count -ne 9 -or
+            [string]$Production.producer_profile_id -ne 'ajm006-spaceclaim-full-product-producer-v1' -or
+            [string]$Production.observer_profile_id -ne 'ajm006-workbench-full-product-observer-v1' -or
+            [string]$Production.execution_state -ne 'STATIC_CONTRACT_ONLY_NOT_REGISTERED' -or
+            [string]$Production.p1_p6_gates -ne 'NOT_RUN') {
+            Add-Failure 'ANSYS Gen1 production contract identity/state lock failed'
         }
         $ApprovedRoot = Join-Path $RepoRoot 'airjet-simulation\automation\ansys\approved'
         foreach ($Entry in $Entries) {
@@ -1413,6 +1531,31 @@ if (Test-Path -LiteralPath $AnsysProfilesPath) {
                     Add-Failure "invalid ANSYS predecessor linkage: $($Entry.profile_id)"
                 }
             }
+        }
+        $AnsysPolicyTest = Join-Path $RepoRoot 'codex-skills\airjet-ansys-automation\scripts\test_airjet_ansys_mcp_policy.py'
+        $PreviousNoBytecode = $env:PYTHONDONTWRITEBYTECODE
+        try {
+            $env:PYTHONDONTWRITEBYTECODE = '1'
+            $PolicyOutput = @(& python -B $AnsysPolicyTest 2>&1)
+            $PolicyExit = $LASTEXITCODE
+        } finally {
+            $env:PYTHONDONTWRITEBYTECODE = $PreviousNoBytecode
+        }
+        if ($PolicyExit -ne 0 -or
+            -not (($PolicyOutput -join "`n").Contains('AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=10 tools=5'))) {
+            Add-Failure "mandatory ANSYS v2 route/policy audit failed: $($PolicyOutput -join ' | ')"
+        }
+        $ReviewerTest = Join-Path $RepoRoot 'airjet-simulation\checklists\test_prepare_p1_cad_review_static.py'
+        try {
+            $env:PYTHONDONTWRITEBYTECODE = '1'
+            $ReviewerOutput = @(& python -B $ReviewerTest 2>&1)
+            $ReviewerExit = $LASTEXITCODE
+        } finally {
+            $env:PYTHONDONTWRITEBYTECODE = $PreviousNoBytecode
+        }
+        if ($ReviewerExit -ne 0 -or
+            -not (($ReviewerOutput -join "`n").Contains('P1_REVIEWER_STATIC_TESTS=PASS product=AIRJET_MINI_GEN1 variants=9'))) {
+            Add-Failure "mandatory Gen1 006/007 reviewer bridge audit failed: $($ReviewerOutput -join ' | ')"
         }
     } catch {
         Add-Failure "ANSYS profile policy audit failed: $($_.Exception.Message)"

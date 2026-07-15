@@ -76,6 +76,14 @@ scope, while this skill owns deterministic Windows execution.
   disposable fixture; it must keep native attach, native Named Selection transfer, native
   parameterization and `P1_CAD_TOOLCHAIN_READINESS` false/BLOCKED. Never merge this status into
   `PASS_CAD_TRANSFER_SET`.
+- Use `scripts/run_t1_alternate_route_confirmation_suite.py` only after the Phase B contract is
+  frozen in a signed, synchronized commit. It runs exactly the two v2 profiles and requires their
+  base scripts, fixture schema/validator, judgment, and route contract to be copied from that same
+  verified Git commit into a hash-checked dependency directory. Its PASS is scoped to
+  `ALTERNATE_ROUTE_ONLY`: signed SpaceClaim script authoring plus hash-bound STEP, detached semantic
+  binding, and solver-side entity reconstruction on the disposable 005 fixture. It may unlock 006,
+  but external native attach, native parameterization, native Named Selection transfer, formal P1,
+  and P2-P6 remain `NOT_PROVEN`/`NOT_RUN`. Do not rerun the deferred connected route as part of it.
 - Use `scripts/run_t1_connected_spaceclaim_suite.py` only for the independent Workbench-managed
   connected SpaceClaim document diagnostic. The approved journal must start from an empty Geometry
   cell, must not call `SetFile`, `DocumentOpen`, or external `DocumentSave`, and may consume only the

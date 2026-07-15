@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "contract_id": "AJM005_ALTERNATE_ROUTE_V2",
+  "scope": "DISPOSABLE_CAPABILITY_FIXTURE_ONLY",
+  "git_binding": "RUNTIME_SAME_VERIFIED_SIGNED_COMMIT",
+  "route": {
+    "cad_authoring": "SPACECLAIM_SIGNED_SCRIPT_PARAMETRIC",
+    "solver_handoff": "HASH_BOUND_STEP_SEMANTIC_SIDECAR",
+    "connected_route": "DEFERRED_CURRENT_HOST_ROUTE",
+    "step_is_route_hard_requirement": true
+  },
+  "claim_boundaries": {
+    "p1_cad_toolchain_scope": "ALTERNATE_ROUTE_ONLY",
+    "external_native_attach": "NOT_PROVEN",
+    "native_parameterization": "NOT_PROVEN",
+    "native_named_selection_transfer": "NOT_PROVEN",
+    "p1_stage_gate": "NOT_RUN",
+    "p1_p6_gates": "NOT_RUN"
+  },
+  "producer": {
+    "profile_id": "ajm005-spaceclaim-cad-t1-v2",
+    "script_sha256": "59504858b4e68179d5ee47f2d2a38770ab32caf650280b7439c524da5c50b7b8",
+    "profile_contract_sha256": "7582cfbbcd22e12ae97055ba31b35293403c5b81445528bec8bbc9c115880c8d",
+    "base_script_sha256": "4fdaf2f1f5ae2063f79b99adc8ac6ae91a147032c1386fc4119b5abd4ceff17e",
+    "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
+    "required_assertions": [
+      "script_parameterization_equivalent",
+      "named_selections",
+      "volume_extract_or_equivalent",
+      "fluid_connectivity",
+      "native_save",
+      "native_reopen",
+      "step_export_reimport",
+      "semantic_sidecar",
+      "semantic_schema_identity",
+      "semantic_keys_exact",
+      "semantic_cardinality_declared",
+      "semantic_topology_nonorphan",
+      "detached_sidecar_raw_hash",
+      "artifact_hash_chain",
+      "actual_source_files_hashed"
+    ]
+  },
+  "consumer": {
+    "profile_id": "ajm005-workbench-semantic-reconstruction-t1-v2",
+    "script_sha256": "2e4f67742ab8b2aef67a7b5aceec9983055f06076f2f286ae703c49347f8c8a6",
+    "profile_contract_sha256": "87db6f52bd438eac016dcceaa0605231fa00d5e24988de572a1afc4fcce2db60",
+    "base_script_sha256": "c60beb14e03d3f77274f62d843a802131c5f8ec07501d9a8fc83cbb7c39e3098",
+    "required_status": "PASS_ALTERNATE_ROUTE_SEMANTIC_RECONSTRUCTION",
+    "required_assertions": [
+      "predecessor_identity",
+      "legacy_semantic_reconstruction",
+      "semantic_sidecar_v2_identity",
+      "semantic_keys_exact",
+      "semantic_cardinality",
+      "semantic_geometry_direction",
+      "semantic_adjacency",
+      "artifact_hash_chain",
+      "negative_controls",
+      "mesh_generation",
+      "project_save"
+    ]
+  },
+  "contract_hashes": {
+    "schema_sha256": "0aa768d7c603dcb899e12ced553f427c39526560faf13fea57fb899a889d23b9",
+    "judgment_sha256": "dd47bb3554913803752ce7ce53a9327af779465a830964759a57e1d575c89f37",
+    "validator_sha256": "ce503eba03d6e35c48e2e86b91a1a25fe2262fc7bd92cbdd19b171fb46a1b0a7"
+  },
+  "runner": {
+    "path": "codex-skills/airjet-ansys-automation/scripts/run_t1_alternate_route_confirmation_suite.py",
+    "sha256": "53ccd98d8ee3e9ecc3778a70e039132ce2c1f0a67bfffd66441668dc77c47c07",
+    "guard_test_path": "codex-skills/airjet-ansys-automation/scripts/test_ajm005_runner_guards.py",
+    "guard_test_sha256": "2982e6960c5013cc340db7753d69a747ebec8dd6134f007d1c2471d74c3147a5"
+  },
+  "closeout": {
+    "helper": {
+      "git_path": "codex-skills/airjet-ansys-automation/scripts/ajm005_closeout_v2.py",
+      "sha256": "a3a939cab5110d887600f6d26f18149a6c67875a936f90c33c7cfc0e287026a5"
+    },
+    "test": {
+      "git_path": "codex-skills/airjet-ansys-automation/scripts/test_ajm005_closeout_v2.py",
+      "sha256": "14b5ad68a257b1df5befd9c8d509930f25c4cb8cb5c3d32c59248865568ee247"
+    }
+  },
+  "mcp_server": {
+    "path": "codex-skills/airjet-ansys-automation/scripts/airjet_ansys_mcp.py",
+    "sha256": "8b15f543b906c3be35fe79f648cb57218ce68a217c2aed488b28febf8092c418"
+  },
+  "confirmation": {
+    "old_v1_evidence_reusable_for_v2_closeout": false,
+    "post_freeze_combined_run_required": true,
+    "connected_route_rerun_required": false
+  }
+}

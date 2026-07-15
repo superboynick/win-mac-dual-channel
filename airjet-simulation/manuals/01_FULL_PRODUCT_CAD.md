@@ -182,7 +182,7 @@ cell 子组件必须能被完整产品阵列调用，但其外壁不能重复生
 - [ ] 三个概念族对应的四个具体配置可切换且外壳不变；
 - [ ] STEP、原生 CAD、剖面图和参数表均已导出。
 - [ ] `C017/C019` 参考体及中央锚/partition datum 没有材料、质量、Boolean、结构、CHT、fluid union 或求解器导出；
-- [ ] Required Named Selections 均按稳定 feature ID 重建并成功传入 Workbench；
+- [ ] 每个变体的 STEP 已成功导出/重导入并记录全链 SHA256；producer/observer job identity 与独立 artifact-manifest 已闭合；Workbench/Mechanical 已导入同字节 STEP，并从 hash-bound semantic sidecar 生成 solver observation，以实际 owner/adjacency/boundary IDs、direction/bbox 和稳定 semantic key 重建集合；production validator 计算的 missing/unexpected/dangling/orphan 数组为空、coverage=true、assignment=1，且逐字段等于 key report；不得把该结果写成 native Named Selection transfer 已证明；
 - [ ] 每个变体记录 vent/orifice/exhaust 三个 branch ID、实际孔数/开孔率和全部文件 SHA256；
 - [ ] 006 结束时 P1 只允许 `INCOMPLETE` 或 `PENDING_PEER_REVIEW`，不得由生成模型的同一会话自评 PASS。
 

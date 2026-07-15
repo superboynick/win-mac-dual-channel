@@ -14,17 +14,27 @@ import argparse
 import csv
 import hashlib
 import io
+import json
 import math
+import os
 import re
 import subprocess
+import types
 from datetime import date, datetime
 from pathlib import Path, PureWindowsPath
 
 
-COMPLETE_STATUSES = {
-    "COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW",
-    "COMPLETE_AWAITING_REVIEW",
-}
+COMPLETE_STATUSES = {"COMPLETE_AWAITING_REVIEW"}
+PRODUCT_TARGET = "AIRJET_MINI_GEN1"
+PRODUCTION_CONTRACT_ID = "AJM006_GEN1_FULL_PRODUCT_SEMANTIC_PRODUCTION_V1"
+PRODUCTION_PRODUCER_PROFILE_ID = "ajm006-spaceclaim-full-product-producer-v1"
+PRODUCTION_OBSERVER_PROFILE_ID = "ajm006-workbench-full-product-observer-v1"
+PRODUCTION_REGISTERED_STATE = "REGISTERED_SIGNED_PROFILES"
+PROFILES_PATH = "airjet-simulation/automation/ansys/profiles.json"
+CAMPAIGN_PATH = (
+    "airjet-simulation/automation/ansys/contracts/"
+    "trusted_full_product_gen1/campaign.json"
+)
 EXPECTED_VARIANTS = {
     "M-3x4-7.0__R25_BOTTOM_HEAVY",
     "M-3x4-7.0__R50_BALANCED",
@@ -54,8 +64,18 @@ PER_VARIANT_ROLES = {
     "NATIVE_CAD",
     "NATIVE_REOPEN_LOG",
     "FLUID_GEOMETRY",
+    "STEP_GEOMETRY",
+    "STEP_REIMPORT_LOG",
+    "SEMANTIC_SIDECAR",
+    "SEMANTIC_BINDING",
+    "SEMANTIC_OBSERVATION",
+    "SEMANTIC_KEY_CARDINALITY_REPORT",
     "WORKBENCH_PROJECT",
-    "WORKBENCH_TRANSFER_LOG",
+    "PRODUCER_JOB_RECORD",
+    "PRODUCER_ARTIFACT_MANIFEST",
+    "OBSERVER_JOB_RECORD",
+    "OBSERVER_ARTIFACT_MANIFEST",
+    "WORKBENCH_STEP_SEMANTIC_LOG",
     "AUTOMATED_CHECKS_CSV",
     "SCREENSHOT_XY",
     "SCREENSHOT_XZ",
@@ -74,8 +94,9 @@ PASS_ALL_9_FIELDS = {
     "CLEARANCE_CHECK",
     "NAMED_SELECTION_CARDINALITY_CHECK",
     "NATIVE_SAVE_REOPEN",
-    "WORKBENCH_GEOMETRY_TRANSFER",
-    "NAMED_SELECTION_TRANSFER",
+    "WORKBENCH_STEP_IMPORT",
+    "SOLVER_SEMANTIC_RECONSTRUCTION",
+    "SEMANTIC_ADJACENCY_CHECK",
     "C017_C019_PHYSICS_GUARD",
     "ANCHOR_PARTITION_NONPHYSICAL_GUARD",
 }
@@ -177,13 +198,17 @@ VARIANT_CHECK_HEADER = [
     "thickness_closure_error_mm",
     "named_selection_check",
     "native_reopen",
-    "workbench_geometry_transfer",
-    "named_selection_transfer",
     "step_transfer",
+    "workbench_step_import",
+    "solver_semantic_reconstruction",
+    "semantic_adjacency_check",
     "c017_c019_physics_guard",
     "anchor_partition_nonphysical_guard",
 ]
 CONTRACT_PATHS = [
+    "airjet-simulation/windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md",
+    "airjet-simulation/checklists/prepare_p1_cad_review.py",
+    "airjet-simulation/checklists/test_prepare_p1_cad_review_static.py",
     "airjet-simulation/checklists/p1_cad_gate_matrix.csv",
     "airjet-simulation/parameters/p1_model_form_variants.csv",
     "airjet-simulation/parameters/p1_cad_parameter_map.csv",
@@ -200,6 +225,22 @@ CONTRACT_PATHS = [
     "airjet-simulation/geometry/contracts/p1_cad_open_questions.csv",
     "airjet-simulation/parameters/build_p1_cad_inputs.py",
     "airjet-simulation/parameters/build_p1_cad_contracts.py",
+    PROFILES_PATH,
+    "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
+    "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
+    "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py",
+    "airjet-simulation/automation/ansys/contracts/build_full_product_trusted_variants.py",
+    "airjet-simulation/automation/ansys/contracts/test_full_product_trusted_variants.py",
+    CAMPAIGN_PATH,
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_01_m_3x4_7_0_r25_bottom_heavy.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_03_m_3x4_7_0_r75_top_heavy.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_04_m_s_3x5_6_0_r50_balanced.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_05_l_2x4_8_0_r50_balanced.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_06_s_3x5_5_5_r50_balanced.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_07_m_3x4_7_0_r50_vent_upper.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_08_m_3x4_7_0_r50_orifice_edge_gap.json",
+    "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_09_m_3x4_7_0_r50_exhaust_half_taper.json",
 ]
 
 
@@ -260,6 +301,19 @@ def require_report(values: dict[str, str]) -> None:
         "TOTAL_VARIANTS_BUILT": "9",
         "PARAMETER_DIFF_CHECK": "PASS_ALL_3_DERIVED",
         "GEOMETRY_RESULT_DIFF_CHECK": "PASS_ALL_3_DERIVED",
+        "P1_CAD_TOOLCHAIN_SCOPE": "ALTERNATE_ROUTE_ONLY",
+        "CAD_AUTHORING_ROUTE": "SPACECLAIM_SIGNED_SCRIPT_PARAMETRIC",
+        "SOLVER_HANDOFF_ROUTE": "HASH_BOUND_STEP_SEMANTIC_SIDECAR",
+        "PRODUCT_TARGET": PRODUCT_TARGET,
+        "PRODUCTION_CONTRACT_ID": PRODUCTION_CONTRACT_ID,
+        "PRODUCTION_SCOPE": "FULL_PRODUCT",
+        "PRODUCTION_CONTRACT_EXECUTION_STATE": PRODUCTION_REGISTERED_STATE,
+        "PRODUCER_PROFILE_ID": PRODUCTION_PRODUCER_PROFILE_ID,
+        "OBSERVER_PROFILE_ID": PRODUCTION_OBSERVER_PROFILE_ID,
+        "SEMANTIC_BUNDLE_VALIDATION": "PASS_ALL_9",
+        "EXTERNAL_NATIVE_ATTACH": "NOT_PROVEN",
+        "NATIVE_PARAMETERIZATION": "NOT_PROVEN",
+        "NATIVE_NAMED_SELECTION_TRANSFER": "NOT_PROVEN",
     }
     for key, expected_value in expected.items():
         if values.get(key) != expected_value:
@@ -271,19 +325,12 @@ def require_report(values: dict[str, str]) -> None:
     for key in PASS_ALL_9_FIELDS:
         if values.get(key) != "PASS_ALL_9":
             raise ValueError(f"006 report field {key} must equal 'PASS_ALL_9'")
-    if values["CAD_BUILD_STATUS"] == "COMPLETE_AWAITING_REVIEW":
-        if values.get("STEP_EXPORT_REIMPORT") != "PASS_ALL_9":
-            raise ValueError("complete 006 run requires STEP_EXPORT_REIMPORT=PASS_ALL_9")
-        if values.get("ERROR_MESSAGES", ""):
-            raise ValueError("complete 006 run must have an empty ERROR_MESSAGES field")
-        if values.get("TRANSFER_LIMITATION_SCOPE") != "NONE":
-            raise ValueError("complete 006 run requires TRANSFER_LIMITATION_SCOPE=NONE")
-    elif values.get("STEP_EXPORT_REIMPORT") != "LIMITATION_RECORDED":
-        raise ValueError("transfer-limited 006 run requires STEP_EXPORT_REIMPORT=LIMITATION_RECORDED")
-    elif not values.get("ERROR_MESSAGES", ""):
-        raise ValueError("transfer-limited 006 run must record the STEP error")
-    elif values.get("TRANSFER_LIMITATION_SCOPE") != "STEP_ONLY":
-        raise ValueError("transfer-limited 006 run requires TRANSFER_LIMITATION_SCOPE=STEP_ONLY")
+    if values.get("STEP_EXPORT_REIMPORT") != "PASS_ALL_9":
+        raise ValueError("complete 006 run requires STEP_EXPORT_REIMPORT=PASS_ALL_9")
+    if values.get("ERROR_MESSAGES", ""):
+        raise ValueError("complete 006 run must have an empty ERROR_MESSAGES field")
+    if any("LIMITATION" in key.upper() for key in values):
+        raise ValueError("006 report contains a prohibited transfer-limitation field")
     commit = values.get("GIT_COMMIT", "")
     if len(commit) != 40 or any(character not in "0123456789abcdefABCDEF" for character in commit):
         raise ValueError("006 GIT_COMMIT must be a full 40-character SHA")
@@ -300,6 +347,12 @@ def require_report(values: dict[str, str]) -> None:
         "VARIANT_TABLE_SHA256",
         "INTERNAL_RULES_SHA256",
         "MASTER_MODEL_SHA256",
+        "FULL_PRODUCT_VALIDATOR_SHA256",
+        "FULL_PRODUCT_SCHEMA_SHA256",
+        "FULL_PRODUCT_CORE_TEST_SHA256",
+        "TRUSTED_VARIANT_GENERATOR_SHA256",
+        "TRUSTED_VARIANT_TEST_SHA256",
+        "TRUSTED_CAMPAIGN_SHA256",
     ):
         if not re.fullmatch(r"[0-9a-fA-F]{64}", values.get(key, "")):
             raise ValueError(f"006 {key} must be a 64-character SHA256")
@@ -317,17 +370,8 @@ def require_report(values: dict[str, str]) -> None:
         raise ValueError("006 REPORT_005_SHA256 must be a 64-character SHA256")
     if not values.get("REPORT_005_PATH"):
         raise ValueError("006 REPORT_005_PATH is required")
-    if values.get("P1_CAD_TOOLCHAIN_READINESS") not in {
-        "PASS",
-        "PASS_WITH_TRANSFER_LIMITATION",
-    }:
-        raise ValueError("006 P1_CAD_TOOLCHAIN_READINESS is not an accepted 005 result")
-    if (
-        values["P1_CAD_TOOLCHAIN_READINESS"] == "PASS_WITH_TRANSFER_LIMITATION"
-        and values["CAD_BUILD_STATUS"]
-        != "COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW"
-    ):
-        raise ValueError("006 must inherit a STEP transfer limitation declared by 005")
+    if values.get("P1_CAD_TOOLCHAIN_READINESS") != "PASS":
+        raise ValueError("006 requires route-scoped P1_CAD_TOOLCHAIN_READINESS=PASS")
     expected_ansys_prefix = "2026 R1"
     if not values.get("ANSYS_VERSION", "").startswith(expected_ansys_prefix):
         raise ValueError("006 ANSYS_VERSION must identify 2026 R1")
@@ -382,7 +426,7 @@ def contract_hashes(repo: Path, commit: str) -> dict[str, str]:
         f"{relative_path}\t{item_hashes[relative_path]}\n"
         for relative_path in sorted(item_hashes)
     ).encode("utf-8")
-    return {
+    result = {
         "P1_CONTRACT_BUNDLE_SHA256": hashlib.sha256(canonical).hexdigest(),
         "GATE_TEMPLATE_SHA256": item_hashes[
             "airjet-simulation/checklists/p1_cad_gate_matrix.csv"
@@ -393,6 +437,280 @@ def contract_hashes(repo: Path, commit: str) -> dict[str, str]:
         "INTERNAL_RULES_SHA256": item_hashes[
             "airjet-simulation/parameters/p1_internal_geometry_rules.csv"
         ],
+    }
+    result.update(
+        {
+            "FULL_PRODUCT_VALIDATOR_SHA256": item_hashes[
+                "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py"
+            ],
+            "FULL_PRODUCT_SCHEMA_SHA256": item_hashes[
+                "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json"
+            ],
+            "FULL_PRODUCT_CORE_TEST_SHA256": item_hashes[
+                "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py"
+            ],
+            "TRUSTED_VARIANT_GENERATOR_SHA256": item_hashes[
+                "airjet-simulation/automation/ansys/contracts/build_full_product_trusted_variants.py"
+            ],
+            "TRUSTED_VARIANT_TEST_SHA256": item_hashes[
+                "airjet-simulation/automation/ansys/contracts/test_full_product_trusted_variants.py"
+            ],
+            "TRUSTED_CAMPAIGN_SHA256": item_hashes[CAMPAIGN_PATH],
+        }
+    )
+    return result
+
+
+def strict_json_bytes(data: bytes, context: str) -> object:
+    def unique_pairs(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate JSON key in {context}: {key}")
+            result[key] = value
+        return result
+
+    try:
+        return json.loads(data.decode("utf-8"), object_pairs_hook=unique_pairs)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"invalid strict UTF-8 JSON: {context}") from exc
+
+
+def load_contract_module(data: bytes) -> types.ModuleType:
+    module = types.ModuleType("full_product_semantic_contract_v1_at_006_commit")
+    exec(compile(data, "<full_product_semantic_contract_v1.py>", "exec"), module.__dict__)
+    return module
+
+
+def canonical_profile_sha256(profile: dict[str, object]) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            profile,
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def load_production_contract_at_commit(
+    repo: Path,
+    commit: str,
+    variant_expectations: dict[str, tuple[str, int]],
+) -> dict[str, object]:
+    """Validate the exact Gen1 campaign and resolve signed runtime contracts.
+
+    The current frozen declaration is intentionally static-only.  Parsing and
+    hashing the campaign still occurs before the execution-state check, but a
+    claimed completed 006 cannot pass until both production profiles are
+    registered in the same exact profiles blob.
+    """
+
+    profiles_blob = git_blob(repo, commit, PROFILES_PATH)
+    profiles_doc = strict_json_bytes(profiles_blob, PROFILES_PATH)
+    if not isinstance(profiles_doc, dict) or set(profiles_doc) != {
+        "schema_version",
+        "production_contracts",
+        "profiles",
+    }:
+        raise ValueError("006 profiles root does not contain the exact production contract")
+    if profiles_doc["schema_version"] != 2:
+        raise ValueError("006 profiles schema_version must equal 2")
+    production = profiles_doc["production_contracts"]
+    production_keys = {
+        "schema_version",
+        "contract_id",
+        "scope",
+        "product_id",
+        "expected_variant_count",
+        "producer_profile_id",
+        "observer_profile_id",
+        "execution_state",
+        "p1_p6_gates",
+        "components",
+    }
+    if not isinstance(production, dict) or set(production) != production_keys:
+        raise ValueError("006 production contract fields changed")
+    expected_identity = {
+        "schema_version": 1,
+        "contract_id": PRODUCTION_CONTRACT_ID,
+        "scope": "FULL_PRODUCT",
+        "product_id": PRODUCT_TARGET,
+        "expected_variant_count": 9,
+        "producer_profile_id": PRODUCTION_PRODUCER_PROFILE_ID,
+        "observer_profile_id": PRODUCTION_OBSERVER_PROFILE_ID,
+        "p1_p6_gates": "NOT_RUN",
+    }
+    for key, value in expected_identity.items():
+        if production.get(key) != value:
+            raise ValueError(f"006 production contract identity changed: {key}")
+    component_paths = {
+        "full_product_validator": "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
+        "full_product_schema": "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
+        "full_product_core_test": "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py",
+        "trusted_variant_generator": "airjet-simulation/automation/ansys/contracts/build_full_product_trusted_variants.py",
+        "trusted_variant_test": "airjet-simulation/automation/ansys/contracts/test_full_product_trusted_variants.py",
+        "trusted_campaign": CAMPAIGN_PATH,
+    }
+    components = production["components"]
+    if not isinstance(components, list) or len(components) != len(component_paths):
+        raise ValueError("006 production component count changed")
+    component_by_key: dict[str, dict[str, object]] = {}
+    for item in components:
+        if not isinstance(item, dict) or set(item) != {"contract_key", "git_path", "sha256"}:
+            raise ValueError("006 production component fields changed")
+        key = item["contract_key"]
+        if not isinstance(key, str) or key in component_by_key:
+            raise ValueError("006 production component key is invalid or duplicated")
+        component_by_key[key] = item
+    if set(component_by_key) != set(component_paths):
+        raise ValueError("006 production component key set changed")
+    component_blobs: dict[str, bytes] = {}
+    for key, path in component_paths.items():
+        item = component_by_key[key]
+        if item["git_path"] != path:
+            raise ValueError(f"006 production component path changed: {key}")
+        blob = git_blob(repo, commit, path)
+        if hashlib.sha256(blob).hexdigest() != item["sha256"]:
+            raise ValueError(f"006 production component SHA changed: {key}")
+        component_blobs[key] = blob
+
+    engine = load_contract_module(component_blobs["full_product_validator"])
+    campaign_blob = component_blobs["trusted_campaign"]
+    campaign_doc = strict_json_bytes(campaign_blob, CAMPAIGN_PATH)
+    if not isinstance(campaign_doc, dict):
+        raise ValueError("006 trusted campaign is not an object")
+    records = campaign_doc.get("variant_contracts")
+    sources = campaign_doc.get("source_contracts")
+    if not isinstance(records, list) or not isinstance(sources, list):
+        raise ValueError("006 trusted campaign record arrays are missing")
+    blueprint_blobs = {
+        record["blueprint_path"]: git_blob(repo, commit, record["blueprint_path"])
+        for record in records
+        if isinstance(record, dict) and isinstance(record.get("blueprint_path"), str)
+    }
+    source_blobs = {
+        item["git_path"]: git_blob(repo, commit, item["git_path"])
+        for item in sources
+        if isinstance(item, dict) and isinstance(item.get("git_path"), str)
+    }
+    expected_records = {
+        source_id: {
+            "configuration_id": "AJM006_GEN1_CFG_"
+            + re.sub(r"[^A-Za-z0-9._-]+", "_", configuration_id).strip("_.-"),
+            "cell_count": cell_count,
+        }
+        for source_id, (configuration_id, cell_count) in variant_expectations.items()
+    }
+    engine.load_trusted_campaign_bytes(
+        campaign_blob,
+        hashlib.sha256(campaign_blob).hexdigest(),
+        blueprint_blobs,
+        expected_records,
+        source_blobs,
+    )
+    if campaign_doc.get("product_id") != PRODUCT_TARGET:
+        raise ValueError("006 campaign is not Gen1-only")
+
+    raw_profiles = profiles_doc["profiles"]
+    if not isinstance(raw_profiles, list):
+        raise ValueError("006 profiles list is invalid")
+    profiles_by_id: dict[str, dict[str, object]] = {}
+    for profile in raw_profiles:
+        if not isinstance(profile, dict) or not isinstance(profile.get("profile_id"), str):
+            raise ValueError("006 contains an invalid runtime profile")
+        if profile["profile_id"] in profiles_by_id:
+            raise ValueError("006 contains duplicate runtime profile IDs")
+        profiles_by_id[profile["profile_id"]] = profile
+    if production["execution_state"] != PRODUCTION_REGISTERED_STATE:
+        raise ValueError(
+            "006 production profiles are static-only; ANSYS execution and completed review are blocked"
+        )
+    runtime_contracts: dict[str, dict[str, str]] = {}
+    for role, profile_id in (
+        ("producer", PRODUCTION_PRODUCER_PROFILE_ID),
+        ("observer", PRODUCTION_OBSERVER_PROFILE_ID),
+    ):
+        profile = profiles_by_id.get(profile_id)
+        if profile is None:
+            raise ValueError(f"006 signed {role} profile is not registered")
+        if set(profile) != {
+            "profile_id",
+            "engine",
+            "script",
+            "sha256",
+            "timeout_seconds",
+            "output_root_id",
+            "reports",
+            "predecessor",
+        }:
+            raise ValueError(f"006 signed {role} profile fields changed")
+        expected_engine = "spaceclaim" if role == "producer" else "workbench"
+        expected_suffix = ".py" if role == "producer" else ".wbjn"
+        if profile.get("engine") != expected_engine:
+            raise ValueError(f"006 signed {role} profile engine changed")
+        script = profile.get("script")
+        script_sha = profile.get("sha256")
+        if (
+            not isinstance(script, str)
+            or not script
+            or os.path.isabs(script)
+            or ".." in Path(script).parts
+            or ":" in script
+            or "\\" in script
+            or Path(script).suffix.lower() != expected_suffix
+            or not isinstance(script_sha, str)
+            or not re.fullmatch(r"[0-9a-f]{64}", script_sha)
+        ):
+            raise ValueError(f"006 signed {role} profile script identity is invalid")
+        script_path = f"airjet-simulation/automation/ansys/approved/{script}"
+        if hashlib.sha256(git_blob(repo, commit, script_path)).hexdigest() != script_sha:
+            raise ValueError(f"006 signed {role} profile script SHA changed")
+        if profile.get("output_root_id") != "p1_cad_006":
+            raise ValueError(f"006 signed {role} profile output root changed")
+        timeout = profile.get("timeout_seconds")
+        reports = profile.get("reports")
+        if (
+            not isinstance(timeout, int)
+            or not 30 <= timeout <= 7200
+            or not isinstance(reports, list)
+            or not reports
+            or any(
+                not isinstance(item, str)
+                or Path(item).name != item
+                or not item.endswith(".json")
+                for item in reports
+            )
+        ):
+            raise ValueError(f"006 signed {role} profile report/timeout contract is invalid")
+        predecessor = profile.get("predecessor")
+        if role == "producer" and predecessor is not None:
+            raise ValueError("006 producer must be the root production profile")
+        if role == "observer":
+            if (
+                not isinstance(predecessor, dict)
+                or predecessor.get("profile_id") != PRODUCTION_PRODUCER_PROFILE_ID
+                or predecessor.get("required_status") != "PASS_PARTIAL_CAD_CAPABILITY"
+                or not isinstance(predecessor.get("required_assertions"), list)
+                or not predecessor["required_assertions"]
+                or not isinstance(predecessor.get("artifacts"), list)
+                or "product.step" not in predecessor["artifacts"]
+                or predecessor.get("report") not in predecessor["artifacts"]
+            ):
+                raise ValueError("006 observer predecessor contract is not the signed producer handoff")
+        runtime_contracts[role] = {
+            "profile_id": profile_id,
+            "profile_contract_sha256": canonical_profile_sha256(profile),
+            "script_sha256": script_sha,
+        }
+    return {
+        "engine": engine,
+        "production": production,
+        "campaign": campaign_doc,
+        "campaign_blob": campaign_blob,
+        "blueprint_blobs": blueprint_blobs,
+        "source_blobs": source_blobs,
+        "runtime_contracts": runtime_contracts,
     }
 
 
@@ -451,7 +769,6 @@ def validate_manifest(
     run_root: Path,
     declared_source_root: str,
     expected_commit: str,
-    build_status: str,
 ) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
@@ -506,6 +823,8 @@ def validate_manifest(
     missing_global = GLOBAL_ROLES - roles_by_case.get("GLOBAL", set())
     if missing_global:
         raise ValueError(f"manifest lacks global artifact roles: {sorted(missing_global)}")
+    if any("LIMITATION" in row["file_role"].upper() for row in rows):
+        raise ValueError("manifest contains a prohibited STEP limitation artifact")
     missing_cases = EXPECTED_VARIANTS - roles_by_case.keys()
     if missing_cases:
         raise ValueError(f"manifest lacks variant case IDs: {sorted(missing_cases)}")
@@ -518,20 +837,6 @@ def validate_manifest(
             raise ValueError(f"derived case {variant_id} lacks PARENT_PARAMETER_DIFF")
         if variant_id in DERIVED_VARIANTS and "PARENT_GEOMETRY_RESULT_DIFF" not in roles:
             raise ValueError(f"derived case {variant_id} lacks PARENT_GEOMETRY_RESULT_DIFF")
-        if build_status == "COMPLETE_AWAITING_REVIEW":
-            if not {"STEP_GEOMETRY", "STEP_REIMPORT_LOG"}.issubset(roles):
-                raise ValueError(f"complete case {variant_id} lacks STEP geometry/reimport evidence")
-            if "STEP_LIMITATION_LOG" in roles:
-                raise ValueError(f"complete case {variant_id} contains a contradictory STEP limitation log")
-        elif not (
-            {"STEP_GEOMETRY", "STEP_REIMPORT_LOG"}.issubset(roles)
-            or "STEP_LIMITATION_LOG" in roles
-        ):
-            raise ValueError(f"transfer-limited case {variant_id} lacks STEP result or limitation log")
-    if build_status == "COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW" and not any(
-        "STEP_LIMITATION_LOG" in roles_by_case[variant_id] for variant_id in EXPECTED_VARIANTS
-    ):
-        raise ValueError("transfer-limited manifest contains no STEP_LIMITATION_LOG")
     unindexed: list[Path] = []
     for candidate in run_root.rglob("*"):
         if candidate.is_symlink():
@@ -616,6 +921,189 @@ def manifest_role_row(
     return matches[0]
 
 
+def validate_production_bundles(
+    production_context: dict[str, object],
+    manifest_rows: list[dict[str, str]],
+    run_root: Path,
+    declared_source_root: str,
+    expected_commit: str,
+    expected_variant_ids: set[str] | None = None,
+) -> dict[str, dict[str, object]]:
+    """Recompute all nine semantic judgments from exact files and Git blobs."""
+
+    expected_ids = EXPECTED_VARIANTS if expected_variant_ids is None else expected_variant_ids
+    engine = production_context["engine"]
+    campaign = production_context["campaign"]
+    campaign_blob = production_context["campaign_blob"]
+    blueprint_blobs = production_context["blueprint_blobs"]
+    runtime_contracts = production_context["runtime_contracts"]
+    source_hashes = {
+        item["contract_key"]: item["sha256"] for item in campaign["source_contracts"]
+    }
+    campaign_sha = hashlib.sha256(campaign_blob).hexdigest()
+    results: dict[str, dict[str, object]] = {}
+    key_report_fields = {
+        "schema_version",
+        "contract_id",
+        "source_variant_id",
+        "configuration_id",
+        "missing_keys",
+        "unexpected_keys",
+        "dangling_adjacency",
+        "orphan_critical_surfaces",
+        "body_surface_coverage_ok",
+        "assignment_solution_count",
+        "topology_observed",
+        "cardinality_observed",
+        "observed_semantic_key_count",
+        "observed_actual_entity_count",
+        "observed_group_count",
+        "actual_artifact_count",
+        "detached_binding_valid",
+        "trusted_contract_sha256",
+        "status",
+    }
+    for record in campaign["variant_contracts"]:
+        source_variant_id = record["source_variant_id"]
+        blueprint_blob = blueprint_blobs[record["blueprint_path"]]
+        blueprint = engine.load_trusted_blueprint_bytes(
+            blueprint_blob, record["blueprint_sha256"]
+        )
+        summary = engine.validate_trusted_blueprint(blueprint)
+        contract_hash_records = []
+        for key in blueprint["required_contract_hash_keys"]:
+            if key == "full_product_blueprint":
+                value = summary["blueprint_payload_sha256"]
+            elif key == "trusted_blueprint_file":
+                value = record["blueprint_sha256"]
+            elif key == "trusted_campaign":
+                value = campaign_sha
+            else:
+                if key not in source_hashes:
+                    raise ValueError(f"006 blueprint has an unbound contract hash: {key}")
+                value = source_hashes[key]
+            contract_hash_records.append({"contract_key": key, "sha256": value})
+        trusted = engine.materialize_trusted_contract(
+            blueprint,
+            record["blueprint_sha256"],
+            runtime_contracts["producer"],
+            runtime_contracts["observer"],
+            str(run_root),
+            contract_hash_records,
+        )
+        trusted_bytes = json.dumps(
+            trusted, ensure_ascii=True, sort_keys=True, separators=(",", ":")
+        ).encode("ascii")
+        trusted_sha = hashlib.sha256(trusted_bytes).hexdigest()
+
+        rows_by_role: dict[str, dict[str, str]] = {}
+        actual_records: list[dict[str, object]] = []
+        for artifact_contract in blueprint["artifact_contracts"]:
+            role = artifact_contract["role"]
+            row = manifest_role_row(manifest_rows, source_variant_id, role)
+            path = map_source_artifact(row["absolute_path"], declared_source_root, run_root)
+            expected_path = run_root.joinpath(
+                *artifact_contract["relative_path"].replace("\\", "/").split("/")
+            ).resolve()
+            if path != expected_path:
+                raise ValueError(
+                    f"006 artifact path does not match the trusted blueprint: {source_variant_id}/{role}"
+                )
+            rows_by_role[role] = row
+            actual_records.append(
+                {
+                    "artifact_id": artifact_contract["artifact_id"],
+                    "path": str(path),
+                    "relative_path": artifact_contract["relative_path"],
+                    "size": int(row["size_bytes"]),
+                    "sha256": row["sha256"].lower(),
+                }
+            )
+
+        def artifact_bytes(role: str) -> bytes:
+            row = rows_by_role[role]
+            return map_source_artifact(
+                row["absolute_path"], declared_source_root, run_root
+            ).read_bytes()
+
+        producer_identity = engine.load_json_bytes_strict(artifact_bytes("PRODUCER_JOB_RECORD"))
+        observer_identity = engine.load_json_bytes_strict(artifact_bytes("OBSERVER_JOB_RECORD"))
+        if producer_identity.get("git_head", "").lower() != expected_commit.lower():
+            raise ValueError(f"006 producer Git identity changed: {source_variant_id}")
+        if observer_identity.get("git_head", "").lower() != expected_commit.lower():
+            raise ValueError(f"006 observer Git identity changed: {source_variant_id}")
+        if (
+            producer_identity.get("case_id") != record["variant_id"]
+            or observer_identity.get("case_id") != record["variant_id"]
+        ):
+            raise ValueError(f"006 runtime case identity changed: {source_variant_id}")
+        if (
+            producer_identity.get("artifact_manifest_sha256")
+            != rows_by_role["PRODUCER_ARTIFACT_MANIFEST"]["sha256"].lower()
+            or observer_identity.get("artifact_manifest_sha256")
+            != rows_by_role["OBSERVER_ARTIFACT_MANIFEST"]["sha256"].lower()
+        ):
+            raise ValueError(f"006 job artifact-manifest binding changed: {source_variant_id}")
+
+        sidecar = engine.load_json_bytes_strict(artifact_bytes("SEMANTIC_SIDECAR"))
+        binding = engine.load_json_bytes_strict(artifact_bytes("SEMANTIC_BINDING"))
+        observation = engine.load_json_bytes_strict(artifact_bytes("SEMANTIC_OBSERVATION"))
+        result = engine.validate_full_product_bundle(
+            sidecar,
+            binding,
+            observation,
+            {
+                "artifact_root": str(run_root),
+                "artifact_root_id": blueprint["artifact_root_id"],
+                "producer_identity": producer_identity,
+                "observer_identity": observer_identity,
+                "files": actual_records,
+            },
+            trusted_bytes,
+            trusted_sha,
+        )
+        key_report = engine.load_json_bytes_strict(
+            artifact_bytes("SEMANTIC_KEY_CARDINALITY_REPORT")
+        )
+        if not isinstance(key_report, dict) or set(key_report) != key_report_fields:
+            raise ValueError(f"006 semantic key report fields changed: {source_variant_id}")
+        expected_report = {
+            "schema_version": 1,
+            "contract_id": "AIRJET_FULL_PRODUCT_SEMANTIC_KEY_REPORT_V1",
+            "source_variant_id": source_variant_id,
+            "configuration_id": record["configuration_id"],
+        }
+        computed_fields = key_report_fields - set(expected_report)
+        for key, value in expected_report.items():
+            if key_report.get(key) != value:
+                raise ValueError(f"006 semantic key report identity changed: {source_variant_id}/{key}")
+        for key in computed_fields:
+            if key_report.get(key) != result.get(key):
+                raise ValueError(
+                    f"006 semantic key report differs from computed observation: {source_variant_id}/{key}"
+                )
+        if (
+            result["missing_keys"] != []
+            or result["unexpected_keys"] != []
+            or result["dangling_adjacency"] != []
+            or result["orphan_critical_surfaces"] != []
+            or result["body_surface_coverage_ok"] is not True
+            or result["assignment_solution_count"] != 1
+            or result["topology_observed"] is not True
+            or result["cardinality_observed"] is not True
+            or result["observed_semantic_key_count"] != record["semantic_entity_count"]
+            or result["observed_group_count"] != len(blueprint["groups"])
+            or result["actual_artifact_count"] != len(blueprint["artifact_contracts"])
+            or result["detached_binding_valid"] is not True
+            or result["status"] != "PASS_FULL_PRODUCT_SEMANTIC_BUNDLE"
+        ):
+            raise ValueError(f"006 computed semantic judgment failed: {source_variant_id}")
+        results[source_variant_id] = result
+    if set(results) != expected_ids or len(results) != len(expected_ids):
+        raise ValueError("006 did not independently validate all nine Gen1 semantic bundles")
+    return results
+
+
 def validate_005_copy(
     manifest_rows: list[dict[str, str]],
     run_root: Path,
@@ -644,8 +1132,16 @@ def validate_005_copy(
         "VOLUME_EXTRACT": "PASS",
         "FLUID_CONNECTIVITY": "PASS",
         "NATIVE_SAVE": "PASS",
-        "WORKBENCH_GEOMETRY_TRANSFER": "PASS",
-        "NAMED_SELECTION_TRANSFER": "PASS",
+        "STEP_EXPORT_REIMPORT": "PASS",
+        "WORKBENCH_STEP_IMPORT": "PASS",
+        "SOLVER_SEMANTIC_RECONSTRUCTION": "PASS",
+        "SEMANTIC_KEY_CARDINALITY_CHECK": "PASS",
+        "CAD_AUTHORING_ROUTE": "SPACECLAIM_SIGNED_SCRIPT_PARAMETRIC",
+        "SOLVER_HANDOFF_ROUTE": "HASH_BOUND_STEP_SEMANTIC_SIDECAR",
+        "EXTERNAL_NATIVE_ATTACH": "NOT_PROVEN",
+        "NATIVE_PARAMETERIZATION": "NOT_PROVEN",
+        "NATIVE_NAMED_SELECTION_TRANSFER": "NOT_PROVEN",
+        "P1_CAD_TOOLCHAIN_SCOPE": "ALTERNATE_ROUTE_ONLY",
         "P1_STAGE_GATE": "NOT_RUN",
     }
     for key, expected_value in expected.items():
@@ -657,11 +1153,7 @@ def validate_005_copy(
         raise ValueError("copied 005 report commit differs from the 006 report")
     if values.get("P1_CAD_TOOLCHAIN_READINESS") != report_006["P1_CAD_TOOLCHAIN_READINESS"]:
         raise ValueError("copied 005 readiness differs from the 006 report")
-    accepted_statuses = {
-        "PASS": {"PASS_START_P1", "PASS_START_P1_WITH_LIMITATIONS"},
-        "PASS_WITH_TRANSFER_LIMITATION": {"PASS_START_P1_WITH_LIMITATIONS"},
-    }[report_006["P1_CAD_TOOLCHAIN_READINESS"]]
-    if values.get("STUDENT_TOOLCHAIN_STATUS") not in accepted_statuses:
+    if values.get("STUDENT_TOOLCHAIN_STATUS") != "PASS_START_P1":
         raise ValueError("copied 005 Student status is inconsistent with readiness")
     if values.get("GIT_CLEAN", "").upper() not in {"TRUE", "PASS"}:
         raise ValueError("copied 005 report does not prove a clean Git tree")
@@ -673,7 +1165,6 @@ def validate_variant_checks(
     run_root: Path,
     declared_source_root: str,
     expectations: dict[str, tuple[str, int]],
-    build_status: str,
 ) -> dict[str, dict[str, str]]:
     checks_by_variant: dict[str, dict[str, str]] = {}
     for variant_id, (configuration_id, expected_cells) in expectations.items():
@@ -729,18 +1220,15 @@ def validate_variant_checks(
         for key in (
             "named_selection_check",
             "native_reopen",
-            "workbench_geometry_transfer",
-            "named_selection_transfer",
+            "step_transfer",
+            "workbench_step_import",
+            "solver_semantic_reconstruction",
+            "semantic_adjacency_check",
             "c017_c019_physics_guard",
             "anchor_partition_nonphysical_guard",
         ):
             if row[key] != "PASS":
                 raise ValueError(f"variant checks {key} failed: {variant_id}")
-        if build_status == "COMPLETE_AWAITING_REVIEW":
-            if row["step_transfer"] != "PASS":
-                raise ValueError(f"complete variant lacks STEP PASS: {variant_id}")
-        elif row["step_transfer"] not in {"PASS", "LIMITATION_RECORDED"}:
-            raise ValueError(f"transfer-limited variant has invalid STEP result: {variant_id}")
     return checks_by_variant
 
 
@@ -749,7 +1237,6 @@ def validate_gate_evidence(
     run_root: Path,
     declared_source_root: str,
     gate_rows: list[dict[str, str]],
-    build_status: str,
 ) -> dict[tuple[str, str], dict[str, str]]:
     evidence_manifest_row = manifest_role_row(
         manifest_rows, "GLOBAL", "GATE_EVIDENCE_006_CSV"
@@ -816,49 +1303,45 @@ def validate_gate_evidence(
                 )
             if any(item["case_id"] != key[1] for item in cited_rows):
                 raise ValueError(f"derived single-factor evidence cites the wrong case: {key}")
+        route_gate_roles = {
+            "G4_STEP_TRANSFER": {"STEP_REIMPORT_LOG", "SEMANTIC_BINDING"},
+            "G4_WB_TRANSFER": {
+                "WORKBENCH_STEP_SEMANTIC_LOG",
+                "SEMANTIC_KEY_CARDINALITY_REPORT",
+            },
+        }
+        if item_id in route_gate_roles:
+            cited_rows = [manifest_evidence[primary_key]]
+            if secondary_key is not None:
+                cited_rows.append(manifest_evidence[secondary_key])
+            if {item["file_role"] for item in cited_rows} != route_gate_roles[item_id]:
+                raise ValueError(f"route Gate does not cite its two required evidence roles: {key}")
+            if any(item["case_id"] != key[1] for item in cited_rows):
+                raise ValueError(f"route Gate evidence cites the wrong case: {key}")
         suggested = row["006_suggested_status"]
         if item_id == "P1_INDEPENDENT_REVIEW":
             if suggested != "BLOCKED":
                 raise ValueError("006 must leave every independent-review gate BLOCKED")
-        elif item_id == "G4_STEP_TRANSFER" and build_status == "COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW":
-            if suggested not in {"PASS", "LIMITATION_RECORDED"}:
-                raise ValueError(f"006 STEP gate has invalid suggestion: {key}")
         elif suggested != "PASS":
             raise ValueError(f"complete 006 run has a non-PASS build gate: {key}")
     return evidence_by_key
 
 
-def validate_step_limitation_consistency(
+def validate_no_transfer_limitation(
     manifest_rows: list[dict[str, str]],
     variant_checks: dict[str, dict[str, str]],
     gate_evidence: dict[tuple[str, str], dict[str, str]],
-    build_status: str,
 ) -> None:
-    manifest_limited = {
-        row["case_id"]
-        for row in manifest_rows
-        if row["file_role"] == "STEP_LIMITATION_LOG"
-    }
-    check_limited = {
-        variant_id
-        for variant_id, row in variant_checks.items()
-        if row["step_transfer"] == "LIMITATION_RECORDED"
-    }
-    gate_limited = {
-        variant_id
-        for (gate_id, variant_id), row in gate_evidence.items()
+    if any("LIMITATION" in row["file_role"].upper() for row in manifest_rows):
+        raise ValueError("STEP limitation artifacts are prohibited by the frozen route")
+    if any(row["step_transfer"] != "PASS" for row in variant_checks.values()):
+        raise ValueError("all nine route-dependent STEP checks must PASS")
+    if any(
+        row["006_suggested_status"] != "PASS"
+        for (gate_id, _variant_id), row in gate_evidence.items()
         if gate_id == "G4_STEP_TRANSFER"
-        and row["006_suggested_status"] == "LIMITATION_RECORDED"
-    }
-    if build_status == "COMPLETE_AWAITING_REVIEW":
-        if manifest_limited or check_limited or gate_limited:
-            raise ValueError("complete 006 status conflicts with STEP limitation evidence")
-    elif not manifest_limited or not (
-        manifest_limited == check_limited == gate_limited
     ):
-        raise ValueError(
-            "transfer-limited status requires the same nonempty variant set in manifest, automated checks, and Gate evidence"
-        )
+        raise ValueError("all nine route-dependent STEP Gate suggestions must PASS")
 
 
 def validate_iso_date(value: str, context: str) -> None:
@@ -922,7 +1405,6 @@ def validate_final_worksheet(
     manifest_rows: list[dict[str, str]],
     declared_source_root: str,
     gate_rows: list[dict[str, str]],
-    build_status: str,
 ) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
@@ -934,8 +1416,8 @@ def validate_final_worksheet(
     if len(rows) != 252 or len(rows_by_key) != 252 or set(rows_by_key) != set(gates_by_key):
         raise ValueError("final review worksheet must retain the exact 252 frozen gate keys")
     hard_count = sum(row["hard_gate"] == "true" for row in gate_rows)
-    if hard_count != 243:
-        raise ValueError("006-commit Gate template must contain exactly 243 hard gates")
+    if hard_count != 252:
+        raise ValueError("006-commit Gate template must contain exactly 252 hard gates")
     source_index = manifest_source_index(manifest_rows, declared_source_root)
     spot_key = (str(spot_check_path.resolve()), sha256(spot_check_path))
     step_count = 0
@@ -958,14 +1440,7 @@ def validate_final_worksheet(
         validate_iso_date(row["review_date"], str(key))
         if key[0] == "G4_STEP_TRANSFER":
             step_count += 1
-            allowed = {"PASS"}
-            if build_status == "COMPLETE_WITH_TRANSFER_LIMITATION_AWAITING_REVIEW":
-                allowed.add("LIMITATION_ACCEPTED")
-            if status not in allowed:
-                raise ValueError(f"final STEP review status is invalid: {key}")
-            if status == "LIMITATION_ACCEPTED" and not row["review_notes"].strip():
-                raise ValueError(f"accepted STEP limitation lacks a reason: {key}")
-        elif status != "PASS":
+        if status != "PASS":
             raise ValueError(f"final hard-gate review is not PASS: {key}")
         primary_manifest_row: dict[str, str] | None = None
         if key[0] == "P1_INDEPENDENT_REVIEW":
@@ -1007,14 +1482,19 @@ def validate_final_worksheet(
                 raise ValueError(
                     f"final derived single-factor Gate must retain both same-case diff artifacts: {key}"
                 )
-        if status == "LIMITATION_ACCEPTED" and (
-            primary_manifest_row is None
-            or primary_manifest_row["case_id"] != key[1]
-            or primary_manifest_row["file_role"] != "STEP_LIMITATION_LOG"
-        ):
-            raise ValueError(
-                f"accepted STEP limitation must cite the same-case STEP_LIMITATION_LOG: {key}"
-            )
+        route_gate_roles = {
+            "G4_STEP_TRANSFER": {"STEP_REIMPORT_LOG", "SEMANTIC_BINDING"},
+            "G4_WB_TRANSFER": {
+                "WORKBENCH_STEP_SEMANTIC_LOG",
+                "SEMANTIC_KEY_CARDINALITY_REPORT",
+            },
+        }
+        if key[0] in route_gate_roles:
+            cited_rows = [item for item in (primary_manifest_row, secondary_manifest_row) if item]
+            if {item["file_role"] for item in cited_rows} != route_gate_roles[key[0]]:
+                raise ValueError(f"final route Gate must retain both required evidence roles: {key}")
+            if any(item["case_id"] != key[1] for item in cited_rows):
+                raise ValueError(f"final route Gate evidence cites the wrong case: {key}")
     if step_count != 9:
         raise ValueError("final review worksheet must contain nine STEP gate rows")
     return rows
@@ -1071,7 +1551,6 @@ def main() -> int:
         run_root,
         declared_root,
         commit,
-        values["CAD_BUILD_STATUS"],
     )
     if len(artifacts) != int(values["MANIFEST_DATA_ROW_COUNT"]):
         raise ValueError("006 MANIFEST_DATA_ROW_COUNT does not match the original manifest")
@@ -1086,26 +1565,37 @@ def main() -> int:
 
     gate_rows = load_gate_rows_at_commit(repo, commit)
     variant_expectations = load_variant_expectations(repo, commit)
+    production_context = load_production_contract_at_commit(
+        repo,
+        commit,
+        variant_expectations,
+    )
     variant_checks = validate_variant_checks(
         artifacts,
         run_root,
         declared_root,
         variant_expectations,
-        values["CAD_BUILD_STATUS"],
     )
     gate_evidence = validate_gate_evidence(
         artifacts,
         run_root,
         declared_root,
         gate_rows,
-        values["CAD_BUILD_STATUS"],
     )
-    validate_step_limitation_consistency(
+    validate_no_transfer_limitation(
         artifacts,
         variant_checks,
         gate_evidence,
-        values["CAD_BUILD_STATUS"],
     )
+    semantic_results = validate_production_bundles(
+        production_context,
+        artifacts,
+        run_root,
+        declared_root,
+        commit,
+    )
+    if len(semantic_results) != 9:
+        raise ValueError("006 semantic bundle validation count changed")
     if finalize_worksheet is not None and spot_check_record is not None:
         if not output_dir.is_dir():
             raise ValueError("finalize output directory must be the existing prepared review directory")
@@ -1120,7 +1610,6 @@ def main() -> int:
             artifacts,
             declared_root,
             gate_rows,
-            values["CAD_BUILD_STATUS"],
         )
         final_report = output_dir / "P1_CAD_INDEPENDENT_REVIEW_FINAL_007.txt"
         if final_report.exists():
@@ -1138,8 +1627,10 @@ def main() -> int:
                     f"NATIVE_SPOT_CHECK_RECORD={spot_check_record}",
                     f"NATIVE_SPOT_CHECK_RECORD_SHA256={sha256(spot_check_record)}",
                     f"GATE_ROW_COUNT={len(final_rows)}",
-                    "HARD_GATE_PASS_COUNT=243",
-                    "STEP_GATE_REVIEWED_COUNT=9",
+                    "HARD_GATE_PASS_COUNT=252",
+                    "STEP_GATE_PASS_COUNT=9",
+                    "PRODUCT_TARGET=AIRJET_MINI_GEN1",
+                    "SEMANTIC_BUNDLE_VALIDATION=PASS_ALL_9",
                     "P1_REVIEW_RECOMMENDATION=PASS",
                     "P1_STAGE_GATE=PENDING_REVIEW_RECORD_COMMIT",
                     "NOTE=Recommendation PASS is not recorded P1 stage PASS until a separate reviewed Git commit updates project status",
@@ -1224,6 +1715,8 @@ def main() -> int:
                 f"VARIANT_TABLE_SHA256={expected_hashes['VARIANT_TABLE_SHA256']}",
                 f"INTERNAL_RULES_SHA256={expected_hashes['INTERNAL_RULES_SHA256']}",
                 f"ARTIFACT_COUNT={len(artifacts)}",
+                "PRODUCT_TARGET=AIRJET_MINI_GEN1",
+                "SEMANTIC_BUNDLE_VALIDATION=PASS_ALL_9",
                 f"GATE_ROW_COUNT={len(gate_rows)}",
                 f"REVIEW_WORKSHEET={worksheet}",
                 f"NATIVE_SPOT_CHECK_RECORD={spot_template}",

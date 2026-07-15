@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:airjet:ansys:semantic-sidecar:v2",
+  "title": "AirJet hash-bound STEP semantic sidecar v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "contract_id", "scope", "configuration_id", "route",
+    "producer", "contract_hashes", "units", "source_artifacts", "cell_frames",
+    "expected_body_count", "expected_face_count", "required_semantic_keys",
+    "semantic_entities", "aggregate_named_selections", "partition_invariants"
+  ],
+  "properties": {
+    "schema_version": {"const": 2},
+    "contract_id": {"const": "AJM_STEP_SEMANTIC_SIDECAR_V2"},
+    "scope": {"const": "DISPOSABLE_CAPABILITY_FIXTURE_ONLY"},
+    "configuration_id": {"const": "AJM005_T1_FIXTURE_V2"},
+    "route": {
+      "type": "object", "additionalProperties": false,
+      "required": ["cad_authoring", "solver_handoff", "external_native_attach", "native_parameterization", "native_named_selection_transfer"],
+      "properties": {
+        "cad_authoring": {"const": "SPACECLAIM_SIGNED_SCRIPT_PARAMETRIC"},
+        "solver_handoff": {"const": "HASH_BOUND_STEP_SEMANTIC_SIDECAR"},
+        "external_native_attach": {"const": "NOT_PROVEN"},
+        "native_parameterization": {"const": "NOT_PROVEN"},
+        "native_named_selection_transfer": {"const": "NOT_PROVEN"}
+      }
+    },
+    "producer": {
+      "type": "object", "additionalProperties": false,
+      "required": ["git_head", "profile_id", "profile_contract_sha256", "script_sha256", "base_script_sha256"],
+      "properties": {
+        "git_head": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "profile_id": {"const": "ajm005-spaceclaim-cad-t1-v2"},
+        "profile_contract_sha256": {"$ref": "#/$defs/sha256"},
+        "script_sha256": {"$ref": "#/$defs/sha256"},
+        "base_script_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "contract_hashes": {
+      "type": "object", "additionalProperties": false,
+      "required": ["route_contract_sha256", "schema_sha256", "judgment_sha256", "validator_sha256"],
+      "properties": {
+        "route_contract_sha256": {"$ref": "#/$defs/sha256"},
+        "schema_sha256": {"$ref": "#/$defs/sha256"},
+        "judgment_sha256": {"$ref": "#/$defs/sha256"},
+        "validator_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "units": {"const": {"length": "mm", "area": "mm^2", "volume": "mm^3", "angle": "deg"}},
+    "source_artifacts": {
+      "type": "object", "additionalProperties": false,
+      "required": ["full_native", "handoff_native", "step"],
+      "properties": {
+        "full_native": {"$ref": "#/$defs/sourceArtifact"},
+        "handoff_native": {"$ref": "#/$defs/sourceArtifact"},
+        "step": {"$ref": "#/$defs/sourceArtifact"}
+      }
+    },
+    "cell_frames": {
+      "type": "array", "minItems": 1, "maxItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["frame_id", "cell_index", "origin_mm", "axes"],
+        "properties": {
+          "frame_id": {"const": "GLOBAL"}, "cell_index": {"type": "null"},
+          "origin_mm": {"const": [0.0, 0.0, 0.0]},
+          "axes": {"const": [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]}
+        }
+      }
+    },
+    "expected_body_count": {"const": 1},
+    "expected_face_count": {"const": 13},
+    "required_semantic_keys": {
+      "type": "array", "minItems": 14, "maxItems": 14, "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^fixture\\.(body\\.fluid|surface\\.(inlet|outlet|wall))\\.[0-9]{3}$"}
+    },
+    "semantic_entities": {
+      "type": "array", "minItems": 14, "maxItems": 14,
+      "items": {"$ref": "#/$defs/entity"}
+    },
+    "aggregate_named_selections": {
+      "type": "object", "additionalProperties": false,
+      "required": ["INLET", "OUTLET", "WALLS"],
+      "properties": {
+        "INLET": {"$ref": "#/$defs/group1"},
+        "OUTLET": {"$ref": "#/$defs/group1"},
+        "WALLS": {"$ref": "#/$defs/group11"}
+      }
+    },
+    "partition_invariants": {"const": {"pairwise_disjoint": true, "full_surface_coverage": true, "critical_surfaces_non_orphan": true}}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "vector3": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+    "sourceArtifact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["relative_path", "size", "sha256"],
+      "properties": {"relative_path": {"type": "string"}, "size": {"type": "integer", "minimum": 1}, "sha256": {"$ref": "#/$defs/sha256"}}
+    },
+    "direction": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mode", "vector", "tolerance_deg"],
+      "properties": {
+        "mode": {"enum": ["NOT_APPLICABLE_BODY", "AXIS_ALIGNED", "OUTWARD_FROM_OWNER"]},
+        "vector": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/vector3"}]},
+        "tolerance_deg": {"type": "number", "minimum": 0}
+      }
+    },
+    "topology": {
+      "type": "object", "additionalProperties": false,
+      "required": ["required_adjacent_keys", "critical", "allow_isolated"],
+      "properties": {
+        "required_adjacent_keys": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}},
+        "critical": {"type": "boolean"}, "allow_isolated": {"type": "boolean"}
+      }
+    },
+    "artifactHashes": {
+      "type": "object", "additionalProperties": false,
+      "required": ["handoff_native_sha256", "step_sha256"],
+      "properties": {
+        "handoff_native_sha256": {"$ref": "#/$defs/sha256"},
+        "step_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "entity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["semantic_key", "feature_key", "entity_kind", "owner_key", "cell_index", "scope_index", "local_frame_id", "local_coordinates_mm", "geometry_type", "direction_constraint", "match_constraints", "topology", "expected_cardinality", "units", "artifact_hashes", "profile_contract_sha256", "solver_named_selection"],
+      "properties": {
+        "semantic_key": {"type": "string", "pattern": "^fixture\\.(body\\.fluid|surface\\.(inlet|outlet|wall))\\.[0-9]{3}$"},
+        "feature_key": {"type": "string", "pattern": "^fixture\\.feature\\.(fluid-body|inlet|outlet|wall)\\.[0-9]{3}$"},
+        "entity_kind": {"enum": ["BODY", "SURFACE"]},
+        "owner_key": {"type": ["string", "null"]}, "cell_index": {"type": "null"},
+        "scope_index": {"const": "GLOBAL"}, "local_frame_id": {"const": "GLOBAL"},
+        "local_coordinates_mm": {"$ref": "#/$defs/vector3"},
+        "geometry_type": {"enum": ["SOLID_FLUID_BODY", "PLANAR_CIRCULAR_FACE", "PLANAR_RECTANGULAR_FACE", "PLANAR_FACE", "CYLINDRICAL_FACE"]},
+        "direction_constraint": {"$ref": "#/$defs/direction"},
+        "match_constraints": {"type": "object"},
+        "topology": {"$ref": "#/$defs/topology"}, "expected_cardinality": {"const": 1},
+        "units": {"type": "object"}, "artifact_hashes": {"$ref": "#/$defs/artifactHashes"},
+        "profile_contract_sha256": {"$ref": "#/$defs/sha256"}, "solver_named_selection": {"enum": ["FLUID_BODY", "INLET", "OUTLET", "WALLS"]}
+      }
+    },
+    "group1": {
+      "type": "object", "additionalProperties": false, "required": ["expected_cardinality", "member_keys"],
+      "properties": {"expected_cardinality": {"const": 1}, "member_keys": {"type": "array", "minItems": 1, "maxItems": 1, "uniqueItems": true, "items": {"type": "string"}}}
+    },
+    "group11": {
+      "type": "object", "additionalProperties": false, "required": ["expected_cardinality", "member_keys"],
+      "properties": {"expected_cardinality": {"const": 11}, "member_keys": {"type": "array", "minItems": 11, "maxItems": 11, "uniqueItems": true, "items": {"type": "string"}}}
+    }
+  }
+}

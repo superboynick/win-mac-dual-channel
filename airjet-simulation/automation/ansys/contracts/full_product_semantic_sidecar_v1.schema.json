@@ -1,0 +1,365 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:airjet:ansys:full-product-semantic-sidecar:v1",
+  "title": "AirJet full-product semantic sidecar v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "contract_id",
+    "scope",
+    "configuration",
+    "producer",
+    "contract_hashes",
+    "units",
+    "source_artifacts",
+    "frames",
+    "entities",
+    "groups",
+    "partitions"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "contract_id": {"const": "AIRJET_FULL_PRODUCT_SEMANTIC_SIDECAR_V1"},
+    "scope": {"const": "FULL_PRODUCT"},
+    "configuration": {"$ref": "#/$defs/configuration"},
+    "producer": {"$ref": "#/$defs/producer"},
+    "contract_hashes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/contractHash"}
+    },
+    "units": {
+      "const": {"length": "mm", "area": "mm^2", "volume": "mm^3", "angle": "deg"}
+    },
+    "source_artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/sourceArtifact"}
+    },
+    "frames": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/frame"}
+    },
+    "entities": {
+      "type": "array",
+      "minItems": 2,
+      "items": {"$ref": "#/$defs/entity"}
+    },
+    "groups": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/group"}
+    },
+    "partitions": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/partition"}
+    }
+  },
+  "$defs": {
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "lowerId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]{0,63}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "vector3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {"type": "number"}
+    },
+    "axes3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {"$ref": "#/$defs/vector3"}
+    },
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "configuration_id",
+        "product_id",
+        "variant_id",
+        "key_namespace",
+        "root_frame_id",
+        "cell_indices",
+        "expected_entity_cardinality",
+        "required_semantic_keys",
+        "required_group_keys",
+        "required_partition_keys"
+      ],
+      "properties": {
+        "configuration_id": {"$ref": "#/$defs/safeId"},
+        "product_id": {"$ref": "#/$defs/safeId"},
+        "variant_id": {"$ref": "#/$defs/safeId"},
+        "key_namespace": {"$ref": "#/$defs/lowerId"},
+        "root_frame_id": {"$ref": "#/$defs/safeId"},
+        "cell_indices": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 0}
+        },
+        "expected_entity_cardinality": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["BODY", "SURFACE"],
+          "properties": {
+            "BODY": {"type": "integer", "minimum": 1},
+            "SURFACE": {"type": "integer", "minimum": 1}
+          }
+        },
+        "required_semantic_keys": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        },
+        "required_group_keys": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        },
+        "required_partition_keys": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "git_head",
+        "profile_id",
+        "profile_contract_sha256",
+        "script_sha256",
+        "case_id",
+        "job_id",
+        "output_root_id"
+      ],
+      "properties": {
+        "git_head": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "profile_id": {"$ref": "#/$defs/safeId"},
+        "profile_contract_sha256": {"$ref": "#/$defs/sha256"},
+        "script_sha256": {"$ref": "#/$defs/sha256"},
+        "case_id": {"$ref": "#/$defs/safeId"},
+        "job_id": {"$ref": "#/$defs/safeId"},
+        "output_root_id": {"$ref": "#/$defs/safeId"}
+      }
+    },
+    "contractHash": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_key", "sha256"],
+      "properties": {
+        "contract_key": {"$ref": "#/$defs/lowerId"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "sourceArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "role", "relative_path", "size", "sha256"],
+      "properties": {
+        "artifact_id": {"$ref": "#/$defs/lowerId"},
+        "role": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{0,63}$"},
+        "relative_path": {"type": "string", "minLength": 1, "maxLength": 240},
+        "size": {"type": "integer", "minimum": 1},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frame_id", "parent_frame_id", "cell_index", "origin_mm", "axes"],
+      "properties": {
+        "frame_id": {"$ref": "#/$defs/safeId"},
+        "parent_frame_id": {
+          "oneOf": [{"type": "null"}, {"$ref": "#/$defs/safeId"}]
+        },
+        "cell_index": {
+          "oneOf": [{"type": "null"}, {"type": "integer", "minimum": 0}]
+        },
+        "origin_mm": {"$ref": "#/$defs/vector3"},
+        "axes": {"$ref": "#/$defs/axes3"}
+      }
+    },
+    "direction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "vector", "tolerance_deg"],
+      "properties": {
+        "mode": {
+          "enum": ["NOT_APPLICABLE", "AXIS_ALIGNED", "VECTOR", "OUTWARD_FROM_OWNER"]
+        },
+        "vector": {
+          "oneOf": [{"type": "null"}, {"$ref": "#/$defs/vector3"}]
+        },
+        "tolerance_deg": {"type": "number", "minimum": 0, "maximum": 180}
+      }
+    },
+    "matchConstraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "centroid_mm",
+        "centroid_tolerance_mm",
+        "measure_kind",
+        "measure_value",
+        "measure_tolerance",
+        "measure_unit",
+        "measure_role",
+        "bbox_min_mm",
+        "bbox_max_mm",
+        "solver_geometry_type",
+        "edge_count"
+      ],
+      "properties": {
+        "centroid_mm": {"$ref": "#/$defs/vector3"},
+        "centroid_tolerance_mm": {"type": "number", "exclusiveMinimum": 0},
+        "measure_kind": {"enum": ["AREA", "VOLUME", "NONE"]},
+        "measure_value": {"type": ["number", "null"]},
+        "measure_tolerance": {"type": ["number", "null"], "minimum": 0},
+        "measure_unit": {"enum": ["mm^2", "mm^3", null]},
+        "measure_role": {"enum": ["MATCH", "DIAGNOSTIC_ONLY", "NOT_APPLICABLE"]},
+        "bbox_min_mm": {
+          "oneOf": [{"type": "null"}, {"$ref": "#/$defs/vector3"}]
+        },
+        "bbox_max_mm": {
+          "oneOf": [{"type": "null"}, {"$ref": "#/$defs/vector3"}]
+        },
+        "solver_geometry_type": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$"},
+        "edge_count": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "topology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_adjacent_keys", "critical", "allow_isolated"],
+      "properties": {
+        "required_adjacent_keys": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        },
+        "critical": {"type": "boolean"},
+        "allow_isolated": {"type": "boolean"}
+      }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "semantic_key",
+        "feature_key",
+        "entity_kind",
+        "owner_key",
+        "cell_index",
+        "local_frame_id",
+        "local_coordinates_mm",
+        "geometry_type",
+        "direction_constraint",
+        "match_constraints",
+        "topology",
+        "expected_cardinality",
+        "artifact_hashes"
+      ],
+      "properties": {
+        "semantic_key": {"type": "string"},
+        "feature_key": {"type": "string"},
+        "entity_kind": {"enum": ["BODY", "SURFACE"]},
+        "owner_key": {"type": ["string", "null"]},
+        "cell_index": {
+          "oneOf": [{"type": "null"}, {"type": "integer", "minimum": 0}]
+        },
+        "local_frame_id": {"$ref": "#/$defs/safeId"},
+        "local_coordinates_mm": {"$ref": "#/$defs/vector3"},
+        "geometry_type": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{0,63}$"},
+        "direction_constraint": {"$ref": "#/$defs/direction"},
+        "match_constraints": {"$ref": "#/$defs/matchConstraints"},
+        "topology": {"$ref": "#/$defs/topology"},
+        "expected_cardinality": {"type": "integer", "minimum": 1},
+        "artifact_hashes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["artifact_id", "sha256"],
+            "properties": {
+              "artifact_id": {"$ref": "#/$defs/lowerId"},
+              "sha256": {"$ref": "#/$defs/sha256"}
+            }
+          }
+        }
+      }
+    },
+    "group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "group_key",
+        "solver_name",
+        "entity_kind",
+        "member_keys",
+        "expected_cardinality",
+        "partition_family"
+      ],
+      "properties": {
+        "group_key": {"type": "string"},
+        "solver_name": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$"},
+        "entity_kind": {"enum": ["BODY", "SURFACE"]},
+        "member_keys": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        },
+        "expected_cardinality": {"type": "integer", "minimum": 1},
+        "partition_family": {
+          "oneOf": [{"type": "null"}, {"$ref": "#/$defs/lowerId"}]
+        }
+      }
+    },
+    "partition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "partition_key",
+        "entity_kind",
+        "group_keys",
+        "universe_keys",
+        "require_pairwise_disjoint",
+        "require_full_coverage"
+      ],
+      "properties": {
+        "partition_key": {"type": "string"},
+        "entity_kind": {"enum": ["BODY", "SURFACE"]},
+        "group_keys": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        },
+        "universe_keys": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string"}
+        },
+        "require_pairwise_disjoint": {"const": true},
+        "require_full_coverage": {"const": true}
+      }
+    }
+  }
+}

@@ -103,14 +103,24 @@ p_phi = d * sqrt(pi/(4*phi)) = 0.700624 mm
 
 ## 8. P1 Gate 解释
 
-`p1_cad_gate_matrix.csv` 的 252 行覆盖 9 个运行变体，初始均为 `NOT_RUN`。三条单因素分支具有独立 variant ID、父变体、changed factor、完整 branch ID 和完整 Gate 行。Windows 006 可以在外部运行目录生成证据和建议值，但不能在任务内宣告 `P1 PASS`。独立复核至少要确认：
+`p1_cad_gate_matrix.csv` 的 252 行覆盖 9 个运行变体，**252 行全部是 hard Gate**，初始均为
+`NOT_RUN`。三条单因素分支具有独立 variant ID、父变体、changed factor、完整 branch ID 和完整
+Gate 行。Windows 006 可以在外部运行目录生成证据和建议值，但不能在任务内宣告 `P1 PASS`。
+当前冻结主路线为签名 SpaceClaim 脚本参数化建模、原生保存/重开、STEP 导出/重导入、hash-bound
+semantic sidecar，以及 Workbench/Mechanical 侧 STEP import + solver-side semantic reconstruction。
+因此 9 条 `G4_STEP_TRANSFER` 都是 route-dependent hard Gate；STEP 失败不得作为 limitation 接受。
+独立复核至少要确认：
 
 - 同一参数化母版可生成四个整机配置；
 - 入口到单侧出口完整连通，且每个 cell 都接入完整路径；
 - 厚度闭合、无干涉、无零厚度/碎片/孤立流体；
 - Boolean 后实际孔数、开孔面积和盲孔数重新统计；
-- Named Selections 能稳定传入 Workbench；
-- 原生文件、STEP、流体体积、截图、运行日志和 SHA256 可追溯；
+- CAD 侧 required semantic keys、owner、cell/local coordinates、cardinality 与 adjacency 完整；
+- STEP 能稳定导入 Workbench，并由 hash-bound sidecar 在求解器侧唯一重建语义；该结果不是原生
+  Named Selection transfer；
+- 原生文件、STEP、semantic sidecar、binding、流体体积、截图、运行日志和 SHA256 可追溯；
 - 未知质量单列，不用随意材料把候选模型强行凑成 11 g。
 
-P1 通过只表示“候选整机 CAD 满足当前证据和数值建模要求”，仍不表示内部结构被实物验证。
+`EXTERNAL_NATIVE_ATTACH`、`NATIVE_PARAMETERIZATION` 和 `NATIVE_NAMED_SELECTION_TRANSFER` 在没有
+直接证据时始终保持 `NOT_PROVEN`。P1 通过只表示“候选整机 CAD 满足当前证据和数值建模要求”，
+仍不表示内部结构被实物验证。
