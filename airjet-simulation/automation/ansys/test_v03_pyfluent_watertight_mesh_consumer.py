@@ -239,7 +239,7 @@ def test_volume_mesh_and_student_guards_precede_write() -> None:
         "STUDENT_LIMIT_UNPROVEN_OR_EXCEEDED",
         "session.tui.file.write_mesh(str(MESH_PATH))",
         'cell_zone_raw = list(utilities.get_cell_zones(filter="*"))',
-        "cell_zone_query(utilities, point)",
+        "cell_zone_query(utilities, throat_axis_points[index])",
         '"throat_center_occupancy_observed"',
         '"THROAT_CENTER_OCCUPANCY_NOT_EXACT_GRAPH_NODE:"',
         "get_interior_face_zones_for_given_cell_zones(",

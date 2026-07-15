@@ -377,6 +377,45 @@ def adjacent_cell_zone_ids(
     return sorted(set(int(value) for value in adjacent))
 
 
+def optional_int_sequence(raw_value: Any, label: str) -> dict[str, Any]:
+    """Preserve an API ``None`` separately from a resolved empty sequence."""
+    if raw_value is None:
+        return {"label": label, "raw_none": True, "values": []}
+    try:
+        values = list(raw_value)
+    except TypeError as exc:
+        raise RuntimeError(f"{label}_QUERY_NOT_ITERABLE") from exc
+    if any(
+        isinstance(value, bool) or not isinstance(value, int)
+        for value in values
+    ):
+        raise RuntimeError(f"{label}_QUERY_NOT_INTEGER_IDS")
+    normalized = sorted(set(int(value) for value in values))
+    return {"label": label, "raw_none": False, "values": normalized}
+
+
+def parse_external_baffle_inventory(transcript: str) -> dict[str, Any]:
+    matches = re.findall(
+        r"(?im)^\s*external baffles\s+([0-9]+)\s+\(([^)]*)\)\s*$",
+        transcript,
+    )
+    if len(matches) != 1:
+        return {
+            "resolved": False,
+            "count": None,
+            "zone_ids": [],
+            "match_count": len(matches),
+        }
+    count = int(matches[0][0])
+    zone_ids = [int(value) for value in re.findall(r"[0-9]+", matches[0][1])]
+    return {
+        "resolved": len(zone_ids) == count,
+        "count": count,
+        "zone_ids": zone_ids,
+        "match_count": 1,
+    }
+
+
 def build_cell_zone_graph(
     meshing_utilities: Any,
     cell_zone_ids: list[int],
@@ -810,29 +849,23 @@ try:
     interior_face_records, reached_cell_zone_ids = build_cell_zone_graph(
         utilities, cell_zone_ids, interior_face_zone_ids
     )
+    trace_checkpoint(
+        "cell_zone_graph_candidate_observed",
+        cell_zone_ids=cell_zone_ids,
+        cell_zone_types=cell_zone_types,
+        cell_count_api=cell_count_api,
+        cell_volume=cell_volume,
+        cell_counts_by_zone=cell_counts_by_zone,
+        cell_volumes_by_zone=cell_volumes_by_zone,
+        interior_face_zone_ids=interior_face_zone_ids,
+        interior_face_records=interior_face_records,
+        reached_cell_zone_ids=reached_cell_zone_ids,
+    )
 
     throat_axis_points = [
         [point[0] - THROAT_RADIUS_MM, point[1], point[2]]
         for point in throat_query_points
     ]
-    occupancy = [cell_zone_query(utilities, point) for point in throat_axis_points]
-    occupancy_misses = [
-        index
-        for index, record in enumerate(occupancy)
-        if len(record["zone_ids"]) != 1
-        or record["zone_ids"][0] not in set(cell_zone_ids)
-    ]
-    trace_checkpoint(
-        "throat_center_occupancy_observed",
-        query_count=len(occupancy),
-        hit_count=len(occupancy) - len(occupancy_misses),
-        miss_count=len(occupancy_misses),
-        first_miss_indices=occupancy_misses[:100],
-        raw_none_count=sum(record["raw_none"] for record in occupancy),
-        distinct_results=sorted(
-            {str(record["zone_ids"]) for record in occupancy}
-        ),
-    )
     upstream_anchor_hits = [
         cell_zone_query(
             utilities,
@@ -860,44 +893,146 @@ try:
         and record["zone_ids"][0] in set(cell_zone_ids)
         for record in anchor_records
     )
-
-    all_face_zone_ids = [
-        int(value) for value in utilities.get_face_zones(filter="*")
+    representative_indices = list(range(0, THROAT_COUNT, 81))
+    representative_throat_controls = [
+        {
+            "index": index,
+            "mm_query": cell_zone_query(utilities, throat_axis_points[index]),
+            "meter_scaled_query": cell_zone_query(
+                utilities,
+                [value * 0.001 for value in throat_axis_points[index]],
+            ),
+        }
+        for index in representative_indices
     ]
-    baffle_raw = utilities.get_baffles_for_face_zones(
-        face_zone_id_list=all_face_zone_ids
+    trace_checkpoint(
+        "cell_zone_point_query_controls_observed",
+        upstream_anchor_hits=upstream_anchor_hits,
+        downstream_anchor_hits=downstream_anchor_hits,
+        anchor_zone_ids=anchor_zone_ids,
+        anchor_occupancy_ok=anchor_occupancy_ok,
+        representative_throat_controls=representative_throat_controls,
     )
-    if baffle_raw is None:
-        raise RuntimeError("BAFFLE_QUERY_RETURNED_NONE")
-    baffle_values = list(baffle_raw)
+
+    occupancy_indices = (
+        list(range(THROAT_COUNT))
+        if anchor_occupancy_ok
+        else representative_indices
+    )
+    occupancy = [
+        cell_zone_query(utilities, throat_axis_points[index])
+        for index in occupancy_indices
+    ]
+    occupancy_misses = [
+        source_index
+        for source_index, record in zip(occupancy_indices, occupancy)
+        if len(record["zone_ids"]) != 1
+        or record["zone_ids"][0] not in set(cell_zone_ids)
+    ]
+    trace_checkpoint(
+        "throat_center_occupancy_observed",
+        query_count=len(occupancy),
+        hit_count=len(occupancy) - len(occupancy_misses),
+        miss_count=len(occupancy_misses),
+        first_miss_indices=occupancy_misses[:100],
+        raw_none_count=sum(record["raw_none"] for record in occupancy),
+        distinct_results=sorted(
+            {str(record["zone_ids"]) for record in occupancy}
+        ),
+        query_scope=("FULL_972" if len(occupancy) == THROAT_COUNT else "SAMPLED_12"),
+    )
+
+    all_face_observation = optional_int_sequence(
+        utilities.get_face_zones(filter="*"), "ALL_FACE_ZONE"
+    )
+    if all_face_observation["raw_none"]:
+        raise RuntimeError("ALL_FACE_ZONE_QUERY_RETURNED_NONE")
+    all_face_zone_ids = all_face_observation["values"]
+    baffle_observation = optional_int_sequence(
+        utilities.get_baffles_for_face_zones(
+            face_zone_id_list=all_face_zone_ids
+        ),
+        "BAFFLE",
+    )
+    baffle_zone_ids = baffle_observation["values"]
+    embedded_baffle_observation = optional_int_sequence(
+        utilities.get_embedded_baffles(), "EMBEDDED_BAFFLE"
+    )
+    embedded_baffle_zone_ids = embedded_baffle_observation["values"]
+
+    post_volume_inlet_zone_ids = list(
+        utilities.convert_zone_name_strings_to_ids(
+            zone_name_list=inlet_zone_names
+        )
+    )
+    post_volume_outlet_zone_ids = list(
+        utilities.convert_zone_name_strings_to_ids(
+            zone_name_list=outlet_zone_names
+        )
+    )
+    post_volume_throat_zone_ids = list(
+        utilities.convert_zone_name_strings_to_ids(
+            zone_name_list=throat_zone_names
+        )
+    )
     if any(
         isinstance(value, bool) or not isinstance(value, int)
-        for value in baffle_values
-    ):
-        raise RuntimeError("BAFFLE_ZONE_IDS_NOT_INTEGER")
-    baffle_zone_ids = sorted(int(value) for value in baffle_values)
-    if len(set(baffle_zone_ids)) != len(baffle_zone_ids):
-        raise RuntimeError("BAFFLE_ZONE_IDS_NOT_UNIQUE")
-    embedded_baffle_raw = utilities.get_embedded_baffles()
-    if embedded_baffle_raw is None:
-        raise RuntimeError("EMBEDDED_BAFFLE_QUERY_RETURNED_NONE")
-    embedded_baffle_values = list(embedded_baffle_raw)
-    if (
-        any(
-            isinstance(value, bool) or not isinstance(value, int)
-            for value in embedded_baffle_values
+        for value in (
+            post_volume_inlet_zone_ids
+            + post_volume_outlet_zone_ids
+            + post_volume_throat_zone_ids
         )
     ):
-        raise RuntimeError("EMBEDDED_BAFFLE_ZONE_IDS_INVALID")
-    embedded_baffle_zone_ids = sorted(
-        int(value) for value in embedded_baffle_values
-    )
-    if len(set(embedded_baffle_zone_ids)) != len(embedded_baffle_zone_ids):
-        raise RuntimeError("EMBEDDED_BAFFLE_ZONE_IDS_NOT_UNIQUE")
+        raise RuntimeError("POST_VOLUME_FACE_ZONE_RESOLUTION_NOT_INTEGER")
     boundary_face_adjacency = {
         str(face_zone_id): adjacent_cell_zone_ids(utilities, face_zone_id)
-        for face_zone_id in inlet_zone_ids + outlet_zone_ids
+        for face_zone_id in (
+            post_volume_inlet_zone_ids + post_volume_outlet_zone_ids
+        )
     }
+    throat_face_adjacency = {
+        str(face_zone_id): optional_int_sequence(
+            utilities.get_adjacent_cell_zones_for_given_face_zones(
+                face_zone_id_list=[face_zone_id]
+            ),
+            "THROAT_FACE_ADJACENCY",
+        )
+        for face_zone_id in post_volume_throat_zone_ids
+    }
+
+    all_face_adjacency_records = []
+    for face_zone_id in all_face_zone_ids:
+        observation = optional_int_sequence(
+            utilities.get_adjacent_cell_zones_for_given_face_zones(
+                face_zone_id_list=[face_zone_id]
+            ),
+            "ALL_FACE_ADJACENCY",
+        )
+        all_face_adjacency_records.append(
+            {
+                "face_zone_id": face_zone_id,
+                "zone_type": utilities.get_zone_type(zone_id=face_zone_id),
+                "raw_none": observation["raw_none"],
+                "adjacent_cell_zone_ids": observation["values"],
+            }
+        )
+    interior_face_zone_set = set(interior_face_zone_ids)
+    two_fluid_non_interior = [
+        record
+        for record in all_face_adjacency_records
+        if len(record["adjacent_cell_zone_ids"]) == 2
+        and set(record["adjacent_cell_zone_ids"]).issubset(set(cell_zone_ids))
+        and record["face_zone_id"] not in interior_face_zone_set
+    ]
+
+    launch_transcripts = sorted(JOB_DIR.glob("fluent-*.trn"))
+    launch_transcript_text = (
+        launch_transcripts[-1].read_text(encoding="utf-8", errors="strict")
+        if launch_transcripts else ""
+    )
+    external_baffle_inventory = parse_external_baffle_inventory(
+        launch_transcript_text
+    )
     boundary_adjacency_ok = all(
         len(adjacent) == 1 and adjacent[0] in set(cell_zone_ids)
         for adjacent in boundary_face_adjacency.values()
@@ -907,11 +1042,20 @@ try:
         graph_connected
         and anchor_occupancy_ok
         and boundary_adjacency_ok
+        and not baffle_observation["raw_none"]
         and not baffle_zone_ids
+        and not embedded_baffle_observation["raw_none"]
         and not embedded_baffle_zone_ids
+        and external_baffle_inventory == {
+            "resolved": True,
+            "count": 0,
+            "zone_ids": [],
+            "match_count": 1,
+        }
+        and not two_fluid_non_interior
     ):
         result["assertions"]["connected_fluid_cell_zone_graph"] = True
-    if not occupancy_misses:
+    if len(occupancy) == THROAT_COUNT and not occupancy_misses:
         result["assertions"]["throat_center_occupancy_972"] = True
     trace_checkpoint(
         "connected_zone_graph_observed",
@@ -920,10 +1064,19 @@ try:
         reached_cell_zone_ids=reached_cell_zone_ids,
         graph_connected=graph_connected,
         inlet_outlet_boundary_adjacency=boundary_face_adjacency,
+        post_volume_inlet_zone_ids=post_volume_inlet_zone_ids,
+        post_volume_outlet_zone_ids=post_volume_outlet_zone_ids,
+        post_volume_throat_zone_ids=post_volume_throat_zone_ids,
+        throat_face_adjacency=throat_face_adjacency,
         anchor_zone_ids=anchor_zone_ids,
         anchor_occupancy_ok=anchor_occupancy_ok,
+        baffle_observation=baffle_observation,
         baffle_zone_ids=baffle_zone_ids,
+        embedded_baffle_observation=embedded_baffle_observation,
         embedded_baffle_zone_ids=embedded_baffle_zone_ids,
+        external_baffle_inventory=external_baffle_inventory,
+        all_face_adjacency_records=all_face_adjacency_records,
+        two_fluid_non_interior=two_fluid_non_interior,
     )
     free_faces = int(
         utilities.get_free_faces_count(face_zone_id_list=all_face_zone_ids)
@@ -1015,9 +1168,19 @@ try:
         "outlet_zone_names": outlet_zone_names,
         "boundary_face_adjacency": boundary_face_adjacency,
         "boundary_adjacency_ok": boundary_adjacency_ok,
+        "post_volume_inlet_zone_ids": post_volume_inlet_zone_ids,
+        "post_volume_outlet_zone_ids": post_volume_outlet_zone_ids,
+        "post_volume_throat_zone_ids": post_volume_throat_zone_ids,
+        "throat_face_adjacency": throat_face_adjacency,
         "anchor_zone_ids": anchor_zone_ids,
         "anchor_occupancy_ok": anchor_occupancy_ok,
+        "anchor_query_records": anchor_records,
+        "representative_throat_controls": representative_throat_controls,
         "throat_query_count": len(throat_query_points),
+        "throat_occupancy_executed_query_count": len(occupancy),
+        "throat_occupancy_query_scope": (
+            "FULL_972" if len(occupancy) == THROAT_COUNT else "SAMPLED_12"
+        ),
         "throat_zone_hit_count": len(throat_zone_hits),
         "throat_zone_ids": throat_zone_ids,
         "throat_zone_names": throat_zone_names,
@@ -1037,8 +1200,13 @@ try:
         "interior_face_records": interior_face_records,
         "reached_cell_zone_ids": reached_cell_zone_ids,
         "graph_connected": graph_connected,
+        "baffle_observation": baffle_observation,
         "baffle_zone_ids": baffle_zone_ids,
+        "embedded_baffle_observation": embedded_baffle_observation,
         "embedded_baffle_zone_ids": embedded_baffle_zone_ids,
+        "external_baffle_inventory": external_baffle_inventory,
+        "all_face_adjacency_records": all_face_adjacency_records,
+        "two_fluid_non_interior": two_fluid_non_interior,
         "cell_count": cell_count,
         "face_count": face_count,
         "node_count": node_count,
