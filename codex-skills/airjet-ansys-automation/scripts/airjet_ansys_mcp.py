@@ -708,6 +708,10 @@ def sanitized_environment(
         # Keep this commit-bound and fail-closed instead of inheriting caller
         # environment state; this automation route is pinned to Win64 v261.
         "PROCESSOR_ARCHITECTURE": "AMD64",
+        # All audited ANSYS jobs run on this host.  Pin PyFluent remoting to
+        # loopback so its automatic address inference cannot block before the
+        # Fluent subprocess is created.
+        "REMOTING_SERVER_ADDRESS": "127.0.0.1",
         "PATH": ";".join(
             (
                 str(VENV_PYTHON.parent),
