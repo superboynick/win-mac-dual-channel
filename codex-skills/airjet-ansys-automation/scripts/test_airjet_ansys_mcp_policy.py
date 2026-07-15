@@ -366,6 +366,7 @@ for environment_key, expected_value in {
     "AIRJET_GIT_HEAD": "git_head",
     "AIRJET_SCRIPT_SHA256": "script_sha256",
     "AIRJET_PROFILE_CONTRACT_SHA256": "profile_contract_sha256",
+    "PROCESSOR_ARCHITECTURE": '"AMD64"',
 }.items():
     values = keyed_dict_values(functions["sanitized_environment"], environment_key)
     if len(values) != 1 or not same_expression(values[0], expected_value):

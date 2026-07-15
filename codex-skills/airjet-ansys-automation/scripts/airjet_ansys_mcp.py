@@ -704,6 +704,10 @@ def sanitized_environment(
         "SystemRoot": r"C:\Windows",
         "WINDIR": r"C:\Windows",
         "COMSPEC": r"C:\Windows\System32\cmd.exe",
+        # Fluent's CAD import bridge rejects a missing architecture variable.
+        # Keep this commit-bound and fail-closed instead of inheriting caller
+        # environment state; this automation route is pinned to Win64 v261.
+        "PROCESSOR_ARCHITECTURE": "AMD64",
         "PATH": ";".join(
             (
                 str(VENV_PYTHON.parent),
