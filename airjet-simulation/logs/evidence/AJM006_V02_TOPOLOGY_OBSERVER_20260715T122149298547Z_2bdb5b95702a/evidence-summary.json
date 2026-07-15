@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "CONDENSED_RUNTIME_EVIDENCE",
+  "task": "AJM006_V02_PRELIMINARY_TOPOLOGY_OBSERVER_SUITE",
+  "suite_started_at_utc": "2026-07-15T12:21:49.298547+00:00",
+  "suite_ended_at_utc": "2026-07-15T12:24:23.472341+00:00",
+  "git_head": "d984890b84e3bf168c24f4ff869d474ac07e9fa4",
+  "producer": {
+    "job_id": "AJM006-V02-PRELIMINARY-c7abb2d5cf5e",
+    "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
+    "script_sha256": "e575c045ddc329175a9fad8e091adc44f299b0d86e741e098279d0fba9790a48",
+    "status": "PASS_PARTIAL_CAD_CAPABILITY",
+    "started_at_utc": "2026-07-15T12:21:54.655970+00:00",
+    "ended_at_utc": "2026-07-15T12:23:46.445318+00:00",
+    "terminal_phase": "PROCESS_EXITED_0",
+    "exit_code": 0,
+    "job_json_sha256": "fa7a8ffd9f0f573c38f8c66854c9c8fb96f8edd2f5b8cd4b5e07219869b620b4",
+    "report_sha256": "09e1d62311a2e37ac23a4fa5ac31d5553e93ac54f9cbf6a383ef43fa0801a68e"
+  },
+  "observer": {
+    "job_id": "AJM006-V02-PRELIMINARY-2bdb5b95702a",
+    "profile_id": "ajm006-workbench-v02-topology-observer-v1",
+    "script_sha256": "dd38228bedbfe13c790ad75146232dd146997e5055ddb2b9eb6ae78768b6842c",
+    "status": "PASS_PRELIMINARY_TOPOLOGY_OBSERVATION",
+    "started_at_utc": "2026-07-15T12:23:48.912118+00:00",
+    "ended_at_utc": "2026-07-15T12:24:23.044476+00:00",
+    "terminal_phase": "PROCESS_EXITED_0",
+    "exit_code": 0,
+    "job_json_sha256": "643c8c69cd1f80677afbd2136fd48217083322f71d6992b56167e81742d142f5",
+    "report_sha256": "985265da87d44170b2249501cd57839040cf74fbd64bff2db7519a0c790a7035",
+    "inventory_sha256": "11ba8ca88e7bfbe62871f38a0e07b181d5bddb2a120834b7c8303213e93f9809"
+  },
+  "runner_final_status": "PASS_PRELIMINARY_TOPOLOGY_OBSERVER",
+  "reported_topology_result": "MIXED_OR_OTHER",
+  "classification_defect": {
+    "present": true,
+    "kind": "ROLE_BINDING_BY_FACE_COUNT_WAS_NOT_STABLE_ACROSS_GEOMETRY_KERNELS",
+    "observed_body_ids": [7231, 4288],
+    "observed_body_face_counts": [978, 100],
+    "incorrectly_bound_upstream_body_id": 7231,
+    "incorrectly_bound_downstream_body_id": 4288,
+    "effect": "THE_IMPORT_INVENTORY_IS_VALID_BUT_ROLE_SPECIFIC_COUNTS_AND_THE_UNQUALIFIED_CLASSIFICATION_ARE_SUPERSEDED"
+  },
+  "runner_summary_sha256": "46a245ace5ca8ae2f96a55c787c94f76f267b543b97736b93074156111bf3432",
+  "superseded_by_job_id": "AJM006-V02-PRELIMINARY-2fb76257a827",
+  "three_copy_archive": {
+    "windows_raw_root": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V02-PRELIMINARY",
+    "mac_zip": "/Users/zhangjianxiao/Downloads/AirJet-V02-Topology-Observer-Evidence-20260715.zip",
+    "windows_zip": "C:\\Users\\admin\\Downloads\\AirJet-V02-Topology-Observer-Evidence-20260715.zip",
+    "zip_size": 20441827,
+    "zip_sha256": "10bb50254101b05944c44507077975a92e8b416e7107d12494350c2a4eb377bd",
+    "payload_file_count": 158
+  },
+  "formal_006_completion": false,
+  "p1_stage_gate": "NOT_RUN",
+  "p1_p6_gates": "NOT_RUN"
+}

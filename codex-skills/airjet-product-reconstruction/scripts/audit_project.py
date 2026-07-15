@@ -1564,6 +1564,7 @@ def main() -> int:
                 "ajm005-spaceclaim-cad-t1-v2",
                 "ajm005-workbench-semantic-reconstruction-t1-v2",
                 "ajm006-spaceclaim-v02-preliminary-v1",
+                "ajm006-workbench-v02-topology-observer-v1",
             }
             if (
                 set(profile_data) != {"schema_version", "production_contracts", "profiles"}
@@ -1677,7 +1678,7 @@ def main() -> int:
             )
             if (
                 completed_policy.returncode != 0
-                or "AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=11 tools=5"
+                or "AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=12 tools=5"
                 not in completed_policy.stdout
             ):
                 failures.append(

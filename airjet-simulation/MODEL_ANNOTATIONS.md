@@ -162,7 +162,7 @@
 ## AJM-P1-GEO-003：V02 两区 preliminary 整机 CAD
 
 日期：2026-07-15
-状态：Windows preliminary producer 已实跑 PASS；observer、正式 006 与 P1 Gate 均未运行
+状态：Windows preliminary producer 已实跑 PASS；observer 结果见 AJM-P1-GEO-004；正式 006 与 P1 Gate 均未运行
 
 **目标**：在不缩成单 cell 的前提下，用主候选 `M-3x4-7.0__R50_BALANCED` 提前实测完整 12-cell/972-hole Boolean、两区接口、native reopen 和 STEP reimport。该 pilot 用来发现实际 ANSYS 拓扑，不替代正式九变体 006。
 
@@ -174,8 +174,27 @@
 
 **实测结果**：签名 commit `64b57303b324aa1c98890d4241462814678af41f` 的 job `AJM006-V02-PRELIMINARY-1082d551ee85` 得到 `PASS_PRELIMINARY_PRODUCER`；上述计数全部闭合，实际代理孔隙率为 `8.114445310611391%`。native 与 STEP 重导均为两个 closed/manifold body。STEP 最大 bbox/volume drift 分别为 `0.014975 mm` 与 `0.003996774 mm^3`，在明确记录的 STEP-only `0.02 mm` / `0.005 mm^3` 阈值内；native 仍保持 `0.005 mm` bbox 门槛。
 
-**未决拓扑**：STEP 中 downstream face decomposition 从 native 978 faces 合并为 6 faces；本 pilot 只检查 STEP shape equivalence，不要求面数或名字持久化。因此 shared ID/coincident pair 与 solver-side 972-interface 身份仍是 `NOT_EVALUATED_UNTIL_WORKBENCH_OBSERVER`。
+**producer 阶段未决拓扑**：STEP 中 downstream face decomposition 从 native 978 faces 合并为 6 faces；本 pilot 只检查 STEP shape equivalence，不要求面数或名字持久化。该未决项后来由 AJM-P1-GEO-004 的 Workbench observer 实测关闭，并得到“当前 STEP 两区路线单侧接口丢失”的否决结果，而不是 shared/coincident schema。
 
 **声明边界**：成功只能写 `PASS_PRELIMINARY_PRODUCER`。`formal_006_completion=false`，P1--P6 均 `NOT_RUN`；没有 mesh、solver、semantic reconstruction 或产品真实性升级。
 
 **追溯**：`automation/ansys/approved/006/v02_preliminary_producer.py`、`automation/ansys/run_v02_preliminary_006.py`、`windows-prompts/AJM_WIN_V02_PRELIMINARY_006.md`、`logs/evidence/AJM006_V02_PRELIMINARY_20260715T113939945030Z_1082d551ee85/`。
+
+## AJM-P1-GEO-004：V02 Workbench topology observer 与单侧接口丢失
+
+日期：2026-07-15
+状态：preliminary observer PASS；当前 STEP 两区 handoff 被拒绝；正式 006 与 P1 Gate 未运行
+
+**观测对象**：commit `9699df565d5b93bfe8bf8354834af7fc5f79624c` 在一个 MCP 会话内先生成 producer job `AJM006-V02-PRELIMINARY-13950bddaec8`，冻结 manifest，再运行 observer job `AJM006-V02-PRELIMINARY-2fb76257a827`。两者均 exit 0，predecessor 前后哈希不变，Workbench import、Mechanical inventory、分类和 project save 全部返回。
+
+**三个几何内核的实际分解**：SpaceClaim native 中 upstream/downstream 为 2044/978 faces；SpaceClaim STEP reopen 为 2044/6 faces；Workbench/Mechanical 中为 100/978 faces。Mechanical 保留名称，故 upstream 绑定为 body 4288、downstream 为 body 7231；z 范围只作 fallback。face count 只用于诊断，不能跨内核承担角色身份。
+
+**孔口识别**：以接口 z、`GeoSurfacePlane`、单边界环、0.25 mm bbox x/y spans、期望 XY 和 `0.02 mm` XY/Z/bbox 容差为锚。Mechanical 报告的同一候选 face area 与 SpaceClaim 理论圆面积不稳定，因此 area 只作诊断，不能靠放宽面积阈值改变接口是否存在。
+
+**结果**：总 face references/unique IDs 为 1078/1078，cross-body duplicate 为 0。downstream 接口 973 faces 中有 972 个孔印记与期望 XY 完整一致，另有大面 ID 7158；upstream 孔口候选为 0，972 个预期位置全缺失。shared interface candidate、same-ID pair 和 opposite-normal pair 均为 0。精确分类为 `MIXED_OR_OTHER / UPSTREAM_ORIFICE_GEOMETRY_LOST_DOWNSTREAM_972_IMPRINTS_RETAINED`。
+
+**为什么 PASS 仍不能求解**：`PASS_PRELIMINARY_TOPOLOGY_OBSERVER` 只表示 hash-bound 观测链完整执行并给出可审计结果。本轮没有 mesh，`shared_node_or_conformal_mesh=NOT_EVALUATED_NO_MESH`；当前合同下不能把这两个导入 body 当作已连接的两区拓扑，也不能把它写成“网格已失败”。
+
+**决定**：否决当前 STEP 两区 handoff。下一步改变 native/connected/re-authoring 或受审 solver-side interface reconstruction 表示，并重新 observer；修复前不注册正式九变体 profiles。`formal_006_completion=false`，P1--P6 均 `NOT_RUN`。
+
+**追溯**：`automation/ansys/approved/006/v02_preliminary_topology_observer.wbjn`、`automation/ansys/run_v02_topology_observer_006.py`、`windows-prompts/AJM_WIN_V02_TOPOLOGY_OBSERVER_006.md`、`logs/evidence/AJM006_V02_TOPOLOGY_OBSERVER_20260715T122907417508Z_2fb76257a827/`。

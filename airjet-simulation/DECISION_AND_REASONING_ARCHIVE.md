@@ -347,3 +347,15 @@ V02 的 972 孔来自 centered-clip 规则，按 12×7² mm² 膜片面积代理
 下一步必须由只读 observer 导入本次 hash-bound STEP/native 产物，实测 body/face 分解、actual IDs、owner/adjacency 与可重建性，再决定正式 production contract。V02 PASS 只把问题从“能否构建完整两区整机 CAD”推进到“solver import 后如何证明接口语义”；`formal_006_completion=false`，P1--P6 继续 `NOT_RUN`。
 
 追溯：`logs/evidence/AJM006_V02_PRELIMINARY_20260715T112933575122Z_09d11b707907/`、`logs/evidence/AJM006_V02_PRELIMINARY_20260715T113249014468Z_bc1b12e43d39/`、`logs/evidence/AJM006_V02_PRELIMINARY_20260715T113939945030Z_1082d551ee85/`、`logs/REALITY_AND_FAILURE_LOG.md`。
+
+## 20. 为什么 observer PASS 反而否决当前 STEP 两区路线
+
+observer 的成功对象是“观测程序”，不是“被观测的拓扑”。首轮 commit `d984890...` 已真实完成 Workbench import、Mechanical inventory 和 project save，但分类器错误地假定 face 较多的 body 是 upstream。实际 body name 与 z 范围表明 7231 是 downstream、4288 是 upstream；不同几何内核会重分解 faces，所以 face count 不能作为跨内核身份。原始 inventory 保留，角色解释由修正版取代。
+
+修正版 commit `9699df...` 将 persisted body name 作为主绑定、z extent 作为 fallback，并把孔口锚点改为 0.25 mm bbox spans、平面/单环及 XY/Z 合同；跨内核不稳定的 area 仅作诊断。结果不是 shared-face，也不是 coincident pair：downstream 保留 972 个孔印记，上游对应的 972 个孔喉/出口界面全部缺失，跨 body 的重复 actual ID、shared candidate 和 opposite-normal pair 都是 0。
+
+因此不能靠放宽 area、位置或 normal 阈值“找回”不存在的 upstream faces，也不能在 shared/paired schema 中二选一继续九变体。当前 STEP→Workbench/Mechanical handoff 对这个两区 V02 表示不成立。下一步必须改变传递表示：优先尝试能保留两侧拓扑的 native/connected 或 Workbench 内 re-authoring；若采用 solver-side reconstruction，也必须明确重建 upstream interface、保留两侧 owner/adjacency，并由新的 observer 和后续网格证据独立关闭。
+
+该决定只针对当前 V02 STEP 两区 handoff，不推广为“STEP 普遍不可用于 ANSYS”。修复前不注册正式 006 profiles；observer 无 mesh，不能声称 mesh failure、shared nodes 或 conformality。`formal_006_completion=false`，P1--P6 保持 `NOT_RUN`。
+
+追溯：`logs/evidence/AJM006_V02_TOPOLOGY_OBSERVER_20260715T122149298547Z_2bdb5b95702a/`、`logs/evidence/AJM006_V02_TOPOLOGY_OBSERVER_20260715T122907417508Z_2fb76257a827/`、`MODEL_ANNOTATIONS.md` 的 `AJM-P1-GEO-004`、`logs/REALITY_AND_FAILURE_LOG.md` 的 REAL-20260715-055--057。

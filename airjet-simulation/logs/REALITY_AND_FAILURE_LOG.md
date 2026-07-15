@@ -1355,6 +1355,36 @@
 - Gate/论文影响：P1 stage 与 P1--P6 继续 `NOT_RUN`。
 - 状态：PASS_PRELIMINARY_PRODUCER_ONLY
 
+## REAL-20260715-055：observer runner 首版在 ANSYS 前暴露 isolated Python sibling import
+
+- Stage/task：006 V02 topology observer runner preflight；未创建 MCP/ANSYS job。
+- 实际：Windows automation venv 以 Python `-I` 启动 runner 时，`from run_v02_preliminary_006 import ...` 抛 `ModuleNotFoundError`。isolated mode 不把脚本 sibling 目录自动放入 `sys.path`。
+- 修复：commit `d984890...` 改用 `importlib.util.spec_from_file_location` 从受审绝对 sibling path 装载 producer runner，并增加回归 guard；未改 ANSYS journal、几何、阈值或 Gate。
+- Gate/论文影响：NONE；异常发生在 ANSYS 前，不能用来解释任何几何结果。P1--P6 `NOT_RUN`。
+- 状态：CLOSED_BEFORE_ANSYS_BY_SIGNED_RUNNER_FIX
+
+## REAL-20260715-056：首次 topology inventory 有效，但 face-count 角色绑定被实测推翻
+
+- UTC：suite `2026-07-15T12:21:49.298547Z--12:24:23.472341Z`；observer job `AJM006-V02-PRELIMINARY-2bdb5b95702a`。
+- commit/profile：`d984890b84e3bf168c24f4ff869d474ac07e9fa4`；`ajm006-workbench-v02-topology-observer-v1`；script SHA `dd38228b...`。
+- 实际：producer 与 observer 均 exit 0，Workbench import、Mechanical inventory 和 project save 返回；body IDs 7231/4288、face counts 978/100 是真实观测。
+- 缺陷：旧 classifier 把 face 较多者绑定为 upstream，但持久化名称和 z 范围显示 7231 是 downstream、4288 是 upstream。跨内核 face decomposition 变化使该身份假设失效。
+- 处置：原始 job/report/inventory/runner summary 全部保留；role-specific 计数和无限定解释标记为 superseded，不删除或改写原始证据。修正版改用 persisted name 和 z fallback。
+- Gate/论文影响：观测执行 PASS 不等于当前分类可用；formal 006 与 P1--P6 均 `NOT_RUN`。
+- 状态：RAW_OBSERVATION_VALID_CLASSIFIER_ROLE_BINDING_SUPERSEDED
+
+## REAL-20260715-057：修正版 observer 确认 STEP handoff 单侧接口几何丢失
+
+- UTC：suite `2026-07-15T12:29:07.417508Z--12:31:39.219916Z`；producer `...-13950bddaec8`；observer `...-2fb76257a827`。
+- commit/profile：`9699df565d5b93bfe8bf8354834af7fc5f79624c`；observer script SHA `790247a2...`。
+- 结果：suite `PASS_PRELIMINARY_TOPOLOGY_OBSERVER`；Mechanical upstream ID 4288/100 faces、downstream ID 7231/978 faces。downstream 接口 973 faces=972 个期望 XY 印记+大面 7158；upstream candidates 0、缺失 972。shared candidate、opposite-normal pair、cross-body duplicate 都为 0。
+- 分类：`MIXED_OR_OTHER / UPSTREAM_ORIFICE_GEOMETRY_LOST_DOWNSTREAM_972_IMPRINTS_RETAINED`。孔口以 0.25 mm bbox、plane、单环和 XY/Z tolerance 识别；area 只作跨内核诊断。
+- 证据：observer report SHA `078ae541...`；inventory SHA `e9ca1166...`；corrected runner summary SHA `38421836...`。Mac/Windows Downloads ZIP 20441827 bytes、SHA `10bb5025...` 一致，payload 158 files。
+- 结论边界：observer PASS 表示观测闭合；无 mesh，不能声称 shared nodes、conformality 或 mesh failure。当前 STEP 两区路线被拒绝，但不推广为所有 STEP route 失败。
+- 下一步：改变 native/connected/re-authoring 或受审 solver-side interface reconstruction 表示并重新 observer；修复前不启动正式九变体 006。
+- Gate/论文影响：`formal_006_completion=false`；P1--P6 `NOT_RUN`。
+- 状态：PASS_PRELIMINARY_OBSERVER_ROUTE_REJECTED
+
 ## 新条目模板
 
 ```text
