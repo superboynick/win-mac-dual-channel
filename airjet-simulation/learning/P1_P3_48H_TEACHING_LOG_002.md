@@ -150,3 +150,38 @@ connected route and adopting a hash-bound STEP plus semantic-sidecar route for f
 Do not state that the child build executed and failed, that Python script files are unsupported,
 that connected transfer failed or passed, or that Mechanical/mesh/project work was reached. Do not
 upgrade P1 readiness or any P1-P6 engineering Gate from this diagnostic.
+
+## 2026-07-15 — V02 split STEP 为什么进程成功仍必须判工程失败
+
+### 本轮做了什么
+
+同一受审 MCP 会话先重新生成完整 V02 两流体区，再从 native staging 分别删除另一 body，导出
+`upstream.step` 和 `downstream.step`。两者都被 SpaceClaim 成功回读，因此 converter 进程是
+`PROCESS_EXITED_0`；但 runner 继续比较 body 数、封闭性、face count、bbox 和 volume，没有把
+“软件没崩”当成“工程可用”。
+
+### 关键数据
+
+- upstream：1 body、closed/manifold、2044→2044 faces；bbox 最大分量漂移 0.014975 mm。
+- downstream：1 body、closed/manifold、bbox/volume 保持；978→6 faces。
+- 结论：`FAIL_SPLIT_STEP_CONVERTER / SPLIT_STEP_BODY_SHAPE_OR_FACE_COUNT_NOT_PRESERVED`。
+- Workbench、Mechanical、mesh、physics、formal 006、P1--P6：全部 `NOT_RUN`。
+
+### 为什么 978→6 比“文件能打开”更重要
+
+downstream native 的 978 faces 包含 972 个孔口界面印记和 6 个外表面。独立 STEP 回读只剩 6 faces，
+说明 translator 把共面孔口印记愈合掉了。几何外包络和体积不变并不等于内部接口语义仍存在；如果
+放宽 face-count Gate，后续模型会看起来像一个正常盒体，却没有可识别的 972 孔口连接。
+
+### 为什么下一版改成真实孔喉
+
+V02 把上下流体区放在零厚度共享平面两侧，太依赖 CAD kernel 保存 imprint/shared-face identity。
+V03 将用 0.10 mm C 类候选厚度建立 972 个真实圆柱 throat，并优先 Boolean 为一个连续流体体。
+这把“接口语义”变成不可被平面 healer 轻易删除的三维流道。0.10 mm 是建模候选，不是产品实测；
+后续必须对 0.05--0.20 mm 做不确定性扫描。
+
+### 论文中现在可以与不可以写什么
+
+可以写：本项目用 round-trip topology fingerprint 发现独立 STEP 表示会消除零厚度孔口印记，因而
+转向显式有限厚度流道表示。不能写：AirJet Mini 的真实孔板厚度是 0.10 mm、split STEP 证明产品
+内部没有孔、或本轮已经完成网格/CFD/P1。

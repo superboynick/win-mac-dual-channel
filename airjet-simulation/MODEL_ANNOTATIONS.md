@@ -254,7 +254,7 @@ Mechanical 未到达。两轮 native 字节不同，故当前结论是 route can
 ## AJM-P1-GEO-007：V02 split STEP 转换候选
 
 日期：2026-07-15
-状态：16-profile 静态包 PASS；Windows `NOT_RUN`；native repeatability 诊断期间暂缓
+状态：Windows 已实跑并 fail closed；独立 STEP 未保持零厚度接口；路线关闭
 
 **单一改变**：从同一冻结 two-zone native 分别删除另一流体 body，导出独立
 `upstream.step`/`downstream.step`，避免同一 STEP 文件内的跨体 healer 改写接口。
@@ -262,8 +262,33 @@ Mechanical 未到达。两轮 native 字节不同，故当前结论是 route can
 **第一道 Gate**：每个 STEP 单独回读时必须只有一个 closed/manifold body，逐角色 face count、bbox、
 volume 与 native 指纹保持；这只证明两个独立表示，尚不证明同一 solver 模型内 adjacency、连接或网格。
 
-**后续路线**：仅在 native attach 重复性/mesh 诊断继续失败时运行；通过后仍需双 system observer。
-formal 006、P1--P6、mesh、physics 继续 `NOT_RUN`。
+**实测结果**：签名 commit `0491f2a0bf29de03538e4902a2962748402dc42f` 的 producer
+`AJM006-V02-PRELIMINARY-fa0c9047a0b2` PASS；converter
+`AJM006-V02-PRELIMINARY-9687be3d4dce` 为 `PROCESS_EXITED_0`，但报告
+`FAIL_SPLIT_STEP_CONVERTER / SPLIT_STEP_BODY_SHAPE_OR_FACE_COUNT_NOT_PRESERVED`。upstream 回读
+1 body/closed/manifold/2044 faces，bbox 最大漂移 0.014975 mm；downstream 回读 1 body/closed/
+manifold，但 978→6 faces，972 个界面 imprint 消失。
+
+**决定**：不放宽 Gate、不拼接两个来源的“有利半边”，关闭当前零厚度 split STEP 表示。下一
+pilot 改变几何表示而非 solver 阈值；formal 006、P1--P6、mesh、physics 继续 `NOT_RUN`。
+
+## AJM-P1-GEO-008：V03 显式有限厚度孔喉连续流体体
+
+日期：2026-07-15
+状态：路线已选定；静态/Windows runtime 包 `NOT_BUILT`
+
+**单一改变**：保留 V02 的整机外包络、3×4/12-cell、972 孔 XY、0.25 mm 孔径、四入口与单出口，
+把可被 STEP healer 消去的零厚度 shared/imprinted interface 改成 972 个真实圆柱孔喉。孔喉长度先用
+已登记的 C016=0.10 mm，范围 0.05--0.20 mm；它是 C 类建模候选，不是 AirJet Mini 实测层厚。
+
+**首选表示**：upstream、972 throats、downstream Boolean 为一个 single-piece continuous fluid
+body，再导出一个 STEP。这样 solver 不需要恢复 972 对跨 body face identity，也不依赖不稳定的
+native→Workbench attach。
+
+**pilot Gate**：native 与 STEP reopen 均须 1 body、closed/manifold、piece_count=1；972 个 throat
+center XY、直径 0.25 mm、长度 0.10 mm 可重数；4 inlet、1 outlet 与每 cell→outlet 连通；bbox/
+volume/hash/semantic chain 闭合。随后只做 PyFluent watertight import/mesh smoke；Workbench observer
+仅作交叉核验。pilot PASS 仍不是 formal 006 或 P1 PASS。
 
 ## AJM-P1-MESH-001：V02 native preliminary 共节点诊断合同
 

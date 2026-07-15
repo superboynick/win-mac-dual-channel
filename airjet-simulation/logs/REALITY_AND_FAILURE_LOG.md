@@ -1494,6 +1494,32 @@
 - 关联 decision/annotation/run：AJM-P1-MESH-001；本轮 producer/observer 两条 run-index。
 - 状态：CLOSED_NATIVE_ATTACH_ROUTE_UNRELIABLE_SPLIT_FALLBACK_NEXT
 
+## REAL-20260715-065：split STEP 回读把 downstream 972 个零厚度界面印记愈合
+- UTC：2026-07-15T16:58:56Z--17:01:27Z
+- Stage/task：AJM-006 V02 split STEP converter fallback
+- Machine/operator：Windows ANSYS Student 2026 R1 / Mac Codex via SSH MCP
+- run/job/profile：producer `AJM006-V02-PRELIMINARY-fa0c9047a0b2`；converter
+  `AJM006-V02-PRELIMINARY-9687be3d4dce` / `ajm006-spaceclaim-v02-split-step-converter-v1`
+- 期望：从 hash-bound native 分别导出 upstream/downstream STEP；两侧单 body 回读时保持
+  closed/manifold、face count、bbox 与 volume。
+- 实际观察：producer PASS；converter 进程 exit 0 且两个 STEP 都成功回读为单一 closed/manifold
+  body，但工程报告为 `FAIL_SPLIT_STEP_CONVERTER`。upstream 保持 2044 faces，bbox 最大分量漂移
+  0.014975 mm；downstream 包络/体积保持但从 978 faces 变成 6 faces。
+- 原始错误短摘：`SPLIT_STEP_BODY_SHAPE_OR_FACE_COUNT_NOT_PRESERVED`。
+- 原始日志路径 + SHA-256：`D:\AirJet_P1\AJM-P1-CAD-006\V02_SPLIT_STEP_CONVERTER_RUN_SUMMARY.json`，
+  SHA256 `6c33368622989f03b2f1d8c17cc99cabcc5cca123b918e31a0c81361e12d1a7e`；两个 raw job 目录保留。
+- 结果：独立 downstream STEP 的平面 translator healing 消除了 972 个零厚度 imprint；不允许放宽
+  face-count Gate，也不允许把不同表示的有利部分拼接后宣称同一 solver topology。
+- 根因及置信度：零厚度共面 imprint 在该 STEP round-trip 中不稳定，置信度高；这不是整机外包络、
+  upstream/downstream native 构造或 ANSYS 求解器整体失败。
+- 采取/拒绝的 workaround：未重试、未换格式、未启动双 Workbench observer、未 mesh/solve。
+- 对 Gate/论文主张的影响：formal 006、P1--P6、mesh、physics 均 `NOT_RUN`；只关闭 V02 split
+  STEP 表示路线。
+- 下一步：建立 V03 显式有限厚度 972 throat 的单一连续流体体 pilot，先做 STEP round-trip，再做
+  PyFluent watertight import smoke。
+- 关联 decision/annotation/run：AJM-P1-GEO-007、AJM-P1-GEO-008；本轮两条 run-index。
+- 状态：CLOSED_SPLIT_STEP_ZERO_THICKNESS_INTERFACE_ROUTE
+
 ## 新条目模板
 
 ```text

@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "CONDENSED_RUNTIME_FAILURE_EVIDENCE",
+  "task": "AJM006_V02_SPLIT_STEP_CONVERTER_SUITE",
+  "git_head": "0491f2a0bf29de03538e4902a2962748402dc42f",
+  "runner_final_status": "FAIL_PRELIMINARY_SPLIT_STEP_CONVERTER",
+  "runner_summary": {
+    "external_path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\V02_SPLIT_STEP_CONVERTER_RUN_SUMMARY.json",
+    "size": 35327,
+    "sha256": "6c33368622989f03b2f1d8c17cc99cabcc5cca123b918e31a0c81361e12d1a7e"
+  },
+  "producer": {
+    "job_id": "AJM006-V02-PRELIMINARY-fa0c9047a0b2",
+    "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
+    "script_sha256": "e575c045ddc329175a9fad8e091adc44f299b0d86e741e098279d0fba9790a48",
+    "profile_contract_sha256": "fcf6e5328aab0384a9fe9cee6008fa7e5334d869b6296fb72fe7662bfe66c82e",
+    "profile_dependency_manifest_sha256": "c91c0a9deb0d99c93ba3219e207e405bc9807f0e3c8294c69339ec73001c99c8",
+    "started_at_utc": "2026-07-15T16:59:01.447959+00:00",
+    "ended_at_utc": "2026-07-15T17:00:52.438635+00:00",
+    "terminal_phase": "PROCESS_EXITED_0",
+    "exit_code": 0,
+    "report_status": "PASS_PARTIAL_CAD_CAPABILITY",
+    "job_json": {
+      "size": 5177,
+      "sha256": "f247f1b36227e1d38170d674a25658b5d78bd6bdd547fafd837601fb2a72e136"
+    },
+    "report": {
+      "size": 5584,
+      "sha256": "6373328f043a3f43c2f146b03a36be06caf90851af6e242a7f059e0c28b58de7"
+    },
+    "native": {
+      "relative_path": "product_two_zone.scdocx",
+      "size": 12336153,
+      "sha256": "c84e6d90dcc9aac7bc8135ae737b46dfcf680279b4db4eb531677d6a35102975"
+    },
+    "stdout_sha256": "2aed5991e61af998346bc95b2683de4c65dfce81cde5252e83ab7b9a972adc46",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "converter": {
+    "job_id": "AJM006-V02-PRELIMINARY-9687be3d4dce",
+    "profile_id": "ajm006-spaceclaim-v02-split-step-converter-v1",
+    "predecessor_job_id": "AJM006-V02-PRELIMINARY-fa0c9047a0b2",
+    "script_sha256": "0e54b98f9169e28c20ade139b41d4038e54c957a7f7cae7af1956071ffe6927c",
+    "profile_contract_sha256": "f68c6d732b472d2c01f84cae278611dcd8854f465b8987455d0cc19174cdc825",
+    "started_at_utc": "2026-07-15T17:00:54.457405+00:00",
+    "ended_at_utc": "2026-07-15T17:01:26.252041+00:00",
+    "terminal_phase": "PROCESS_EXITED_0",
+    "exit_code": 0,
+    "report_status": "FAIL_SPLIT_STEP_CONVERTER",
+    "engineering_capability": "FAIL_SPLIT_STEP_CONVERTER",
+    "error": "SPLIT_STEP_BODY_SHAPE_OR_FACE_COUNT_NOT_PRESERVED",
+    "job_json": {
+      "size": 1711,
+      "sha256": "e8a84766f6d137fb5f915ea31af39c5d1f35bc639a7c89bfd82bb5b156b7bcae"
+    },
+    "report": {
+      "size": 1435,
+      "sha256": "c97528db0e026fed50987dcbb8df76094f228338ed3aebaf08836888d6223269"
+    },
+    "assertions": {
+      "predecessor_identity": true,
+      "staging_copy_hash_equal": true,
+      "source_native_open": true,
+      "source_native_exact": true,
+      "split_step_export": true,
+      "split_step_reimport": true,
+      "split_body_envelope_and_face_count_preserved": false,
+      "predecessor_immutable": false,
+      "staging_workspace_exact": false,
+      "evidence_copy_hash_equal": false,
+      "artifact_hashes": false,
+      "claim_boundaries": false
+    },
+    "source_native_mutated": false,
+    "representation_conversion": true,
+    "source_native_face_counts": [
+      2044,
+      978
+    ],
+    "reimport": {
+      "upstream": {
+        "body_count": 1,
+        "is_closed": true,
+        "is_manifold": true,
+        "piece_count": 1,
+        "source_face_count": 2044,
+        "reimport_face_count": 2044,
+        "source_bbox_max_mm": [10.875025, 14.5, 2.8],
+        "reimport_bbox_max_mm": [10.89, 14.500025, 2.800025],
+        "max_bbox_component_delta_mm": 0.014975,
+        "source_volume_mm3": 260.11376083274854,
+        "reimport_volume_mm3": 260.10976405858122
+      },
+      "downstream": {
+        "body_count": 1,
+        "is_closed": true,
+        "is_manifold": true,
+        "piece_count": 1,
+        "source_face_count": 978,
+        "reimport_face_count": 6,
+        "source_bbox_max_mm": [10.875, 20.75, 1.5175],
+        "reimport_bbox_max_mm": [10.875, 20.75, 1.5175],
+        "source_volume_mm3": 191.671875,
+        "reimport_volume_mm3": 191.671875,
+        "interpretation": "STEP_REIMPORT_HEALED_972_INTERFACE_IMPRINTS_INTO_ONE_PLANAR_FACE"
+      }
+    },
+    "artifacts": {
+      "split_step_reimport": {
+        "size": 1876,
+        "sha256": "495845d3c9dbe7bb522fc5d460122eb6420c8927ed8a660f66bd6e3c1b33c2d0"
+      },
+      "upstream_step": {
+        "size": 9998040,
+        "sha256": "f814fa63cf10e5ec382f6d35763d617ebae4df93ae136ef579e23f79d4052f46"
+      },
+      "downstream_step": {
+        "size": 830901,
+        "sha256": "77ad28ce5f7187090a13eda040014fe721cb19df0f50e7a6ef412eafd6057ba1"
+      }
+    },
+    "stdout_sha256": "51e301638885360e24592deef0d0252726054c14bf5c2ff1e29ff4d558592ec8",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "ansys_process_count_after": 0,
+  "workbench": "NOT_RUN",
+  "mesh": "NOT_RUN",
+  "physics": "NOT_RUN",
+  "formal_006_completion": false,
+  "p1_stage_gate": "NOT_RUN",
+  "p1_p6_gates": "NOT_RUN",
+  "visibility": "NOT_USER_OBSERVED",
+  "claim_boundary": "SPLIT_STEP_REPRESENTATION_FAILED_TO_PRESERVE_THE_ZERO_THICKNESS_INTERFACE;_NOT_A_FULL_PRODUCT_GEOMETRY_OR_SOLVER_FAILURE",
+  "next_decision": "REPLACE_ZERO_THICKNESS_SHARED_IMPRINT_WITH_EXPLICIT_FINITE_THICKNESS_THROATS_IN_A_NEW_SIGNED_V03_PILOT"
+}
