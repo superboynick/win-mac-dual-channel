@@ -18,7 +18,7 @@
     {
       "contract_key": "full_product_core_test",
       "git_path": "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py",
-      "sha256": "26550822aa5aa699e6281ef4d9f5c5a35ecbf5c0f0f3840ac1ce85a38ec8fab5"
+      "sha256": "05aad0bc5ee74a783236bd6448face8f06776522ec4139108e570f0845817a81"
     },
     {
       "contract_key": "trusted_variant_generator",

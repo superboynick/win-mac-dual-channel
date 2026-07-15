@@ -470,12 +470,16 @@ def main():
         reject("actual_adjacency", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_SURFACE_ADJACENCY_MAPPING")
         observed = copy.deepcopy(observation); observed["entities"][4]["matches"][0]["actual_adjacent_body_ids"] = ["solver-entity-001"]
         reject("shared_interface_missing_downstream", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_SURFACE_ADJACENCY_MAPPING")
-        observed = copy.deepcopy(observation); observed["entities"][1]["matches"][0]["actual_boundary_surface_ids"].remove("solver-entity-005")
-        reject("downstream_missing_shared_interface", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_BODY_SURFACE_COVERAGE")
+        # Add a real but unexpected entity ID so only the body's exhaustive
+        # boundary coverage is broken.  Removing a shared surface would also break the
+        # bidirectional topology check, whose earlier error depends on dictionary
+        # iteration order under IronPython 2.7.
+        observed = copy.deepcopy(observation); observed["entities"][1]["matches"][0]["actual_boundary_surface_ids"].append("solver-entity-002")
+        reject("downstream_extra_unexpected_surface", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_BODY_SURFACE_COVERAGE")
         observed = copy.deepcopy(observation); observed["entities"][4]["matches"][0]["actual_owner_body_id"] = "solver-entity-002"
         reject("shared_interface_wrong_owner", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_SURFACE_OWNER_MAPPING")
-        observed = copy.deepcopy(observation); observed["entities"][0]["matches"][0]["actual_boundary_surface_ids"].pop()
-        reject("body_boundary_coverage", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_BODY_SURFACE_COVERAGE")
+        observed = copy.deepcopy(observation); observed["entities"][0]["matches"][0]["actual_boundary_surface_ids"].append("solver-entity-002")
+        reject("upstream_extra_unexpected_surface", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_BODY_SURFACE_COVERAGE")
         observed = copy.deepcopy(observation); observed["entities"][4]["matches"][0]["direction_vector"] = [0.0, 0.0, -1.0]
         reject("direction_sign", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_DIRECTION_MISMATCH")
         observed = copy.deepcopy(observation); observed["entities"][2]["matches"][0]["observed_bbox_max_mm"][0] += 1.0
