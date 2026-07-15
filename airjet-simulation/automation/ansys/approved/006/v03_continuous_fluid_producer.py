@@ -468,9 +468,18 @@ def classify_throat_walls(
         "STEP_KERNEL_OTHER_AREA": 0,
     }
     candidate_areas = []
+    candidate_center_z = []
+    candidate_edge_counts = {}
     for face in body.Faces:
         item = face_fingerprint(face, body.Name)
         center = item["center_mm"]
+        near_expected_xy = any(
+            max(
+                abs(float(center[0]) - float(expected[0])),
+                abs(float(center[1]) - float(expected[1])),
+            ) <= xy_tolerance_mm
+            for expected in expected_xy
+        )
         area_model = None
         if close_enough(
             item["area_mm2"], expected_construction_area, area_tolerance_mm2
@@ -480,15 +489,17 @@ def classify_throat_walls(
             item["area_mm2"], expected_effective_area, area_tolerance_mm2
         ):
             area_model = "EFFECTIVE_0P100_MM"
-        if (
-            close_enough(center[2], expected_center_z, geometry_tolerance_mm)
-            and item.get("edge_count") == 2
-        ):
+        if near_expected_xy:
             if area_model is None:
                 area_model = "STEP_KERNEL_OTHER_AREA"
             item["accepted_area_model"] = area_model
             area_model_counts[area_model] += 1
             candidate_areas.append(float(item["area_mm2"]))
+            candidate_center_z.append(float(center[2]))
+            edge_key = str(item.get("edge_count"))
+            candidate_edge_counts[edge_key] = (
+                candidate_edge_counts.get(edge_key, 0) + 1
+            )
             faces.append(face)
             details.append(item)
             actual_xy.append(item["center_mm"][:2])
@@ -512,6 +523,11 @@ def classify_throat_walls(
             [min(candidate_areas), max(candidate_areas)]
             if candidate_areas else None
         ),
+        "observed_candidate_center_z_range_mm": (
+            [min(candidate_center_z), max(candidate_center_z)]
+            if candidate_center_z else None
+        ),
+        "observed_candidate_edge_count_histogram": candidate_edge_counts,
         "xy_inventory": xy_inventory,
         "geometry_tolerance_mm": geometry_tolerance_mm,
         "area_tolerance_mm2": area_tolerance_mm2,
@@ -548,6 +564,12 @@ def compact_throat_inventory(value):
         ),
         "observed_candidate_area_range_mm2": value.get(
             "observed_candidate_area_range_mm2"
+        ),
+        "observed_candidate_center_z_range_mm": value.get(
+            "observed_candidate_center_z_range_mm"
+        ),
+        "observed_candidate_edge_count_histogram": value.get(
+            "observed_candidate_edge_count_histogram"
         ),
         "geometry_tolerance_mm": value.get("geometry_tolerance_mm"),
         "area_tolerance_mm2": value.get("area_tolerance_mm2"),

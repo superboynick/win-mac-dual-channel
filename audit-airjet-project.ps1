@@ -98,6 +98,7 @@ $Required = @(
     'airjet-simulation\automation\ansys\contracts\test_v03_finite_throat_contract_v1.py',
     'airjet-simulation\automation\ansys\approved\006\v03_pyfluent_watertight_mesh_consumer.py',
     'airjet-simulation\automation\ansys\run_v03_continuous_mesh_006.py',
+    'airjet-simulation\automation\ansys\test_run_v03_continuous_mesh_006.py',
     'airjet-simulation\automation\ansys\test_v03_pyfluent_watertight_mesh_consumer.py',
     'airjet-simulation\automation\ansys\contracts\full_product_semantic_contract_v1.py',
     'airjet-simulation\automation\ansys\contracts\full_product_semantic_sidecar_v1.schema.json',

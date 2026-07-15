@@ -60,6 +60,7 @@ V02_SPLIT_STEP_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "r
 V03_CONTINUOUS_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v03_continuous_fluid_006.py"
 V03_CONTINUOUS_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_run_v03_continuous_fluid_006.py"
 V03_MESH_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v03_continuous_mesh_006.py"
+V03_MESH_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_run_v03_continuous_mesh_006.py"
 V03_MESH_CONSUMER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_v03_pyfluent_watertight_mesh_consumer.py"
 T1_PREDECESSOR_NEGATIVE = (
     SKILL_ROOT / "scripts" / "test_t1_predecessor_negative.py"
@@ -1450,6 +1451,7 @@ for required_path in (
     V03_CONTINUOUS_RUNNER,
     V03_CONTINUOUS_RUNNER_TEST,
     V03_MESH_RUNNER,
+    V03_MESH_RUNNER_TEST,
     V03_MESH_CONSUMER_TEST,
 ):
     if not required_path.is_file():
@@ -1923,7 +1925,12 @@ for invariant in (
 for forbidden in ("switch_to_solver", "additional_arguments=", ".iterate("):
     if forbidden in v03_mesh_source:
         fail("V03 PyFluent consumer contains forbidden action: " + forbidden)
-for path in (V03_MESH_RUNNER, V03_MESH_CONSUMER_TEST, v03_mesh_source_path):
+for path in (
+    V03_MESH_RUNNER,
+    V03_MESH_RUNNER_TEST,
+    V03_MESH_CONSUMER_TEST,
+    v03_mesh_source_path,
+):
     assert_python39_static_compatibility(path)
 
 v02_observer_profile = by_profile_id[

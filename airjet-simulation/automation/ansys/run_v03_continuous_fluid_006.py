@@ -40,7 +40,7 @@ OUTPUT_ROOT = Path(r"D:\AirJet_P1\AJM-P1-CAD-006")
 RESULT_PATH = OUTPUT_ROOT / "V03_CONTINUOUS_FLUID_RUN_SUMMARY.json"
 POLICY_GIT_PATH = "airjet-simulation/automation/ansys/profiles.json"
 PROFILE_ID = "ajm006-spaceclaim-v03-continuous-throat-pilot-v1"
-PROFILE_SCRIPT_SHA256 = "d8e347b1cf826da75c6c5715d23bea7760d54a8e10ddd32b29f8e230d7fa7d5e"
+PROFILE_SCRIPT_SHA256 = "d80a7ea0e84912202e67074f79ce227dc88dea0bd55a87cbe4c601e6793771e7"
 PROFILE_SCRIPT = "006/v03_continuous_fluid_producer.py"
 CASE_ID = "AJM006-V03-CONTINUOUS"
 EXPECTED_TOOLS = {
@@ -284,6 +284,12 @@ def validate_throat_inventory(
     xy = value.get("xy_inventory")
     area_models = value.get("accepted_area_model_counts")
     observed_area_range = value.get("observed_candidate_area_range_mm2")
+    observed_center_z_range = value.get(
+        "observed_candidate_center_z_range_mm"
+    )
+    observed_edge_histogram = value.get(
+        "observed_candidate_edge_count_histogram"
+    )
     if (
         value.get("pass") is not True
         or value.get("candidate_face_count") != 972
@@ -333,6 +339,24 @@ def validate_throat_inventory(
             for item in observed_area_range
         )
         or observed_area_range[0] > observed_area_range[1]
+        or not isinstance(observed_center_z_range, list)
+        or len(observed_center_z_range) != 2
+        or any(
+            not isinstance(item, (int, float))
+            or isinstance(item, bool)
+            or not math.isfinite(float(item))
+            for item in observed_center_z_range
+        )
+        or observed_center_z_range[0] > observed_center_z_range[1]
+        or not isinstance(observed_edge_histogram, dict)
+        or not observed_edge_histogram
+        or any(
+            not isinstance(key, str)
+            or type(count) is not int
+            or count <= 0
+            for key, count in observed_edge_histogram.items()
+        )
+        or sum(observed_edge_histogram.values()) != 972
         or not isinstance(xy, dict)
         or xy.get("expected_count") != 972
         or xy.get("actual_count") != 972

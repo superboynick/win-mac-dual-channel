@@ -81,6 +81,8 @@ def throat_inventory(
             0.08011061266653972,
             0.08011061266653972,
         ],
+        "observed_candidate_center_z_range_mm": [1.5675, 1.5675],
+        "observed_candidate_edge_count_histogram": {"2": 972},
         "xy_inventory": {
             "expected_count": 972,
             "actual_count": 972,
