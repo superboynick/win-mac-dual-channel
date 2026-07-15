@@ -860,13 +860,14 @@ def main() -> int:
             "CENTRAL_ANCHOR_SQUARE_DATUM_R0",
             "CELL_PARTITION_DATUM_R0",
             "TOP_SHARED_PLENUM_R0",
+            "VENT_RISER_CANDIDATE_R0",
             "PERIM_SPLIT_GAP_R0",
             "SIDE_WALL_BOUNDARY_R0",
             "RESIDUAL_NUMERICAL_CLOSURE_R0",
             "ORIFICE_PER_CELL_CENTERED_CLIP_R0",
         }
-        if len(internal_rule_rows) != 9 or {row.get("rule_id") for row in internal_rule_rows} != expected_rule_ids:
-            failures.append("P1 internal geometry table must retain the nine explicit R0 rules")
+        if len(internal_rule_rows) != 10 or {row.get("rule_id") for row in internal_rule_rows} != expected_rule_ids:
+            failures.append("P1 internal geometry table must retain the ten explicit R0 rules")
         if any(
             row.get("product_fact") != "false"
             or row.get("evidence_class") != "C"
@@ -880,6 +881,7 @@ def main() -> int:
             "CENTRAL_ANCHOR_SQUARE_DATUM_R0": "P;C",
             "CELL_PARTITION_DATUM_R0": "P;C",
             "TOP_SHARED_PLENUM_R0": "P;I;C",
+            "VENT_RISER_CANDIDATE_R0": "I;C;U",
             "PERIM_SPLIT_GAP_R0": "P;C",
             "SIDE_WALL_BOUNDARY_R0": "D;I;C;U",
             "RESIDUAL_NUMERICAL_CLOSURE_R0": "C;U",
@@ -908,8 +910,8 @@ def main() -> int:
         with feature_path.open(newline="", encoding="utf-8") as handle:
             feature_rows = list(csv.DictReader(handle))
         feature_ids = {row.get("feature_id", "") for row in feature_rows}
-        if len(feature_rows) != 30 or len(feature_ids) != 30:
-            failures.append("P1 feature contract must contain 30 unique features")
+        if len(feature_rows) != 31 or len(feature_ids) != 31:
+            failures.append("P1 feature contract must contain 31 unique features")
         true_features = {row.get("feature_id") for row in feature_rows if row.get("product_fact") == "true"}
         if true_features != {"ENVELOPE_REF"}:
             failures.append("only ENVELOPE_REF may be a product fact in the P1 feature contract")
@@ -947,8 +949,8 @@ def main() -> int:
     if binding_path.is_file():
         with binding_path.open(newline="", encoding="utf-8") as handle:
             binding_rows = list(csv.DictReader(handle))
-        if len(binding_rows) != 31 or len({row.get("binding_id") for row in binding_rows}) != 31:
-            failures.append("P1 parameter-binding contract must contain 31 unique rows")
+        if len(binding_rows) != 37 or len({row.get("binding_id") for row in binding_rows}) != 37:
+            failures.append("P1 parameter-binding contract must contain 37 unique rows")
         if any(not row.get("parameter_id") or not row.get("source_locator") for row in binding_rows):
             failures.append("P1 parameter-binding contract contains a hidden or untraced input")
         if feature_ids and any(row.get("feature_id") not in feature_ids for row in binding_rows):
@@ -1024,10 +1026,10 @@ def main() -> int:
     if open_path.is_file():
         with open_path.open(newline="", encoding="utf-8") as handle:
             open_rows = list(csv.DictReader(handle))
-        if len(open_rows) != 15 or any(
+        if len(open_rows) != 16 or any(
             row.get("status") != "OPEN" or row.get("product_fact") != "false" for row in open_rows
         ):
-            failures.append("P1 open-question contract must retain 15 open non-product-fact rows")
+            failures.append("P1 open-question contract must retain 16 open non-product-fact rows")
         intake_mapping = next((row for row in open_rows if row.get("question_id") == "OQ002"), {})
         if intake_mapping.get("evidence_class") != "U":
             failures.append("true intake-group count and cell mapping must remain U-class")
@@ -1038,6 +1040,7 @@ def main() -> int:
             gate_rows = list(csv.DictReader(handle))
         required_gate_columns = {
             "selected_vent_candidate_set_id",
+            "selected_vent_riser_rule_id",
             "selected_orifice_pattern_id",
             "selected_exhaust_branch_id",
             "selected_cell_geometry_rule_id",
@@ -1560,6 +1563,7 @@ def main() -> int:
                 "ajm005-workbench-semantic-reconstruction-t1-v1",
                 "ajm005-spaceclaim-cad-t1-v2",
                 "ajm005-workbench-semantic-reconstruction-t1-v2",
+                "ajm006-spaceclaim-v02-preliminary-v1",
             }
             if (
                 set(profile_data) != {"schema_version", "production_contracts", "profiles"}
@@ -1673,7 +1677,7 @@ def main() -> int:
             )
             if (
                 completed_policy.returncode != 0
-                or "AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=10 tools=5"
+                or "AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=11 tools=5"
                 not in completed_policy.stdout
             ):
                 failures.append(

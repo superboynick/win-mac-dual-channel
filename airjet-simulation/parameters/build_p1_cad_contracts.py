@@ -76,6 +76,7 @@ def build_variant_rows(
                 "residual_top_mm": f"{top:.6f}",
                 "residual_bottom_mm": f"{bottom:.6f}",
                 "vent_candidate_set_id": vent_set,
+                "vent_riser_rule_id": "VENT_RISER_CANDIDATE_R0",
                 "orifice_pattern_id": f"{configuration_id}__{orifice_suffix}",
                 "exhaust_branch_id": f"{configuration_id}__{exhaust_suffix}",
                 "cell_geometry_rule_id": "CELL_CENTER_AND_TILE_R0",
@@ -113,6 +114,8 @@ def build_variant_rows(
         for row in rows
     ):
         raise ValueError("variant residual split does not close")
+    if any(row["vent_riser_rule_id"] != "VENT_RISER_CANDIDATE_R0" for row in rows):
+        raise ValueError("every P1 variant must bind the explicit vent riser closure")
     derived = [row for row in rows if row["variant_kind"] == "DERIVED_SINGLE_FACTOR"]
     if len(rows) != 9 or len(derived) != 3 or {
         str(row["changed_factor"]) for row in derived
@@ -681,6 +684,16 @@ def build_internal_rule_rows() -> list[dict[str, object]]:
             "One shared R0 distribution plenum; grouped and cellular top-chamber alternatives remain open questions",
         ),
         (
+            "VENT_RISER_CANDIDATE_R0",
+            "VENT_RISER_FLUID_CAND",
+            "FOR_EACH_SELECTED_VENT_SLOT_POLYGON CREATE_ONE_VERTICAL_PRISM_WITH_IDENTICAL_PLANFORM; NO_FLUID_OUTSIDE_THE_FOUR_SELECTED_SLOT_POLYGONS_IN_C019_TOP",
+            "Z_MIN=TOP_CHAMBER.z_max_mm_FROM_SELECTED_VARIANT",
+            "Z_MAX=D003",
+            "D003;C004;C014;C019;C020",
+            "DIRECT_FLUID_BODY_AND_UNION_WITH_TOP_SHARED_PLENUM",
+            "Four explicit C-class connectivity risers bridge the selected vent openings to the shared plenum; they are a numerical closure candidate, not identification of the production duct or the C019 layer",
+        ),
+        (
             "PERIM_SPLIT_GAP_R0",
             "PERIMETER_GAP_FLUID_CAND_TEMPLATE",
             "PER_CELL_PLANFORM=SQUARE(TILE_SIDE=P001+P014) MINUS SQUARE(MEMBRANE_SIDE=P001); ADJACENT_TILE_BOUNDARIES_SPLIT_AT_MIDPLANE",
@@ -704,11 +717,11 @@ def build_internal_rule_rows() -> list[dict[str, object]]:
             "RESIDUAL_NUMERICAL_CLOSURE_R0",
             "FLUID_DOMAIN_CLOSURE_DATUM_C;C017_SUPPORT_ALLOWANCE_REF;C019_TOP_REF;C019_BOTTOM_REF",
             "CONSTRUCT_AND_UNION_ONLY_DECLARED_FLUID_BODIES; NEVER_EXTRACT_OUTER_ENVELOPE_MINUS_ALL_SOLIDS; CREATE_DATUM_PLANES_AT_EVERY_THICKNESS_BUDGET_Z_BOUNDARY",
-            "Z_INTERVALS_C017_C019=NO_FLUID_BODY_CREATED",
-            "CLOSURE=DECLARED_FLUID_BODY_FACES_PLUS_SIDE_WALL_BOUNDARY_R0",
+            "Z_INTERVALS_C017_C019=NO_UNDECLARED_FLUID_BODY; EXCEPTION_ONLY_EXPLICIT_VENT_RISER_CANDIDATE_R0_WITHIN_SELECTED_SLOT_POLYGONS",
+            "CLOSURE=DECLARED_FLUID_BODY_FACES_PLUS_SIDE_WALL_BOUNDARY_R0; NEVER_FILL_C019_OUTSIDE_SELECTED_VENT_RISERS",
             "C017;C019;C020",
             "NUMERICAL_CLOSURE_DATUM_ONLY",
-            "Unknown residual/support intervals are neither air nor claimed solids; reference datums cap intended fluid bodies and never enter material mass or solver export",
+            "C017/C019 reference intervals are neither wholesale air nor claimed solids; their reference bodies never enter the fluid union. The only local exception is the separately declared C/U vent riser inside the four selected slot footprints; zero undeclared fluid is allowed outside those prisms",
         ),
         (
             "ORIFICE_PER_CELL_CENTERED_CLIP_R0",
@@ -742,6 +755,7 @@ def build_internal_rule_rows() -> list[dict[str, object]]:
                     "CENTRAL_ANCHOR_SQUARE_DATUM_R0": "P;C",
                     "CELL_PARTITION_DATUM_R0": "P;C",
                     "TOP_SHARED_PLENUM_R0": "P;I;C",
+                    "VENT_RISER_CANDIDATE_R0": "I;C;U",
                     "PERIM_SPLIT_GAP_R0": "P;C",
                     "SIDE_WALL_BOUNDARY_R0": "D;I;C;U",
                     "RESIDUAL_NUMERICAL_CLOSURE_R0": "C;U",
@@ -754,8 +768,8 @@ def build_internal_rule_rows() -> list[dict[str, object]]:
                 "notes": notes,
             }
         )
-    if len(rows) != 9 or any(row["product_fact"] != "false" for row in rows):
-        raise ValueError("internal rule table must contain nine non-product-fact R0 rules")
+    if len(rows) != 10 or any(row["product_fact"] != "false" for row in rows):
+        raise ValueError("internal rule table must contain ten non-product-fact R0 rules")
     return rows
 
 
@@ -833,10 +847,11 @@ def build_feature_rows() -> list[dict[str, object]]:
     add("C017_SUPPORT_ALLOWANCE_REF", "C017_SUPPORT_ALLOWANCE_REF", "CONSTRUCTION_BODY", "ROOT_PRODUCT", "1", "U", "U", "C", "C", "C017", "registry geometric bookkeeping only", "NONE", "thickness bookkeeping", "GEOMETRY_ONLY_NO_PHYSICS", "PROHIBITED", "EXCLUDE", "NO_BOOLEAN", "DO_NOT_EXPORT", "STACK_RESIDUAL_BRANCH", "C017", "P1_G3_THICKNESS", "NOT_BUILT", "must not become a physical solid")
     add("C019_TOP_REF", "C019_TOP_REF_U", "CONSTRUCTION_BODY", "ROOT_PRODUCT", "1", "U", "U", "U", "C", "C019;C020", "derived unresolved stack split", "NONE", "thickness bookkeeping", "GEOMETRY_ONLY_NO_PHYSICS", "PROHIBITED", "EXCLUDE", "NO_BOOLEAN", "DO_NOT_EXPORT", "STACK_RESIDUAL_BRANCH", "C019_TOP", "P1_G3_THICKNESS", "NOT_BUILT", "not an identified layer or location")
     add("C019_BOTTOM_REF", "C019_BOTTOM_REF_U", "CONSTRUCTION_BODY", "ROOT_PRODUCT", "1", "U", "U", "U", "C", "C019;C020", "derived unresolved stack split", "NONE", "thickness bookkeeping", "GEOMETRY_ONLY_NO_PHYSICS", "PROHIBITED", "EXCLUDE", "NO_BOOLEAN", "DO_NOT_EXPORT", "STACK_RESIDUAL_BRANCH", "C019_BOTTOM", "P1_G3_THICKNESS", "NOT_BUILT", "not an identified layer or location")
-    add("FLUID_DOMAIN_CLOSURE_DATUM_C", "FLUID_DOMAIN_CLOSURE_DATUM_C", "CONSTRUCTION_BODY", "ROOT_PRODUCT", "THICKNESS_BUDGET_Z_DATUM_SET", "C", "C", "C", "C", "C017;C019;C020", "p1_internal_geometry_rules.csv RESIDUAL_NUMERICAL_CLOSURE_R0", "NONE", "nonphysical fluid extraction closure datum", "GEOMETRY_ONLY_NO_PHYSICS", "PROHIBITED", "EXCLUDE", "FLUID_BOUNDARY_DATUM_ONLY_NO_PRODUCT_BOOLEAN", "DO_NOT_EXPORT", "NUMERICAL_CLOSURE", "RESIDUAL_NUMERICAL_CLOSURE_R0", "P1_G2_CONNECTIVITY", "NOT_BUILT", "construct only declared fluid bodies; residual intervals are neither fluid nor identified solids")
+    add("FLUID_DOMAIN_CLOSURE_DATUM_C", "FLUID_DOMAIN_CLOSURE_DATUM_C", "CONSTRUCTION_BODY", "ROOT_PRODUCT", "THICKNESS_BUDGET_Z_DATUM_SET", "C", "C", "C", "C", "C017;C019;C020", "p1_internal_geometry_rules.csv RESIDUAL_NUMERICAL_CLOSURE_R0", "NONE", "nonphysical fluid extraction closure datum", "GEOMETRY_ONLY_NO_PHYSICS", "PROHIBITED", "EXCLUDE", "FLUID_BOUNDARY_DATUM_ONLY_NO_PRODUCT_BOOLEAN", "DO_NOT_EXPORT", "NUMERICAL_CLOSURE", "RESIDUAL_NUMERICAL_CLOSURE_R0", "P1_G2_CONNECTIVITY", "NOT_BUILT", "C017/C019 reference bodies never enter the fluid union; only the separately declared C/U vent riser may occupy local C019_TOP volume inside the four selected slot footprints")
     add("HEAT_SPREADER_CAND", "HEAT_SPREADER_CAND", "SOLID_CANDIDATE", "ROOT_PRODUCT", "1", "I", "I", "C", "C", "C009;C010", "official cross-section supports qualitative heat-spreader existence", "EXISTENCE_ONLY", "candidate heat-spreading wall", "P1_CFD_WALL_PROXY", "UNASSIGNED", "EXCLUDE", "BASE_SOLID_CANDIDATE", "NATIVE_AND_STEP", "SPREADER_BRANCH", "C009_R0", "P1_GEOMETRY_REVIEW", "NOT_BUILT", "material, conductivity, and mass are not identified in P1")
     add("SPOUT_SOLID_CAND_U", "SPOUT_SOLID_CAND_U", "CONSTRUCTION_BODY", "ROOT_PRODUCT", "1", "I", "I", "C", "C", "C005;P010", "official qualitative topology plus p1_planform_exhaust_candidates.csv", "QUALITATIVE_TOPOLOGY_ONLY", "candidate spout boundary construction", "GEOMETRY_ONLY_NO_PHYSICS", "PROHIBITED", "EXCLUDE", "WALL_PROXY_ONLY", "DO_NOT_EXPORT_AS_IDENTIFIED_PART", "EXHAUST_BRANCH", "SEE_PLANFORM_EXHAUST_TABLE", "P1_TOPOLOGY_REVIEW", "NOT_BUILT", "R0 CAD branch is explicit C geometry; production cross-section and wall thickness remain U")
     add("EXTERNAL_INLET_DOMAIN_C", "EXTERNAL_INLET_DOMAIN_C", "FLUID", "ROOT_PRODUCT", "1", "C", "C", "C", "C", "NONE", "numerical-domain choice", "NONE", "optional external CFD domain", "P1_CFD_FLUID_CANDIDATE", "NOT_APPLICABLE", "NOT_APPLICABLE", "VOLUME_EXTRACT", "NATIVE_AND_STEP", "EXTERNAL_DOMAIN", "P1_OPTIONAL", "P4_ENTRY", "NOT_BUILT", "not a product component")
+    add("VENT_RISER_FLUID_CAND", "VENT_RISER_FLUID_CAND_SET_R0", "FLUID", "ROOT_PRODUCT", "4_FROM_SELECTED_VENT_SET_PRE_UNION", "C", "C", "C", "C", "D003;C004;C014;C015;C019;C020", "selected vent planforms plus VENT_RISER_CANDIDATE_R0; vertical path is not observed", "VENT_PLANFORM_INHERITED_ONLY", "candidate intake connectivity fluid", "P1_CFD_FLUID_CANDIDATE", "NOT_APPLICABLE", "NOT_APPLICABLE", "DIRECT_BUILD_AND_UNION", "UNION_INTO_UPSTREAM_NATIVE_AND_STEP", "VENT_TO_PLENUM_CONNECTIVITY", "VENT_RISER_CANDIDATE_R0", "P1_G2_CONNECTIVITY", "NOT_BUILT", "four slot-footprint prisms are pre-union construction provenance only; STEP retains one upstream fluid body and four inlet faces, not four riser bodies; the vertical duct is a C/U candidate and does not identify C019 as air")
     add("TOP_CHAMBER_FLUID_CAND_TEMPLATE", "TOP_CHAMBER_FLUID_CAND_SHARED_R0", "FLUID", "ROOT_PRODUCT", "1_SHARED_R0", "P", "C", "C", "C", "P005;C001;C004;C014", "US12137540B2 chamber embodiments plus TOP_SHARED_PLENUM_R0", "NONE", "candidate shared intake plenum fluid", "P1_CFD_FLUID_CANDIDATE", "NOT_APPLICABLE", "NOT_APPLICABLE", "DIRECT_BUILD_AND_VOLUME_CHECK", "NATIVE_AND_STEP", "SHARED_VS_CELLULAR", "TOP_SHARED_PLENUM_R0", "P1_G2_CONNECTIVITY", "NOT_BUILT", "R0 selects shared C branch; grouped/cellular production topology remains open")
     add("PERIMETER_GAP_FLUID_CAND_TEMPLATE", "PERIMETER_GAP_FLUID_CAND__CELL_{NNN}", "FLUID", "ROOT_PRODUCT", "N_CELL_FROM_CONFIGURATION", "P", "P", "C", "C", "P001;P014;P002;P005;C018", "patent-compatible path plus PERIM_SPLIT_GAP_R0", "NONE", "candidate transfer fluid", "P1_CFD_FLUID_CANDIDATE", "NOT_APPLICABLE", "NOT_APPLICABLE", "DIRECT_BUILD_AND_UNION", "NATIVE_AND_STEP", "TRANSFER_GAP_BRANCH", "PERIM_SPLIT_GAP_R0", "P1_G2_CONNECTIVITY", "NOT_BUILT", "R0 exact ring is C; production cross-section remains unresolved")
     add("BOTTOM_CHAMBER_FLUID_CAND_TEMPLATE", "BOTTOM_CHAMBER_FLUID_CAND__CELL_{NNN}", "FLUID", "ROOT_PRODUCT", "N_CELL_FROM_CONFIGURATION", "P", "P", "C", "C", "P001;C018;P004;P006", "derived from patent displacement and clearance relationship plus BOTTOM_CHAMBER_PER_CELL_SQUARE_R0", "NONE", "candidate bottom chamber fluid", "P1_CFD_FLUID_CANDIDATE", "NOT_APPLICABLE", "NOT_APPLICABLE", "DIRECT_BUILD_AND_UNION", "NATIVE_AND_STEP", "BOTTOM_CHAMBER_BRANCH", "BOTTOM_CHAMBER_PER_CELL_SQUARE_R0", "P1_G2_CONNECTIVITY", "NOT_BUILT", "R0 planform is the centered P001 square; Z max is the membrane bottom and Z min is C018 below it; union only through declared perimeter-gap and orifice interfaces")
@@ -889,6 +904,12 @@ def build_binding_rows(
         ("TOP_COVER_CAND", "INTAKE_GEOMETRY", "C004", "false", "P1_IMAGE_REVIEW"),
         ("VENT_DRAWN_01_I", "WIDTH_PRIOR", "P013", "false", "P1_IMAGE_REVIEW"),
         ("VENT_DRAWN_01_I", "DRAWN_OBJECT_COUNT", "C014", "false", "P1_IMAGE_REVIEW"),
+        ("VENT_RISER_FLUID_CAND", "VENT_PLANFORM_DATASET", "C004", "true", "P1_G2_CONNECTIVITY"),
+        ("VENT_RISER_FLUID_CAND", "RISER_COUNT_FROM_DRAWN_OBJECTS", "C014", "true", "P1_G2_CONNECTIVITY"),
+        ("VENT_RISER_FLUID_CAND", "PRODUCT_TOP_Z", "D003", "true", "P1_G2_CONNECTIVITY"),
+        ("VENT_RISER_FLUID_CAND", "TOP_COVER_THICKNESS_REFERENCE", "C015", "true", "P1_G2_CONNECTIVITY"),
+        ("VENT_RISER_FLUID_CAND", "RESIDUAL_TOTAL_REFERENCE", "C019", "true", "P1_G2_CONNECTIVITY"),
+        ("VENT_RISER_FLUID_CAND", "RESIDUAL_TOP_FRACTION_REFERENCE", "C020", "true", "P1_G2_CONNECTIVITY"),
         ("CELL_PARTITION_CAND_TEMPLATE", "WALL_CLEARANCE", "P014", "true", "P1_TOPOLOGY_REVIEW"),
         ("MEMBRANE_CAND_TEMPLATE", "EFFECTIVE_LENGTH", "P001", "true", "P2_ENTRY"),
         ("MEMBRANE_CAND_TEMPLATE", "EFFECTIVE_THICKNESS_R0", "P002", "true", "P2_ENTRY"),
@@ -959,7 +980,7 @@ def build_binding_rows(
 def build_interface_rows() -> list[dict[str, object]]:
     specs = [
         ("IF001", "EXTERNAL_INLET_DOMAIN_C", "TOP_COVER_CAND", "optional external inlet domain to four vent faces", "I", "C", "NS_EXTERNAL_PLENUM_VENT_FACES_C", "NS_VENT_DRAWN_SET_I", "FLUID_CONTINUITY", "false", "P1_OPTIONAL_P4_REQUIRED", "P4_ENTRY"),
-        ("IF002", "TOP_COVER_CAND", "TOP_CHAMBER_FLUID_CAND_TEMPLATE", "four vent openings to shared R0 top plenum", "I", "C", "NS_VENT_DRAWN_SET_I", "NS_TOP_PLENUM_VENT_FACES_C", "FLUID_CONTINUITY", "true", "P1_REQUIRED", "P1_G2_CONNECTIVITY"),
+        ("IF002", "TOP_COVER_CAND", "VENT_RISER_FLUID_CAND", "four vent openings to four explicit R0 risers before union into the upstream fluid body", "I", "C", "NS_VENT_DRAWN_SET_I", "NS_VENT_RISER_INLET_FACES_C", "FLUID_CONTINUITY", "true", "P1_REQUIRED", "P1_G2_CONNECTIVITY"),
         ("IF003", "TOP_CHAMBER_FLUID_CAND_TEMPLATE", "PERIMETER_GAP_FLUID_CAND_TEMPLATE", "top plenum to each perimeter transfer", "P", "C", "NS_TOP_PLENUM_TO_PERIM__CELL_{NNN}", "NS_PERIM_FROM_TOP__CELL_{NNN}", "FLUID_CONTINUITY", "true", "P1_REQUIRED", "P1_G2_CONNECTIVITY"),
         ("IF004", "PERIMETER_GAP_FLUID_CAND_TEMPLATE", "BOTTOM_CHAMBER_FLUID_CAND_TEMPLATE", "each perimeter transfer to bottom chamber", "P", "C", "NS_PERIM_TO_BOTTOM__CELL_{NNN}", "NS_BOTTOM_FROM_PERIM__CELL_{NNN}", "FLUID_CONTINUITY", "true", "P1_REQUIRED", "P1_G2_CONNECTIVITY"),
         ("IF005", "BOTTOM_CHAMBER_FLUID_CAND_TEMPLATE", "ORIFICE_FLUID_SET_CAND_TEMPLATE", "bottom chamber to orifice throats", "P", "C", "NS_BOTTOM_TO_ORIFICE__CELL_{NNN}", "NS_ORIFICE_FROM_BOTTOM__CELL_{NNN}", "FLUID_CONTINUITY", "true", "P1_REQUIRED", "P1_G4_ORIFICE_CLOSURE"),
@@ -1028,7 +1049,7 @@ def build_named_selection_rows() -> list[dict[str, object]]:
         ("NS_VENT_DRAWN_02_I", "VENT_DRAWN_02_I", "FACE", "DRAWN_VENT_CANDIDATE", "P1_P4", "I", "DRAWN_OBJECTS_ONLY", "1", "INTO_PRODUCT_CANDIDATE", "AREA_GT_ZERO", "true"),
         ("NS_VENT_DRAWN_03_I", "VENT_DRAWN_03_I", "FACE", "DRAWN_VENT_CANDIDATE", "P1_P4", "I", "DRAWN_OBJECTS_ONLY", "1", "INTO_PRODUCT_CANDIDATE", "AREA_GT_ZERO", "true"),
         ("NS_VENT_DRAWN_04_I", "VENT_DRAWN_04_I", "FACE", "DRAWN_VENT_CANDIDATE", "P1_P4", "I", "DRAWN_OBJECTS_ONLY", "1", "INTO_PRODUCT_CANDIDATE", "AREA_GT_ZERO", "true"),
-        ("NS_TOP_PLENUM_VENT_FACES_C", "TOP_CHAMBER_FLUID_CAND_TEMPLATE", "FACE_SET", "FOUR_VENTS_TO_SHARED_PLENUM", "P1_P4", "C", "NONE", "4", "INTO_TOP_PLENUM", "FACE_COUNT_EQUALS_4_AND_AREA_MATCHES_VENT_SET", "true"),
+        ("NS_VENT_RISER_INLET_FACES_C", "VENT_RISER_FLUID_CAND", "FACE_SET", "FOUR_VENT_OPENINGS_TO_UPSTREAM_FLUID", "P1_P4", "C", "DRAWN_OBJECTS_ONLY", "4", "FROM_TOP_COVER", "FACE_COUNT_EQUALS_4_AND_AREA_MATCHES_VENT_SET_AFTER_UPSTREAM_UNION", "true"),
         ("NS_TOP_PLENUM_BODY_C", "TOP_CHAMBER_FLUID_CAND_TEMPLATE", "BODY", "SHARED_TOP_PLENUM", "P1_P3_P4", "C", "NONE", "1", "NOT_APPLICABLE", "BODY_VOLUME_GT_ZERO", "true"),
         ("NS_TOP_PLENUM_TO_PERIM__CELL_{NNN}", "TOP_CHAMBER_FLUID_CAND_TEMPLATE", "FACE", "TOP_PLENUM_TO_CELL_TRANSFER", "P1_P3_P4", "C", "NONE", "N_CELL", "TOWARD_PERIMETER_GAP", "ONE_FACE_PER_CELL_AREA_GT_ZERO", "true"),
         ("NS_PERIM_FROM_TOP__CELL_{NNN}", "PERIMETER_GAP_FLUID_CAND_TEMPLATE", "FACE", "PERIMETER_FROM_TOP_PLENUM", "P1_P3_P4", "C", "NONE", "N_CELL", "FROM_TOP_PLENUM", "AREA_MATCHES_PAIRED_TOP_FACE", "true"),
@@ -1106,6 +1127,7 @@ def build_open_question_rows(registry: dict[str, dict[str, str]]) -> list[dict[s
         ("OQ013", "ROOT_PRODUCT", "materials densities and complete mass allocation", "U", "TBD", "export volumes and unresolved mass separately", "candidate geometry closes exactly to 11 g", "P1_MASS_BUDGET_REVIEW", "material evidence or measured component masses"),
         ("OQ014", "ROOT_PRODUCT", "external fillets chamfers and manufacturing details", "U", "TBD", "suppress in R0 unless required for topology", "marketing render edge treatment is dimensioned", "P1_GEOMETRY_REVIEW", "dimensioned image or measurement"),
         ("OQ015", "EXTERNAL_INLET_DOMAIN_C", "external plenum and test-domain extent", "C", "TBD", "defer final domain to P4 and label numerical", "external domain is a product component", "P4_ENTRY", "domain-independence study"),
+        ("OQ016", "VENT_RISER_FLUID_CAND", "true three-dimensional vent-to-plenum path and cross-section", "U", "TBD", "use four vertical slot-footprint prisms only as the explicit C/U R0 connectivity candidate", "the vertical risers are observed production ducts or C019 is an air layer", "P1_TOPOLOGY_REVIEW", "internal section imaging CT teardown or an explicit product-mapped patent section"),
     ]
     rows: list[dict[str, object]] = []
     for question_id, feature_id, question, evidence_class, current, allowed, prohibited, gate, needed in specs:
@@ -1140,11 +1162,11 @@ def build_gate_rows(variant_rows: list[dict[str, object]]) -> list[dict[str, obj
         ("G1_CONFIGURATION", "Nx Ny cell count membrane size and spans match input map", "zero unexplained parameter deviations", "true"),
         ("G1_ALL_BODIES_INSIDE", "all product candidate bodies remain inside envelope", "zero out-of-envelope product bodies except declared flex reference", "true"),
         ("G1_VENT_BRANCH", "one complete four-object vent candidate set is selected and recorded", "all four cuts come from one candidate_set_id; no group-count inference", "true"),
-        ("G1_INTERNAL_RULES", "all nine membrane tile anchor bottom chamber partition top plenum perimeter gap side wall residual closure and orifice grid rules are recorded", "all nine R0 rule IDs equal the generated variant manifest; no hidden CAD constants", "true"),
+        ("G1_INTERNAL_RULES", "all ten membrane tile anchor bottom chamber partition top plenum vent riser perimeter gap side wall residual closure and orifice grid rules are recorded", "all ten R0 rule IDs equal the generated variant manifest; vent riser is a local C-class connectivity candidate and no hidden CAD constants are permitted", "true"),
         ("G2_FULL_PATH", "inlet to single-side outlet path is complete", "connectivity graph reaches outlet", "true"),
         ("G2_EACH_CELL_CONNECTED", "every modeled cell reaches inlet and final outlet", "connected cell count equals configured N_CELL", "true"),
         ("G3_THICKNESS", "stack bookkeeping closes to 2.8 mm", "absolute closure error <= 0.000001 mm", "true"),
-        ("G3_RESIDUAL_GUARD", "C017 C019 central-anchor and cell-partition datums have no physics", "no material mass structural CHT Boolean solver export or fluid-union membership; exact excluded feature IDs recorded", "true"),
+        ("G3_RESIDUAL_GUARD", "C017 C019 central-anchor and cell-partition reference datums have no physics", "C017_SUPPORT_ALLOWANCE_REF C019_TOP_REF C019_BOTTOM_REF CENTRAL_ANCHOR_CAND_TEMPLATE and CELL_PARTITION_CAND_TEMPLATE have no material mass structural CHT Boolean solver export or fluid-union membership; the only local C019_TOP exception is VENT_RISER_FLUID_CAND inside the four selected slot footprints, with zero undeclared fluid outside", "true"),
         ("G4_INTERFERENCE", "interference count in exported physical candidate solids and required fluid bodies", "0; exclude declared CONSTRUCTION_BODY CONSTRUCTION_SURFACE REFERENCE and KEEP_OUT datums and record their feature IDs", "true"),
         ("G4_ZERO_THICKNESS", "invalid zero-thickness and sliver count in exported physical candidate solids and required fluid bodies", "0; declared zero-thickness construction datums are excluded and separately guarded", "true"),
         ("G4_DUPLICATE_FACES", "duplicate-face count in exported physical candidate solids and required fluid bodies", "0; construction/reference datums are excluded from this count", "true"),
@@ -1185,6 +1207,7 @@ def build_gate_rows(variant_rows: list[dict[str, object]]) -> list[dict[str, obj
                     "comparison_parent_variant_id": variant["comparison_parent_variant_id"],
                     "changed_factor": variant["changed_factor"],
                     "selected_vent_candidate_set_id": variant["vent_candidate_set_id"],
+                    "selected_vent_riser_rule_id": variant["vent_riser_rule_id"],
                     "selected_orifice_pattern_id": variant["orifice_pattern_id"],
                     "selected_exhaust_branch_id": variant["exhaust_branch_id"],
                     "selected_cell_geometry_rule_id": variant["cell_geometry_rule_id"],
@@ -1254,6 +1277,7 @@ def validate_cross_contracts(
         "CENTRAL_ANCHOR_SQUARE_DATUM_R0",
         "CELL_PARTITION_DATUM_R0",
         "TOP_SHARED_PLENUM_R0",
+        "VENT_RISER_CANDIDATE_R0",
         "PERIM_SPLIT_GAP_R0",
         "SIDE_WALL_BOUNDARY_R0",
         "RESIDUAL_NUMERICAL_CLOSURE_R0",

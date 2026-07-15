@@ -110,6 +110,30 @@ def main():
         assert len(blueprint["frames"]) == summary["cell_count"] + 1
         assert all(frame["cell_index"] is not None for frame in blueprint["frames"][1:])
         assert len(set(frame["frame_id"] for frame in blueprint["frames"])) == len(blueprint["frames"])
+        namespace = blueprint["configuration"]["key_namespace"]
+        upstream_key = generator.key(namespace, "body", "fluid_upstream")
+        downstream_key = generator.key(namespace, "body", "fluid_downstream")
+        entities = dict(
+            (item["semantic_key"], item)
+            for item in blueprint["entity_blueprints"]
+        )
+        groups = dict((item["solver_name"], item) for item in blueprint["groups"])
+        assert blueprint["configuration"]["expected_entity_cardinality"]["BODY"] == 2
+        assert set(
+            item["semantic_key"]
+            for item in blueprint["entity_blueprints"]
+            if item["entity_kind"] == "BODY"
+        ) == {upstream_key, downstream_key}
+        assert groups["UPSTREAM_FLUID_BODY"]["member_keys"] == [upstream_key]
+        assert groups["DOWNSTREAM_FLUID_BODY"]["member_keys"] == [downstream_key]
+        assert groups["ORIFICE_EXIT"]["partition_family"] == "fluid_interfaces"
+        assert groups["ORIFICE_EXIT"]["member_keys"]
+        assert all(
+            entities[item_key]["owner_key"] == upstream_key
+            and set(entities[item_key]["topology"]["required_adjacent_keys"])
+            == {upstream_key, downstream_key}
+            for item_key in groups["ORIFICE_EXIT"]["member_keys"]
+        )
         cell_counts.append(summary["cell_count"])
         entity_counts.append(summary["semantic_entity_count"])
         source_hashes = dict((item["contract_key"], item["sha256"]) for item in campaign["source_contracts"])
@@ -140,6 +164,34 @@ def main():
     generator.validate_gen1_target(campaign, blueprints)
 
     negative = 0
+    variant_rows = generator.read_csv(
+        "airjet-simulation/parameters/p1_model_form_variants.csv"
+    )
+    internal_rule_rows = generator.read_csv(
+        "airjet-simulation/parameters/p1_internal_geometry_rules.csv"
+    )
+    generator.validate_variant_internal_rule_contract(
+        variant_rows, internal_rule_rows
+    )
+    wrong_riser_binding = copy.deepcopy(variant_rows)
+    wrong_riser_binding[0]["vent_riser_rule_id"] = "TOP_SHARED_PLENUM_R0"
+    expect_code(
+        lambda: generator.validate_variant_internal_rule_contract(
+            wrong_riser_binding, internal_rule_rows
+        ),
+        "GEN1_VARIANT_INTERNAL_RULE_BINDING",
+    ); negative += 1
+    missing_riser_rule = copy.deepcopy(internal_rule_rows)
+    missing_riser_rule = [
+        item for item in missing_riser_rule
+        if item["rule_id"] != "VENT_RISER_CANDIDATE_R0"
+    ]
+    expect_code(
+        lambda: generator.validate_variant_internal_rule_contract(
+            variant_rows, missing_riser_rule
+        ),
+        "GEN1_INTERNAL_RULE_SET",
+    ); negative += 1
     assert generator.canonical_source_contract_bytes(b"alpha\n") == generator.canonical_source_contract_bytes(b"alpha\r\n")
     expect_code(
         lambda: generator.canonical_source_contract_bytes(b"alpha\rbeta\n"),
@@ -182,10 +234,123 @@ def main():
     expect_code(lambda: generator.validate_gen1_target(campaign, [missing_core_test] + blueprints[1:]), "GEN1_BLUEPRINT_TARGET"); negative += 1
     missing_observer_manifest = copy.deepcopy(blueprints[0]); missing_observer_manifest["artifact_contracts"] = [item for item in missing_observer_manifest["artifact_contracts"] if item["role"] != "OBSERVER_ARTIFACT_MANIFEST"]
     expect_code(lambda: generator.validate_gen1_target(campaign, [missing_observer_manifest] + blueprints[1:]), "GEN1_BLUEPRINT_TARGET"); negative += 1
+    single_zone = copy.deepcopy(blueprints[0])
+    single_zone["configuration"]["expected_entity_cardinality"]["BODY"] = 1
+    expect_code(
+        lambda: generator.validate_gen1_target(
+            campaign, [single_zone] + blueprints[1:]
+        ),
+        "GEN1_BLUEPRINT_TWO_ZONE_BODY_CONTRACT",
+    ); negative += 1
+    broken_interface = copy.deepcopy(blueprints[0])
+    broken_entities = dict(
+        (item["semantic_key"], item)
+        for item in broken_interface["entity_blueprints"]
+    )
+    broken_groups = dict(
+        (item["solver_name"], item) for item in broken_interface["groups"]
+    )
+    first_orifice = broken_groups["ORIFICE_EXIT"]["member_keys"][0]
+    broken_entities[first_orifice]["topology"]["required_adjacent_keys"].pop()
+    expect_code(
+        lambda: generator.validate_gen1_target(
+            campaign, [broken_interface] + blueprints[1:]
+        ),
+        "GEN1_BLUEPRINT_TWO_ZONE_SURFACE_CONTRACT",
+    ); negative += 1
+
+    wrong_outlet_owner = copy.deepcopy(blueprints[0])
+    wrong_outlet_entities = dict(
+        (item["semantic_key"], item)
+        for item in wrong_outlet_owner["entity_blueprints"]
+    )
+    wrong_outlet_groups = dict(
+        (item["solver_name"], item) for item in wrong_outlet_owner["groups"]
+    )
+    outlet_key = wrong_outlet_groups["OUTLET"]["member_keys"][0]
+    wrong_outlet_entities[outlet_key]["owner_key"] = generator.key(
+        wrong_outlet_owner["configuration"]["key_namespace"], "body", "fluid_upstream"
+    )
+    wrong_outlet_entities[outlet_key]["topology"]["required_adjacent_keys"] = [
+        wrong_outlet_entities[outlet_key]["owner_key"]
+    ]
+    expect_code(
+        lambda: generator.validate_gen1_target(
+            campaign, [wrong_outlet_owner] + blueprints[1:]
+        ),
+        "GEN1_BLUEPRINT_TWO_ZONE_SURFACE_CONTRACT",
+    ); negative += 1
+
+    wrong_heat_owner = copy.deepcopy(blueprints[0])
+    wrong_heat_entities = dict(
+        (item["semantic_key"], item)
+        for item in wrong_heat_owner["entity_blueprints"]
+    )
+    wrong_heat_groups = dict(
+        (item["solver_name"], item) for item in wrong_heat_owner["groups"]
+    )
+    heat_key = wrong_heat_groups["HEAT_WALL"]["member_keys"][0]
+    wrong_heat_entities[heat_key]["owner_key"] = generator.key(
+        wrong_heat_owner["configuration"]["key_namespace"], "body", "fluid_upstream"
+    )
+    wrong_heat_entities[heat_key]["topology"]["required_adjacent_keys"] = [
+        wrong_heat_entities[heat_key]["owner_key"]
+    ]
+    expect_code(
+        lambda: generator.validate_gen1_target(
+            campaign, [wrong_heat_owner] + blueprints[1:]
+        ),
+        "GEN1_BLUEPRINT_TWO_ZONE_SURFACE_CONTRACT",
+    ); negative += 1
+
+    wrong_interface_family = copy.deepcopy(blueprints[0])
+    wrong_interface_groups = dict(
+        (item["solver_name"], item) for item in wrong_interface_family["groups"]
+    )
+    wrong_interface_groups["ORIFICE_EXIT"]["partition_family"] = "fluid_boundaries"
+    expect_code(
+        lambda: generator.validate_gen1_target(
+            campaign, [wrong_interface_family] + blueprints[1:]
+        ),
+        "GEN1_BLUEPRINT_TWO_ZONE_GROUP_CONTRACT",
+    ); negative += 1
+
+    wrong_interface_direction = copy.deepcopy(blueprints[0])
+    wrong_direction_entities = dict(
+        (item["semantic_key"], item)
+        for item in wrong_interface_direction["entity_blueprints"]
+    )
+    wrong_direction_groups = dict(
+        (item["solver_name"], item) for item in wrong_interface_direction["groups"]
+    )
+    first_orifice = wrong_direction_groups["ORIFICE_EXIT"]["member_keys"][0]
+    wrong_direction_entities[first_orifice]["direction_constraint"] = {
+        "mode": "OUTWARD_FROM_OWNER", "vector": None, "tolerance_deg": 15.0
+    }
+    expect_code(
+        lambda: generator.validate_gen1_target(
+            campaign, [wrong_interface_direction] + blueprints[1:]
+        ),
+        "GEN1_BLUEPRINT_TWO_ZONE_DIRECTION_CONTRACT",
+    ); negative += 1
+
+    missing_interface_partition_member = copy.deepcopy(blueprints[0])
+    interface_partition = next(
+        item for item in missing_interface_partition_member["partitions"]
+        if item["partition_key"].endswith(".fluid_interfaces")
+    )
+    interface_partition["universe_keys"].pop()
+    expect_code(
+        lambda: generator.validate_gen1_target(
+            campaign, [missing_interface_partition_member] + blueprints[1:]
+        ),
+        "GEN1_BLUEPRINT_TWO_ZONE_PARTITION_CONTRACT",
+    ); negative += 1
 
     print(
         "FULL_PRODUCT_TRUSTED_VARIANT_TESTS=PASS product=AIRJET_MINI_GEN1 "
-        "variants=9 cells=8,12,15 negative=%d g2_rejected=PASS" % negative
+        "variants=9 cells=8,12,15 negative=%d g2_rejected=PASS "
+        "topology=TWO_FLUID_ZONE" % negative
     )
 
 

@@ -847,14 +847,15 @@ if (Test-Path -LiteralPath $InternalRulePath) {
         'CENTRAL_ANCHOR_SQUARE_DATUM_R0',
         'CELL_PARTITION_DATUM_R0',
         'TOP_SHARED_PLENUM_R0',
+        'VENT_RISER_CANDIDATE_R0',
         'PERIM_SPLIT_GAP_R0',
         'SIDE_WALL_BOUNDARY_R0',
         'RESIDUAL_NUMERICAL_CLOSURE_R0',
         'ORIFICE_PER_CELL_CENTERED_CLIP_R0'
     )
     $ActualRuleIds = @($InternalRuleRows | ForEach-Object { $_.rule_id } | Sort-Object -Unique)
-    if ($InternalRuleRows.Count -ne 9 -or @(Compare-Object ($ExpectedRuleIds | Sort-Object) $ActualRuleIds).Count -gt 0) {
-        Add-Failure 'P1 internal geometry table must retain the nine explicit R0 rules'
+    if ($InternalRuleRows.Count -ne 10 -or @(Compare-Object ($ExpectedRuleIds | Sort-Object) $ActualRuleIds).Count -gt 0) {
+        Add-Failure 'P1 internal geometry table must retain the ten explicit R0 rules'
     }
     if (@($InternalRuleRows | Where-Object {
         $_.product_fact -ne 'false' -or $_.evidence_class -ne 'C' -or
@@ -868,6 +869,7 @@ if (Test-Path -LiteralPath $InternalRulePath) {
         CENTRAL_ANCHOR_SQUARE_DATUM_R0 = 'P;C'
         CELL_PARTITION_DATUM_R0 = 'P;C'
         TOP_SHARED_PLENUM_R0 = 'P;I;C'
+        VENT_RISER_CANDIDATE_R0 = 'I;C;U'
         PERIM_SPLIT_GAP_R0 = 'P;C'
         SIDE_WALL_BOUNDARY_R0 = 'D;I;C;U'
         RESIDUAL_NUMERICAL_CLOSURE_R0 = 'C;U'
@@ -888,7 +890,7 @@ $FeatureContractPath = Join-Path $RepoRoot 'airjet-simulation\geometry\contracts
 if (Test-Path -LiteralPath $FeatureContractPath) {
     $FeatureRows = @(Import-Csv -LiteralPath $FeatureContractPath -Encoding UTF8)
     $FeatureIds = @($FeatureRows | ForEach-Object { $_.feature_id } | Select-Object -Unique)
-    if ($FeatureRows.Count -ne 30 -or $FeatureIds.Count -ne 30) { Add-Failure 'P1 feature contract must contain 30 unique features' }
+    if ($FeatureRows.Count -ne 31 -or $FeatureIds.Count -ne 31) { Add-Failure 'P1 feature contract must contain 31 unique features' }
     $TrueFeatures = @($FeatureRows | Where-Object { $_.product_fact -eq 'true' })
     if ($TrueFeatures.Count -ne 1 -or $TrueFeatures[0].feature_id -ne 'ENVELOPE_REF') {
         Add-Failure 'only ENVELOPE_REF may be a product fact in the P1 feature contract'
@@ -920,7 +922,7 @@ $BindingContractPath = Join-Path $RepoRoot 'airjet-simulation\geometry\contracts
 if (Test-Path -LiteralPath $BindingContractPath) {
     $BindingRows = @(Import-Csv -LiteralPath $BindingContractPath -Encoding UTF8)
     $BindingIds = @($BindingRows | ForEach-Object { $_.binding_id } | Select-Object -Unique)
-    if ($BindingRows.Count -ne 31 -or $BindingIds.Count -ne 31 -or @($BindingRows | Where-Object {
+    if ($BindingRows.Count -ne 37 -or $BindingIds.Count -ne 37 -or @($BindingRows | Where-Object {
         [string]::IsNullOrWhiteSpace($_.parameter_id) -or [string]::IsNullOrWhiteSpace($_.source_locator)
     }).Count -gt 0) {
         Add-Failure 'P1 parameter-binding contract count or provenance changed'
@@ -984,8 +986,8 @@ if (Test-Path -LiteralPath $NamedContractPath) {
 $OpenQuestionPath = Join-Path $RepoRoot 'airjet-simulation\geometry\contracts\p1_cad_open_questions.csv'
 if (Test-Path -LiteralPath $OpenQuestionPath) {
     $OpenRows = @(Import-Csv -LiteralPath $OpenQuestionPath -Encoding UTF8)
-    if ($OpenRows.Count -ne 15 -or @($OpenRows | Where-Object { $_.status -ne 'OPEN' -or $_.product_fact -ne 'false' }).Count -gt 0) {
-        Add-Failure 'P1 open-question contract must retain 15 open non-product-fact rows'
+    if ($OpenRows.Count -ne 16 -or @($OpenRows | Where-Object { $_.status -ne 'OPEN' -or $_.product_fact -ne 'false' }).Count -gt 0) {
+        Add-Failure 'P1 open-question contract must retain 16 open non-product-fact rows'
     }
     $IntakeMapping = @($OpenRows | Where-Object { $_.question_id -eq 'OQ002' })
     if ($IntakeMapping.Count -ne 1 -or $IntakeMapping[0].evidence_class -ne 'U') {
@@ -1029,6 +1031,7 @@ if (Test-Path -LiteralPath $GateMatrixPath) {
         $GateProperties = @($GateRows[0].PSObject.Properties.Name)
         foreach ($RequiredProperty in @(
             'selected_vent_candidate_set_id',
+            'selected_vent_riser_rule_id',
             'selected_orifice_pattern_id',
             'selected_exhaust_branch_id',
             'selected_cell_geometry_rule_id',
@@ -1462,7 +1465,8 @@ if (Test-Path -LiteralPath $AnsysProfilesPath) {
             'ajm005-workbench-connected-spaceclaim-t1-v1',
             'ajm005-workbench-semantic-reconstruction-t1-v1',
             'ajm005-spaceclaim-cad-t1-v2',
-            'ajm005-workbench-semantic-reconstruction-t1-v2'
+            'ajm005-workbench-semantic-reconstruction-t1-v2',
+            'ajm006-spaceclaim-v02-preliminary-v1'
         )
         $RootFields = @($ProfileData.PSObject.Properties.Name)
         if ($ProfileData.schema_version -ne 2 -or
@@ -1542,7 +1546,7 @@ if (Test-Path -LiteralPath $AnsysProfilesPath) {
             $env:PYTHONDONTWRITEBYTECODE = $PreviousNoBytecode
         }
         if ($PolicyExit -ne 0 -or
-            -not (($PolicyOutput -join "`n").Contains('AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=10 tools=5'))) {
+            -not (($PolicyOutput -join "`n").Contains('AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=11 tools=5'))) {
             Add-Failure "mandatory ANSYS v2 route/policy audit failed: $($PolicyOutput -join ' | ')"
         }
         $ReviewerTest = Join-Path $RepoRoot 'airjet-simulation\checklists\test_prepare_p1_cad_review_static.py'

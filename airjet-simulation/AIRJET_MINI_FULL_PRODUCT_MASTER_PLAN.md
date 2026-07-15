@@ -347,7 +347,7 @@ airjet-simulation/
 当前队列：
 
 1. Windows 官方 ANSYS Student 2026 R1 已形成干净许可基线；先执行 `AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`，确认冻结的签名 SpaceClaim 脚本参数化建模、原生保存/重开、STEP 往返、hash-bound semantic sidecar、Workbench STEP import 与 solver-side semantic reconstruction 路径，并记录 P2-P5 能力限制；外部 native attach、native parameterization 与 native Named Selection transfer 保持 `NOT_PROVEN`；
-2. 使用两个生成器、9 个 Gen1-only trusted variant blueprint/campaign、production semantic validator、342 条参数映射、9 条内部 R0 构造规则、成对接口/Named Selections 和 252 行 Gate 作为 P1 唯一执行合同；静态合同通过不等于可执行，两个 006 producer/observer profile 未注册时必须阻断，不把候选厚度、孔数代理、几何闭合或数值 datum 称为产品事实；
+2. 使用两个生成器、9 个 Gen1-only trusted variant blueprint/campaign、production semantic validator、342 条参数映射、10 条内部 R0 构造规则、成对接口/Named Selections 和 252 行 Gate 作为 P1 唯一执行合同；第 10 条只在四个 vent 投影内建立局部候选 riser，禁止把 C019 整层当空气；静态合同通过不等于可执行，两个 006 producer/observer profile 未注册时必须阻断，不把候选厚度、孔数代理、几何闭合或数值 datum 称为产品事实；
 3. 005 的 P1 必需能力全部通过后执行 006，在同一 27.5 x 41.5 x 2.8 mm 母版中建立 `M-3x4-7.0` 工作主候选、`M+S-3x5-6.0` 备选、`L-2x4-8.0` 低 cell 数 sentinel、`S-3x5-5.5` 小 cell sentinel 及三个单因素派生变体；
 4. 完成完整 vent opening-共享顶腔-外围间隙-底腔-孔板-冲击-歧管-spout 流体体和连通检查；STEP 导出/重导入、全链哈希、Workbench STEP import、solver-side semantic reconstruction 以及唯一键/基数/邻接检查都是 P1 硬门槛，不接受 transfer limitation；
 5. 006 只可输出 `PENDING_PEER_REVIEW`；随后由独立 peer 按 007 校验全部外部文件 SHA256 并复核 252 行 Gate，关键原生文件在可见 Windows 会话抽查；

@@ -24,22 +24,22 @@
       {
         "contract_key": "full_product_core_test",
         "git_path": "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py",
-        "sha256": "cae9a1face8c1a3b3aca2a8b7d2dbda3bc3192b9f9a4d0d880a16468bd15b9c6"
+        "sha256": "26550822aa5aa699e6281ef4d9f5c5a35ecbf5c0f0f3840ac1ce85a38ec8fab5"
       },
       {
         "contract_key": "trusted_variant_generator",
         "git_path": "airjet-simulation/automation/ansys/contracts/build_full_product_trusted_variants.py",
-        "sha256": "6786d295e477ad4d83c88439875dc03e982e0ddc8461107d50b0d04a9e2ebb49"
+        "sha256": "646ad9ed8b3344e64a8a2669b866594c6dda7aea81444d241a452f058d295b70"
       },
       {
         "contract_key": "trusted_variant_test",
         "git_path": "airjet-simulation/automation/ansys/contracts/test_full_product_trusted_variants.py",
-        "sha256": "697a5699d5028b7397bffeaf41e338b0a580b1771247347e5ef2fcf10c03c8d3"
+        "sha256": "b4691df9fc91744bd3f740f2cda76d42df3025a5d99567d39a36953aff8bac87"
       },
       {
         "contract_key": "trusted_campaign",
         "git_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
-        "sha256": "77b4eb6b40d73e73017e78c914be13669ef1fd1b1e49789ec7a10ec30a40afc3"
+        "sha256": "1b8891a846090265c2fff18ff632cf89cf26aae62700d3d67a794618ad48380d"
       }
     ]
   },
@@ -258,6 +258,18 @@
           "spaceclaim_semantic_binding_v2.json"
         ]
       }
+    },
+    {
+      "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
+      "engine": "spaceclaim",
+      "script": "006/v02_preliminary_producer.py",
+      "sha256": "8d47c70d94c02e44378ab4cbb52f0b1d8c2ba1d98b2c4c7852e458be94ca5468",
+      "timeout_seconds": 7200,
+      "output_root_id": "p1_cad_006",
+      "reports": [
+        "v02_preliminary_producer.json"
+      ],
+      "predecessor": null
     }
   ]
 }

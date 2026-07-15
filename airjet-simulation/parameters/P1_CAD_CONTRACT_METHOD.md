@@ -22,7 +22,7 @@ python .\airjet-simulation\parameters\build_p1_cad_contracts.py --check
 - `p1_orifice_pattern_candidates.csv`：喷孔节距定义的三种解释及其数学冲突；
 - `p1_vent_geometry_candidates.csv`：两套、每套 4 个顶盖开口的可重建坐标；
 - `p1_planform_exhaust_candidates.csv`：每个整机配置两套单侧排气平面分支；
-- `p1_internal_geometry_rules.csv`：cell 中心/膜片、每 cell 底腔、中央锚 datum、分区 datum、共享顶腔、外围转移间隙、侧壁、残差数值封闭和喷孔落点的 9 条无隐藏常量 R0 构造规则；
+- `p1_internal_geometry_rules.csv`：cell 中心/膜片、每 cell 底腔、中央锚 datum、分区 datum、共享顶腔、四个 vent 投影内的局部候选 riser、外围转移间隙、侧壁、残差数值封闭和喷孔落点的 10 条无隐藏常量 R0 构造规则；vent riser 仅是 C 类连通闭合，不代表 C019 整层为空气或生产风道已识别；
 - `geometry/contracts/*.csv`：部件、参数绑定、接口、Named Selections 和开放问题合同；
 - `checklists/p1_cad_gate_matrix.csv`：每个变体的验收行，初始全部为 `NOT_RUN`。
 

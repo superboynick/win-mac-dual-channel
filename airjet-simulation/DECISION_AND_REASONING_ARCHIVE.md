@@ -287,7 +287,7 @@ R0 顶部配气空间取“选定四个 vent polygon 与完整 cell tile footpri
 
 模型生成端会同时控制脚本、几何和日志，缺少独立性。006 只能到 `PENDING_PEER_REVIEW`。007 保留原始 Windows 路径和 manifest，用 `PureWindowsPath` 安全映射完整副本；从精确 006 commit 重算合同 bundle，并验证 9 个 variant 的固定文件角色、机器检查 CSV、252 行证据键、目录全文件闭合及全部大小/SHA256，随后才生成独立 worksheet。复核 peer 若无法打开原生 SpaceClaim，还需要用户或另一可见 Windows 会话抽查关键原生文件。只有 252/252 个 hard gates 全部独立通过，其中 9 个 STEP 行以及相应 Workbench STEP import、solver-side semantic reconstruction、唯一键/基数/邻接和 hash chain 全部 PASS，后续单独审核提交才可推荐 P1 PASS；transfer limitation 不可接受。
 
-原先把膜片中心、中央锚、底腔和分区压在一个 cell rule 中，仍会让 CAD 操作者猜中央锚形状、底腔平面和 partition 的实体含义。现拆成 9 条显式 R0：底腔是每 cell 的 `P001` 方形流体体；中央锚是 `P012` 方形、膜片 Z 区间内的非物理 datum；partition 是只用于 ownership/naming 的内部零厚度中面，不做 Boolean、不占据已经由 perimeter-gap 流体使用的空间。它们都是 C 类候选闭合，不是产品事实。
+原先把膜片中心、中央锚、底腔和分区压在一个 cell rule 中，仍会让 CAD 操作者猜中央锚形状、底腔平面和 partition 的实体含义。现拆成 10 条显式 R0：底腔是每 cell 的 `P001` 方形流体体；中央锚是 `P012` 方形、膜片 Z 区间内的非物理 datum；partition 是只用于 ownership/naming 的内部零厚度中面；另新增只占四个所选 vent 投影的局部候选 riser，把顶面入口连到共享顶腔。riser 最终 union 进上游流体体，不保留虚假的内部求解器界面，也绝不把 C019 整层解释为空气。它们都是 C 类候选闭合，不是产品事实。
 
 追溯：`parameters/P1_CAD_CONTRACT_METHOD.md`、`parameters/p1_internal_geometry_rules.csv`、`parameters/p1_model_form_variants.csv`、`checklists/p1_cad_gate_matrix.csv`、`windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`、`checklists/P1_CAD_INDEPENDENT_REVIEW_METHOD.md`。
 
@@ -325,3 +325,15 @@ GUI 可见性是观察方式，原生文件、API 返回、重开结果、求解
 `logs/REALITY_AND_FAILURE_LOG.md`，跨运行决策留在本文件，论文方法映射进入
 `learning/PAPER_METHOD_EVIDENCE_MAP.md`。这让用户能学习真实工程过程，同时避免把单次日志、
 长期判断和论文措辞混在一个不断冲突的文档里。
+
+## 18. 为什么先跑 V02 两区 preliminary，而不是直接生成九变体
+
+正式合同原先把完整流体目标写成一个连续 body，但孔口界面需要在 solver 中保留可审计的两侧 owner/adjacency。单体 union 会删除内部孔口面；反过来，把每段流道拆成很多 body 又会把 Boolean 和接口噪声放大到九个变体。当前选择最小但仍是整机的实证步骤：只取主候选 V02，建立 upstream/downstream 两个闭合流体区，保留 12 个 cell 和全部 972 个孔，不缩成单 cell。
+
+upstream 包含四个 vent 投影内的局部 riser、共享顶腔、外围 gap、12 个底腔和孔喉；downstream 包含整机冲击通道、全宽 manifold 与单侧 outlet。两区在孔口底面相接。SpaceClaim 的 share/imprint 和 STEP/Mechanical 导入可能产生同 ID shared faces，也可能产生两张 coincident paired faces；这必须由真实运行决定，不能在静态 schema 中猜。
+
+V02 的 972 孔来自 centered-clip 规则，按 12×7² mm² 膜片面积代理重算孔隙率为约 8.114445%。布局表的 10% 只用于初始孔数规模估计，不能把 972 改成 1198 来迎合 proxy，也不能把 8.114 四舍五入成 10%。V06 的 735 孔约 7.951345%，低于当前 8% preferred guard，因此不作为第一次 Boolean 压力测试。
+
+为了避免“退出码 0 即成功”，pilot producer 只有在实测 4/1 个 inlet/outlet、12/12 个 membrane faces、972/972 个孔口两侧面、1 个 heat wall、两个 single-piece closed/manifold bodies，以及 native reopen、STEP reimport、6 个产物 hash/size 全部闭合时才返回 preliminary PASS。输入不是运行时读取可变工作树，而由 MCP 从同一签名 commit 冻结 15 个 dependency 文件并在 producer 内再次验证 manifest。即使通过，声明仍是 `PASS_PRELIMINARY_PRODUCER`、`formal_006_completion=false`、P1--P6 `NOT_RUN`。
+
+追溯：`automation/ansys/approved/006/v02_preliminary_producer.py`、`automation/ansys/run_v02_preliminary_006.py`、`automation/ansys/profiles.json`、`windows-prompts/AJM_WIN_V02_PRELIMINARY_006.md`。

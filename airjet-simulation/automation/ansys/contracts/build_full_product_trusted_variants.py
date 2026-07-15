@@ -45,6 +45,7 @@ SOURCE_PATHS = (
     ("p1_orifice_pattern_candidates", "airjet-simulation/parameters/p1_orifice_pattern_candidates.csv"),
     ("p1_vent_geometry_candidates", "airjet-simulation/parameters/p1_vent_geometry_candidates.csv"),
     ("p1_planform_exhaust_candidates", "airjet-simulation/parameters/p1_planform_exhaust_candidates.csv"),
+    ("p1_thickness_budget", "airjet-simulation/parameters/p1_thickness_budget.csv"),
 )
 REQUIRED_HASH_KEYS = tuple(["full_product_blueprint", "trusted_blueprint_file", "trusted_campaign"] + [item[0] for item in SOURCE_PATHS])
 
@@ -104,7 +105,10 @@ def match(centroid, bbox_min, bbox_max, measure_kind, measure_value, measure_tol
     }
 
 
-def surface(namespace, name, feature_name, owner_key, cell_index, frame_id, centroid, bbox_min, bbox_max, geometry_type, normal, area, edge_count):
+def surface(namespace, name, feature_name, owner_key, cell_index, frame_id, centroid, bbox_min, bbox_max, geometry_type, normal, area, edge_count, adjacent_body_keys=None):
+    adjacency = [owner_key] if adjacent_body_keys is None else list(adjacent_body_keys)
+    if owner_key not in adjacency:
+        raise ValueError("GEN1_SURFACE_OWNER_NOT_ADJACENT")
     return {
         "semantic_key": key(namespace, "surface", name),
         "feature_key": key(namespace, "feature", feature_name),
@@ -120,7 +124,7 @@ def surface(namespace, name, feature_name, owner_key, cell_index, frame_id, cent
             max(1.0e-6, float(area) * 1.0e-4), "mm^2", "PLANE", edge_count,
         ),
         "topology": {
-            "required_adjacent_keys": [owner_key],
+            "required_adjacent_keys": adjacency,
             "critical": True,
             "allow_isolated": False,
         },
@@ -192,7 +196,13 @@ def build_blueprint(index, variant, layout, orifice, vents, exhaust):
     membrane_bottom_z = orifice_top_z + 0.04
     membrane_top_z = membrane_bottom_z + 0.275
     body_top_z = 2.8
-    body_key = key(namespace, "body", "fluid_product")
+    footprint_x_min = float(exhaust["cell_footprint_x_min_mm"])
+    footprint_x_max = float(exhaust["cell_footprint_x_max_mm"])
+    footprint_y_min = float(exhaust["cell_footprint_y_min_mm"])
+    footprint_y_max = float(exhaust["cell_footprint_y_max_mm"])
+    manifold_y_max = float(exhaust["manifold_y_max_mm"])
+    upstream_body_key = key(namespace, "body", "fluid_upstream")
+    downstream_body_key = key(namespace, "body", "fluid_downstream")
     frames = [{
         "frame_id": "GLOBAL", "parent_frame_id": None, "cell_index": None,
         "origin_mm": [0.0, 0.0, 0.0],
@@ -217,6 +227,10 @@ def build_blueprint(index, variant, layout, orifice, vents, exhaust):
 
     surfaces = []
     vent_keys = []
+    vent_bbox_x_min = []
+    vent_bbox_x_max = []
+    vent_bbox_y_min = []
+    vent_bbox_y_max = []
     for vent in sorted(vents, key=lambda row: row["vent_id"]):
         number = int(vent["vent_id"][1:])
         cx = float(vent["center_x_cad_mm"])
@@ -229,13 +243,17 @@ def build_blueprint(index, variant, layout, orifice, vents, exhaust):
         half_y = abs(dy) * length / 2.0 + abs(dx) * width / 2.0
         name = "vent.%03d" % number
         item = surface(
-            namespace, name, "vent.%03d" % number, body_key, None, "GLOBAL",
+            namespace, name, "vent.%03d" % number, upstream_body_key, None, "GLOBAL",
             [cx, cy, 2.8], [cx - half_x, cy - half_y, 2.799],
             [cx + half_x, cy + half_y, 2.801], "PLANAR_FACE",
             [0.0, 0.0, -1.0], length * width, 4,
         )
         surfaces.append(item)
         vent_keys.append(item["semantic_key"])
+        vent_bbox_x_min.append(cx - half_x)
+        vent_bbox_x_max.append(cx + half_x)
+        vent_bbox_y_min.append(cy - half_y)
+        vent_bbox_y_max.append(cy + half_y)
 
     outlet_width = float(exhaust["outlet_width_mm"])
     outlet_height = float(exhaust["outlet_height_mm"])
@@ -243,17 +261,38 @@ def build_blueprint(index, variant, layout, orifice, vents, exhaust):
     outlet_y = float(exhaust["outlet_y_mm"])
     outlet_z = heat_z + outlet_height / 2.0
     outlet = surface(
-        namespace, "product_outlet", "product_outlet", body_key, None, "GLOBAL",
+        namespace, "product_outlet", "product_outlet", downstream_body_key, None, "GLOBAL",
         [outlet_x, outlet_y, outlet_z],
         [outlet_x - outlet_width / 2.0, outlet_y - 0.001, heat_z],
         [outlet_x + outlet_width / 2.0, outlet_y + 0.001, heat_z + outlet_height],
         "PLANAR_FACE", [0.0, 1.0, 0.0], outlet_width * outlet_height, 4,
     )
     surfaces.append(outlet)
+    footprint_width = footprint_x_max - footprint_x_min
+    footprint_length = footprint_y_max - footprint_y_min
+    manifold_length = manifold_y_max - footprint_y_max
+    manifold_width = float(exhaust["manifold_x_max_at_array_mm"]) - float(
+        exhaust["manifold_x_min_at_array_mm"]
+    )
+    footprint_area = footprint_width * footprint_length
+    manifold_area = manifold_length * (manifold_width + outlet_width) / 2.0
+    heat_area = footprint_area + manifold_area
+    footprint_centroid_y = (footprint_y_min + footprint_y_max) / 2.0
+    manifold_centroid_y = footprint_y_max + manifold_length * (
+        manifold_width + 2.0 * outlet_width
+    ) / (3.0 * (manifold_width + outlet_width))
+    heat_centroid_y = (
+        footprint_area * footprint_centroid_y + manifold_area * manifold_centroid_y
+    ) / heat_area
     heat_wall = outward_surface(
-        namespace, "heat_wall", "heat_wall", body_key,
-        [0.0, 0.0, heat_z], [-13.75, -20.75, heat_z - 0.001],
-        [13.75, 20.75, heat_z + 0.001], 27.5 * 41.5,
+        namespace, "heat_wall", "heat_wall", downstream_body_key,
+        [0.0, heat_centroid_y, heat_z],
+        [footprint_x_min, footprint_y_min, heat_z - 0.001],
+        [footprint_x_max, manifold_y_max, heat_z + 0.001], heat_area,
+    )
+    heat_wall["match_constraints"]["edge_count"] = (
+        4 if math.isclose(outlet_width, manifold_width, rel_tol=0.0, abs_tol=1.0e-9)
+        else 6
     )
     surfaces.append(heat_wall)
 
@@ -269,7 +308,7 @@ def build_blueprint(index, variant, layout, orifice, vents, exhaust):
     for cell, frame_id in cells:
         top_name = "membrane_top.cell.%03d" % cell
         top = surface(
-            namespace, top_name, top_name, body_key, cell, frame_id,
+            namespace, top_name, top_name, upstream_body_key, cell, frame_id,
             [0.0, 0.0, membrane_top_z],
             [-membrane / 2.0, -membrane / 2.0, membrane_top_z - 0.001],
             [membrane / 2.0, membrane / 2.0, membrane_top_z + 0.001],
@@ -279,7 +318,7 @@ def build_blueprint(index, variant, layout, orifice, vents, exhaust):
         membrane_top_keys.append(top["semantic_key"])
         bottom_name = "membrane_bottom.cell.%03d" % cell
         bottom = surface(
-            namespace, bottom_name, bottom_name, body_key, cell, frame_id,
+            namespace, bottom_name, bottom_name, upstream_body_key, cell, frame_id,
             [0.0, 0.0, membrane_bottom_z],
             [-membrane / 2.0, -membrane / 2.0, membrane_bottom_z - 0.001],
             [membrane / 2.0, membrane / 2.0, membrane_bottom_z + 0.001],
@@ -295,47 +334,69 @@ def build_blueprint(index, variant, layout, orifice, vents, exhaust):
                 y = float(iy) * hole_pitch_y
                 hole_name = "orifice.cell.%03d.hole.%03d" % (cell, hole_number)
                 hole = surface(
-                    namespace, hole_name, hole_name, body_key, cell, frame_id,
+                    namespace, hole_name, hole_name, upstream_body_key, cell, frame_id,
                     [x, y, impingement_top_z],
                     [x - radius, y - radius, impingement_top_z - 0.001],
                     [x + radius, y + radius, impingement_top_z + 0.001],
                     "PLANAR_FACE", [0.0, 0.0, -1.0], math.pi * radius * radius, 1,
+                    adjacent_body_keys=[upstream_body_key, downstream_body_key],
                 )
                 surfaces.append(hole)
                 orifice_keys.append(hole["semantic_key"])
 
     surface_keys = [item["semantic_key"] for item in surfaces]
-    body_centroid = [0.0, 0.0, (heat_z + body_top_z) / 2.0]
-    body = {
-        "semantic_key": body_key,
-        "feature_key": key(namespace, "feature", "fluid_product"),
-        "entity_kind": "BODY",
-        "owner_key": None,
-        "cell_index": None,
-        "local_frame_id": "GLOBAL",
-        "local_coordinates_mm": body_centroid,
-        "geometry_type": "FLUID_BODY",
-        "direction_constraint": direction("NOT_APPLICABLE", None, 0.0),
-        "match_constraints": match(
-            body_centroid, [-13.75, -20.75, heat_z], [13.75, 20.75, body_top_z],
-            "NONE", None, None, None, "SOLID", None,
-            measure_role="NOT_APPLICABLE", centroid_tolerance=0.05,
-        ),
-        "topology": {
-            "required_adjacent_keys": surface_keys,
-            "critical": True,
-            "allow_isolated": False,
-        },
-        "expected_cardinality": 1,
-    }
-    entities = [body] + surfaces
+    upstream_surface_keys = vent_keys + membrane_top_keys + membrane_bottom_keys + orifice_keys
+    downstream_surface_keys = [outlet["semantic_key"], heat_wall["semantic_key"]] + orifice_keys
+
+    def fluid_body(name, semantic_key, centroid, bbox_min, bbox_max, adjacent_surface_keys):
+        return {
+            "semantic_key": semantic_key,
+            "feature_key": key(namespace, "feature", name),
+            "entity_kind": "BODY",
+            "owner_key": None,
+            "cell_index": None,
+            "local_frame_id": "GLOBAL",
+            "local_coordinates_mm": centroid,
+            "geometry_type": "FLUID_BODY",
+            "direction_constraint": direction("NOT_APPLICABLE", None, 0.0),
+            "match_constraints": match(
+                centroid, bbox_min, bbox_max, "NONE", None, None, None,
+                "SOLID", None, measure_role="NOT_APPLICABLE",
+                centroid_tolerance=30.0,
+            ),
+            "topology": {
+                "required_adjacent_keys": adjacent_surface_keys,
+                "critical": True,
+                "allow_isolated": False,
+            },
+            "expected_cardinality": 1,
+        }
+
+    upstream_x_min = min([footprint_x_min] + vent_bbox_x_min)
+    upstream_x_max = max([footprint_x_max] + vent_bbox_x_max)
+    upstream_y_min = min([footprint_y_min] + vent_bbox_y_min)
+    upstream_y_max = max([footprint_y_max] + vent_bbox_y_max)
+    upstream_body = fluid_body(
+        "fluid_upstream", upstream_body_key,
+        [0.0, 0.0, (impingement_top_z + body_top_z) / 2.0],
+        [upstream_x_min, upstream_y_min, impingement_top_z],
+        [upstream_x_max, upstream_y_max, body_top_z], upstream_surface_keys,
+    )
+    downstream_body = fluid_body(
+        "fluid_downstream", downstream_body_key,
+        [0.0, heat_centroid_y, (heat_z + impingement_top_z) / 2.0],
+        [footprint_x_min, footprint_y_min, heat_z],
+        [footprint_x_max, manifold_y_max, impingement_top_z], downstream_surface_keys,
+    )
+    entities = [upstream_body, downstream_body] + surfaces
     group_specs = (
-        ("fluid_body", "FLUID_BODY", "BODY", [body_key], "fluid_bodies"),
+        ("fluid_upstream", "UPSTREAM_FLUID_BODY", "BODY", [upstream_body_key], "fluid_bodies"),
+        ("fluid_downstream", "DOWNSTREAM_FLUID_BODY", "BODY", [downstream_body_key], "fluid_bodies"),
         ("inlet", "INLET", "SURFACE", vent_keys, "fluid_boundaries"),
         ("outlet", "OUTLET", "SURFACE", [outlet["semantic_key"]], "fluid_boundaries"),
         ("membrane_top", "MEMBRANE_TOP", "SURFACE", membrane_top_keys, "fluid_boundaries"),
         ("membrane_bottom", "MEMBRANE_BOTTOM", "SURFACE", membrane_bottom_keys, "fluid_boundaries"),
-        ("orifice_exit", "ORIFICE_EXIT", "SURFACE", orifice_keys, "fluid_boundaries"),
+        ("orifice_exit", "ORIFICE_EXIT", "SURFACE", orifice_keys, "fluid_interfaces"),
         ("heat_wall", "HEAT_WALL", "SURFACE", [heat_wall["semantic_key"]], "fluid_boundaries"),
     )
     groups = [
@@ -349,19 +410,36 @@ def build_blueprint(index, variant, layout, orifice, vents, exhaust):
         }
         for name, solver_name, entity_kind, members, family in group_specs
     ]
-    body_group = groups[0]["group_key"]
-    surface_group_keys = [item["group_key"] for item in groups[1:]]
+    body_group_keys = [groups[0]["group_key"], groups[1]["group_key"]]
+    boundary_group_keys = [
+        item["group_key"] for item in groups[2:]
+        if item["partition_family"] == "fluid_boundaries"
+    ]
+    interface_group_keys = [
+        item["group_key"] for item in groups[2:]
+        if item["partition_family"] == "fluid_interfaces"
+    ]
+    boundary_surface_keys = (
+        vent_keys + [outlet["semantic_key"]] + membrane_top_keys
+        + membrane_bottom_keys + [heat_wall["semantic_key"]]
+    )
     partitions = [
         {
             "partition_key": key(namespace, "partition", "fluid_bodies"),
-            "entity_kind": "BODY", "group_keys": [body_group],
-            "universe_keys": [body_key], "require_pairwise_disjoint": True,
+            "entity_kind": "BODY", "group_keys": body_group_keys,
+            "universe_keys": [upstream_body_key, downstream_body_key], "require_pairwise_disjoint": True,
             "require_full_coverage": True,
         },
         {
             "partition_key": key(namespace, "partition", "fluid_boundaries"),
-            "entity_kind": "SURFACE", "group_keys": surface_group_keys,
-            "universe_keys": surface_keys, "require_pairwise_disjoint": True,
+            "entity_kind": "SURFACE", "group_keys": boundary_group_keys,
+            "universe_keys": boundary_surface_keys, "require_pairwise_disjoint": True,
+            "require_full_coverage": True,
+        },
+        {
+            "partition_key": key(namespace, "partition", "fluid_interfaces"),
+            "entity_kind": "SURFACE", "group_keys": interface_group_keys,
+            "universe_keys": orifice_keys, "require_pairwise_disjoint": True,
             "require_full_coverage": True,
         },
     ]
@@ -372,7 +450,7 @@ def build_blueprint(index, variant, layout, orifice, vents, exhaust):
         "key_namespace": namespace,
         "root_frame_id": "GLOBAL",
         "cell_indices": list(range(1, cell_count + 1)),
-        "expected_entity_cardinality": {"BODY": 1, "SURFACE": len(surface_keys)},
+        "expected_entity_cardinality": {"BODY": 2, "SURFACE": len(surface_keys)},
         "required_semantic_keys": [item["semantic_key"] for item in entities],
         "required_group_keys": [item["group_key"] for item in groups],
         "required_partition_keys": [item["partition_key"] for item in partitions],
@@ -414,12 +492,208 @@ def source_contracts():
     return records
 
 
+def validate_variant_internal_rule_contract(variants, internal_rules):
+    rule_ids = set(item.get("rule_id") for item in internal_rules)
+    expected_rule_ids = {
+        "CELL_CENTER_AND_TILE_R0",
+        "CENTRAL_ANCHOR_SQUARE_DATUM_R0",
+        "BOTTOM_CHAMBER_PER_CELL_SQUARE_R0",
+        "CELL_PARTITION_DATUM_R0",
+        "TOP_SHARED_PLENUM_R0",
+        "VENT_RISER_CANDIDATE_R0",
+        "PERIM_SPLIT_GAP_R0",
+        "SIDE_WALL_BOUNDARY_R0",
+        "RESIDUAL_NUMERICAL_CLOSURE_R0",
+        "ORIFICE_PER_CELL_CENTERED_CLIP_R0",
+    }
+    if rule_ids != expected_rule_ids:
+        raise ValueError("GEN1_INTERNAL_RULE_SET")
+    variant_fields = (
+        "cell_geometry_rule_id",
+        "central_anchor_rule_id",
+        "bottom_chamber_rule_id",
+        "cell_partition_rule_id",
+        "top_chamber_branch_id",
+        "vent_riser_rule_id",
+        "perimeter_gap_branch_id",
+        "side_frame_closure_branch_id",
+        "residual_closure_branch_id",
+        "orifice_grid_rule_id",
+    )
+    if any(
+        set(item.get(field) for field in variant_fields) != expected_rule_ids
+        or item.get("vent_riser_rule_id") != "VENT_RISER_CANDIDATE_R0"
+        for item in variants
+    ):
+        raise ValueError("GEN1_VARIANT_INTERNAL_RULE_BINDING")
+
+
 def validate_gen1_target(campaign, blueprints):
     if campaign.get("product_id") != PRODUCT_ID or campaign.get("expected_variant_count") != 9:
         raise ValueError("GEN1_CAMPAIGN_TARGET")
     if len(blueprints) != 9:
         raise ValueError("GEN1_BLUEPRINT_COUNT")
     for blueprint in blueprints:
+        namespace = blueprint.get("configuration", {}).get("key_namespace")
+        entities = dict(
+            (item.get("semantic_key"), item)
+            for item in blueprint.get("entity_blueprints", [])
+        )
+        upstream_key = key(namespace, "body", "fluid_upstream")
+        downstream_key = key(namespace, "body", "fluid_downstream")
+        body_keys = set(
+            item_key
+            for item_key, item in entities.items()
+            if item.get("entity_kind") == "BODY"
+        )
+        group_rows = blueprint.get("groups", [])
+        groups_by_solver = dict(
+            (item.get("solver_name"), item)
+            for item in group_rows
+        )
+        expected_solver_names = {
+            "UPSTREAM_FLUID_BODY", "DOWNSTREAM_FLUID_BODY", "INLET",
+            "OUTLET", "MEMBRANE_TOP", "MEMBRANE_BOTTOM", "ORIFICE_EXIT",
+            "HEAT_WALL",
+        }
+        if (
+            len(group_rows) != len(groups_by_solver)
+            or set(groups_by_solver) != expected_solver_names
+        ):
+            raise ValueError("GEN1_BLUEPRINT_TWO_ZONE_GROUP_CONTRACT")
+
+        role_keys = {
+            "UPSTREAM_FLUID_BODY": [upstream_key],
+            "DOWNSTREAM_FLUID_BODY": [downstream_key],
+            "INLET": sorted(
+                item_key for item_key in entities
+                if item_key.startswith(key(namespace, "surface", "vent."))
+            ),
+            "OUTLET": [key(namespace, "surface", "product_outlet")],
+            "MEMBRANE_TOP": sorted(
+                item_key for item_key in entities
+                if item_key.startswith(key(namespace, "surface", "membrane_top.cell."))
+            ),
+            "MEMBRANE_BOTTOM": sorted(
+                item_key for item_key in entities
+                if item_key.startswith(key(namespace, "surface", "membrane_bottom.cell."))
+            ),
+            "ORIFICE_EXIT": sorted(
+                item_key for item_key in entities
+                if item_key.startswith(key(namespace, "surface", "orifice.cell."))
+            ),
+            "HEAT_WALL": [key(namespace, "surface", "heat_wall")],
+        }
+        expected_families = {
+            "UPSTREAM_FLUID_BODY": "fluid_bodies",
+            "DOWNSTREAM_FLUID_BODY": "fluid_bodies",
+            "INLET": "fluid_boundaries",
+            "OUTLET": "fluid_boundaries",
+            "MEMBRANE_TOP": "fluid_boundaries",
+            "MEMBRANE_BOTTOM": "fluid_boundaries",
+            "ORIFICE_EXIT": "fluid_interfaces",
+            "HEAT_WALL": "fluid_boundaries",
+        }
+        if any(
+            sorted(groups_by_solver[solver_name].get("member_keys", []))
+            != role_keys[solver_name]
+            or groups_by_solver[solver_name].get("expected_cardinality")
+            != len(role_keys[solver_name])
+            or groups_by_solver[solver_name].get("partition_family")
+            != expected_families[solver_name]
+            for solver_name in expected_solver_names
+        ):
+            raise ValueError("GEN1_BLUEPRINT_TWO_ZONE_GROUP_CONTRACT")
+
+        orifice_keys = role_keys["ORIFICE_EXIT"]
+        upstream_only_keys = set(
+            role_keys["INLET"] + role_keys["MEMBRANE_TOP"]
+            + role_keys["MEMBRANE_BOTTOM"]
+        )
+        downstream_only_keys = set(role_keys["OUTLET"] + role_keys["HEAT_WALL"])
+        interface_keys = set(orifice_keys)
+        if (
+            body_keys != {upstream_key, downstream_key}
+            or blueprint.get("configuration", {})
+            .get("expected_entity_cardinality", {})
+            .get("BODY") != 2
+            or not interface_keys
+            or set(entities[upstream_key]["topology"]["required_adjacent_keys"])
+            != upstream_only_keys | interface_keys
+            or set(entities[downstream_key]["topology"]["required_adjacent_keys"])
+            != downstream_only_keys | interface_keys
+        ):
+            raise ValueError("GEN1_BLUEPRINT_TWO_ZONE_BODY_CONTRACT")
+
+        surface_contracts = (
+            (upstream_only_keys, upstream_key, {upstream_key}),
+            (downstream_only_keys, downstream_key, {downstream_key}),
+            (interface_keys, upstream_key, {upstream_key, downstream_key}),
+        )
+        if any(
+            item_key not in entities
+            or entities[item_key].get("entity_kind") != "SURFACE"
+            or entities[item_key].get("owner_key") != owner_key
+            or set(entities[item_key].get("topology", {}).get("required_adjacent_keys", []))
+            != adjacent_keys
+            for item_keys, owner_key, adjacent_keys in surface_contracts
+            for item_key in item_keys
+        ):
+            raise ValueError("GEN1_BLUEPRINT_TWO_ZONE_SURFACE_CONTRACT")
+
+        expected_directions = {
+            "INLET": ("VECTOR", [0.0, 0.0, -1.0]),
+            "OUTLET": ("VECTOR", [0.0, 1.0, 0.0]),
+            "MEMBRANE_TOP": ("VECTOR", [0.0, 0.0, -1.0]),
+            "MEMBRANE_BOTTOM": ("VECTOR", [0.0, 0.0, 1.0]),
+            "ORIFICE_EXIT": ("VECTOR", [0.0, 0.0, -1.0]),
+            "HEAT_WALL": ("OUTWARD_FROM_OWNER", None),
+        }
+        if any(
+            entities[item_key].get("direction_constraint", {}).get("mode") != mode
+            or entities[item_key].get("direction_constraint", {}).get("vector") != vector
+            for solver_name, (mode, vector) in expected_directions.items()
+            for item_key in role_keys[solver_name]
+        ):
+            raise ValueError("GEN1_BLUEPRINT_TWO_ZONE_DIRECTION_CONTRACT")
+
+        partitions_by_key = dict(
+            (item.get("partition_key"), item)
+            for item in blueprint.get("partitions", [])
+        )
+        expected_partitions = {
+            key(namespace, "partition", "fluid_bodies"): (
+                "BODY",
+                {groups_by_solver["UPSTREAM_FLUID_BODY"]["group_key"],
+                 groups_by_solver["DOWNSTREAM_FLUID_BODY"]["group_key"]},
+                {upstream_key, downstream_key},
+            ),
+            key(namespace, "partition", "fluid_boundaries"): (
+                "SURFACE",
+                {groups_by_solver[name]["group_key"] for name in (
+                    "INLET", "OUTLET", "MEMBRANE_TOP", "MEMBRANE_BOTTOM", "HEAT_WALL"
+                )},
+                upstream_only_keys | downstream_only_keys,
+            ),
+            key(namespace, "partition", "fluid_interfaces"): (
+                "SURFACE", {groups_by_solver["ORIFICE_EXIT"]["group_key"]},
+                interface_keys,
+            ),
+        }
+        if (
+            len(partitions_by_key) != 3
+            or set(partitions_by_key) != set(expected_partitions)
+            or any(
+                partitions_by_key[partition_key].get("entity_kind") != entity_kind
+                or set(partitions_by_key[partition_key].get("group_keys", [])) != group_keys
+                or set(partitions_by_key[partition_key].get("universe_keys", [])) != universe_keys
+                or partitions_by_key[partition_key].get("require_pairwise_disjoint") is not True
+                or partitions_by_key[partition_key].get("require_full_coverage") is not True
+                for partition_key, (entity_kind, group_keys, universe_keys)
+                in expected_partitions.items()
+            )
+        ):
+            raise ValueError("GEN1_BLUEPRINT_TWO_ZONE_PARTITION_CONTRACT")
         roles = set(item.get("role") for item in blueprint.get("artifact_contracts", []))
         if (
             blueprint.get("product_id") != PRODUCT_ID
@@ -442,12 +716,14 @@ def validate_gen1_target(campaign, blueprints):
 
 def build_outputs():
     variants = read_csv("airjet-simulation/parameters/p1_model_form_variants.csv")
+    internal_rules = read_csv("airjet-simulation/parameters/p1_internal_geometry_rules.csv")
     layouts = read_csv("airjet-simulation/parameters/p1_layout_configuration_matrix.csv")
     orifices = read_csv("airjet-simulation/parameters/p1_orifice_pattern_candidates.csv")
     vents = read_csv("airjet-simulation/parameters/p1_vent_geometry_candidates.csv")
     exhausts = read_csv("airjet-simulation/parameters/p1_planform_exhaust_candidates.csv")
     if len(variants) != 9:
         raise ValueError("GEN1_VARIANT_COUNT")
+    validate_variant_internal_rule_contract(variants, internal_rules)
     outputs = {}
     records = []
     blueprints = []

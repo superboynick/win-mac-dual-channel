@@ -167,19 +167,18 @@ def create_bundle():
             }
         )
 
-    global_body = "ajm.body.chassis.global"
-    cell_body_0 = "ajm.body.cell-cavity.c000"
-    cell_body_1 = "ajm.body.cell-cavity.c001"
+    global_body = "ajm.body.fluid-upstream.global"
+    cell_body_0 = "ajm.body.fluid-downstream.global"
     inlet = "ajm.surface.inlet.global"
     outlet = "ajm.surface.outlet.global"
     interface_0 = "ajm.surface.membrane.c000"
     interface_1 = "ajm.surface.membrane.c001"
-    semantic_keys = [global_body, cell_body_0, cell_body_1, inlet, outlet, interface_0, interface_1]
+    semantic_keys = [global_body, cell_body_0, inlet, outlet, interface_0, interface_1]
     groups = [
         {"group_key": "ajm.group.inlet.global", "solver_name": "INLET", "entity_kind": "SURFACE", "member_keys": [inlet], "expected_cardinality": 1, "partition_family": "flow_boundary"},
         {"group_key": "ajm.group.outlet.global", "solver_name": "OUTLET", "entity_kind": "SURFACE", "member_keys": [outlet], "expected_cardinality": 1, "partition_family": "flow_boundary"},
         {"group_key": "ajm.group.membranes.all", "solver_name": "MEMBRANES", "entity_kind": "SURFACE", "member_keys": [interface_0, interface_1], "expected_cardinality": 2, "partition_family": "flow_boundary"},
-        {"group_key": "ajm.group.bodies.all", "solver_name": "ALL_BODIES", "entity_kind": "BODY", "member_keys": [global_body, cell_body_0, cell_body_1], "expected_cardinality": 3, "partition_family": None},
+        {"group_key": "ajm.group.bodies.all", "solver_name": "ALL_BODIES", "entity_kind": "BODY", "member_keys": [global_body, cell_body_0], "expected_cardinality": 2, "partition_family": None},
     ]
     partitions = [
         {
@@ -198,7 +197,7 @@ def create_bundle():
         "key_namespace": "ajm",
         "root_frame_id": "GLOBAL",
         "cell_indices": [0, 1],
-        "expected_entity_cardinality": {"BODY": 3, "SURFACE": 4},
+        "expected_entity_cardinality": {"BODY": 2, "SURFACE": 4},
         "required_semantic_keys": semantic_keys,
         "required_group_keys": [item["group_key"] for item in groups],
         "required_partition_keys": [item["partition_key"] for item in partitions],
@@ -209,13 +208,12 @@ def create_bundle():
         {"frame_id": "CELL_001", "parent_frame_id": "GLOBAL", "cell_index": 1, "origin_mm": [2.0, 0.0, 0.0], "axes": [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]},
     ]
     entities = [
-        body(global_body, "ajm.feature.chassis.global", None, "GLOBAL", [0.0, 0.0, 0.0], [inlet, outlet, interface_0, interface_1], source_artifacts, 100.0),
-        body(cell_body_0, "ajm.feature.cell-cavity.c000", 0, "CELL_000", [0.0, 0.0, 0.0], [interface_0], source_artifacts, 5.0),
-        body(cell_body_1, "ajm.feature.cell-cavity.c001", 1, "CELL_001", [0.0, 0.0, 0.0], [interface_1], source_artifacts, 5.0),
+        body(global_body, "ajm.feature.fluid-upstream.global", None, "GLOBAL", [0.0, 0.0, 0.0], [inlet, interface_0, interface_1], source_artifacts, 100.0),
+        body(cell_body_0, "ajm.feature.fluid-downstream.global", None, "GLOBAL", [0.0, 0.0, -1.0], [outlet, interface_0, interface_1], source_artifacts, 50.0),
         surface(inlet, "ajm.feature.inlet.global", global_body, None, "GLOBAL", [-10.0, 0.0, 0.0], [global_body], source_artifacts, [-1.0, 0.0, 0.0]),
-        surface(outlet, "ajm.feature.outlet.global", global_body, None, "GLOBAL", [10.0, 0.0, 0.0], [global_body], source_artifacts, [1.0, 0.0, 0.0]),
-        surface(interface_0, "ajm.feature.membrane.c000", cell_body_0, 0, "CELL_000", [0.0, 0.0, 0.5], [cell_body_0, global_body], source_artifacts, [0.0, 0.0, 1.0], "OUTWARD_FROM_OWNER"),
-        surface(interface_1, "ajm.feature.membrane.c001", cell_body_1, 1, "CELL_001", [0.0, 0.0, 0.5], [cell_body_1, global_body], source_artifacts, [0.0, 0.0, 1.0], "OUTWARD_FROM_OWNER"),
+        surface(outlet, "ajm.feature.outlet.global", cell_body_0, None, "GLOBAL", [10.0, 0.0, -1.0], [cell_body_0], source_artifacts, [1.0, 0.0, 0.0]),
+        surface(interface_0, "ajm.feature.membrane.c000", global_body, 0, "CELL_000", [0.0, 0.0, 0.5], [global_body, cell_body_0], source_artifacts, [0.0, 0.0, 1.0]),
+        surface(interface_1, "ajm.feature.membrane.c001", global_body, 1, "CELL_001", [0.0, 0.0, 0.5], [global_body, cell_body_0], source_artifacts, [0.0, 0.0, 1.0]),
     ]
     producer = {
         "git_head": GIT_HEAD,
@@ -420,7 +418,7 @@ def main():
         assert result["status"] == "PASS_FULL_PRODUCT_SEMANTIC_BUNDLE"
         assert result["cell_count"] == 2
         assert result["actual_artifact_count"] == 9
-        assert result["observed_actual_entity_count"] == 7
+        assert result["observed_actual_entity_count"] == 6
         assert result["assignment_solution_count"] == 1
         assert result["missing_keys"] == [] and result["unexpected_keys"] == []
         assert result["body_surface_coverage_ok"] is True
@@ -450,7 +448,7 @@ def main():
         mutated_raw = json_bytes(trusted_mutated)
         reject("raw_trust_root", lambda: contract.load_trusted_contract_bytes(mutated_raw, bundle["trusted_sha"]), "FPSEM_TRUSTED_RAW_SHA256")
 
-        mutated = copy.deepcopy(sidecar); mutated["entities"][3]["geometry_type"] = "CYLINDRICAL_FACE"
+        mutated = copy.deepcopy(sidecar); mutated["entities"][2]["geometry_type"] = "CYLINDRICAL_FACE"
         reject("entity_blueprint_tamper", lambda: contract.validate_against_trusted_contract(mutated, trusted, producer_identity), "FPSEM_TRUSTED_ENTITY_BLUEPRINT")
 
         identity = copy.deepcopy(observer_identity); identity["profile_id"] = "wrong-observer"
@@ -466,15 +464,21 @@ def main():
 
         observed = copy.deepcopy(observation); observed["observer"]["job_id"] = "wrong-job"
         reject("observer_job_receipt", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_OBSERVER_IDENTITY")
-        observed = copy.deepcopy(observation); observed["entities"][3]["matches"][0]["actual_owner_body_id"] = "solver-entity-002"
+        observed = copy.deepcopy(observation); observed["entities"][2]["matches"][0]["actual_owner_body_id"] = "solver-entity-002"
         reject("actual_owner", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_SURFACE_OWNER_MAPPING")
-        observed = copy.deepcopy(observation); observed["entities"][3]["matches"][0]["actual_adjacent_body_ids"] = []
+        observed = copy.deepcopy(observation); observed["entities"][2]["matches"][0]["actual_adjacent_body_ids"] = []
         reject("actual_adjacency", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_SURFACE_ADJACENCY_MAPPING")
+        observed = copy.deepcopy(observation); observed["entities"][4]["matches"][0]["actual_adjacent_body_ids"] = ["solver-entity-001"]
+        reject("shared_interface_missing_downstream", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_SURFACE_ADJACENCY_MAPPING")
+        observed = copy.deepcopy(observation); observed["entities"][1]["matches"][0]["actual_boundary_surface_ids"].remove("solver-entity-005")
+        reject("downstream_missing_shared_interface", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_BODY_SURFACE_COVERAGE")
+        observed = copy.deepcopy(observation); observed["entities"][4]["matches"][0]["actual_owner_body_id"] = "solver-entity-002"
+        reject("shared_interface_wrong_owner", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_SURFACE_OWNER_MAPPING")
         observed = copy.deepcopy(observation); observed["entities"][0]["matches"][0]["actual_boundary_surface_ids"].pop()
         reject("body_boundary_coverage", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_BODY_SURFACE_COVERAGE")
-        observed = copy.deepcopy(observation); observed["entities"][5]["matches"][0]["direction_vector"] = [0.0, 0.0, -1.0]
-        reject("outward_sign", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_OUTWARD_NOT_PROVEN")
-        observed = copy.deepcopy(observation); observed["entities"][3]["matches"][0]["observed_bbox_max_mm"][0] += 1.0
+        observed = copy.deepcopy(observation); observed["entities"][4]["matches"][0]["direction_vector"] = [0.0, 0.0, -1.0]
+        reject("direction_sign", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_DIRECTION_MISMATCH")
+        observed = copy.deepcopy(observation); observed["entities"][2]["matches"][0]["observed_bbox_max_mm"][0] += 1.0
         reject("bbox_tamper", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_BBOX_MISMATCH")
         observed = copy.deepcopy(observation); observed["imported_artifact_sha256"] = "0" * 64
         reject("imported_step_same_bytes", lambda: contract.validate_observation(sidecar, observed, measured, trusted, producer_identity, observer_identity), "FPSEM_OBSERVATION_IMPORT_SHA256")
@@ -509,7 +513,8 @@ def main():
         negatives = nonlocal_counter[0]
         print(
             "FULL_PRODUCT_SEMANTIC_CONTRACT_V1_TESTS=PASS positive=1 negative=%d "
-            "cells=2 artifacts=9 actual_topology=PASS outward_bbox=PASS raw_trust=PASS"
+            "cells=2 artifacts=9 bodies=2 shared_interfaces=2 actual_topology=PASS "
+            "direction_bbox=PASS raw_trust=PASS"
             % negatives
         )
     finally:

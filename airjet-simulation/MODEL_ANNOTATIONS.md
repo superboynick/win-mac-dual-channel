@@ -130,7 +130,7 @@
 
 **问题**：P0 已经知道整机必须有顶盖开口、孔板、冲击通道和单侧 spout，但 `C005` 排气三维尺寸、vent 真实投影和专利 `P008 separation s` 的几何含义仍未知。若只给 Windows 一份文字手册，它会在 CAD 中临场补尺寸，导致模型不可复现。
 
-**决定**：新增生成式 P1 合同。它把“存在、拓扑、精确几何、所选分支”四类证据分开，并把每个 CAD 变量绑定到 D/P/I/C/U 来源。主布局保留 `C020=0.25/0.50/0.75`；vent 保留图像包围框槽和第二视图中心线+P013 槽宽两套完整候选；单侧排气对每个配置保留全宽矩形与半宽线性收缩两支。为了不让 CAD 端临场补尺寸，另锁 9 条 C 类 R0 构造规则：cell 中心/膜片、每 cell 方形底腔、中央锚 datum、分区 datum、共享顶腔、外围转移间隙、side-wall 流体边界、残差数值封闭和每 cell 中心落孔。中央锚和分区仅为无 Boolean/无材料的 construction datum，避免把未知实体偷偷写进产品。三条单因素比较拥有独立 variant ID、父项 diff 和完整 Gate 行；总计 9 个变体、252 条初始 `NOT_RUN` Gate。
+**决定**：新增生成式 P1 合同。它把“存在、拓扑、精确几何、所选分支”四类证据分开，并把每个 CAD 变量绑定到 D/P/I/C/U 来源。主布局保留 `C020=0.25/0.50/0.75`；vent 保留图像包围框槽和第二视图中心线+P013 槽宽两套完整候选；单侧排气对每个配置保留全宽矩形与半宽线性收缩两支。为了不让 CAD 端临场补尺寸，另锁 10 条 C 类 R0 构造规则：cell 中心/膜片、每 cell 方形底腔、中央锚 datum、分区 datum、共享顶腔、四个 vent 投影内的局部候选 riser、外围转移间隙、side-wall 流体边界、残差数值封闭和每 cell 中心落孔。vent riser 只解决候选模型连通，不表示 C019 整层为空气；中央锚和分区仅为无 Boolean/无材料的 construction datum，避免把未知实体偷偷写进产品。三条单因素比较拥有独立 variant ID、父项 diff 和完整 Gate 行；总计 9 个变体、252 条初始 `NOT_RUN` Gate。
 
 **孔距逻辑**：`d=0.25 mm, phi=10%` 导出方阵节距约 0.700624 mm。若把 `P008=0.5 mm` 直接当中心节距，R0 方阵开孔率约 19.635%，与当前开孔率范围冲突，因此保留为哨兵而不建成交付 CAD；若解释为边缘间距，节距为 0.75 mm、开孔率约 8.727%，保留为替代候选。这是对解释分支的筛选，不是对专利本身的否定。
 
@@ -158,3 +158,20 @@
 **Gate 影响**：P1 Gate matrix 的 252/252 行全部为 hard Gate；9 个 `G4_STEP_TRANSFER` 和 9 个 `G4_WB_TRANSFER` 都不能接受 transfer limitation。005 仍只判定是否允许开始 P1，必须保持 `P1_STAGE_GATE=NOT_RUN`；006 即使生成全部证据也只能到 `PENDING_PEER_REVIEW`，不能自评 P1 PASS。
 
 **追溯**：`parameters/P1_CAD_CONTRACT_METHOD.md`、`checklists/p1_cad_gate_matrix.csv`、`checklists/P1_CAD_INDEPENDENT_REVIEW_METHOD.md`、`windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`。
+
+## AJM-P1-GEO-003：V02 两区 preliminary 整机 CAD
+
+日期：2026-07-15
+状态：脚本、冻结依赖与 runner 静态通过；Windows 尚未运行
+
+**目标**：在不缩成单 cell 的前提下，用主候选 `M-3x4-7.0__R50_BALANCED` 提前实测完整 12-cell/972-hole Boolean、两区接口、native reopen 和 STEP reimport。该 pilot 用来发现实际 ANSYS 拓扑，不替代正式九变体 006。
+
+**两区表示**：`FLUID_UPSTREAM` 含 vent/riser、top plenum、perimeter gap、bottom chambers 和 orifice throats；`FLUID_DOWNSTREAM` 含 impingement channel、manifold 和 outlet。孔口面可能导入为 shared ID 或 coincident pair；当前正式合同不得在运行前伪定其中一种。
+
+**孔隙率**：972 个直径 0.25 mm 圆孔对应膜片面积代理孔隙率约 8.114445%。表中 10% 是早期 proxy；差值必须记录，不能改孔数或改写测量来制造相等。
+
+**硬检查**：4 inlet、1 outlet、12 membrane top、12 membrane bottom、972 upstream orifice、972 downstream orifice、1 heat wall、2 个 closed/manifold/single-piece bodies；native/STEP 几何指纹与 6 个产物 hash/size 必须闭合。输入来自同签名 commit 的 15 文件 dependency manifest，不读取可变工作树。
+
+**声明边界**：成功只能写 `PASS_PRELIMINARY_PRODUCER`。`formal_006_completion=false`，P1--P6 均 `NOT_RUN`；没有 mesh、solver、semantic reconstruction 或产品真实性升级。
+
+**追溯**：`automation/ansys/approved/006/v02_preliminary_producer.py`、`automation/ansys/run_v02_preliminary_006.py`、`windows-prompts/AJM_WIN_V02_PRELIMINARY_006.md`。

@@ -71,7 +71,7 @@ python .\airjet-simulation\parameters\build_p1_cad_contracts.py
 - `parameters/p1_thickness_budget.csv`：从底部热扩散面到顶盖的 `TB0-PLACEHOLDER` 坐标表。
 - `parameters/p1_model_form_variants.csv` 与 `p1_cad_parameter_map.csv`：6 个交付/残差变体、3 个单因素派生变体及其逐参数 CAD 映射；
 - `parameters/p1_orifice_pattern_candidates.csv`、`p1_vent_geometry_candidates.csv`、`p1_planform_exhaust_candidates.csv`：三类不能静默猜测的几何分支；
-- `parameters/p1_internal_geometry_rules.csv`：膜片/每 cell 底腔、中央锚与分区 datum、共享顶腔、外围间隙、side-wall、残差数值封闭和喷孔落点等 9 条可重复 R0 规则；
+- `parameters/p1_internal_geometry_rules.csv`：膜片/每 cell 底腔、中央锚与分区 datum、共享顶腔、四个 vent 投影内的局部候选 riser、外围间隙、side-wall、残差数值封闭和喷孔落点等 10 条可重复 R0 规则；riser 只解决候选模型连通性，不把未知 C019 整层解释为空气；
 - `geometry/contracts/*.csv`：整机 component/interface/Named Selection/open-question 合同；
 - `checklists/p1_cad_gate_matrix.csv`：初始全部 `NOT_RUN` 的逐变体验收矩阵。
 
@@ -168,6 +168,17 @@ cell 子组件必须能被完整产品阵列调用，但其外壁不能重复生
 - `FLUID_OUTLET_EXTERNAL`。
 
 初期可保留为非共形接口以便调试；最终 P4 模型合并为连续流体域或使用严格守恒接口。执行切片检查，确认没有固体碎片、重复面、零厚度缝隙和孤立体积。
+
+### 9.1 V02 preliminary 的两区策略
+
+V02 不把整条空气域 Boolean 成一个 body，而保留两个各自闭合、manifold、single-piece 的 fluid body：
+
+- `FLUID_UPSTREAM`：4 个 vent/riser、共享顶腔、12 组外围 gap、12 个底腔和 972 个孔喉；
+- `FLUID_DOWNSTREAM`：整机冲击通道、全宽汇流区和单侧出口。
+
+两者在 `Z=1.5175 mm` 的 972 个圆形孔口相接。这样做是为了让 Mechanical/Fluent 能实测两种合法导入形态：同一 actual face ID 被两个 body 共享，或两张几何重合但 ID 不同的 paired faces。未经 Windows STEP 导入观测，不预先把其中一种写成产品事实或正式 schema PASS。
+
+首跑固定主候选 `M-3x4-7.0__R50_BALANCED`，12 个 cell、972 个直径 0.25 mm 圆孔；代理孔隙率约 8.114445%。`p1_layout_configuration_matrix.csv` 的 10% 是用于早期规模估计的未锁定候选，不要求 CAD 值伪装成恰好 10%。V02 producer 必须实测 4 个 inlet、1 个 outlet、12+12 个 membrane faces、972+972 个孔口面和 1 个 heat wall，并通过 native reopen/STEP reimport；但即使全部通过也只证明 preliminary CAD capability，不等于 semantic PASS、P1 Gate 或真实产品结构已确定。
 
 ## 10. CAD 验收清单
 

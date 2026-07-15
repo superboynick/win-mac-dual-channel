@@ -69,7 +69,7 @@ SHA256 = re.compile(r"^[0-9a-f]{64}$")
 MAX_ARTIFACTS = 500
 MAX_INLINE_REPORT_BYTES = 128 * 1024
 MAX_SCRIPT_BYTES = 1024 * 1024
-MAX_PROFILE_DEPENDENCY_BYTES = 1024 * 1024
+MAX_PROFILE_DEPENDENCY_BYTES = 4194304
 MAX_ARTIFACT_BYTES = 16 * 1024 * 1024 * 1024
 MAX_TOTAL_ARTIFACT_BYTES = 64 * 1024 * 1024 * 1024
 FILE_ATTRIBUTE_REPARSE_POINT = 0x400
@@ -103,8 +103,29 @@ PROFILE_DEPENDENCY_GIT_PATHS = {
         "airjet-simulation/automation/ansys/contracts/ajm005_semantic_judgment_v2.json",
         "airjet-simulation/automation/ansys/contracts/ajm005_alternate_route_v2.json",
     ),
+    "ajm006-spaceclaim-v02-preliminary-v1": (
+        "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
+        "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
+        "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py",
+        "airjet-simulation/automation/ansys/contracts/build_full_product_trusted_variants.py",
+        "airjet-simulation/automation/ansys/contracts/test_full_product_trusted_variants.py",
+        "airjet-simulation/parameters/p1_model_form_variants.csv",
+        "airjet-simulation/parameters/p1_layout_configuration_matrix.csv",
+        "airjet-simulation/parameters/p1_internal_geometry_rules.csv",
+        "airjet-simulation/parameters/p1_cad_parameter_map.csv",
+        "airjet-simulation/parameters/p1_orifice_pattern_candidates.csv",
+        "airjet-simulation/parameters/p1_vent_geometry_candidates.csv",
+        "airjet-simulation/parameters/p1_planform_exhaust_candidates.csv",
+        "airjet-simulation/parameters/p1_thickness_budget.csv",
+        "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
+        "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
+    ),
 }
 PROFILE_DEPENDENCY_MANIFEST = "dependency-manifest.json"
+PROFILE_DEPENDENCY_GIT_PREFIXES = (
+    "airjet-simulation/automation/ansys/",
+    "airjet-simulation/parameters/",
+)
 
 
 @dataclass
@@ -1018,7 +1039,10 @@ def prepare_profile_dependencies(
             or ":" in git_path
             or "\\" in git_path
             or path.name != relative_name
-            or not git_path.startswith("airjet-simulation/automation/ansys/")
+            or not any(
+                git_path.startswith(prefix)
+                for prefix in PROFILE_DEPENDENCY_GIT_PREFIXES
+            )
         ):
             raise ValueError("BLOCKED_PROFILE_DEPENDENCY_CONFIGURATION")
 

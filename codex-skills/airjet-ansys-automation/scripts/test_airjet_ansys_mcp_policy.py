@@ -272,12 +272,36 @@ expected_dependency_git_paths = {
         "airjet-simulation/automation/ansys/contracts/ajm005_semantic_judgment_v2.json",
         "airjet-simulation/automation/ansys/contracts/ajm005_alternate_route_v2.json",
     ),
+    "ajm006-spaceclaim-v02-preliminary-v1": (
+        "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
+        "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
+        "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py",
+        "airjet-simulation/automation/ansys/contracts/build_full_product_trusted_variants.py",
+        "airjet-simulation/automation/ansys/contracts/test_full_product_trusted_variants.py",
+        "airjet-simulation/parameters/p1_model_form_variants.csv",
+        "airjet-simulation/parameters/p1_layout_configuration_matrix.csv",
+        "airjet-simulation/parameters/p1_internal_geometry_rules.csv",
+        "airjet-simulation/parameters/p1_cad_parameter_map.csv",
+        "airjet-simulation/parameters/p1_orifice_pattern_candidates.csv",
+        "airjet-simulation/parameters/p1_vent_geometry_candidates.csv",
+        "airjet-simulation/parameters/p1_planform_exhaust_candidates.csv",
+        "airjet-simulation/parameters/p1_thickness_budget.csv",
+        "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
+        "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
+    ),
 }
 actual_dependency_git_paths = module_literal("PROFILE_DEPENDENCY_GIT_PATHS")
 if actual_dependency_git_paths != expected_dependency_git_paths:
     fail("profile dependency Git allowlist changed")
 if module_literal("PROFILE_DEPENDENCY_MANIFEST") != "dependency-manifest.json":
     fail("profile dependency manifest name changed")
+if module_literal("PROFILE_DEPENDENCY_GIT_PREFIXES") != (
+    "airjet-simulation/automation/ansys/",
+    "airjet-simulation/parameters/",
+):
+    fail("profile dependency Git prefixes changed")
+if module_literal("MAX_PROFILE_DEPENDENCY_BYTES") != 4 * 1024 * 1024:
+    fail("profile dependency file-size limit changed")
 
 sanitized_arguments = [
     argument.arg for argument in functions["sanitized_environment"].args.args
@@ -1342,7 +1366,7 @@ for profile in policy["profiles"]:
 future_dependency_profiles = set(expected_dependency_git_paths)
 present_dependency_profiles = future_dependency_profiles & profile_ids
 if present_dependency_profiles != future_dependency_profiles:
-    fail("both v2 dependency-bearing profiles are mandatory")
+    fail("all dependency-bearing profiles are mandatory")
 
 expected_profile_ids = {
     "ajm005-spaceclaim-t0-v1",
@@ -1355,6 +1379,7 @@ expected_profile_ids = {
     "ajm005-workbench-connected-spaceclaim-t1-v1",
     "ajm005-spaceclaim-cad-t1-v2",
     "ajm005-workbench-semantic-reconstruction-t1-v2",
+    "ajm006-spaceclaim-v02-preliminary-v1",
 }
 if profile_ids != expected_profile_ids:
     fail(f"approved profile set is not exact: {sorted(profile_ids)}")
@@ -1573,7 +1598,7 @@ for static_test_path, marker in (
         )
 
 for command, marker in (
-    ([sys.executable, "-B", str(FULL_PRODUCT_CORE_TEST)], "FULL_PRODUCT_SEMANTIC_CONTRACT_V1_TESTS=PASS positive=1 negative=28"),
+    ([sys.executable, "-B", str(FULL_PRODUCT_CORE_TEST)], "FULL_PRODUCT_SEMANTIC_CONTRACT_V1_TESTS=PASS positive=1 negative=31"),
     ([sys.executable, "-B", str(FULL_PRODUCT_VARIANT_GENERATOR), "--check"], "FULL_PRODUCT_TRUSTED_VARIANTS=PASS product=AIRJET_MINI_GEN1 variants=9 mode=check"),
     ([sys.executable, "-B", str(FULL_PRODUCT_VARIANT_TEST)], "FULL_PRODUCT_TRUSTED_VARIANT_TESTS=PASS product=AIRJET_MINI_GEN1 variants=9"),
     ([sys.executable, "-B", str(FULL_PRODUCT_REVIEWER_TEST)], "P1_REVIEWER_STATIC_TESTS=PASS product=AIRJET_MINI_GEN1 variants=9"),
@@ -1606,7 +1631,7 @@ if sys.platform == "win32":
     )
     if (
         ironpython_test.returncode != 0
-        or "FULL_PRODUCT_SEMANTIC_CONTRACT_V1_TESTS=PASS positive=1 negative=28"
+        or "FULL_PRODUCT_SEMANTIC_CONTRACT_V1_TESTS=PASS positive=1 negative=31"
         not in ironpython_test.stdout
     ):
         fail(
@@ -1693,6 +1718,19 @@ for invariant in (
         fail(f"v2 consumer lacks computed semantic invariant: {invariant}")
 if '"artifact_hash_chain": True' in v2_consumer_source:
     fail("v2 consumer hardcodes artifact hash-chain success")
+
+v02_profile = by_profile_id["ajm006-spaceclaim-v02-preliminary-v1"]
+v02_source = (APPROVED / v02_profile["script"]).read_text(encoding="utf-8")
+for invariant in (
+    'os.environ["AIRJET_PROFILE_DEPENDENCY_DIR"]',
+    "verify_dependency_bundle",
+    "dependency_manifest_sha256",
+    "AJM006_DEPENDENCY_MANIFEST_IDENTITY",
+):
+    if invariant not in v02_source:
+        fail(f"V02 producer lacks frozen dependency invariant: {invariant}")
+if 'os.environ["AIRJET_REPO_ROOT"]' in v02_source:
+    fail("V02 producer reads mutable repository dependencies")
 
 native_profile = by_profile_id.get("ajm005-workbench-transfer-t1-v1")
 if not isinstance(native_profile, dict):
