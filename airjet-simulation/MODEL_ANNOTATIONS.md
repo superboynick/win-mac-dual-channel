@@ -229,7 +229,7 @@ mesh/shared nodes/P1 PASS。
 ## AJM-P1-GEO-006：V02 native staging Workbench observer
 
 日期：2026-07-15
-状态：Windows 实跑关闭；external native attach 在 Workbench Refresh 失败
+状态：一轮 PASS、一轮 attach FAIL；972 shared membership 已观测但重复性未闭合；mesh/P1 未运行
 
 **目的**：直接观察 producer 的 `product_two_zone.scdocx` 在 Workbench/Mechanical 的实际 body/face
 拓扑，区分 STEP translator 的单侧损失与 native attach 本身的能力边界。
@@ -238,14 +238,23 @@ mesh/shared nodes/P1 PASS。
 inventory、native reopen 四件前驱产物。native 先复制为 job-local staging 并校验 SHA；Workbench
 仅 SetFile、Refresh、Mechanical GeoData inventory 与 Save。native 分支不 Edit、不 mesh、不求解。
 
-**实际结果**：predecessor identity、native staging size/SHA 均通过；Workbench `SetFile` 返回后，
-`Model.Refresh()` 报无法附加 `.scdocx` 几何结构，Mechanical inventory 未到达。关闭 external native
-attach 路线；`formal_006_completion=false`、P1--P6 与 mesh/physics 继续 `NOT_RUN`。
+**PASS 实测**：签名 tip `0fa89686820c737f7dc98ce94dea27252e4d8b86` 的 producer
+`AJM006-V02-PRELIMINARY-a768ecd0008e` 与 observer `AJM006-V02-PRELIMINARY-0600a08e2a83`
+均 exit 0。Mechanical downstream/upstream 为 body 316/1950、978/2044 faces；两侧各 972 个
+XY 候选完整配对，same actual face ID 与双 body membership 均为 972，分类为
+`972_SHARED_SINGLE_FACE / SHARED_ID_MEMBERSHIP_CONFIRMED`。source/copy/final SHA 一致。
+
+**FAIL 实测**：同一签名 tip 的 producer `...-939d21f59c47` 生成另一 native 字节哈希；observer
+`...-c1ff3339dcb9` 的 predecessor/staging SHA 仍闭合，但 `Model.Refresh()` 无法附加几何结构，
+Mechanical 未到达。两轮 native 字节不同，故当前结论是 route candidate 已观察到、重复性未闭合。
+
+**决定**：先做固定无物理 mesh/repeatability 诊断；在实际证明 shared nodes/conformality 与可重复 attach
+前，不写 mesh-ready、正式 006 或 P1 PASS。split STEP 保留为 attach 再失败时的受审 fallback。
 
 ## AJM-P1-GEO-007：V02 split STEP 转换候选
 
 日期：2026-07-15
-状态：静态包准备中；Windows `NOT_RUN`
+状态：16-profile 静态包 PASS；Windows `NOT_RUN`；native repeatability 诊断期间暂缓
 
 **单一改变**：从同一冻结 two-zone native 分别删除另一流体 body，导出独立
 `upstream.step`/`downstream.step`，避免同一 STEP 文件内的跨体 healer 改写接口。
@@ -253,5 +262,5 @@ attach 路线；`formal_006_completion=false`、P1--P6 与 mesh/physics 继续 `
 **第一道 Gate**：每个 STEP 单独回读时必须只有一个 closed/manifold body，逐角色 face count、bbox、
 volume 与 native 指纹保持；这只证明两个独立表示，尚不证明同一 solver 模型内 adjacency、连接或网格。
 
-**后续路线**：只有 split converter 实跑通过，才建立双 Workbench system observer，逐侧按冻结 972
-XY 观察接口；任一侧缺失即拒绝。formal 006、P1--P6、mesh、physics 继续 `NOT_RUN`。
+**后续路线**：仅在 native attach 重复性/mesh 诊断继续失败时运行；通过后仍需双 system observer。
+formal 006、P1--P6、mesh、physics 继续 `NOT_RUN`。

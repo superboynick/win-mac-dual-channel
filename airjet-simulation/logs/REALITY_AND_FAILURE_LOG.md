@@ -1449,18 +1449,33 @@
 - 下一步：native `.scdocx` 只读 Workbench observer 需新建、静态审计、签名注册后再运行。
 - 状态：CLOSED_OBSERVATION_WITH_TOPOLOGY_LIMITATION
 
-## REAL-20260715-062：V02 native staging Workbench attach 失败
-- UTC：2026-07-15
-- Stage/task：AJM-006 V02 native topology observer
+## REAL-20260715-062：V02 native `.scdocx` observer 确认 972 个共享单面 membership
+- UTC：2026-07-15T15:36:44Z--15:41:41Z
+- Stage/task：AJM-006 V02 native topology observer diagnostic
 - Machine/operator：Windows ANSYS Student 2026 R1 / Codex
+- run/job/profile：producer `AJM006-V02-PRELIMINARY-a768ecd0008e` / `ajm006-spaceclaim-v02-preliminary-v1`；observer `AJM006-V02-PRELIMINARY-0600a08e2a83` / `ajm006-workbench-v02-native-topology-observer-v1`
+- 期望：只读导入 hash-bound `product_two_zone.scdocx`，实测两侧 972-interface actual IDs 与 membership。
+- 实际观察：runner `PASS_PRELIMINARY_NATIVE_TOPOLOGY_OBSERVER`；`972_SHARED_SINGLE_FACE / SHARED_ID_MEMBERSHIP_CONFIRMED`。downstream/upstream 为 body 316/1950、978/2044 faces；两侧各 972 个 XY 候选全部配对，same-ID 与双 body membership 均为 972。
+- 原始日志路径 + SHA-256：`D:\AirJet_P1\AJM-P1-CAD-006\V02_NATIVE_TOPOLOGY_OBSERVER_RUN_SUMMARY.json`，SHA256 `459531dfb95a9e8b59d16d1aae862ceaba1402fec4cb45e248efbecdd92c0791`；raw producer/observer job 目录保留。
+- 结果：native source/staging/final SHA256 全相同，未调用 Edit，predecessor 最终复核不变；Mechanical inventory 与 `.wbpj` 已保存。
+- 采取/拒绝的 workaround：使用固定 job-local hash-equal staging；未回退 STEP/Parasolid/connected route，未 mesh/solve。
+- 对 Gate/论文主张的影响：证明 native import topology 中存在 972 个跨两 body 的 shared single-face membership；没有 mesh，因此 shared nodes/conformal mesh、正式 006、P1 与物理结果均未证明。P1--P6 保持 `NOT_RUN`。
+- 下一步：建立单独签名、无物理的 mesh conformality 诊断；不直接启动正式九变体或物理求解。
+- 关联 decision/annotation/run：AJM-P1-GEO-006；本轮 producer/observer 两条 run-index。
+- 状态：PASS_NATIVE_TOPOLOGY_CANDIDATE_MESH_NOT_RUN
+
+## REAL-20260715-063：同一 native observer 路线出现 attach 失败
+- UTC：2026-07-15
+- Stage/task：AJM-006 V02 native topology observer repeatability evidence
+- Machine/operator：Windows ANSYS Student 2026 R1 / Mac Codex via SSH MCP
 - run/job/profile：producer `AJM006-V02-PRELIMINARY-939d21f59c47`；observer `AJM006-V02-PRELIMINARY-c1ff3339dcb9`
-- 期望：从 hash-equal job-local `.scdocx` staging attach 到 Workbench/Mechanical 并枚举两体拓扑。
+- 期望：从 hash-equal job-local `.scdocx` staging attach 并复现两体拓扑观察。
 - 实际观察：predecessor identity 与 staging SHA 通过；`SetFile` 后 `Model.Refresh()` 报“无法附加几何结构”，Mechanical inventory 未到达。
-- 原始证据：`D:\AirJet_P1\AJM-P1-CAD-006\V02_NATIVE_TOPOLOGY_OBSERVER_RUN_SUMMARY.json` 与 observer raw job。
-- 结果：关闭当前 external native attach 路线；不是 native 几何本体失败。
-- 对 Gate/论文主张的影响：formal 006、P1--P6、mesh、physics 继续 `NOT_RUN`。
-- 下一步：独立导出 upstream/downstream STEP，先逐侧验证 972 接口保留，再设计 solver-side 重组。
-- 状态：CLOSED_NATIVE_ATTACH_ROUTE_BLOCKED
+- 原始证据：raw observer job 保留；该次 summary 后被后续 PASS suite 的固定摘要覆盖，故以 raw report 为准。
+- 结果：不能关闭 native route，因为另一次同签名 profile 已 PASS；两轮 producer native SHA 不同，attach 重复性未闭合。
+- 对 Gate/论文主张的影响：972 shared membership 是已观察候选，但不能写成稳定 attach 或 conformal mesh；P1--P6、mesh、physics 继续 `NOT_RUN`。
+- 下一步：固定 repeatability + 无物理 mesh conformality 诊断；split STEP 仅作 fallback。
+- 状态：OPEN_NATIVE_ATTACH_REPRODUCIBILITY
 
 ## 新条目模板
 
