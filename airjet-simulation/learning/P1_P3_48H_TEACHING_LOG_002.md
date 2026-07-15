@@ -53,7 +53,7 @@ sidecar; it does not claim native Named Selection transfer.
 
 ### Available for writing
 
-The methods record may state that a signed, hash-pinned, fail-closed Windows execution path was
+The methods record may state that signed task reception and fail-closed static policy checks were
 verified before the sprint and that formal engineering Gates remained unchanged.
 
 ### Prohibited wording
@@ -112,8 +112,8 @@ mean the downstream transfer was executed.
 - All producer 20/20 and consumer 19/19 artifact-manifest entries were rehashed and matched.
 - The Git-external ZIP contains 22 selected payloads plus `SHA256SUMS.csv`; its SHA-256 is
   `62b058ef4125704ef4d74624d23b5cc0093315ab29bc613cd0e55cf5d92b7a96`.
-- After the final evidence edits, the staged `suite-summary.json` SHA-256 was recomputed as
-  `fe1abf7c7bce798ba43ba581ecf9e1d5289475a6f1b9863abb8f99cf45f6f3db` and matched the
+- After the correction addendum edits, the staged `suite-summary.json` SHA-256 was recomputed as
+  `8535f0b561ed3f9fb4e8d89e84f205821af111880afaa48c8ff7f8551ffb0dec` and matched the
   evidence-manifest row exactly.
 
 ### Output

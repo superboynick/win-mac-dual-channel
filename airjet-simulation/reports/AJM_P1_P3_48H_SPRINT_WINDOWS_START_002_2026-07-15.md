@@ -20,7 +20,7 @@ PREFLIGHT_WORKTREE=CLEAN
 PREFLIGHT_AHEAD_BEHIND=0_AHEAD_0_BEHIND
 RUNNER_READ_SIGNED_INSTRUCTION=PASS
 WATCHER_CLAIM_PHASE=CODEX_EXITED_0
-CONTINUATION_MODE=MANUAL_USER_SESSION_AFTER_VERIFIED_WATCHER_EXIT
+CONTINUATION_MODE=MANUAL_CONTINUATION_AFTER_VERIFIED_WATCHER_EXIT
 CODEX_VERSION=codex-cli 0.144.4
 GUI_VISIBILITY=NOT_USER_OBSERVED
 RECEPTION_GATE=PASS
@@ -65,12 +65,14 @@ Raw-byte watcher hashes matched both the repository checkout and the installed r
 Task 001 stopped before model execution because the npm `codex.cmd` path carried the long prompt in
 argv. Task 002 used the reviewed no-BOM UTF-8 stdin transport. The watcher created a verified 002
 claim and launched Codex; the first child exited zero without leaving START or engineering output,
-so the current user-visible Windows session is the authorized manual continuation described by the
-signed instruction. Exit zero is not treated as sprint completion.
+so the current manually resumed Codex session is the authorized continuation described by the
+signed instruction. GUI visibility remains `NOT_USER_OBSERVED`; exit zero is not treated as sprint
+completion.
 
 ## Initial engineering state and dependency route
 
 ```text
+INITIAL_STATUS=P0=PASS / P1-P6=NOT_RUN
 P0_STAGE_GATE=PASS_V1
 P1_STAGE_GATE=NOT_RUN
 P2_STAGE_GATE=NOT_RUN

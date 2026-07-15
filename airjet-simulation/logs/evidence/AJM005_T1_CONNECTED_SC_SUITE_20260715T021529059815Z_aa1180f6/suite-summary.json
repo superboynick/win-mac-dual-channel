@@ -33,6 +33,7 @@
   "license_arguments_added": false,
   "license_data_read": false,
   "visibility": "NOT_USER_OBSERVED",
+  "immediate_post_suite_process_observation": "NOT_CAPTURED",
   "operator": "NOT_RECORDED_IN_RAW_SUITE",
   "same_host_session_runtime_positive_control": "NOT_RUN",
   "connected_route_status": "DEFERRED_CURRENT_HOST_ROUTE",
