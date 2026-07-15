@@ -132,6 +132,22 @@ def trace_checkpoint(name: str, **details: Any) -> None:
         handle.write(json.dumps(payload, sort_keys=True) + "\n")
 
 
+def pin_verified_windows_platform_for_pyfluent() -> None:
+    """Avoid Python 3.12's WMI-backed platform probe on the verified host."""
+    if os.name != "nt" or os.environ.get("PROCESSOR_ARCHITECTURE") != "AMD64":
+        raise RuntimeError("PYFLUENT_WINDOWS_PLATFORM_IDENTITY_NOT_VERIFIED")
+    from ansys.fluent.core.launcher import launch_options
+    from ansys.fluent.core.launcher import launcher
+    from ansys.fluent.core.launcher import launcher_utils
+    from ansys.fluent.core.launcher import standalone_launcher
+
+    modules = (launcher, launcher_utils, launch_options, standalone_launcher)
+    for module in modules:
+        module.is_windows = lambda: True
+    if not all(module.is_windows() is True for module in modules):
+        raise RuntimeError("PYFLUENT_WINDOWS_PLATFORM_PIN_FAILED")
+
+
 def snapshot_tree(root: Path) -> dict[str, dict[str, Any]]:
     return {
         path.relative_to(root).as_posix(): {
@@ -423,6 +439,12 @@ try:
     if len(inlet_points) != 4 or len(outlet_points) != 1:
         raise RuntimeError("BOUNDARY_POINT_COUNTS_NOT_4_INLET_1_OUTLET")
 
+    pin_verified_windows_platform_for_pyfluent()
+    trace_checkpoint(
+        "pyfluent_windows_platform_pinned",
+        os_name=os.name,
+        processor_architecture=os.environ.get("PROCESSOR_ARCHITECTURE"),
+    )
     trace_checkpoint("fluent_launch_started", start_timeout_seconds=60)
     with LAUNCH_STACK_PATH.open("w", encoding="utf-8") as launch_stack:
         faulthandler.enable(file=launch_stack, all_threads=True)
