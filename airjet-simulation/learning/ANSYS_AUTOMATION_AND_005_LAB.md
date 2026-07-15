@@ -652,3 +652,48 @@ messages 为空。正确写法是：
 3. 官方同时支持 `.py`/`.scscript`，却没有证明合法文件可 byte-identical；不把简单改 suffix 当严格
    A/B。只有取得合法 `.scscript` 格式或等价性证据后才测 extension dispatch。
 4. 在 entry 可观测前，不改 fixture 几何、不启动 Mechanical/Fluent、不动许可或安装。
+
+## 25. 第二十次实验：先为 A/B 定义“还没进入 A/B”
+
+### 25.1 为什么四态还不够
+
+四态矩阵默认两个 action 都至少拥有可判定 checkpoint。如果第一个调用本身抛异常，第二个 action
+尚未执行，就必须有第五个状态 `CHECKPOINT_NOT_REACHED`。否则数据表会把 control-flow failure
+误写为两个 channel 的 engineering failure。
+
+本轮通过三层合同避免误判：
+
+1. reach 同时区分 `CALLED`、`RETURNED`、`NOT_REACHED`；
+2. marker 只认 exact bytes/size/SHA，无 probe error；
+3. suite 单独输出 `script_channel_classification`，不让总体 FAIL 覆盖细分类。
+
+### 25.2 真实错误怎样定位
+
+`Edit(Interactive=False)` 返回后，`SendCommand(Command=..., Language="Python")` 在 journal line 553
+抛 Workbench NullReference。post-Send probe 没到，RunScript 没调用，正常 Exit 没到；failure catch
+执行 cleanup Exit 并成功。failure artifact probe 三个文件均 absent，GetMessages/stdio 空。
+
+这时不能靠“marker 没有”说 inline Python 写文件失败，因为命令可能尚未交给 interpreter。能写的
+只有：Workbench—connected editor 的该 SendCommand 调用路径在 post-call checkpoint 前失败。
+
+### 25.3 这轮遇到的两类自动化现实问题
+
+- Windows text mode 可能把 `\n` 写成 `\r\n`。如果 outer 锁 LF-only SHA，child 用文本模式，即使
+  真实执行也会假判。marker 因而统一使用 binary fixed bytes。
+- `git verify-commit` 会把成功说明写到 stderr，PowerShell `Stop` 会把它包装成异常；格式化异常还会
+  按宽度换行 fingerprint。最终改用 `%G?` 和 `%GF` 的 machine-readable 字段。
+
+这两个问题都说明：验证器本身也要有数据合同，红字不自动等于被测软件坏了。
+
+### 25.4 下一轮判读
+
+只改 `Edit(Interactive=True)`：
+
+| observation | next inference/action |
+|---|---|
+| SendCommand RETURNED + inline exact | 支持 `Interactive` mode/session 相关假设；继续本轮 file marker |
+| same NullReference | 只证明改该参数不足；下一轮 interactive RunScript-only |
+| Edit/SendCommand hang or new launch error | 记录 SSH/MCP 下 interactive route 不可用；不推导许可坏 |
+
+无论哪一项，都不能直接推进到 AirJet 完整 CAD。connected fixture 通过后还需回到 external native
+attach、native Named Selection transfer、native parameter object/update/reopen，再满足 005 hard Gate。

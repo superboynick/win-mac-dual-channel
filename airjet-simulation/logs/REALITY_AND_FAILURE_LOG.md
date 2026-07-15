@@ -1074,6 +1074,63 @@
   inline/file 对照；`.scscript` 只有在取得合法格式或等价性证据后再测。
 - 状态：CLOSED_CHILD_ENV_PATH_NOT_SUFFICIENT_OPEN_FILE_DISPATCH_AB
 
+## REAL-20260715-045：batch connected editor 的 SendCommand 在检查点前空引用
+
+- UTC：2026-07-15T00:06:34Z
+- Stage/task：005 T1 / 第二十次、connected inline/file scripting channel 对照
+- run/jobs：`AJM005_T1_CONNECTED_SC_SUITE_20260715T000634035436Z_65a14fe2`；SC
+  `a5c-f6fbb9281baa-925d273ad30c`；WB `a5c-f6fbb9281baa-76d5b2fa4acb`；签名 commit
+  `abb1d9a5def19ceb2410db154439c8a6864e9d3a`。
+- 有意改动：在同一 `Interactive=False` connected editor 中，先用
+  `SendCommand(Language="Python")` 写独立 fixed-bytes inline marker，再保留现有 `.py` RunScript。
+  marker 以 exact size/SHA 判定；四态与 delayed 状态显式写入 suite，不能用“文件存在”冒充 PASS。
+- preflight 现实坑：审查时发现 Windows text mode 会把 LF 转成 CRLF，所以 inline 与 file-entry marker
+  均改为 binary `wb` + fixed bytes + close，并由两名只读审查员复核。否则真实 child entry 会被误判
+  FILE_FAIL；该问题在 ANSYS 启动前已关闭。
+- producer：20.202426 秒正常退出，八项 assertions 全 true；transfer native 32139 bytes，SHA-256
+  `2ec0f65426a92d05d184a437c1a66a91d8cccf6aae6575fed5961d47e094a857`；report SHA-256
+  `1a8f42dbe53b2c5d7ffa2446c731aad1bdd1a5e469aa026371db4b5511266e63`。
+- consumer：empty cell 和 Edit RETURNED；`source_geometry.SendCommand(...)` 为 CALLED 后直接抛
+  `未将对象引用设置到对象的实例。`，没有 RETURNED，也未到 post-SendCommand probe。正常路径的
+  RunScript、Exit、build contract、share/Refresh/Mechanical/mesh/project 均 `NOT_REACHED`；failure
+  cleanup Exit RETURNED。consumer 总时长 256.035317 秒，但无 API 分段计时，不能把全部时间精确
+  归给 SendCommand。
+- 正确分类：`CHECKPOINT_NOT_REACHED`。failure freeze 中 inline/file-entry/build report 均 absent，
+  但 file RunScript 根本没调用，所以不能写成 `INLINE_FAIL_FILE_FAIL`。也不能据此判断 inline Python
+  内容、encoding、marker path、权限或 `.py`/`.scscript` loader 失败。
+- 环境噪声：GetMessages、stdout、stderr 均为空；CoreEvents 仍有 RSM/ProgramData warning，但没有
+  RSM→SendCommand 空引用的调用链。本轮定位依赖 execution reach、traceback 与 recorded journal，
+  不把同日志 warning 当根因。
+- 证据：suite/MCP SHA-256 为 `fe04b05c...` / `faa900b7...`；WB report/job-state 为
+  `4ca13aea...` / `15e172c...`；embedded child `ea7940d7...`；recorded journal/CoreEvents/Fatal 为
+  `471b5f3b...` / `7a5637fe...` / `e18e66ec...`。包含 19 个 payload 与内部 checksum 的
+  Git 外 raw evidence ZIP 为 85822 bytes、22 个 payload，SHA-256 `56dbc5c8...`，已由本 run 的
+  `external-raw-evidence-pointer.json` 登记；脱敏进程观察 JSON 记录结束后相关进程数 0。
+- 下一步：只把 `Edit(Interactive=False)` 改为 `Edit(Interactive=True)`，其余 payload、SendCommand、
+  RunScript、path、timeout、fixture、cleanup 和 Gate 合同不变。marker 精确出现只支持
+  `Interactive` mode/session 相关假设；同样空引用只关闭“仅改该参数即可修复”，不能全局排除
+  batch/session 因素，之后再做 interactive RunScript-only。
+- Gate/论文影响：P1 readiness BLOCKED；P1--P6 `NOT_RUN`；visibility `NOT_USER_OBSERVED`。本轮不是
+  AirJet 产品 CAD/MEMS/结构/CFD/CHT 结果。
+- 状态：OPEN_INTERACTIVE_TRUE_SINGLE_VARIABLE
+
+## REAL-20260715-046：PowerShell 把 Git 的成功签名 stderr 和换行显示误判为失败
+
+- UTC：2026-07-15T00:03:00Z--00:05:00Z
+- Stage/task：commit `abb1d9a...` Windows handoff preflight
+- 现象：`git verify-commit` 实际打印 `Good "git" signature` 且退出码为 0，但它把成功诊断写入
+  stderr；在 `$ErrorActionPreference='Stop'` 下，PowerShell 先抛 `NativeCommandError`。放宽后捕获的
+  格式化错误对象又按控制台宽度把 fingerprint 中间换行，导致 exact substring 检查第二次假失败。
+- 原因：外层 wrapper 把 native stderr 渠道当成命令失败，又把面向人的换行渲染当 canonical 数据。
+  这不是 commit 签名、Git、skill 或 ANSYS 故障。
+- 修正：改用 `git log -1 --format='%G?'` 取得结构化状态 `G`，用 `%GF` 取得未换行的 signer
+  fingerprint，并对二者分别 exact compare。随后 skill 12/6/12/4 files、root 106/7/28、policy
+  8 profiles/5 tools、HEAD/signature/ahead-behind 全 PASS，工作树 clean 后才启动 ANSYS。
+- 教学结论：自动化器不能用“stderr 有字”代替退出状态，也不能从格式化异常对象抽取身份字段；优先
+  使用工具提供的 machine-readable format placeholder。
+- Gate 影响：NONE；错误发生在 ANSYS 前，未用于解释 run #20 的 SendCommand 失败。
+- 状态：CLOSED_MACHINE_READABLE_SIGNATURE_FIELDS_USED
+
 ## 新条目模板
 
 ```text

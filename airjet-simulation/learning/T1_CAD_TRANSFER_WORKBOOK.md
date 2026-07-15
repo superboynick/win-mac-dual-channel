@@ -1,9 +1,9 @@
 # 005 T1 CAD→Workbench 学习工作簿
 
-更新时间：2026-07-14  
-当前状态：**三次签名运行均已保留；第三次解析 union、Named Selections 和原生重开已逐项
-通过，但 STEP shape type adapter 失败，第四版待签名运行，aggregate partial CAD/transfer 仍不能
-写 PASS。**
+更新时间：2026-07-15
+当前状态：**已连续保留到第二十次签名实跑；SpaceClaim partial CAD 与 STEP+sidecar solver-side
+reconstruction diagnostic 已分别 PASS，但 external native attach、connected editor scripting、native
+Named Selection transfer 和 native parameterization 尚未闭合，P1 readiness 继续 BLOCKED。**
 
 这份工作簿随实作同步更新。它记录的不只是最后命令，还包括为什么这样建、哪些 API 只在
 本机 v261 证据中出现、第一次尝试可能在哪里失败，以及一次结果最多能支持论文中的哪句话。
@@ -926,3 +926,43 @@ dispatch，也可能是该字节序列并非合法 `.scscript`。因此下一次
 `SendCommand(Language="Python")` 的独立 inline sentinel，并保留现有 `.py` RunScript：inline 有而
 RunScript 无，才把问题收窄到 file-based loader；两者都无则转查 editor scripting channel/session。
 `.scscript` 只有在先得到合法格式/等价性证据后再做。
+
+## 28. 第二十次实跑：`CHECKPOINT_NOT_REACHED` 不是两通道都失败
+
+本轮原计划在同一 editor 内比较 inline `SendCommand` 与 file `RunScript`。为了让这个比较可解释，
+两个 marker 都不是简单 `exists`：固定 ASCII bytes 由 binary mode 写入，外层锁定 exact size/SHA；
+inline 必须在紧接调用的 checkpoint 精确出现，后来才出现只允许标为 delayed/uncertain。runner 还
+要求 suite 显式携带四态：
+
+```text
+INLINE_PASS_FILE_PASS
+INLINE_PASS_FILE_FAIL
+INLINE_FAIL_FILE_PASS
+INLINE_FAIL_FILE_FAIL
+```
+
+真实 reach 却停在四态之前：
+
+| checkpoint | observation | interpretation |
+|---|---|---|
+| empty Geometry | RETURNED | 没有 external file attach |
+| Edit(Interactive=False) | RETURNED | Workbench 外层调用返回 |
+| SendCommand | CALLED, then NullReference | post-call checkpoint 未到达 |
+| inline marker | absent at failure freeze | 没有证明 inline payload 执行 |
+| RunScript | NOT_REACHED | 本轮不能评价 file loader |
+| cleanup Exit | RETURNED | 失败清理成功 |
+| transfer/Mechanical | NOT_REACHED | 没有 transfer/mesh 结果 |
+
+因此 suite 的 `CHECKPOINT_NOT_REACHED` 是一种比四态更早的状态。把它强行压成
+`INLINE_FAIL_FILE_FAIL` 会把“未执行”伪装成“执行后失败”，论文中的因果顺序也会错。
+
+Workbench replay journal 的相关 editor scripting 序列记录了 Edit、SendCommand 和 cleanup Exit，
+没有记录 RunScript；这与 outer reach 一致。GetMessages、stdout、stderr 都为空。consumer 总时长
+约 256 秒，但没有调用级 timer，所以可写“job
+在 SendCommand 调用未返回的路径上结束”，不可写“SendCommand 精确耗时 256 秒”。
+
+下一轮采用真正单变量：只将 `Interactive=False` 改为 `Interactive=True`。官方 API 把它定义为
+batch/interactive，且默认是 true；这正好检验 run #19 与 #20 的共同未决因素——`Interactive`
+模式变化是否与 connected scripting path 的结果变化相伴。不能同时删除 SendCommand、换
+`.scscript`、改 payload、
+动几何或修许可，否则即使结果改变也无法归因。
