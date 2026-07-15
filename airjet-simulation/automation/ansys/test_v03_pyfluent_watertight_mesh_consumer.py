@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import ast
+import copy
 from pathlib import Path
 
 
@@ -124,6 +125,9 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.update_boundaries.old_boundary_zone_list",
         "workflow.update_boundaries.old_boundary_zone_type_list",
         '"boundary_zone_types_updated"',
+        "workflow.update_regions.arguments()",
+        '"update_regions_pre_execute_state"',
+        "state=json_safe_trace_value(update_regions_pre_state)",
         "workflow.update_regions()",
         "workflow.create_volume_mesh_wtm",
         'volume_mesh.volume_fill = "poly-hexcore"',
@@ -137,6 +141,44 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.update_boundaries.old_boundary_label_type_list",
     ):
         assert forbidden not in SOURCE
+
+
+def test_update_regions_probe_is_observation_only_and_ordered() -> None:
+    boundary_guard = SOURCE.index("BOUNDARY_ZONE_TYPES_NOT_4_VELOCITY_1_PRESSURE")
+    state_read = SOURCE.index("workflow.update_regions.arguments()")
+    state_trace = SOURCE.index('"update_regions_pre_execute_state"')
+    region_execute = SOURCE.index("workflow.update_regions()", state_read + 1)
+    volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
+    assert boundary_guard < state_read < state_trace < region_execute < volume_mesh
+    assert SOURCE.count("workflow.update_regions.arguments()") == 1
+    assert SOURCE.count("workflow.update_regions()") == 1
+    observation_window = SOURCE[state_read:region_execute]
+    for forbidden in (
+        "workflow.update_regions.region_name_list =",
+        "workflow.update_regions.region_type_list =",
+        "workflow.update_regions.set_state(",
+        "workflow.update_regions.arguments({",
+    ):
+        assert forbidden not in observation_window
+
+
+def test_json_safe_trace_helper_preserves_nested_input() -> None:
+    helper_node = next(
+        node for node in TREE.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "json_safe_trace_value"
+    )
+    helper_module = ast.Module(body=[helper_node], type_ignores=[])
+    namespace = {"Any": object}
+    exec(compile(ast.fix_missing_locations(helper_module), str(SOURCE_PATH), "exec"), namespace)
+    helper = namespace["json_safe_trace_value"]
+    original = {"regions": [("live", None), [1, True]], "unknown": object()}
+    before = copy.deepcopy(original)
+    observed = helper(original)
+    assert original["regions"] == before["regions"]
+    assert observed["regions"] == [["live", None], [1, True]]
+    assert observed["unknown"]["python_type"] == "object"
+    assert isinstance(observed["unknown"]["repr"], str)
 
 
 def test_prelaunch_trace_and_predecessor_identity_are_pinned() -> None:

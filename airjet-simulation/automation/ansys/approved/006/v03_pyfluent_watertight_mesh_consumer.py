@@ -139,6 +139,23 @@ def trace_checkpoint(name: str, **details: Any) -> None:
         handle.write(json.dumps(payload, sort_keys=True) + "\n")
 
 
+def json_safe_trace_value(value: Any) -> Any:
+    """Return an observation-only JSON representation without mutating state."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, dict):
+        return {
+            str(key): json_safe_trace_value(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple)):
+        return [json_safe_trace_value(item) for item in value]
+    return {
+        "python_type": type(value).__name__,
+        "repr": repr(value)[:4096],
+    }
+
+
 def pin_verified_windows_platform_for_pyfluent() -> None:
     """Avoid Python 3.12's WMI-backed platform probe on the verified host."""
     if os.name != "nt" or os.environ.get("PROCESSOR_ARCHITECTURE") != "AMD64":
@@ -603,6 +620,12 @@ try:
             )
         )
 
+    update_regions_pre_state = workflow.update_regions.arguments()
+    trace_checkpoint(
+        "update_regions_pre_execute_state",
+        python_type=type(update_regions_pre_state).__name__,
+        state=json_safe_trace_value(update_regions_pre_state),
+    )
     workflow.update_regions()
     volume_mesh = workflow.create_volume_mesh_wtm
     volume_mesh.volume_fill = "poly-hexcore"
