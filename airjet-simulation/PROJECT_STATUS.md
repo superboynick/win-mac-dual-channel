@@ -125,7 +125,7 @@
 - P1 的四个工作布局已生成求解器无关配置表；`TB0-PLACEHOLDER` 厚度表严格闭合 2.8 mm，并显式保留 0.735 mm 未识别残差，未把占位层伪装成产品事实。
 - P1 可执行 CAD 合同已生成：6 个交付/残差变体 + 3 个单因素派生变体、342 条参数映射、3 类喷孔解释、两套四开口 vent、每配置两套单侧排气分支、10 条内部几何 R0 构造规则，以及 feature/成对 interface/Named Selection/open-question 表；新增的 vent riser 仅为四个 vent 投影内的 C 类局部连通闭合；252 条 Gate 行仍全部 `NOT_RUN`。
 - Windows 006 完整产品 CAD 任务已写好；Gen1-only production schema/validator、九个 trusted variant blueprint、campaign 与 006/007 reviewer bridge 的静态合同已通过 CPython/IronPython、负向测试、MCP policy 和双项目审计。两个 006 production profile 仍未注册，`execution_state=STATIC_CONTRACT_ONLY_NOT_REGISTERED`，所以当前必须 fail closed，不得启动正式 CAD。
-- 为尽快获得真实 SpaceClaim 拓扑证据，已增加一个与正式 production profile 分离的 V02 preliminary producer：固定主候选 `M-3x4-7.0__R50_BALANCED`，建立 3×4 共 12 个 cell、972 个圆孔和 upstream/downstream 两个流体区。单体 union 被放弃，因为孔口两侧必须保留可审计的 shared/coincident interface，而把所有空气合成一个实体会丢失内部接口。producer 的输入来自同一签名 commit 的 15 文件冻结 dependency bundle；runner 只有在报告身份、10 项断言和 6 个外部产物与 MCP manifest 的大小/SHA256 全部闭合后才允许写 `PASS_PRELIMINARY_PRODUCER`。当前脚本和 profile 已静态通过但**尚未在 Windows 运行**，所以这不是 CAD 结果。V02 实际代理孔隙率由 972×π×0.125²/(12×7²) 得到约 8.114445%；表中 10% 仍是未锁定 proxy，不强行相等。
+- V02 preliminary producer 已在 Windows 完成三次签名实跑并于 commit `64b57303...` PASS：主候选 `M-3x4-7.0__R50_BALANCED` 的 3×4/12-cell、972-hole、upstream/downstream 两个流体区均真实建立；两个 body 为 single-piece/closed/manifold，4/1 inlet/outlet、12/12 membrane、972/972 orifice faces 与 1 heat wall 全部闭合。十项断言和六个外部产物 size/SHA 与 MCP manifest 一致，runner 为 `PASS_PRELIMINARY_PRODUCER`。实际代理孔隙率为 `8.114445310611391%`；10% 仍是未锁定 proxy。STEP shape round-trip 最大 bbox/volume delta 为 `0.014975 mm` / `0.003996774 mm^3`，在记录的 STEP-only 容差内；但 downstream STEP face decomposition 从 native 978 合并为 6，接口 actual-ID 表示仍待 observer，不能宣称 semantic 或 P1 PASS。
 - 005 alternate-route v2 于 `2026-07-15T10:04:43Z--10:06:02Z` 在 commit
   `9a88b7ad26d5d5c9f35d8a5f956df7038cfca0fd` 首次同轮端到端 PASS：SpaceClaim producer 与
   Workbench consumer 均 exit 0，参数化构造、原生保存/重开、STEP 导出/重导、hash-bound semantic
@@ -140,7 +140,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 005 alternate-route v2 工具链前置已 PASS；V02 两区 preliminary producer 已注册但尚未实跑；输入合同和 Gen1 production 静态语义合同完成，正式九变体 CAD 未开始；native 三项边界不变，connected route=`DEFERRED_CURRENT_HOST_ROUTE`，两个正式 006 production profile 尚未注册，P1 BLOCKED | 先在 Windows 实跑 V02 producer，测量 Boolean、972+972 接口面、原生重开和 STEP 重导；再依据真实 shared/coincident 结果完成 observer 与 production profile。P1 Stage 仍 `NOT_RUN`，P1–P6 均未通过 |
+| P1 整机 CAD | 005 alternate-route v2 工具链前置已 PASS；V02 两区 preliminary producer 已实跑 `PASS_PRELIMINARY_PRODUCER`；输入合同和 Gen1 production 静态语义合同完成，正式九变体 CAD 未开始；native 三项边界不变，connected route=`DEFERRED_CURRENT_HOST_ROUTE`，两个正式 006 production profile 尚未注册，P1 BLOCKED | 基于 V02 实际 native/STEP 分解完成 observer，实测 shared/coincident actual IDs 与 solver-side 972-interface 可重建性；随后才注册正式 producer/observer profiles 并运行九变体 006。P1 Stage 仍 `NOT_RUN`，P1–P6 均未通过 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -164,7 +164,7 @@
    solver-side reconstruction 补名；Mechanical/Fluent 可删除 T1 能力检查并入 alternate-route
    confirmation 与后续 pilot 的受审 profiles。run #19--#22 的完整因果链仍见
    `learning/T1_CAD_TRANSFER_WORKBOOK.md` 与 `logs/REALITY_AND_FAILURE_LOG.md`，没有被 run #22 覆盖。
-2. 先执行 `windows-prompts/AJM_WIN_V02_PRELIMINARY_006.md` 的固定 producer runner，获得 V02 两区实体、972 孔 Boolean、shared topology、native/STEP 重开和严格产物哈希的机器证据。该 pilot 只允许 `PASS_PRELIMINARY_PRODUCER`，P1 仍为 `NOT_RUN`；失败时保留原始报告并只按实测 API/拓扑问题修复。随后才完成 observer，并在真实导入结果支持下选择 shared-face 或 paired-interface schema。只有 `profiles.json` 中两个正式 006 production profile 已注册并由静态 policy/双审计锁定后，才执行
+2. V02 固定 producer 已取得 `PASS_PRELIMINARY_PRODUCER`；现在只完成基于该 hash-bound native/STEP 的 observer，并在真实 solver import 结果支持下选择 shared-face 或 paired-interface schema。不得从 `ShareTopology.Success` 或 native 972/972 直接推导 STEP/solver actual IDs。只有 `profiles.json` 中两个正式 006 production profile 已注册并由静态 policy/双审计锁定后，才执行
    `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：同一母版生成 4 个整机配置、
    6 个交付/残差变体和主配置 3 个有独立 ID/Gate 的单因素派生变体。006 最多写
    `PENDING_PEER_REVIEW`，不能由生成模型的同一会话自评 P1 PASS。

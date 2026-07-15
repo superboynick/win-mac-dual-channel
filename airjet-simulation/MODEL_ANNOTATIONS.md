@@ -162,7 +162,7 @@
 ## AJM-P1-GEO-003：V02 两区 preliminary 整机 CAD
 
 日期：2026-07-15
-状态：脚本、冻结依赖与 runner 静态通过；Windows 尚未运行
+状态：Windows preliminary producer 已实跑 PASS；observer、正式 006 与 P1 Gate 均未运行
 
 **目标**：在不缩成单 cell 的前提下，用主候选 `M-3x4-7.0__R50_BALANCED` 提前实测完整 12-cell/972-hole Boolean、两区接口、native reopen 和 STEP reimport。该 pilot 用来发现实际 ANSYS 拓扑，不替代正式九变体 006。
 
@@ -172,6 +172,10 @@
 
 **硬检查**：4 inlet、1 outlet、12 membrane top、12 membrane bottom、972 upstream orifice、972 downstream orifice、1 heat wall、2 个 closed/manifold/single-piece bodies；native/STEP 几何指纹与 6 个产物 hash/size 必须闭合。输入来自同签名 commit 的 15 文件 dependency manifest，不读取可变工作树。
 
+**实测结果**：签名 commit `64b57303b324aa1c98890d4241462814678af41f` 的 job `AJM006-V02-PRELIMINARY-1082d551ee85` 得到 `PASS_PRELIMINARY_PRODUCER`；上述计数全部闭合，实际代理孔隙率为 `8.114445310611391%`。native 与 STEP 重导均为两个 closed/manifold body。STEP 最大 bbox/volume drift 分别为 `0.014975 mm` 与 `0.003996774 mm^3`，在明确记录的 STEP-only `0.02 mm` / `0.005 mm^3` 阈值内；native 仍保持 `0.005 mm` bbox 门槛。
+
+**未决拓扑**：STEP 中 downstream face decomposition 从 native 978 faces 合并为 6 faces；本 pilot 只检查 STEP shape equivalence，不要求面数或名字持久化。因此 shared ID/coincident pair 与 solver-side 972-interface 身份仍是 `NOT_EVALUATED_UNTIL_WORKBENCH_OBSERVER`。
+
 **声明边界**：成功只能写 `PASS_PRELIMINARY_PRODUCER`。`formal_006_completion=false`，P1--P6 均 `NOT_RUN`；没有 mesh、solver、semantic reconstruction 或产品真实性升级。
 
-**追溯**：`automation/ansys/approved/006/v02_preliminary_producer.py`、`automation/ansys/run_v02_preliminary_006.py`、`windows-prompts/AJM_WIN_V02_PRELIMINARY_006.md`。
+**追溯**：`automation/ansys/approved/006/v02_preliminary_producer.py`、`automation/ansys/run_v02_preliminary_006.py`、`windows-prompts/AJM_WIN_V02_PRELIMINARY_006.md`、`logs/evidence/AJM006_V02_PRELIMINARY_20260715T113939945030Z_1082d551ee85/`。

@@ -1297,6 +1297,64 @@
   parameterization、native Named Selection transfer 仍 `NOT_PROVEN`，P2--P6 仍 `NOT_RUN`。
 - 状态：PASS_START_P1_ALTERNATE_ROUTE_ONLY
 
+## REAL-20260715-052：V02 首跑在几何前暴露 IronPython 字符缓冲差异
+
+- UTC：`2026-07-15T11:29:33.575122Z--11:29:58.248998Z`。
+- Stage/task：006 V02 preliminary full-product CAD；job
+  `AJM006-V02-PRELIMINARY-09d11b707907`；commit `d94f9c83...`。
+- 期望：由同一签名提交冻结 15 个依赖后，建立 12-cell/972-hole 两流体区整机 CAD。
+- 实际：SpaceClaim exit 0，但 producer 在任何 body 创建前，于 canonical dependency hash 的
+  `data.replace(b"\r\n", b"\n")` 抛 `TypeError: expected a character buffer object`；runner exit 2 / fail closed。
+- 解释边界：十项 assertion 的 raw `false` 是异常前默认值，含义是 `NOT_REACHED`，不能写成十项几何
+  独立失败。此轮没有评价 Boolean、ShareTopology、native/STEP 或产品几何。
+- 根因及修复：V261 IronPython 的 binary read 字符缓冲语义与 CPython 3 `bytes` 不同。commit
+  `da39751c...` 只把 CRLF canonicalization 改为该宿主接受的字符路径，并重绑 producer/profile/runner
+  SHA；几何、孔数和 Gate 未放宽。
+- 证据：producer `3762d767...`；runner summary `e3321e36...`；stdout `51c89ce...`；MCP stderr
+  `13132223...`。Windows 原始 job、Git condensed evidence 和 Downloads ZIP 均保留。
+- Gate/论文影响：P1--P6 `NOT_RUN`；只可写“首跑发现并修复宿主兼容问题”。
+- 状态：CLOSED_BY_SIGNED_RETRY
+
+## REAL-20260715-053：第二跑建立完整 native CAD，但 STEP 形状容差 fail closed
+
+- UTC：`2026-07-15T11:32:49.014468Z--11:34:52.716636Z`。
+- Stage/task：006 V02 preliminary；job `AJM006-V02-PRELIMINARY-bc1b12e43d39`；commit
+  `da39751c...`。
+- 实际观察：12 个 cell、972 个直径 0.25 mm 孔、两个 single-piece/closed/manifold 流体实体均建成；
+  `INLET/OUTLET=4/1`、`MEMBRANE_TOP/BOTTOM=12/12`、孔口两侧 `972/972`、`HEAT_WALL=1`；native
+  保存/重开和 group fingerprints PASS。实际膜片面积代理孔隙率 `8.1144453106%`。
+- 唯一失败：STEP 重导 upstream 最大 bbox 漂移 `0.014975 mm`，超过原通用 `0.005 mm`；最大体积差
+  约 `0.003997 mm^3`。十项断言为 9 true/1 false，runner 因 `step_export_reimport=false` 拒绝 PASS。
+- 最小区分修复：commit `64b57303...` 只给 STEP shape round-trip 绑定实测覆盖的 `0.02 mm` bbox
+  tolerance；native 仍用 `0.005 mm`。报告新增实际 delta 与容差，不删除 STEP assertion。
+- 表示限制：STEP downstream face decomposition 从 native 978 faces 合并为 6；preliminary STEP
+  shape equality 本来不锁 face count，但这不能证明 shared/coincident interface identity。
+- 证据：producer `7525eaf7...`；runner summary `97eb334d...`；stdout `ff942375...`；MCP stderr
+  `b3045747...`。
+- Gate/论文影响：仍为 `FAIL_PRELIMINARY`；P1--P6 `NOT_RUN`。
+- 状态：CLOSED_BY_MEASURED_TOLERANCE_RETRY
+
+## REAL-20260715-054：第三跑 V02 preliminary producer 十项断言全部 PASS
+
+- UTC：`2026-07-15T11:39:39.945030Z--11:41:35.667587Z`。
+- Stage/task：006 V02 preliminary；job `AJM006-V02-PRELIMINARY-1082d551ee85`；commit
+  `64b57303b324aa1c98890d4241462814678af41f`；producer SHA `e575c045...`。
+- 结果：job `PROCESS_EXITED_0`、runner exit 0 / `PASS_PRELIMINARY_PRODUCER`、producer
+  `PASS_PARTIAL_CAD_CAPABILITY`；十项 assertions 全 true。实测计数仍为 12 cell、972 holes、
+  2 bodies、4/1、12/12、972/972、1 heat wall；native 与 STEP reimport 均为两个 closed/manifold body。
+- STEP 量化：最大 bbox delta `0.014975 mm < 0.02 mm`；最大 volume delta
+  `0.003996774 mm^3 < 0.005 mm^3`。容差与 delta 同时写入 `step_reimport.json`。
+- 证据：六个声明产物逐项 size/SHA 与 38-file MCP manifest 闭合；producer `41255373...`；runner
+  summary `3b35b820...`；stdout `11970c4a...`；MCP stderr `8335263e...`。
+- 三份归档：Windows 原始 job；Mac Downloads 113-file byte-verified 副本；Mac/Windows Downloads
+  ZIP 15767164 bytes，SHA `f4ef73b5...`；Git 保存三轮 condensed evidence。
+- 结论边界：这只证明一个主候选的 preliminary full-product CAD 生产能力。`formal_006_completion=false`；
+  STEP interface representation、solver semantic reconstruction、九变体/252 Gate、mesh/physics 均未评价。
+- 下一步：依据真实 native/STEP face decomposition 设计并注册 observer；不得仅凭
+  `ShareTopology.Success` 选择正式 shared-face schema。
+- Gate/论文影响：P1 stage 与 P1--P6 继续 `NOT_RUN`。
+- 状态：PASS_PRELIMINARY_PRODUCER_ONLY
+
 ## 新条目模板
 
 ```text

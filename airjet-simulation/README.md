@@ -29,7 +29,7 @@
 - `evidence/layout_candidate_scores.csv`：去重后的唯一布局、硬门槛、pending 分数、P0 工作主/备选和评分覆盖率。
 - `windows-prompts/AJM_WIN_P1_READINESS_001.md`：已完成的历史只读 P1 就绪核验提示，不再是下一轮入口。
 - `windows-prompts/AJM_WIN_ANSYS_OFFICIAL_TRIAL_INSTALL_AND_SMOKE_004.md`：收到官方 entitlement 后执行的正版安装、签名核验与 P1–P5 能力复测；只有申请回执时必须停止。
-- `windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`：当前下一轮入口；在纯净官方 Student 2026 R1 上验证 P1 CAD、Mechanical 和 Fluent 的真实能力与限制。
+- `windows-prompts/AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md`：已完成的 Student 能力历史入口；005 alternate-route v2 已通过，不能代替 P1 Gate。
 - `reports/AJM_WIN_ANSYS_STUDENT_CLEANUP_2026-07-14.md`：第三方 PLE 清理、官方 Student 签名、Fluent Student checkout 报告及 Mac SSH 复核边界。
 - `evidence/SOURCE_PROVENANCE.md`：每份产品卡、专利和论文能支持哪些参数，以及不能支持什么。
 - `parameters/full_product_parameter_registry.csv`：完整产品尺寸、性能、结构、流体、控制和热参数注册表。
@@ -46,6 +46,8 @@
 - `manuals/06_CALIBRATION_AND_UNCERTAINTY.md`：多指标参数识别、验证集与不可辨识性处理。
 - `manuals/07_RUN_LOG_AND_GIT.md`：每次算例注释、大文件索引和 Windows/Mac 交接。
 - `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：只有 005 P1 CAD 工具链通过后才可执行的完整产品 CAD 建模任务；006 本身不能宣布 P1 Gate PASS。
+- `windows-prompts/AJM_WIN_V02_PRELIMINARY_006.md`：已完成的 V02 两区整机 producer 入口；12-cell/972-hole preliminary CAD 已 PASS，下一步是依据真实 native/STEP 分解建立 observer，不重复无差别 producer。
+- `logs/evidence/AJM006_V02_PRELIMINARY_20260715T113939945030Z_1082d551ee85/`：V02 PASS 凝练证据；三轮 113-file 原始副本另存 Mac/Windows Downloads ZIP，六产物与 ZIP 的大小/SHA 见该目录 `evidence-summary.json`。正式 P1 的 `logs/external-files.csv` 在 P1 前保持 canonical empty。
 - `notebooks/airjet-mini-layout-baseline.ipynb`：可执行的产品指标核对与 Layout-L/M/S 几何候选枚举；几何可装入不等于真实内部布局。
 - `notebooks/build_layout_baseline.py`：可重复生成上述 notebook 的标准库脚本。
 - `checklists/full_product_stage_gates.md`：P0–P6 的整机验收门槛。

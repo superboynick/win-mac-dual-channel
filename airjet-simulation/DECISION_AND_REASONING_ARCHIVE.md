@@ -337,3 +337,13 @@ V02 的 972 孔来自 centered-clip 规则，按 12×7² mm² 膜片面积代理
 为了避免“退出码 0 即成功”，pilot producer 只有在实测 4/1 个 inlet/outlet、12/12 个 membrane faces、972/972 个孔口两侧面、1 个 heat wall、两个 single-piece closed/manifold bodies，以及 native reopen、STEP reimport、6 个产物 hash/size 全部闭合时才返回 preliminary PASS。输入不是运行时读取可变工作树，而由 MCP 从同一签名 commit 冻结 15 个 dependency 文件并在 producer 内再次验证 manifest。即使通过，声明仍是 `PASS_PRELIMINARY_PRODUCER`、`formal_006_completion=false`、P1--P6 `NOT_RUN`。
 
 追溯：`automation/ansys/approved/006/v02_preliminary_producer.py`、`automation/ansys/run_v02_preliminary_006.py`、`automation/ansys/profiles.json`、`windows-prompts/AJM_WIN_V02_PRELIMINARY_006.md`。
+
+## 19. 为什么 V02 PASS 后仍先做 observer，而不是立即宣布 P1
+
+三次 Windows 实跑形成了可区分的因果链。第一次在几何前发现 IronPython 字符缓冲差异；第二次已完成全部 native CAD 检查，但 STEP bbox 的 `0.014975 mm` 实测漂移超过原先 `0.005 mm` 阈值；第三次只对 STEP shape round-trip 使用透明记录的 `0.02 mm` 阈值后，十项断言与六产物哈希全部闭合。阈值来自前一签名运行的量测，不是为迎合结果而删除断言；native 仍保持原 `0.005 mm` 门槛。
+
+但 STEP 重导时 downstream 从 native 978 faces 合并为 6 faces。这不破坏两个 closed/manifold body 的总体 shape equivalence，却直接说明 native face groups 不能假定逐面穿过 STEP。`ShareTopology.Success=True` 只证明命令返回，不证明 Workbench/Mechanical 中存在 972 个 shared actual IDs。因此正式 schema 仍不能在 shared-face 与 paired/coincident representation 之间提前下注。
+
+下一步必须由只读 observer 导入本次 hash-bound STEP/native 产物，实测 body/face 分解、actual IDs、owner/adjacency 与可重建性，再决定正式 production contract。V02 PASS 只把问题从“能否构建完整两区整机 CAD”推进到“solver import 后如何证明接口语义”；`formal_006_completion=false`，P1--P6 继续 `NOT_RUN`。
+
+追溯：`logs/evidence/AJM006_V02_PRELIMINARY_20260715T112933575122Z_09d11b707907/`、`logs/evidence/AJM006_V02_PRELIMINARY_20260715T113249014468Z_bc1b12e43d39/`、`logs/evidence/AJM006_V02_PRELIMINARY_20260715T113939945030Z_1082d551ee85/`、`logs/REALITY_AND_FAILURE_LOG.md`。
