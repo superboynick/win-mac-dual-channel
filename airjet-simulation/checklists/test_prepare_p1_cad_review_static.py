@@ -73,7 +73,7 @@ def main() -> int:
     def working_blob(_repo: Path, _commit: str, relative_path: str) -> bytes:
         if relative_path in fake_scripts:
             return fake_scripts[relative_path]
-        return (REPO / relative_path).read_bytes()
+        return (REPO / relative_path).read_bytes().replace(b"\r\n", b"\n")
 
     reviewer.git_blob = working_blob
     negative = 0

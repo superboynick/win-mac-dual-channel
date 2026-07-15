@@ -61,7 +61,7 @@ def load_inputs():
         for record in campaign["variant_contracts"]
     )
     source_bytes = dict(
-        (record["git_path"], (REPO / record["git_path"]).read_bytes())
+        (record["git_path"], generator.read_source_contract_bytes(record["git_path"]))
         for record in campaign["source_contracts"]
     )
     return campaign_bytes, campaign, blueprint_bytes, source_bytes
@@ -140,6 +140,11 @@ def main():
     generator.validate_gen1_target(campaign, blueprints)
 
     negative = 0
+    assert generator.canonical_source_contract_bytes(b"alpha\n") == generator.canonical_source_contract_bytes(b"alpha\r\n")
+    expect_code(
+        lambda: generator.canonical_source_contract_bytes(b"alpha\rbeta\n"),
+        "GEN1_SOURCE_CONTRACT_BARE_CR",
+    ); negative += 1
     expect_code(
         lambda: contract.load_trusted_campaign_bytes(
             campaign_bytes, "0" * 64, blueprint_bytes, expected, source_bytes

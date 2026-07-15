@@ -58,6 +58,19 @@ def sha256_bytes(value):
     return hashlib.sha256(value).hexdigest()
 
 
+def canonical_source_contract_bytes(value):
+    """Return the LF bytes Git stores for reviewed text source contracts."""
+
+    normalized = value.replace(b"\r\n", b"\n")
+    if b"\r" in normalized:
+        raise ValueError("GEN1_SOURCE_CONTRACT_BARE_CR")
+    return normalized
+
+
+def read_source_contract_bytes(git_path):
+    return canonical_source_contract_bytes((REPO / git_path).read_bytes())
+
+
 def json_bytes(value):
     return (json.dumps(value, ensure_ascii=True, indent=2, sort_keys=True) + "\n").encode("ascii")
 
@@ -396,7 +409,7 @@ def source_contracts():
         records.append({
             "contract_key": contract_key,
             "git_path": git_path,
-            "sha256": sha256_bytes((REPO / git_path).read_bytes()),
+            "sha256": sha256_bytes(read_source_contract_bytes(git_path)),
         })
     return records
 

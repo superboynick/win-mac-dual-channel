@@ -29,17 +29,17 @@
       {
         "contract_key": "trusted_variant_generator",
         "git_path": "airjet-simulation/automation/ansys/contracts/build_full_product_trusted_variants.py",
-        "sha256": "3f53db0df971f2045c84bca9e2a88e19406157bd46a1e5c8a980d3fc2159d3fa"
+        "sha256": "6786d295e477ad4d83c88439875dc03e982e0ddc8461107d50b0d04a9e2ebb49"
       },
       {
         "contract_key": "trusted_variant_test",
         "git_path": "airjet-simulation/automation/ansys/contracts/test_full_product_trusted_variants.py",
-        "sha256": "a1c105e68646a78dff1c4b0766d477ef12dcd8abf49b03075ea2dec07eac605f"
+        "sha256": "697a5699d5028b7397bffeaf41e338b0a580b1771247347e5ef2fcf10c03c8d3"
       },
       {
         "contract_key": "trusted_campaign",
         "git_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
-        "sha256": "9381db87c4b120d4640186a79c79d3994934b474d2af638cf5dfe18f99c30de5"
+        "sha256": "77b4eb6b40d73e73017e78c914be13669ef1fd1b1e49789ec7a10ec30a40afc3"
       }
     ]
   },
