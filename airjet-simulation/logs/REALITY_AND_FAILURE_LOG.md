@@ -1401,6 +1401,24 @@
 - 下一步：等待用户确认 Windows 恢复，再从 signed `GIT_READY` 执行唯一固定 runner；失败也原样保留。
 - 状态：STATIC_READY_WINDOWS_NOT_RUN
 
+## REAL-20260715-059：Parasolid converter 首次 Windows 试跑在 SpaceClaim 未注入 Reset 处 fail closed
+
+- Stage/task：006 V02 Parasolid x_t diagnostic pilot；converter stage。
+- commit/profile：`a7194071a2791c391557ef33e6600bc2adddbfba`；
+  `ajm006-spaceclaim-v02-parasolid-converter-v1`。
+- 接手证据：Windows HEAD 精确匹配、签名有效、clean、`0/0`、audit `144 files PASS`；静态
+  guards 16/16 PASS；MCP inventory ready，Student executables/package versions 通过。
+- 实际：producer job `AJM006-V02-PRELIMINARY-89a076e1807a` exit 0，`PASS_PARTIAL_CAD_CAPABILITY`；
+  converter job `AJM006-V02-PRELIMINARY-18989d677c3e` 在打开 staging native 前调用未注入的
+  `Reset()`，报告 `NameError: name 'Reset' is not defined`。未导出 x_t，observer 未启动。
+- 已闭合的 converter 事实：predecessor identity 与 staging copy hash 通过；其余 converter 断言
+  按失败语义保持 false。不能把这次写成 Parasolid 路线失败或几何拓扑结论。
+- 处置：Mac 删除该未受审全局调用，重算 converter SHA 为
+  `9bd5a21eaaba8cf1d253b7c93fbd4da50828b23b0207046eca76acb441f4fe46`，更新 runner/profile，
+  重新通过 16 guards、14-profile policy 和 144-file audit；等待新签名 commit 后只重试一次。
+- Gate/论文影响：NONE；P1--P6、mesh、physics、route assessment 均 `NOT_RUN`。
+- 状态：CLOSED_BY_SIGNED_SCRIPT_FIX_PENDING_WINDOWS_RETRY
+
 ## 新条目模板
 
 ```text

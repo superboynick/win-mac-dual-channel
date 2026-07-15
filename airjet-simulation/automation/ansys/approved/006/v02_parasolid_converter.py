@@ -360,7 +360,6 @@ try:
     if not staging_workspace_before_exact:
         raise Exception("STAGING_WORKSPACE_NOT_EXACT_BEFORE_OPEN")
 
-    Reset()
     opened = DocumentOpen.Execute(staged_native_path)
     native_bodies = get_all_bodies_without_extension_binding(GetRootPart())
     native_fingerprints = [body_fingerprint(body) for body in native_bodies]
