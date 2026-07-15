@@ -156,6 +156,23 @@ def json_safe_trace_value(value: Any) -> Any:
     }
 
 
+def observe_parameter(parameter: Any) -> dict[str, Any]:
+    """Read one generated workflow parameter without changing its state."""
+    try:
+        value = parameter()
+    except Exception as exc:  # noqa: BLE001 - diagnostics must retain API drift.
+        return {
+            "read_ok": False,
+            "error_type": type(exc).__name__,
+            "error": str(exc),
+        }
+    return {
+        "read_ok": True,
+        "python_type": type(value).__name__,
+        "value": json_safe_trace_value(value),
+    }
+
+
 def pin_verified_windows_platform_for_pyfluent() -> None:
     """Avoid Python 3.12's WMI-backed platform probe on the verified host."""
     if os.name != "nt" or os.environ.get("PROCESSOR_ARCHITECTURE") != "AMD64":
@@ -330,6 +347,27 @@ def one_face_zone(meshing_utilities: Any, point: list[float]) -> int:
             )
         )
     return int(zone_ids[0])
+
+
+def cell_zones_at_point(
+    meshing_utilities: Any, point: list[float]
+) -> list[int]:
+    """Normalize a cell-zone query while preserving a no-hit as an empty list."""
+    raw_zone_ids = meshing_utilities.get_cell_zones(
+        xyz_coordinates=[float(value) for value in point]
+    )
+    if raw_zone_ids is None:
+        return []
+    try:
+        zone_ids = list(raw_zone_ids)
+    except TypeError as exc:
+        raise RuntimeError("CELL_ZONE_QUERY_RETURN_NOT_ITERABLE") from exc
+    if any(
+        isinstance(value, bool) or not isinstance(value, int)
+        for value in zone_ids
+    ):
+        raise RuntimeError("CELL_ZONE_QUERY_RETURN_NOT_INTEGER_IDS")
+    return [int(value) for value in zone_ids]
 
 
 def zone_names(meshing_utilities: Any, zone_ids: list[int]) -> list[str]:
@@ -633,6 +671,58 @@ try:
         python_type=type(update_regions_pre_state).__name__,
         state=json_safe_trace_value(update_regions_pre_state),
     )
+    direct_region_state = {
+        name: observe_parameter(getattr(workflow.update_regions, name))
+        for name in (
+            "region_current_list",
+            "region_current_type_list",
+            "region_name_list",
+            "region_type_list",
+            "old_region_name_list",
+            "old_region_type_list",
+            "number_of_listed_regions",
+        )
+    }
+    trace_checkpoint(
+        "update_regions_direct_parameter_state",
+        state=direct_region_state,
+    )
+    current_names = direct_region_state["region_current_list"].get("value")
+    current_types = direct_region_state["region_current_type_list"].get("value")
+    listed_count = direct_region_state["number_of_listed_regions"].get("value")
+    if (
+        not isinstance(current_names, list)
+        or not isinstance(current_types, list)
+        or len(current_names) != 12
+        or len(current_types) != 12
+        or len(set(current_names)) != 12
+        or type(listed_count) is not int
+        or listed_count != 12
+    ):
+        raise RuntimeError(
+            "UPDATE_REGIONS_DIRECT_STATE_NOT_EXACT_12:{}".format(
+                direct_region_state
+            )
+        )
+    normalized_region_types = [str(value).strip().lower() for value in current_types]
+    if normalized_region_types.count("fluid") != 1 or any(
+        value not in {"fluid", "dead", "void"}
+        for value in normalized_region_types
+    ):
+        raise RuntimeError(
+            "REGION_TYPES_NOT_EXACT_1_FLUID_11_DEAD_OR_VOID:{}".format(
+                dict(zip(current_names, current_types))
+            )
+        )
+    trace_checkpoint(
+        "region_classification_verified_before_update",
+        names=current_names,
+        types=current_types,
+    )
+    workflow.update_regions.region_name_list = current_names
+    workflow.update_regions.region_type_list = current_types
+    workflow.update_regions.old_region_name_list = current_names
+    workflow.update_regions.old_region_type_list = current_types
     workflow.update_regions()
     volume_mesh = workflow.create_volume_mesh_wtm
     volume_mesh.volume_fill = "poly-hexcore"
@@ -674,24 +764,39 @@ try:
         for point in throat_query_points
     ]
     occupancy = [
-        list(utilities.get_cell_zones(xyz_coordinates=point))
-        for point in throat_axis_points
+        cell_zones_at_point(utilities, point) for point in throat_axis_points
     ]
+    occupancy_misses = [
+        index
+        for index, values in enumerate(occupancy)
+        if values != [cell_zone_ids[0]]
+    ]
+    trace_checkpoint(
+        "throat_center_occupancy_observed",
+        query_count=len(occupancy),
+        hit_count=len(occupancy) - len(occupancy_misses),
+        miss_count=len(occupancy_misses),
+        first_miss_indices=occupancy_misses[:100],
+        distinct_results=sorted({str(values) for values in occupancy}),
+    )
     if any(values != [cell_zone_ids[0]] for values in occupancy):
-        raise RuntimeError("THROAT_CENTER_OCCUPANCY_NOT_SINGLE_COMMON_CELL_ZONE")
+        raise RuntimeError(
+            "THROAT_CENTER_OCCUPANCY_NOT_SINGLE_COMMON_CELL_ZONE:"
+            f"HITS={len(occupancy) - len(occupancy_misses)}:"
+            f"MISSES={len(occupancy_misses)}:"
+            f"FIRST={occupancy_misses[:100]}"
+        )
     upstream_anchor_hits = [
-        list(
-            utilities.get_cell_zones(
-                xyz_coordinates=[point[0], point[1], point[2] - 0.01]
-            )
+        cell_zones_at_point(
+            utilities,
+            [point[0], point[1], point[2] - 0.01],
         )
         for point in inlet_points
     ]
     downstream_anchor_hits = [
-        list(
-            utilities.get_cell_zones(
-                xyz_coordinates=[point[0], point[1] - 0.01, point[2]]
-            )
+        cell_zones_at_point(
+            utilities,
+            [point[0], point[1] - 0.01, point[2]],
         )
         for point in outlet_points
     ]

@@ -154,6 +154,16 @@ def test_update_regions_probe_is_observation_only_and_ordered() -> None:
     create_execute = SOURCE.index("workflow.create_regions()", create_state_read + 1)
     state_read = SOURCE.index("workflow.update_regions.arguments()")
     state_trace = SOURCE.index('"update_regions_pre_execute_state"')
+    direct_state = SOURCE.index('"update_regions_direct_parameter_state"')
+    classification_gate = SOURCE.index(
+        '"REGION_TYPES_NOT_EXACT_1_FLUID_11_DEAD_OR_VOID:'
+    )
+    classification_verified = SOURCE.index(
+        '"region_classification_verified_before_update"'
+    )
+    explicit_types = SOURCE.index(
+        "workflow.update_regions.region_type_list = current_types"
+    )
     region_execute = SOURCE.index("workflow.update_regions()", state_read + 1)
     volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
     assert (
@@ -163,6 +173,10 @@ def test_update_regions_probe_is_observation_only_and_ordered() -> None:
         < create_execute
         < state_read
         < state_trace
+        < direct_state
+        < classification_gate
+        < classification_verified
+        < explicit_types
         < region_execute
         < volume_mesh
     )
@@ -170,7 +184,7 @@ def test_update_regions_probe_is_observation_only_and_ordered() -> None:
     assert SOURCE.count("workflow.create_regions()") == 1
     assert SOURCE.count("workflow.update_regions.arguments()") == 1
     assert SOURCE.count("workflow.update_regions()") == 1
-    observation_window = SOURCE[state_read:region_execute]
+    observation_window = SOURCE[state_read:classification_verified]
     for forbidden in (
         "workflow.update_regions.region_name_list =",
         "workflow.update_regions.region_type_list =",
@@ -178,6 +192,26 @@ def test_update_regions_probe_is_observation_only_and_ordered() -> None:
         "workflow.update_regions.arguments({",
     ):
         assert forbidden not in observation_window
+
+
+def test_region_classification_is_fail_closed_before_volume_mesh() -> None:
+    for required in (
+        '"region_current_list"',
+        '"region_current_type_list"',
+        '"number_of_listed_regions"',
+        '"UPDATE_REGIONS_DIRECT_STATE_NOT_EXACT_12:',
+        'normalized_region_types.count("fluid") != 1',
+        'value not in {"fluid", "dead", "void"}',
+        "workflow.update_regions.region_name_list = current_names",
+        "workflow.update_regions.region_type_list = current_types",
+        "workflow.update_regions.old_region_name_list = current_names",
+        "workflow.update_regions.old_region_type_list = current_types",
+    ):
+        assert required in SOURCE
+    region_gate = SOURCE.index("REGION_TYPES_NOT_EXACT_1_FLUID_11_DEAD_OR_VOID")
+    region_update = SOURCE.index("workflow.update_regions()")
+    volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
+    assert region_gate < region_update < volume_mesh
 
 
 def test_json_safe_trace_helper_preserves_nested_input() -> None:
@@ -248,7 +282,9 @@ def test_volume_mesh_and_student_guards_precede_write() -> None:
         "STUDENT_LIMIT_UNPROVEN_OR_EXCEEDED",
         "session.tui.file.write_mesh(str(MESH_PATH))",
         'cell_zone_raw = list(utilities.get_cell_zones(filter="*"))',
-        "list(utilities.get_cell_zones(xyz_coordinates=point))",
+        "cell_zones_at_point(utilities, point)",
+        '"throat_center_occupancy_observed"',
+        '"THROAT_CENTER_OCCUPANCY_NOT_SINGLE_COMMON_CELL_ZONE:"',
         "quality_limits = list(",
     ):
         assert required in SOURCE
@@ -256,6 +292,20 @@ def test_volume_mesh_and_student_guards_precede_write() -> None:
     assert "type(quality_limits) is not list" not in SOURCE
     assert SOURCE.index("STUDENT_LIMIT_UNPROVEN_OR_EXCEEDED") < SOURCE.index(
         "session.tui.file.write_mesh(str(MESH_PATH))"
+    )
+
+
+def test_cell_zone_point_query_preserves_no_hit() -> None:
+    for required in (
+        "if raw_zone_ids is None:",
+        "return []",
+        '"CELL_ZONE_QUERY_RETURN_NOT_ITERABLE"',
+        '"CELL_ZONE_QUERY_RETURN_NOT_INTEGER_IDS"',
+        "first_miss_indices=occupancy_misses[:100]",
+    ):
+        assert required in SOURCE
+    assert SOURCE.index('"throat_center_occupancy_observed"') < SOURCE.index(
+        '"THROAT_CENTER_OCCUPANCY_NOT_SINGLE_COMMON_CELL_ZONE:'
     )
 
 
