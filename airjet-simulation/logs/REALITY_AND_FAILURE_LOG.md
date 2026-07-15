@@ -1263,6 +1263,40 @@
   `NOT_USER_OBSERVED`。
 - 状态：PRESERVED_AND_ROUTE_DEFERRED
 
+## REAL-20260715-051：v2 wrapper 丢失扩展语法绑定，反射最小修复后 005 同轮端到端 PASS
+
+- UTC：诊断/修复链 2026-07-15T09:41Z 起；最终 PASS run 为
+  `2026-07-15T10:04:43.733301Z--10:06:02.423387Z`。
+- Stage/task：005 T1 alternate-route v2 confirmation；目标是在同一签名 commit 内连通 SpaceClaim
+  producer 与 Workbench semantic reconstruction consumer。
+- 前三次正式失败：commit `5f369ba...` 已通过 campaign Git-LF source identity，但 v2 wrapper 用
+  `globals().copy()` 执行 v1 base 后在 `GetAllBodies()` 报 `AttributeError`；commit `85439eb...` 显式
+  import/call `PartExtensions` 时 SpaceClaim exit 0 却没有任何声明报告；commit `edce0f4...` 改回宿主
+  globals 后仍在同一扩展语法处失败。三轮都 fail closed，consumer 未越过 producer gate。
+- 最小区分实验：一次性 Windows SpaceClaim 诊断打开同一 STEP，观测
+  `root Bodies=0 / Components=1`；直接扩展与
+  `MethodInfo.Invoke(None, Array[Object]([part]))` 都返回同一唯一 body。诊断只确认 API 绑定路线，不是
+  AirJet 产品结构证据。
+- 根因判断：v1 脚本被 v2 `execfile` 动态编译时没有直接脚本入口的 IronPython extension-method
+  syntax binding；`.NET` 类型和静态方法本身仍可用。置信度高，因为反射/direct 同体诊断与随后正式
+  suite PASS 形成前后闭环。
+- 修复：commit `9a88b7ad26d5d5c9f35d8a5f956df7038cfca0fd` 只在 base 中按类型名、方法名和单参数
+  overload 反射调用 v261 `PartExtensions.GetAllBodies(IPart)`，并重绑 wrapper/profile/route 的完整
+  SHA 链；所有静态 policy、runner guards、semantic negative tests 与双项目审计先 PASS。
+- 最终 run：`AJM005_T1_ALTERNATE_ROUTE_SUITE_20260715T100443733301Z_d1743e81`；producer/consumer
+  都为 `PROCESS_EXITED_0 / capability PASS`，suite
+  `PASS_ALTERNATE_ROUTE_SEMANTIC_CONFIRMATION`。原始 suite JSON 201157 bytes / SHA-256
+  `dc3c52688fbd63a41f3ace4afceb55a1294c5464c4d0940636f2122a4e2f4ab0`；closeout SHA-256
+  `8a1065da67e7e35d511845a8fadfdf0f7757c39490513486b7cf5ff0d6082cf9`。
+- 主要产物：STEP SHA-256 `268011ef6f82d1e7c404c37de64e6bf533a5bbcf5373cdcee0a31ec4c0958a86`；
+  producer/consumer v2 report 分别为 `6f2b007d...` / `359eb526...`；Workbench project 50555 bytes，
+  SHA-256 `168406bd...`。完整 79 文件、7.9 MB 成功目录保留在 Windows Downloads，并复制到 Mac
+  `Downloads/AirJet-005-PASS-20260715-d1743e81/`；Git 保存脱敏 summary、closeout 和解释。
+- Gate/论文影响：`P1_CAD_TOOLCHAIN_READINESS=PASS` 仅限 alternate route，技术建议
+  `START_006_ALTERNATE_ROUTE_ONLY`；`P1_STAGE_GATE=NOT_RUN`，external native attach、native
+  parameterization、native Named Selection transfer 仍 `NOT_PROVEN`，P2--P6 仍 `NOT_RUN`。
+- 状态：PASS_START_P1_ALTERNATE_ROUTE_ONLY
+
 ## 新条目模板
 
 ```text

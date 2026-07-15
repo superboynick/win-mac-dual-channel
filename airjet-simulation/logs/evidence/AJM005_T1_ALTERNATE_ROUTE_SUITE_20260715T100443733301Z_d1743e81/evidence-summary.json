@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "evidence_id": "AJM005_T1_ALTERNATE_ROUTE_SUITE_20260715T100443733301Z_d1743e81",
+  "task": "AJM-WIN-ANSYS-STUDENT-CAPABILITY-SMOKE-005",
+  "suite_status": "PASS_ALTERNATE_ROUTE_SEMANTIC_CONFIRMATION",
+  "started_at": "2026-07-15T10:04:43.733301+00:00",
+  "ended_at": "2026-07-15T10:06:02.423387+00:00",
+  "git_head": "9a88b7ad26d5d5c9f35d8a5f956df7038cfca0fd",
+  "result_source_path": "C:\\Users\\admin\\Downloads\\AIRJET_ANSYS_STUDENT_SMOKE_005\\AJM005_T1_ALTERNATE_ROUTE_SUITE_20260715T100443733301Z_d1743e81.json",
+  "result_sha256": "dc3c52688fbd63a41f3ace4afceb55a1294c5464c4d0940636f2122a4e2f4ab0",
+  "closeout_source_path": "C:\\Users\\admin\\Downloads\\AIRJET_ANSYS_STUDENT_CAPABILITY_SMOKE_005.txt",
+  "closeout_sha256": "8a1065da67e7e35d511845a8fadfdf0f7757c39490513486b7cf5ff0d6082cf9",
+  "route_contract_sha256": "83037ac95dc413482d522a6cfafa66bea48f97dd75f27015759affd75428331f",
+  "judgment_sha256": "dd47bb3554913803752ce7ce53a9327af779465a830964759a57e1d575c89f37",
+  "inventory": {
+    "ansys_root": "D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261",
+    "ready": true,
+    "errors": [],
+    "packages": {
+      "ansys-fluent-core": "0.40.2",
+      "ansys-mechanical-core": "0.12.11",
+      "mcp": "1.28.1"
+    },
+    "executables": {
+      "fluent": {
+        "exists": true,
+        "file_version": "26.1.0",
+        "path": "D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261\\fluent\\ntbin\\win64\\fluent.exe",
+        "publisher_is_ansys": true,
+        "status": "Valid"
+      },
+      "mechanical": {
+        "exists": true,
+        "file_version": "26,2026,13,1",
+        "path": "D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261\\aisol\\bin\\winx64\\AnsysWBU.exe",
+        "publisher_is_ansys": true,
+        "status": "Valid"
+      },
+      "spaceclaim": {
+        "exists": true,
+        "file_version": "2026.1.53248.53377",
+        "path": "D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261\\scdm\\SpaceClaim.exe",
+        "publisher_is_ansys": true,
+        "status": "Valid"
+      },
+      "workbench": {
+        "exists": true,
+        "file_version": "26,01,00,2026020218",
+        "path": "D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261\\Framework\\bin\\Win64\\RunWB2.exe",
+        "publisher_is_ansys": true,
+        "status": "Valid"
+      }
+    }
+  },
+  "runs": [
+    {
+      "profile_id": "ajm005-spaceclaim-cad-t1-v2",
+      "capability_pass": true,
+      "capability_status": "PASS",
+      "p1_stage_gate": "NOT_RUN",
+      "final_state": {
+        "engine": "spaceclaim",
+        "phase": "PROCESS_EXITED_0",
+        "exit_code": 0,
+        "git_head": "9a88b7ad26d5d5c9f35d8a5f956df7038cfca0fd",
+        "job_id": "ajm005-alt-708a503da88f-29d2d2d7cbd6",
+        "job_directory": "C:\\Users\\admin\\Downloads\\AIRJET_ANSYS_STUDENT_SMOKE_005\\ajm005-alt-708a503da88f\\ajm005-alt-708a503da88f-29d2d2d7cbd6",
+        "script_sha256": "67b38e2e02fb5c99e92fa3a7b28147c4855b26ea3bd01eaa877d8e7e78af1b1d",
+        "profile_contract_sha256": "564eb4a95bd24a64da3d946c43fe9246489bb2cc3b8a3da00fb209f8db07440c",
+        "profile_dependency_manifest_sha256": "00d4ffe174b422ecd10f091c5a85b3da18f2375a1b80b82b2e0298a065738df8",
+        "predecessor_job_id": null
+      },
+      "declared_report_name": "spaceclaim_cad_t1_v2.json",
+      "declared_report_sha256": "6f2b007dbda3a22e63da9ab55cfc4791e95ecdc56e135b9612345e0fef358b3b",
+      "validation_error": null,
+      "manifest": {
+        "job_id": "ajm005-alt-708a503da88f-29d2d2d7cbd6",
+        "phase": "PROCESS_EXITED_0",
+        "file_count": 29,
+        "total_size": 280858,
+        "engineering_artifacts": [
+          {
+            "relative_path": "job.json",
+            "size": 2444,
+            "sha256": "3234e366258d1430455974973773c80f7ad4f76fdb8442dc026bdeb557a81a94"
+          },
+          {
+            "relative_path": "spaceclaim_cad_t1.json",
+            "size": 14029,
+            "sha256": "d96a723a4f91a5bdfbb8ff92c8cc234b32101c0dcbad57e6cf3bbb54b1dae366"
+          },
+          {
+            "relative_path": "spaceclaim_cad_t1.scdocx",
+            "size": 32142,
+            "sha256": "f2429f70ec6cbf9684be67a9bcca0f6567128dcf16c62b42b23eef9e0ba43832"
+          },
+          {
+            "relative_path": "spaceclaim_cad_t1.step",
+            "size": 17159,
+            "sha256": "268011ef6f82d1e7c404c37de64e6bf533a5bbcf5373cdcee0a31ec4c0958a86"
+          },
+          {
+            "relative_path": "spaceclaim_cad_t1_full.scdocx",
+            "size": 38206,
+            "sha256": "cdf3b0f4206240532c9004e134e24b39ebce58340f78873eb0a2c708990cd0ce"
+          },
+          {
+            "relative_path": "spaceclaim_cad_t1_v2.json",
+            "size": 16213,
+            "sha256": "6f2b007dbda3a22e63da9ab55cfc4791e95ecdc56e135b9612345e0fef358b3b"
+          },
+          {
+            "relative_path": "spaceclaim_semantic_binding_v2.json",
+            "size": 720,
+            "sha256": "fd11400f30626bd2aec704acc7051f1913c632bea69eb7170e91ebac2022613b"
+          },
+          {
+            "relative_path": "spaceclaim_semantic_sidecar.json",
+            "size": 4045,
+            "sha256": "50eef3c473a71002fa1cd8a8f0dab541f1be0ca40a9272709aadd23a29b789be"
+          },
+          {
+            "relative_path": "spaceclaim_semantic_sidecar_v2.json",
+            "size": 26729,
+            "sha256": "fd738b77ea916e698eae06573b24230ef8b0cd6af8afe5e44a2dba03bc105ea6"
+          }
+        ]
+      }
+    },
+    {
+      "profile_id": "ajm005-workbench-semantic-reconstruction-t1-v2",
+      "capability_pass": true,
+      "capability_status": "PASS",
+      "p1_stage_gate": "NOT_RUN",
+      "final_state": {
+        "engine": "workbench",
+        "phase": "PROCESS_EXITED_0",
+        "exit_code": 0,
+        "git_head": "9a88b7ad26d5d5c9f35d8a5f956df7038cfca0fd",
+        "job_id": "ajm005-alt-708a503da88f-d7c0a079db31",
+        "job_directory": "C:\\Users\\admin\\Downloads\\AIRJET_ANSYS_STUDENT_SMOKE_005\\ajm005-alt-708a503da88f\\ajm005-alt-708a503da88f-d7c0a079db31",
+        "script_sha256": "2e4f67742ab8b2aef67a7b5aceec9983055f06076f2f286ae703c49347f8c8a6",
+        "profile_contract_sha256": "87db6f52bd438eac016dcceaa0605231fa00d5e24988de572a1afc4fcce2db60",
+        "profile_dependency_manifest_sha256": "022275695c3cfa2cbad0d28cdd8b790de48d236c4f5906de03629e9d307aaf2a",
+        "predecessor_job_id": "ajm005-alt-708a503da88f-29d2d2d7cbd6"
+      },
+      "declared_report_name": "workbench_semantic_reconstruction_t1_v2.json",
+      "declared_report_sha256": "359eb526c005a72cc439cb5788d3e81da6bccae2de107c34b315e78c0fad4a71",
+      "validation_error": null,
+      "manifest": {
+        "job_id": "ajm005-alt-708a503da88f-d7c0a079db31",
+        "phase": "PROCESS_EXITED_0",
+        "file_count": 48,
+        "total_size": 7697700,
+        "engineering_artifacts": [
+          {
+            "relative_path": "job.json",
+            "size": 3776,
+            "sha256": "90adbace7f57285ce96c4cbea2f83a1ccd6100b409ef823077c8159caa1fa960"
+          },
+          {
+            "relative_path": "semantic_key_cardinality_report_v2.json",
+            "size": 7699,
+            "sha256": "ab44e965a408d055dde8ea9cfe08ad87586148f962007e0bd2aba20b237d7cd6"
+          },
+          {
+            "relative_path": "workbench_semantic_reconstruction_inspection.json",
+            "size": 7842,
+            "sha256": "d0c6ac7c0174f3e145f088837c18b283cb172681056cd88870fd70957136b9eb"
+          },
+          {
+            "relative_path": "workbench_semantic_reconstruction_t1.json",
+            "size": 12417,
+            "sha256": "21b028d89b036529bf3dab1656e8812900f73210e64da3a247d4329e3dc8b593"
+          },
+          {
+            "relative_path": "workbench_semantic_reconstruction_t1.wbpj",
+            "size": 50555,
+            "sha256": "168406bdad78b80d59fa0525cc78745e0a104af3b9523aeee24ee13e8deb369b"
+          },
+          {
+            "relative_path": "workbench_semantic_reconstruction_t1_v2.json",
+            "size": 21545,
+            "sha256": "359eb526c005a72cc439cb5788d3e81da6bccae2de107c34b315e78c0fad4a71"
+          }
+        ]
+      }
+    }
+  ],
+  "claim_boundary": {
+    "p1_stage_gate": "NOT_RUN",
+    "p1_cad_toolchain_scope": "ALTERNATE_ROUTE_ONLY",
+    "external_native_attach": "NOT_PROVEN",
+    "native_parameterization": "NOT_PROVEN",
+    "native_named_selection_transfer": "NOT_PROVEN",
+    "recommendation": "START_006_ALTERNATE_ROUTE_ONLY"
+  }
+}
