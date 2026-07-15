@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "a5c-8f6666935605",
+  "observed_at_utc": "2026-07-15T00:42:47.5512119Z",
+  "ansys_process_count": 0,
+  "method": "PowerShell Get-Process name allowlist immediately after suite runner returned",
+  "source": "outer Windows run-wrapper stdout transcribed into the Git evidence record",
+  "limitation": "This observation is outside the MCP suite JSON and is not a solver result."
+}

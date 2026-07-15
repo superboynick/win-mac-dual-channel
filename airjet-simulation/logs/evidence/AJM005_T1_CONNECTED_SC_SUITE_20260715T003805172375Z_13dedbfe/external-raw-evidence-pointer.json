@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "case_id": "a5c-8f6666935605",
+  "file_role": "selected_raw_evidence_zip",
+  "absolute_path": "C:\\Users\\admin\\Downloads\\AIRJET_ANSYS_STUDENT_SMOKE_005\\AJM005_T1_CONNECTED_SC_SUITE_20260715T003805172375Z_13dedbfe_RAW_EVIDENCE.zip",
+  "size_bytes": 85780,
+  "sha256": "7068b5d2b81350be65511b0582ac0101fc03d2aec6824df09b0500d487eb3bed",
+  "recorded_at_utc": "2026-07-15T00:46:12Z",
+  "software_version": "ANSYS Student 2026 R1 v261",
+  "git_commit": "fe84454565b286a12efa8fe1550304212dc64ffb",
+  "git_tracked": false,
+  "payload_file_count": 22,
+  "notes": "Git-outside selected evidence; includes internal SHA256SUMS plus producer native/STEP and selected reports, scripts, and logs."
+}

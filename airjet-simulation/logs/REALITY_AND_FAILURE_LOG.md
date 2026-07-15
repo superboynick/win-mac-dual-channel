@@ -1103,8 +1103,8 @@
   不把同日志 warning 当根因。
 - 证据：suite/MCP SHA-256 为 `fe04b05c...` / `faa900b7...`；WB report/job-state 为
   `4ca13aea...` / `15e172c...`；embedded child `ea7940d7...`；recorded journal/CoreEvents/Fatal 为
-  `471b5f3b...` / `7a5637fe...` / `e18e66ec...`。包含 19 个 payload 与内部 checksum 的
-  Git 外 raw evidence ZIP 为 85822 bytes、22 个 payload，SHA-256 `56dbc5c8...`，已由本 run 的
+  `471b5f3b...` / `7a5637fe...` / `e18e66ec...`。Git 外 raw evidence ZIP 为 85822 bytes、
+  22 个 payload，SHA-256 `56dbc5c8...`，已由本 run 的
   `external-raw-evidence-pointer.json` 登记；脱敏进程观察 JSON 记录结束后相关进程数 0。
 - 下一步：只把 `Edit(Interactive=False)` 改为 `Edit(Interactive=True)`，其余 payload、SendCommand、
   RunScript、path、timeout、fixture、cleanup 和 Gate 合同不变。marker 精确出现只支持
@@ -1130,6 +1130,50 @@
   使用工具提供的 machine-readable format placeholder。
 - Gate 影响：NONE；错误发生在 ANSYS 前，未用于解释 run #20 的 SendCommand 失败。
 - 状态：CLOSED_MACHINE_READABLE_SIGNATURE_FIELDS_USED
+
+## REAL-20260715-047：Interactive=True 仍不足以通过 SendCommand checkpoint
+
+- UTC：2026-07-15T00:38:05Z
+- Stage/task：005 T1 / 第二十一次、connected Edit mode 单参数复测
+- run/jobs：`AJM005_T1_CONNECTED_SC_SUITE_20260715T003805172375Z_13dedbfe`；SC
+  `a5c-8f6666935605-7a9a0e332873`；WB `a5c-8f6666935605-2ba2edec9fd8`；签名 commit
+  `fe84454565b286a12efa8fe1550304212dc64ffb`。
+- 单变量合同：outer journal 唯一运行变化为 `Interactive=False→True`；profile 只更新 script SHA；
+  AST policy 锁定唯一 Edit、两个 literal True keywords 及 Edit→SendCommand→RunScript 同一 body 顺序。
+  payload、路径、fixture、timeout、前驱、cleanup、transfer/Mechanical/Gate 均不变。
+- producer：21.703735 秒 PASS；transfer native 32147 bytes/SHA `675ea6ca...`；report SHA
+  `fbec220d...`。producer 与注入 job path 的 child 每轮重生成，不能把跨 run 全部输入写成 byte-identical。
+- consumer：empty cell/Interactive=True Edit RETURNED；SendCommand 再次 CALLED 后在 line 553 抛同一
+  中文 NullReference。post-Send、RunScript、正常 Exit、build/transfer/Mechanical/project 未到；cleanup
+  Exit RETURNED；failure freeze 三 artifact absent；classification `CHECKPOINT_NOT_REACHED`。
+  consumer 总时长 255.783635 秒，无 SendCommand 单独计时。
+- 对照结论：run #20/#21 的外部 failure signature 相同，故可关闭“仅把 Interactive 参数改 True 足以
+  修复 checkpoint/marker”的窄命题。不能写 interactive/batch 完全等价、真实 GUI 已展示、内部根因
+  相同、所有 session 因素已排除、inline payload 或 RunScript loader 失败。
+- recorded journal：True 被 canonicalize 为 `Edit(IsSpaceClaimGeometry=True)`；相关 scripting 序列为
+  Edit→SendCommand→cleanup Exit，无 RunScript。这证明 Workbench 接受该参数，不证明用户可见 desktop。
+- 证据：suite 64137 bytes/SHA `2320b75b...`；MCP 12365/SHA `74232802...`；WB report/job-state
+  `0c797244...` / `857865ac...`；embedded child `3cd779b7...`；recorded journal/CoreEvents/Fatal
+  `e22bf61e...` / `7809523f...` / `c707a317...`。Git 外 ZIP 85780 bytes、22 payload、SHA
+  `7068b5d2...`；结束后相关进程数 0。
+- 下一步：保持 Interactive=True，移除/跳过 SendCommand 与 inline marker；让 `.py` RunScript 成为
+  唯一 scripting action，建立 file-only reach/classification。entry exact 也只证明 child 进入，
+  build/transfer/P1 仍需独立合同。
+- Gate/论文影响：P1 readiness BLOCKED；P1--P6 `NOT_RUN`；visibility `NOT_USER_OBSERVED`。
+- 状态：CLOSED_INTERACTIVE_ARGUMENT_ONLY_NOT_SUFFICIENT_OPEN_INTERACTIVE_RUNSCRIPT_ONLY
+
+## REAL-20260715-048：PowerShell 双引号中的 `$变量:` 被解析为 drive 语法
+
+- UTC：2026-07-15T00:34:00Z
+- Stage/task：run #20 archive Windows sync wrapper
+- 现象：异常文本中写 `"...:$Head:$SigStatus:$SigFingerprint"`，PowerShell parser 在执行任何 Git
+  命令前报 `InvalidVariableReferenceWithDrive`，因为变量名后的冒号被解释为 drive-qualified variable。
+- 修正：改用 `"...:${Head}:${SigStatus}:${SigFingerprint}"` 明确变量边界。随后 fast-forward、签名、
+  ahead/behind 与 clean status 全 PASS；未启动 ANSYS，也未修改仓库内容。
+- 教学结论：PowerShell 的双引号插值不是简单文本替换；变量后紧跟 `:` 时应使用 `${name}`，并把
+  parser failure 与被测 Git/ANSYS failure 分开。
+- Gate 影响：NONE；仅是 preflight wrapper 语法错误。
+- 状态：CLOSED_BRACED_VARIABLE_INTERPOLATION
 
 ## 新条目模板
 

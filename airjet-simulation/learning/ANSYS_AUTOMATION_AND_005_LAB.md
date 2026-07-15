@@ -697,3 +697,41 @@ messages 为空。正确写法是：
 
 无论哪一项，都不能直接推进到 AirJet 完整 CAD。connected fixture 通过后还需回到 external native
 attach、native Named Selection transfer、native parameter object/update/reopen，再满足 005 hard Gate。
+
+## 26. 第二十一次实验：参数被接受，不等于所需 session 已建立
+
+literal `Interactive=True` 在 recorded journal 中被规范成省略默认参数的
+`Edit(IsSpaceClaimGeometry=True)`。这是一条有用证据：Workbench 接受并记录了 True；但 visibility
+仍是 `NOT_USER_OBSERVED`，所以不能进一步说 GUI 已显示、用户 session 已建立或 interactive/batch
+完全等价。
+
+本轮与 False 轮的可观测签名相同，能关闭的是：
+
+> 单独把 Interactive 参数改成 True，不足以让当前 SendCommand checkpoint/marker 通过。
+
+不能关闭的是所有 desktop/session/broker 因素，也不能评价从未调用的 RunScript。自动化实验中，
+“参数改了而结果没变”只否定该单独干预的充分性，不自动证明该因素完全无关。
+
+### 26.1 下一 file-only 状态机
+
+SendCommand 必须标记为 `SKIPPED_BY_EXPERIMENT`，不能让旧 inline checkpoint 的 None 把 file 结果误压
+成 `CHECKPOINT_NOT_REACHED`。RunScript-only 至少记录：
+
+```text
+RUNSCRIPT_CALL_EXCEPTION
+RUNSCRIPT_RETURNED_ENTRY_EXACT
+RUNSCRIPT_RETURNED_ENTRY_ABSENT
+ENTRY_DELAYED_OR_EXIT_TRIGGERED
+ENTRY_EXACT_BUILD_REPORT_ABSENT
+BUILD_CONTRACT_PASS_OR_FAIL
+```
+
+immediate entry exact 只证明 child 已进入；build JSON、1 body/13 faces、1/1/11 groups、share、Refresh、
+Mechanical、mesh 和 project 仍各有硬断言。三个时点都 absent 也只能说本轮未观测 entry，不能写
+`.py` 不支持、权限根因或 child 确定完全没运行。
+
+### 26.2 新增的 PowerShell 现实坑
+
+handoff wrapper 中 `$Head:` 会被解析为 drive-qualified variable；应写 `${Head}:`。parser error 在 Git
+命令前发生，不能拿来解释签名或 ANSYS 失败。这个小坑和前一轮 stderr/console wrapping 一样，说明
+外层验证器必须先通过自己的语法与 machine-readable 合同。
