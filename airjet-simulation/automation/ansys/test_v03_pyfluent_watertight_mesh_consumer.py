@@ -104,6 +104,9 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
     for required in (
         "workflow.import_geometry.file_name",
         'workflow.import_geometry.length_unit = "mm"',
+        'workflow.import_geometry.cad_import_options.one_zone_per = "face"',
+        'imported_face_zone_ids = list(utilities.get_face_zones(filter="*"))',
+        '"import_face_zone_inventory_completed"',
         "local.add_child_and_update(",
         '"boi_face_zone_list": throat_zone_names',
         '"boi_size": 0.05',

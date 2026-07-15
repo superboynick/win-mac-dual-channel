@@ -403,6 +403,7 @@ result: dict[str, Any] = {
         "surface_max_size_mm": 0.5,
         "throat_local_size_mm": 0.05,
         "volume_max_size_mm": 0.5,
+        "cad_one_zone_per": "face",
         "student_cell_limit": STUDENT_ENTITY_LIMIT,
         "student_node_limit": STUDENT_ENTITY_LIMIT,
     },
@@ -496,10 +497,16 @@ try:
     workflow = session.watertight()
     workflow.import_geometry.file_name = str(STAGED_STEP_PATH)
     workflow.import_geometry.length_unit = "mm"
+    workflow.import_geometry.cad_import_options.one_zone_per = "face"
     workflow.import_geometry()
     result["assertions"]["watertight_step_import"] = True
 
     utilities = session.meshing_utilities
+    imported_face_zone_ids = list(utilities.get_face_zones(filter="*"))
+    trace_checkpoint(
+        "import_face_zone_inventory_completed",
+        face_zone_count=len(imported_face_zone_ids),
+    )
     inlet_zone_ids = [one_face_zone(utilities, point) for point in inlet_points]
     outlet_zone_ids = [one_face_zone(utilities, point) for point in outlet_points]
     throat_zone_hits = [
