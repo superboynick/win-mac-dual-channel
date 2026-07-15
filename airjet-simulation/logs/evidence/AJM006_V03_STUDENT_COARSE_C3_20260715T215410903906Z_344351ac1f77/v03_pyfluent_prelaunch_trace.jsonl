@@ -1,0 +1,19 @@
+{"checkpoint": "predecessor_validation_started", "details": {}, "utc": "2026-07-15T21:55:25.151078+00:00"}
+{"checkpoint": "predecessor_validation_completed", "details": {"predecessor_job_id": "AJM006-V03-CONTINUOUS-b6db17a25485"}, "utc": "2026-07-15T21:55:25.171079+00:00"}
+{"checkpoint": "step_copy_started", "details": {"source_size": 1809341}, "utc": "2026-07-15T21:55:25.171079+00:00"}
+{"checkpoint": "step_copy_completed", "details": {"staged_size": 1809341}, "utc": "2026-07-15T21:55:25.172079+00:00"}
+{"checkpoint": "source_step_hash_started", "details": {}, "utc": "2026-07-15T21:55:25.172079+00:00"}
+{"checkpoint": "source_step_hash_completed", "details": {"sha256": "539a581f29b1aea8c0ae083be5b06a5765d0751d327a9d4f316e0ad95c96cb4b"}, "utc": "2026-07-15T21:55:25.174077+00:00"}
+{"checkpoint": "staged_step_hash_started", "details": {}, "utc": "2026-07-15T21:55:25.174077+00:00"}
+{"checkpoint": "staged_step_hash_completed", "details": {"sha256": "539a581f29b1aea8c0ae083be5b06a5765d0751d327a9d4f316e0ad95c96cb4b"}, "utc": "2026-07-15T21:55:25.175076+00:00"}
+{"checkpoint": "boundary_role_points_completed", "details": {"inlet_count": 4, "outlet_count": 1, "throat_count": 972}, "utc": "2026-07-15T21:55:25.176078+00:00"}
+{"checkpoint": "pyfluent_windows_platform_pinned", "details": {"os_name": "nt", "processor_architecture": "AMD64"}, "utc": "2026-07-15T21:55:25.176078+00:00"}
+{"checkpoint": "pinned_fluent_executable_verified", "details": {"executable_name": "fluent.exe"}, "utc": "2026-07-15T21:55:25.176078+00:00"}
+{"checkpoint": "fluent_launch_started", "details": {"start_timeout_seconds": 60}, "utc": "2026-07-15T21:55:25.176078+00:00"}
+{"checkpoint": "fluent_launch_completed", "details": {}, "utc": "2026-07-15T21:55:36.325462+00:00"}
+{"checkpoint": "import_face_zone_inventory_completed", "details": {"face_zone_count": 106}, "utc": "2026-07-15T21:55:44.783901+00:00"}
+{"checkpoint": "boundary_zone_queries_completed", "details": {"inlet_zone_hits": [23, 17, 8, 3], "outlet_zone_hits": [32], "throat_hit_count": 972, "throat_unique_zone_ids": [29]}, "utc": "2026-07-15T21:56:00.111754+00:00"}
+{"checkpoint": "describe_geometry_pre_execute_state", "details": {"python_type": "dict", "state": {"improve_surface_mesh_preferences": {"show_in_gui": false}, "invoke_share_topology": "No", "multizone": false, "setup_type": "fluid", "wall_to_internal": true}}, "utc": "2026-07-15T21:56:28.203703+00:00"}
+{"checkpoint": "boundary_zone_types_updated", "details": {"observed_types": {"3": "velocity-inlet", "8": "velocity-inlet", "17": "velocity-inlet", "23": "velocity-inlet", "32": "pressure-outlet"}}, "utc": "2026-07-15T21:56:34.529768+00:00"}
+{"checkpoint": "update_regions_pre_execute_state", "details": {"python_type": "dict", "state": {"old_region_name_list": null, "old_region_type_list": null, "region_name_list": null, "region_type_list": null}}, "utc": "2026-07-15T21:56:35.119338+00:00"}
+{"checkpoint": "throat_center_occupancy_observed", "details": {"distinct_results": ["[]"], "first_miss_indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99], "hit_count": 0, "miss_count": 972, "query_count": 972, "raw_none_count": 972}, "utc": "2026-07-15T22:04:07.794906+00:00"}

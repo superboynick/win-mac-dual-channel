@@ -1,0 +1,282 @@
+
+Importing one geom object per program-controlled and one zone per face ...
+    D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261\\commonfiles\\CPython\\3_10\\winx64\\Release\\python\\..\\Ansys\\TGrid\\CADReaders.py started by admin on LAPTOP-LCCLM2HI winx64 on Thu Jul 16 05:55:40 2026
+    using Python 3.10.19 (remotes/origin/54ee32c922d15cece27c63aab31ba27b8fb8da4e-dirty:54ee32c9, Dec  2 2) [MSC v.1942 64 bit (AMD64)]
+    
+    using Ansys.Meshing.FieldMesher build Feb  3 2026 15:07:12
+    
+    running ANSYS TGrid CADToTGridConverter ...
+    setting up parameters ...
+    setting up parameters done.
+    running conversion ...
+    converting 1 file(s) from Workbench to FLTG using output path 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\FM_LAPTOP-LCCLM2HI_26112/out1784152539.99611526112.tgf'
+    converting file 'product_continuous_fluid.step' (1 of 1) from Workbench to FLTG using output path 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\FM_LAPTOP-LCCLM2HI_26112'
+    importing data ...
+    importing meshing model from PartMgr from file 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\input\\staging\\product_continuous_fluid.step' ...
+    setting enclosure and symmetry processing to False
+    setting stitch type to PROGRAMTOLERANCE
+    setting transfer named selections to True
+    setting named selection prefixes to ''
+    setting mixed import resolution type to 'SolidAndSurface'
+    setting target application to 'FluentMeshing'
+    attaching to assembly ...
+    attaching to assembly done in 2.878 [s]
+    Warning: ?????????
+    processing assembly 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\input\\staging\\product_continuous_fluid.step' with ID 1
+    length unit = [mm]
+    processing part 'product_continuous_fluid' with ID 3
+    processing named selection 'Color:143.175.143'
+    processing data ...
+    removing named collections of entities ...
+    removed named collections:  'Color:143.175.143'
+        Data information
+            Meshing model
+                Attributes:
+                    'LengthUnit': '[mm]'
+                Entity summary:
+                    Component: 2
+                    Body     : 1
+                    Shell    : 13
+                    Face     : 106
+                    Loop     : 2052
+                    Edge     : 2172
+                    Vertex   : 2096
+                    Surface  : 106
+                    Curve    : 2172
+                Tessellation summary:
+                    Face facets  : 4136
+                    Edge segments: 46884
+                Bounding box:
+                    (-10.875, -17.75, 1.2675) x (10.875, 20.75, 2.8)
+                Assembly component hierarchy:
+                    'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\input\\staging\\product_continuous_fluid.step'
+                      'product_continuous_fluid'
+    
+    
+    exporting FLTG data to file 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\FM_LAPTOP-LCCLM2HI_26112\\out1784152539.99611526112.tgf' ...
+    writing face-based mesh file 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\FM_LAPTOP-LCCLM2HI_26112\\out1784152539.99611526112.tgf' ...
+    ======== Exported Data ========
+    Entity summary:
+        Object       : 1
+        Object region: 1
+        Zone         : 106
+    
+    running conversion done.
+    running ANSYS TGrid CADToTGridConverter done.
+    ran ANSYS TGrid CADToTGridConverter in 3.029 [s]
+
+Reading "D:\AirJet_P1\AJM-P1-CAD-006\AJM006-V03-CONTINUOUS\AJM006-V03-CONTINUOUS-344351ac1f77\FM_LAPTOP-LCCLM2HI_26112/out1784152539.99611526112.tgf"...
+
+nodes: 2096
+faces: 4136
+cells: 0
+analyzing boundary connectivity...done.
+
+
+---------------- Import of product_continuous_fluid, consisting of one single part/object , complete. 
+ 
+
+---------------- Import complete in  0.08 minutes.
+Illegitimate input at /TaskObject/AddChildAndUpdate; State
+Writing "D:\AirJet_P1\AJM-P1-CAD-006\AJM006-V03-CONTINUOUS\AJM006-V03-CONTINUOUS-344351ac1f77\FM_LAPTOP-LCCLM2HI_26112\TaskObject3.msh.h5" ...
+writing 1 node zones
+writing 0 edge zones 
+writing 106 face zones 
+writing node curvature data
+done.
+Importing one mesh object per program-controlled and one zone per body ...
+    D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261\\commonfiles\\CPython\\3_10\\winx64\\Release\\python\\..\\Ansys\\TGrid\\CADReaders.py started by admin on LAPTOP-LCCLM2HI winx64 on Thu Jul 16 05:56:03 2026
+    using Python 3.10.19 (remotes/origin/54ee32c922d15cece27c63aab31ba27b8fb8da4e-dirty:54ee32c9, Dec  2 2) [MSC v.1942 64 bit (AMD64)]
+    
+    using Ansys.Meshing.FieldMesher build Feb  3 2026 15:07:12
+    
+    running ANSYS TGrid CADToTGridConverter ...
+    setting up parameters ...
+    setting up parameters done.
+    running conversion ...
+    converting 1 file(s) from Workbench to FLTG using output path 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\FM_LAPTOP-LCCLM2HI_26112/out1784152562.67022826112.tgf'
+    converting file 'product_continuous_fluid.step.pmdb' (1 of 1) from Workbench to FLTG using output path 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\FM_LAPTOP-LCCLM2HI_26112'
+    importing data ...
+    importing meshing model from PartMgr from file 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\FM_LAPTOP-LCCLM2HI_26112\\\\product_continuous_fluid.step.pmdb' ...
+    setting enclosure and symmetry processing to False
+    setting transfer named selections to True
+    setting named selection prefixes to ''
+    setting mixed import resolution type to 'SolidAndSurface'
+    setting target application to 'FluentMeshing'
+    initializing part manager from file ...
+    processing assembly 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\input\\staging\\product_continuous_fluid.step' with ID 1
+    length unit = [mm]
+    processing part 'product_continuous_fluid' with ID 3
+    processing named selection 'Color:143.175.143'
+    processing data ...
+    saving size function background grid to file 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\FM_LAPTOP-LCCLM2HI_26112\\product_continuous_fluid.sf' ...
+    writing size function background grid file 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\FM_LAPTOP-LCCLM2HI_26112\\product_continuous_fluid.sf' ...
+    Vertices already exist
+    initializing size function background grid done in 0.618 [s]
+    tessellating 106 faces done in 9.349 [s]
+    removing named collections of entities ...
+    removed named collections:  'Color:143.175.143'
+        Data information
+            Meshing model
+                Attributes:
+                    'LengthUnit': '[mm]'
+                Entity summary:
+                    Component: 2
+                    Body     : 1
+                    Shell    : 13
+                    Face     : 106
+                    Loop     : 2052
+                    Edge     : 2172
+                    Vertex   : 2096
+                    Surface  : 106
+                    Curve    : 2172
+                Tessellation summary:
+                    Face facets  : 944340
+                    Edge segments: 38669
+                Bounding box:
+                    (-10.875, -17.75, 1.267500042915344) x (10.875, 20.75, 2.799999952316284)
+                Assembly component hierarchy:
+                    'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\input\\staging\\product_continuous_fluid.step'
+                      'product_continuous_fluid'
+    
+    
+    exporting FLTG data to file 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\FM_LAPTOP-LCCLM2HI_26112\\out1784152562.67022826112.tgf' ...
+    writing face-based mesh file 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-344351ac1f77\\FM_LAPTOP-LCCLM2HI_26112\\out1784152562.67022826112.tgf' ...
+    ======== Exported Data ========
+    Entity summary:
+        Object       : 1
+        Object region: 1
+        Zone         : 1
+    
+    running conversion done.
+    running ANSYS TGrid CADToTGridConverter done.
+    ran ANSYS TGrid CADToTGridConverter in 11.065 [s]
+
+Reading "D:\AirJet_P1\AJM-P1-CAD-006\AJM006-V03-CONTINUOUS\AJM006-V03-CONTINUOUS-344351ac1f77\FM_LAPTOP-LCCLM2HI_26112/out1784152562.67022826112.tgf"...
+
+nodes: 485352
+faces: 944340
+cells: 0
+appending mesh...
+done.
+
+Reading "D:\AirJet_P1\AJM-P1-CAD-006\AJM006-V03-CONTINUOUS\AJM006-V03-CONTINUOUS-344351ac1f77\FM_LAPTOP-LCCLM2HI_26112\product_continuous_fluid.sf"...
+
+ANSYS(R) TGLib(TM) 3D, revision 24.1.0
+ Read 373143 vertices
+0 faces marked.
+
+    computing regions...
+
+Warning: 1 external baffles identified.
+Check for leaks and self-intersections in the mesh, if these are not expected.
+done
+
+         region-name    number of baffles zone ids of baffles
+-------------------- -------------------- --------------------
+    external baffles                    1                (323)
+
+
+
+------------------------------------- --------------------- -------------------- ---------------- ----------
+                                 name skewed-cells (> 0.80)    averaged-skewness maximum-skewness face count
+------------------------------------- --------------------- -------------------- ---------------- ----------
+
+          ajm006_v03_fluid_continuous                     0          0.026876322       0.47914493      28196
+  dead0-ajm006_v03_fluid_continuous:1                     0          0.026964017       0.45553883      27868
+  dead1-ajm006_v03_fluid_continuous:2                     0          0.026051593       0.40102255      28150
+  dead2-ajm006_v03_fluid_continuous:3                     0           0.02672462       0.52331243      27844
+  dead3-ajm006_v03_fluid_continuous:4                     0          0.026282048       0.44766248      27560
+  dead4-ajm006_v03_fluid_continuous:5                     0          0.027774187       0.43292918      27874
+  dead5-ajm006_v03_fluid_continuous:6                     0          0.027290123       0.42583276      27818
+  dead6-ajm006_v03_fluid_continuous:7                     0          0.027237603       0.47587385      27434
+  dead7-ajm006_v03_fluid_continuous:8                     0          0.026847718       0.44760989      27786
+  dead8-ajm006_v03_fluid_continuous:9                     0          0.027061823       0.42994976      27898
+ dead9-ajm006_v03_fluid_continuous:10                     0          0.027013768        0.4630069      27718
+dead10-ajm006_v03_fluid_continuous:11                     0          0.026325762       0.51704308      28024
+------------------------------------- --------------------- -------------------- ---------------- ----------
+                                 name skewed-cells (> 0.80)    averaged-skewness maximum-skewness face count
+------------------------------------- --------------------- -------------------- ---------------- ----------
+
+product_continuous_fluid-ajm006_v03_fluid_continuous                     0          0.026869847       0.52331243     334170
+
+---------------- After Surface mesh, the model consists of 1 fluid/solid regions and 11 voids.
+
+---------------- Surface Meshing of product_continuous_fluid complete in  0.35 minutes, with a maximum skewness of  0.54. 
+
+
+---------------- Describe Geometry task complete in  0.00 minutes.
+
+---------------- Boundary Conditions Updated
+
+---------------- Regions Updated
+Writing "D:\AirJet_P1\AJM-P1-CAD-006\AJM006-V03-CONTINUOUS\AJM006-V03-CONTINUOUS-344351ac1f77\FM_LAPTOP-LCCLM2HI_26112\TaskObject11.msh.h5" ...
+writing 109 node zones
+writing 108 edge zones 
+writing 119 face zones 
+writing node curvature data
+done.
+checking object "product_continuous_fluid-ajm006_v03_fluid_continuous"...
+    skipping validating regions of mesh object "product_continuous_fluid-ajm006_v03_fluid_continuous"...done.
+auto meshing object product_continuous_fluid-ajm006_v03_fluid_continuous...
+
+Identifying Topology...
+
+The octree hexcore cells will be refined using local surface mesh sizes and body of influence (boi) size controls, if there are any defined.
+Generating Pyramids...
+
+Generating initial mesh...
+delete dead zones.
+
+Refining mesh...
+
+Create polyhedra ...
+
+delete virtual and dead zones.
+
+Merging zones...
+
+Cleaning up dead entities...
+
+
+Merging Domains...
+done.
+
+                     name       id cells (quality < 0.05)  minimum quality cell count
+------------------------- -------- ---------------------- ---------------- ----------
+                  fluid_8      681                      0       0.43550811      34426
+                 fluid_10      678                      0       0.53130182      34510
+                  fluid_4      675                      0        0.5448263      34729
+                  fluid_7      672                      0       0.60075503      34279
+                  fluid_9      669                      0       0.51802293      34947
+                  fluid_6      666                      0       0.57263393      33979
+                  fluid_2      663                      0       0.49642111      34970
+                  fluid_3      660                      0       0.57943637      34078
+                    fluid      657                      0       0.53840413      34569
+                  fluid_5      654                      0       0.22220636      34260
+                  fluid_1      651                      0       0.56750027      34248
+ajm006_v03_fluid_continuous      648                      0       0.58114096      34860
+
+                     name       id cells (quality < 0.05)  minimum quality cell count
+------------------------- -------- ---------------------- ---------------- ----------
+          Overall Summary     none                      0       0.22220636     413855
+
+Total Number of Cell Zones : 12
+
+[Quality Measure : Orthogonal Quality]
+
+---------------- Volume mesh creation completed in :  0.52 minutes
+
+---------------- 413855 cells were created in :  0.55 minutes
+
+---------------- The mesh has a minimum Orthogonal Quality of:  0.22 
+
+---------------- The volume meshing of product_continuous_fluid-ajm006_v03_fluid_continuous is complete.
+
+
+===============Message from the Cortex Process================================
+
+Compute processes interrupted. Processing can be resumed.
+
+==============================================================================
+
