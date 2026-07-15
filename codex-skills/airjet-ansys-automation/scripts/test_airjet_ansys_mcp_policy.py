@@ -57,6 +57,8 @@ V02_NATIVE_MESH_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "
 V02_PARASOLID_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_parasolid_topology_006.py"
 V02_PARASOLID_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_run_v02_parasolid_topology_006.py"
 V02_SPLIT_STEP_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_split_step_converter_006.py"
+V03_CONTINUOUS_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v03_continuous_fluid_006.py"
+V03_CONTINUOUS_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_run_v03_continuous_fluid_006.py"
 T1_PREDECESSOR_NEGATIVE = (
     SKILL_ROOT / "scripts" / "test_t1_predecessor_negative.py"
 )
@@ -293,6 +295,24 @@ expected_dependency_git_paths = {
         "airjet-simulation/parameters/p1_vent_geometry_candidates.csv",
         "airjet-simulation/parameters/p1_planform_exhaust_candidates.csv",
         "airjet-simulation/parameters/p1_thickness_budget.csv",
+        "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
+        "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
+    ),
+    "ajm006-spaceclaim-v03-continuous-throat-pilot-v1": (
+        "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
+        "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
+        "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py",
+        "airjet-simulation/automation/ansys/contracts/build_full_product_trusted_variants.py",
+        "airjet-simulation/automation/ansys/contracts/test_full_product_trusted_variants.py",
+        "airjet-simulation/parameters/p1_model_form_variants.csv",
+        "airjet-simulation/parameters/p1_layout_configuration_matrix.csv",
+        "airjet-simulation/parameters/p1_internal_geometry_rules.csv",
+        "airjet-simulation/parameters/p1_cad_parameter_map.csv",
+        "airjet-simulation/parameters/p1_orifice_pattern_candidates.csv",
+        "airjet-simulation/parameters/p1_vent_geometry_candidates.csv",
+        "airjet-simulation/parameters/p1_planform_exhaust_candidates.csv",
+        "airjet-simulation/parameters/p1_thickness_budget.csv",
+        "airjet-simulation/parameters/full_product_parameter_registry.csv",
         "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
         "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
     ),
@@ -1393,6 +1413,7 @@ expected_profile_ids = {
     "ajm006-spaceclaim-v02-parasolid-converter-v1",
     "ajm006-spaceclaim-v02-split-step-converter-v1",
     "ajm006-workbench-v02-parasolid-topology-observer-v1",
+    "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
 }
 if profile_ids != expected_profile_ids:
     fail(f"approved profile set is not exact: {sorted(profile_ids)}")
@@ -1422,6 +1443,8 @@ for required_path in (
     V02_PARASOLID_RUNNER,
     V02_PARASOLID_RUNNER_TEST,
     V02_SPLIT_STEP_RUNNER,
+    V03_CONTINUOUS_RUNNER,
+    V03_CONTINUOUS_RUNNER_TEST,
 ):
     if not required_path.is_file():
         fail(f"missing mandatory v2 route file: {required_path}")
@@ -1751,6 +1774,92 @@ for invariant in (
         fail(f"V02 producer lacks frozen dependency invariant: {invariant}")
 if 'os.environ["AIRJET_REPO_ROOT"]' in v02_source:
     fail("V02 producer reads mutable repository dependencies")
+
+v03_profile = by_profile_id[
+    "ajm006-spaceclaim-v03-continuous-throat-pilot-v1"
+]
+if (
+    v03_profile.get("engine") != "spaceclaim"
+    or v03_profile.get("script") != "006/v03_continuous_fluid_producer.py"
+    or v03_profile.get("timeout_seconds") != 7200
+    or v03_profile.get("output_root_id") != "p1_cad_006"
+    or v03_profile.get("reports")
+    != ["v03_continuous_fluid_producer.json"]
+    or v03_profile.get("predecessor") is not None
+):
+    fail("V03 continuous-fluid profile contract changed")
+v03_source_path = APPROVED / v03_profile["script"]
+v03_source = v03_source_path.read_text(encoding="utf-8")
+v03_tree = ast.parse(v03_source)
+v03_assignments = {
+    node.targets[0].id: ast.literal_eval(node.value)
+    for node in v03_tree.body
+    if isinstance(node, ast.Assign)
+    and len(node.targets) == 1
+    and isinstance(node.targets[0], ast.Name)
+    and node.targets[0].id in {"assertion_names", "DEPENDENCY_NAMES"}
+}
+if len(v03_assignments.get("assertion_names", ())) != 17:
+    fail("V03 assertion contract count changed")
+if len(v03_assignments.get("DEPENDENCY_NAMES", ())) != 16:
+    fail("V03 dependency contract count changed")
+for invariant in (
+    'os.environ["AIRJET_PROFILE_DEPENDENCY_DIR"]',
+    "verify_dependency_bundle",
+    '"value_mm": 0.10',
+    '"evidence_class": "C"',
+    '"product_fact": False',
+    '"ORIFICE_THROAT_WALL": 972',
+    'len(built_bodies) != 1',
+    'boolean_volume_delta_mm3 <= 0.001',
+    'set(throat_counts_by_cell.values()) == set([81])',
+    '"mesh": "NOT_RUN"',
+    '"physics": "NOT_RUN"',
+    '"p1_p6_gates": "NOT_RUN"',
+    '"formal_006_completion": False',
+    "compact_throat_inventory",
+    "expected_xy_contract",
+):
+    if invariant not in v03_source:
+        fail("V03 continuous-fluid producer lacks invariant: " + invariant)
+for forbidden in (
+    'os.environ["AIRJET_REPO_ROOT"]',
+    "GenerateMesh(",
+    ".Solve(",
+    "launch_fluent(",
+):
+    if forbidden in v03_source:
+        fail("V03 continuous-fluid producer contains forbidden action: " + forbidden)
+v03_runner_source = V03_CONTINUOUS_RUNNER.read_text(encoding="utf-8")
+v03_runner_tree = ast.parse(v03_runner_source)
+v03_runner_literals = {
+    node.targets[0].id: ast.literal_eval(node.value)
+    for node in v03_runner_tree.body
+    if isinstance(node, ast.Assign)
+    and len(node.targets) == 1
+    and isinstance(node.targets[0], ast.Name)
+    and node.targets[0].id in {
+        "PROFILE_ID",
+        "PROFILE_SCRIPT_SHA256",
+        "PROFILE_SCRIPT",
+        "EXPECTED_REPORT_ASSERTIONS",
+        "EXPECTED_PRODUCER_ARTIFACTS",
+        "EXPECTED_DEPENDENCY_COUNT",
+    }
+}
+if (
+    v03_runner_literals.get("PROFILE_ID") != v03_profile["profile_id"]
+    or v03_runner_literals.get("PROFILE_SCRIPT") != v03_profile["script"]
+    or v03_runner_literals.get("PROFILE_SCRIPT_SHA256")
+    != v03_profile["sha256"]
+    or "PLACEHOLDER" in str(v03_runner_literals.get("PROFILE_SCRIPT_SHA256"))
+    or len(v03_runner_literals.get("EXPECTED_REPORT_ASSERTIONS", ())) != 17
+    or len(v03_runner_literals.get("EXPECTED_PRODUCER_ARTIFACTS", {})) != 7
+    or v03_runner_literals.get("EXPECTED_DEPENDENCY_COUNT") != 16
+):
+    fail("V03 runner/profile binding changed")
+for path in (V03_CONTINUOUS_RUNNER, V03_CONTINUOUS_RUNNER_TEST):
+    assert_python39_static_compatibility(path)
 
 v02_observer_profile = by_profile_id[
     "ajm006-workbench-v02-topology-observer-v1"

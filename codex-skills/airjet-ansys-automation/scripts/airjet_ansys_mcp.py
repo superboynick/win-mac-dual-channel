@@ -120,6 +120,24 @@ PROFILE_DEPENDENCY_GIT_PATHS = {
         "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
         "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
     ),
+    "ajm006-spaceclaim-v03-continuous-throat-pilot-v1": (
+        "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
+        "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
+        "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py",
+        "airjet-simulation/automation/ansys/contracts/build_full_product_trusted_variants.py",
+        "airjet-simulation/automation/ansys/contracts/test_full_product_trusted_variants.py",
+        "airjet-simulation/parameters/p1_model_form_variants.csv",
+        "airjet-simulation/parameters/p1_layout_configuration_matrix.csv",
+        "airjet-simulation/parameters/p1_internal_geometry_rules.csv",
+        "airjet-simulation/parameters/p1_cad_parameter_map.csv",
+        "airjet-simulation/parameters/p1_orifice_pattern_candidates.csv",
+        "airjet-simulation/parameters/p1_vent_geometry_candidates.csv",
+        "airjet-simulation/parameters/p1_planform_exhaust_candidates.csv",
+        "airjet-simulation/parameters/p1_thickness_budget.csv",
+        "airjet-simulation/parameters/full_product_parameter_registry.csv",
+        "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
+        "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
+    ),
 }
 PROFILE_DEPENDENCY_MANIFEST = "dependency-manifest.json"
 PROFILE_DEPENDENCY_GIT_PREFIXES = (

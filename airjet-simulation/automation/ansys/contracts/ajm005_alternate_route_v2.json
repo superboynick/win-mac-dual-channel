@@ -84,7 +84,7 @@
   },
   "mcp_server": {
     "path": "codex-skills/airjet-ansys-automation/scripts/airjet_ansys_mcp.py",
-    "sha256": "cbdabeb0dcab7af87f276675b905186c39c77802b8aecba9f0c28bd58b08a476"
+    "sha256": "df1e1ee72e23ca6fbba367c67eb9336b02f9dad50275a3c48fdbf8e5dc227f6c"
   },
   "confirmation": {
     "old_v1_evidence_reusable_for_v2_closeout": false,
