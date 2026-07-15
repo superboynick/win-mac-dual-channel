@@ -91,8 +91,11 @@ def sha256_file(path, canonical_text=False):
     if canonical_text:
         with open(path, "rb") as handle:
             data = handle.read()
-        data = data.replace(b"\r\n", b"\n")
-        if b"\r" in data:
+        # SpaceClaim V261 runs IronPython 2.7, where binary reads return a
+        # character buffer compatible with str literals rather than CPython 3
+        # bytes literals.  Keep this identical to the proven 005 hashing path.
+        data = data.replace("\r\n", "\n")
+        if "\r" in data:
             raise Exception("AJM006_BARE_CR:%s" % path)
         digest.update(data)
     else:

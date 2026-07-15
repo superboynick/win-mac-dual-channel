@@ -39,7 +39,7 @@ OUTPUT_ROOT = Path(r"D:\AirJet_P1\AJM-P1-CAD-006")
 RESULT_PATH = OUTPUT_ROOT / "V02_PRELIMINARY_RUN_SUMMARY.json"
 POLICY_GIT_PATH = "airjet-simulation/automation/ansys/profiles.json"
 PROFILE_ID = "ajm006-spaceclaim-v02-preliminary-v1"
-PROFILE_SCRIPT_SHA256 = "8d47c70d94c02e44378ab4cbb52f0b1d8c2ba1d98b2c4c7852e458be94ca5468"
+PROFILE_SCRIPT_SHA256 = "78afab31adb60e4f84ee1d9e89913151ba2fe71fcec1fc50b84714b64bf3e43b"
 CASE_ID = "AJM006-V02-PRELIMINARY"
 EXPECTED_TOOLS = {
     "inventory",

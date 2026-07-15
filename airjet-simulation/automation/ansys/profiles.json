@@ -263,7 +263,7 @@
       "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
       "engine": "spaceclaim",
       "script": "006/v02_preliminary_producer.py",
-      "sha256": "8d47c70d94c02e44378ab4cbb52f0b1d8c2ba1d98b2c4c7852e458be94ca5468",
+      "sha256": "78afab31adb60e4f84ee1d9e89913151ba2fe71fcec1fc50b84714b64bf3e43b",
       "timeout_seconds": 7200,
       "output_root_id": "p1_cad_006",
       "reports": [
