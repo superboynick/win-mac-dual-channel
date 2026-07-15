@@ -91,13 +91,8 @@ $instructionText
     Write-AirJetStatus -State 'CODEX_STARTED' -Detail "task_id=$($task.Fields.task_id) sandbox=workspace-write approvals=never mode=exec" -Commit $NewCommit
     Write-Output 'Starting visible Codex exec with sandbox=workspace-write approvals=never.'
     $reportFile = Join-Path $reports 'AIRJET_GIT_WATCHER_LAST_REPORT.txt'
-    Push-Location $script:RepoRoot
-    try {
-        & $codex exec -C $script:RepoRoot -s workspace-write -c 'approval_policy="never"' -c 'model_reasoning_effort="high"' --add-dir $reports -o $reportFile $prompt
-        $code = $LASTEXITCODE
-    } finally {
-        Pop-Location
-    }
+    $code = 1
+    Invoke-AirJetCodexUtf8Stdin -Codex $codex -RepoRoot $script:RepoRoot -Reports $reports -ReportFile $reportFile -Prompt $prompt -ApprovalPolicyConfig 'approval_policy="never"' -ExitCode ([ref]$code)
     if ($code -eq 0) {
         Update-AirJetProcessedTaskPhase -Task $task.Fields -Commit $NewCommit -Phase CODEX_EXITED_0
         Write-AirJetPending -Phase CODEX_EXITED_0 -Old $OldCommit -New $NewCommit -TaskId $task.Fields.task_id

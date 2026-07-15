@@ -92,8 +92,16 @@ function Invoke-AirJetGit {
         $env:GIT_SSH_COMMAND = 'C:/Windows/System32/OpenSSH/ssh.exe -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -p 443'
         $env:GIT_SSH_VARIANT = 'ssh'
         $all = @('--no-replace-objects','-C', $script:RepoRoot) + $Arguments
-        $output = @(& $script:GitExe @all 2>&1 | ForEach-Object { $_.ToString() })
-        $code = $LASTEXITCODE
+        $savedConsoleOutputEncoding = [Console]::OutputEncoding
+        try {
+            # Git blobs and paths are UTF-8. Windows PowerShell 5.1 otherwise
+            # decodes native stdout with the active OEM console code page.
+            [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+            $output = @(& $script:GitExe @all 2>&1 | ForEach-Object { $_.ToString() })
+            $code = $LASTEXITCODE
+        } finally {
+            [Console]::OutputEncoding = $savedConsoleOutputEncoding
+        }
     } finally {
         $ErrorActionPreference = $savedPreference
         $env:GIT_TERMINAL_PROMPT = $savedPrompt
@@ -108,6 +116,43 @@ function Invoke-AirJetGit {
         throw "BLOCKED_GIT_COMMAND exit=$code args=$($Arguments[0]) output=$($text -replace '[\r\n\t]+',' ')"
     }
     return [pscustomobject]@{ ExitCode = $code; Text = $text; Lines = $output }
+}
+
+function Invoke-AirJetCodexUtf8Stdin {
+    param(
+        [Parameter(Mandatory = $true)][string]$Codex,
+        [Parameter(Mandatory = $true)][string]$RepoRoot,
+        [Parameter(Mandatory = $true)][string]$Reports,
+        [Parameter(Mandatory = $true)][string]$ReportFile,
+        [Parameter(Mandatory = $true)][string]$Prompt,
+        [Parameter(Mandatory = $true)][string]$ApprovalPolicyConfig,
+        [Parameter(Mandatory = $true)][ref]$ExitCode
+    )
+    if ($ApprovalPolicyConfig -cne 'approval_policy="never"') { throw 'BLOCKED_CODEX_APPROVAL_CONTRACT' }
+    # Windows PowerShell 5.1's native stdin encoder consults the global
+    # preference variable even when the invocation is inside a function.
+    $savedOutputEncoding = $global:OutputEncoding
+    $savedConsoleOutputEncoding = [Console]::OutputEncoding
+    Push-Location $RepoRoot
+    try {
+        # codex.cmd is an npm cmd.exe shim and inherits cmd.exe's short argv
+        # limit. Keep the signed prompt off argv and stream exact UTF-8 instead.
+        $utf8 = New-Object System.Text.UTF8Encoding($false)
+        $global:OutputEncoding = $utf8
+        [Console]::OutputEncoding = $utf8
+        $Prompt | & $Codex exec -C $RepoRoot -s workspace-write -c $ApprovalPolicyConfig -c 'model_reasoning_effort="high"' --add-dir $Reports -o $ReportFile -
+        $ExitCode.Value = [int]$LASTEXITCODE
+    } finally {
+        try {
+            $global:OutputEncoding = $savedOutputEncoding
+        } finally {
+            try {
+                [Console]::OutputEncoding = $savedConsoleOutputEncoding
+            } finally {
+                Pop-Location
+            }
+        }
+    }
 }
 
 function Assert-AirJetTrustFiles {

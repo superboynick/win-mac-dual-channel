@@ -1,7 +1,7 @@
 # AirJet signed dual-endpoint Git watcher
 
 > Runtime status: `ENABLED_MANUAL_NO_AUTOSTART`（2026-07-14）。Mac 端 80 项与
-> Windows 端 50 项隔离行为测试用于持续回归；真实双端可见唤醒仍需分别观察记录。
+> Windows 端 72 项隔离行为测试用于持续回归；真实双端可见唤醒仍需分别观察记录。
 > 用户已授权手动常驻轮询，但未授权开机启动，因此不得注册 LaunchAgent 或
 > Scheduled Task。
 
@@ -85,6 +85,19 @@ reasoning_effort=high
 证据只能证明启动请求处于交互桌面，用户肉眼确认前仍必须记录
 `NOT_USER_OBSERVED`，不能写成 visible PASS。
 
+Windows runner 不应把完整任务正文作为 `codex.cmd` 参数传递。npm 的 `.cmd` shim 会受
+`cmd.exe` 命令行长度限制；runner 实现把 `git show` blob 按 UTF-8 捕获，再把完整
+signed prompt 以无 BOM UTF-8 stdin 交给 `codex exec ... -`。Windows 矩阵用 fake
+`.cmd`/native child 验证长中文 stdin、无 BOM、prompt 不在 argv、退出码传播和环境
+恢复；第二次真实 E2E 仍是最终运行证据。
+
+```text
+FIX_SOURCE=BEHAVIOR_TESTED_72_OF_72
+DEPLOYMENT=PENDING
+SECOND_REAL_MAC_TO_WINDOWS_E2E=NOT_RUN
+REAL_WINDOWS_TO_MAC_WAKE=NOT_RUN
+```
+
 ## 隔离测试
 
 Mac：
@@ -112,8 +125,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\airjet-git-watcher\t
 预期：
 
 ```text
-WINDOWS_CORE_CASES_PASS=54
-EXPECTED_PASS_COUNT=54
+WINDOWS_CORE_CASES_PASS=72
+EXPECTED_PASS_COUNT=72
 OVERALL=PASS_CORE_RUNTIME_ENABLED_MANUAL
 ```
 

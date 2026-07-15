@@ -16,6 +16,7 @@ if (-not (Test-Path -LiteralPath $SshKeygen -PathType Leaf)) { throw 'Git bundle
 $Root = Join-Path $env:TEMP "airjet-windows-watcher-test-$([Guid]::NewGuid().ToString('N'))"
 $Trust = Join-Path $Root 'trust'
 $PassCount = 0
+. $Common
 
 function Pass([string]$Name) { $script:PassCount++; Write-Output "PASS=$Name" }
 function Fail([string]$Name) { throw "FAIL=$Name" }
@@ -23,9 +24,16 @@ function Assert-Contains([string]$Name, [string]$Text, [string]$Needle) {
     if ($Text.IndexOf($Needle, [StringComparison]::Ordinal) -lt 0) { Fail "$Name missing=$Needle output=$Text" }
     Pass $Name
 }
+function Assert-NotContains([string]$Name, [string]$Text, [string]$Needle) {
+    if ($Text.IndexOf($Needle, [StringComparison]::Ordinal) -ge 0) { Fail "$Name unexpected=$Needle" }
+    Pass $Name
+}
 function Assert-Equal([string]$Name, $Actual, $Expected) {
     if ([string]$Actual -cne [string]$Expected) { Fail "$Name actual=$Actual expected=$Expected" }
     Pass $Name
+}
+function ConvertFrom-Utf8Base64([string]$Value) {
+    return (New-Object Text.UTF8Encoding($false, $true)).GetString([Convert]::FromBase64String($Value))
 }
 function Git([string]$Repo, [string[]]$Arguments, [switch]$AllowFailure) {
     $savedPreference = $ErrorActionPreference
@@ -367,6 +375,125 @@ try {
     if ($code -eq 0) { Fail 'manager_retry_guard' }
     Assert-Contains 'manager_retry_guard' ($output -join "`n") 'RETRY_RESULT=REFUSED_TEST_MODE'
 
+    $utf8Repo = Join-Path $Root 'utf8-git-output'
+    [void](New-Item -ItemType Directory -Path $utf8Repo -Force)
+    [void](Git $utf8Repo @('init'))
+    Configure-Identity $utf8Repo
+    # Keep the PowerShell 5.1 test source ASCII; -File treats BOM-less source
+    # with the active ANSI code page. Decode the UTF-8 fixture at runtime.
+    $utf8Sentinel = ConvertFrom-Utf8Base64 '5Lit5paH562+5ZCN5Lu75Yqh5ZOo5YW1LUFKTS1VVEY4LeWujOaVtA=='
+    [IO.File]::WriteAllText((Join-Path $utf8Repo 'instruction.txt'), "$utf8Sentinel`n", (New-Object Text.UTF8Encoding($false)))
+    [void](Git $utf8Repo @('add','instruction.txt'))
+    [void](Git $utf8Repo @('-c','commit.gpgsign=false','commit','-m','utf8 fixture'))
+    $script:RepoRoot = $utf8Repo
+    $script:GitExe = $Git
+    $originalConsoleOutputEncoding = [Console]::OutputEncoding
+    $probeConsoleOutputEncoding = New-Object Text.UnicodeEncoding($false, $false)
+    [Console]::OutputEncoding = $probeConsoleOutputEncoding
+    try {
+        $utf8GitResult = Invoke-AirJetGit -Arguments @('show','HEAD:instruction.txt')
+        $gitRestoredCodePage = [Console]::OutputEncoding.CodePage
+    } finally {
+        [Console]::OutputEncoding = $originalConsoleOutputEncoding
+    }
+    Assert-Equal 'git_utf8_blob_exact' $utf8GitResult.Text $utf8Sentinel
+    Assert-Equal 'git_console_output_encoding_restore' $gitRestoredCodePage $probeConsoleOutputEncoding.CodePage
+
+    $fakeRoot = Join-Path $Root 'fake-codex-transport'
+    [void](New-Item -ItemType Directory -Path $fakeRoot -Force)
+    $fakeExe = Join-Path $fakeRoot 'fake-codex.exe'
+    $fakeCmd = Join-Path $fakeRoot 'fake-codex.cmd'
+    $fakeSource = @'
+using System;
+using System.IO;
+using System.Text;
+namespace AirJetWatcherTransportFixture {
+    public static class Program {
+        public static int Main(string[] args) {
+            string stdinPath = Environment.GetEnvironmentVariable("AIRJET_FAKE_STDIN_PATH");
+            string argvPath = Environment.GetEnvironmentVariable("AIRJET_FAKE_ARGV_PATH");
+            using (Stream input = Console.OpenStandardInput()) {
+                using (FileStream output = File.Create(stdinPath)) { input.CopyTo(output); }
+            }
+            File.WriteAllLines(argvPath, args, new UTF8Encoding(false));
+            return Int32.Parse(Environment.GetEnvironmentVariable("AIRJET_FAKE_EXIT"));
+        }
+    }
+}
+'@
+    Add-Type -TypeDefinition $fakeSource -OutputAssembly $fakeExe -OutputType ConsoleApplication
+    [IO.File]::WriteAllLines($fakeCmd, @('@echo off', '"%~dp0fake-codex.exe" %*', 'exit /b %ERRORLEVEL%'), [Text.Encoding]::ASCII)
+    $stdinCapture = Join-Path $fakeRoot 'stdin.bin'
+    $argvCapture = Join-Path $fakeRoot 'argv.txt'
+    $env:AIRJET_FAKE_STDIN_PATH = $stdinCapture
+    $env:AIRJET_FAKE_ARGV_PATH = $argvCapture
+    $env:AIRJET_FAKE_EXIT = '23'
+    $longUnit = ConvertFrom-Utf8Base64 '6ZW/5Lu75Yqh5Y+C5pWw'
+    $longSentinel = ConvertFrom-Utf8Base64 '5Lit5paH5ZOo5YW157uI54K5LUFKTS1MT05HLVVURjg='
+    $longPrompt = ($longUnit * 2500) + $longSentinel
+    $reportRoot = Join-Path $fakeRoot 'reports'
+    [void](New-Item -ItemType Directory -Path $reportRoot -Force)
+    $beforeTransportLocation = (Get-Location).Path
+    $originalGlobalOutputEncoding = $global:OutputEncoding
+    $probeGlobalOutputEncoding = New-Object Text.ASCIIEncoding
+    $originalConsoleOutputEncoding = [Console]::OutputEncoding
+    $probeConsoleOutputEncoding = New-Object Text.UnicodeEncoding($false, $false)
+    $global:OutputEncoding = $probeGlobalOutputEncoding
+    [Console]::OutputEncoding = $probeConsoleOutputEncoding
+    $transportExit = 0
+    try {
+        Invoke-AirJetCodexUtf8Stdin -Codex $fakeCmd -RepoRoot $utf8Repo -Reports $reportRoot -ReportFile (Join-Path $reportRoot 'last.txt') -Prompt $longPrompt -ApprovalPolicyConfig 'approval_policy="never"' -ExitCode ([ref]$transportExit)
+        $transportRestoredGlobalCodePage = $global:OutputEncoding.CodePage
+        $transportRestoredCodePage = [Console]::OutputEncoding.CodePage
+        $afterTransportLocation = (Get-Location).Path
+    } finally {
+        $global:OutputEncoding = $originalGlobalOutputEncoding
+        [Console]::OutputEncoding = $originalConsoleOutputEncoding
+    }
+    $stdinBytes = [IO.File]::ReadAllBytes($stdinCapture)
+    $expectedStdinBytes = (New-Object Text.UTF8Encoding($false, $true)).GetBytes($longPrompt + [Environment]::NewLine)
+    $sha256 = [Security.Cryptography.SHA256]::Create()
+    try {
+        $actualStdinHash = ([BitConverter]::ToString($sha256.ComputeHash($stdinBytes))).Replace('-', '').ToLowerInvariant()
+        $expectedStdinHash = ([BitConverter]::ToString($sha256.ComputeHash($expectedStdinBytes))).Replace('-', '').ToLowerInvariant()
+    } finally {
+        $sha256.Dispose()
+    }
+    $fakeArgv = [IO.File]::ReadAllLines($argvCapture, (New-Object Text.UTF8Encoding($false)))
+    Assert-Equal 'transport_exit_propagation' $transportExit 23
+    Assert-Equal 'transport_stdin_utf8_exact' $actualStdinHash $expectedStdinHash
+    if (($stdinBytes.Length -ge 3) -and ($stdinBytes[0] -eq 0xEF) -and ($stdinBytes[1] -eq 0xBB) -and ($stdinBytes[2] -eq 0xBF)) { Fail 'transport_stdin_bom' } else { Pass 'transport_stdin_no_bom' }
+    if (($fakeArgv -join "`n").Contains($longSentinel)) { Fail 'transport_prompt_in_argv' } else { Pass 'transport_prompt_not_argv' }
+    Assert-Equal 'transport_terminal_dash' $fakeArgv[-1] '-'
+    Assert-Equal 'transport_location_restore' $afterTransportLocation $beforeTransportLocation
+    Assert-Equal 'transport_global_output_encoding_restore' $transportRestoredGlobalCodePage $probeGlobalOutputEncoding.CodePage
+    Assert-Equal 'transport_console_output_encoding_restore' $transportRestoredCodePage $probeConsoleOutputEncoding.CodePage
+
+    $beforeExceptionLocation = (Get-Location).Path
+    $originalGlobalOutputEncoding = $global:OutputEncoding
+    $probeGlobalOutputEncoding = New-Object Text.ASCIIEncoding
+    $originalConsoleOutputEncoding = [Console]::OutputEncoding
+    $probeConsoleOutputEncoding = New-Object Text.UnicodeEncoding($false, $false)
+    $global:OutputEncoding = $probeGlobalOutputEncoding
+    [Console]::OutputEncoding = $probeConsoleOutputEncoding
+    $exceptionExit = 0
+    $exceptionObserved = $false
+    try {
+        Invoke-AirJetCodexUtf8Stdin -Codex (Join-Path $fakeRoot 'missing-codex.cmd') -RepoRoot $utf8Repo -Reports $reportRoot -ReportFile (Join-Path $reportRoot 'missing.txt') -Prompt $longPrompt -ApprovalPolicyConfig 'approval_policy="never"' -ExitCode ([ref]$exceptionExit)
+    } catch {
+        $exceptionObserved = $true
+        $exceptionRestoredGlobalCodePage = $global:OutputEncoding.CodePage
+        $exceptionRestoredConsoleCodePage = [Console]::OutputEncoding.CodePage
+        $afterExceptionLocation = (Get-Location).Path
+    } finally {
+        $global:OutputEncoding = $originalGlobalOutputEncoding
+        [Console]::OutputEncoding = $originalConsoleOutputEncoding
+    }
+    if ($exceptionObserved) { Pass 'transport_invocation_exception_observed' } else { Fail 'transport_invocation_exception_missing' }
+    Assert-Equal 'transport_exception_global_encoding_restore' $exceptionRestoredGlobalCodePage $probeGlobalOutputEncoding.CodePage
+    Assert-Equal 'transport_exception_console_encoding_restore' $exceptionRestoredConsoleCodePage $probeConsoleOutputEncoding.CodePage
+    Assert-Equal 'transport_exception_location_restore' $afterExceptionLocation $beforeExceptionLocation
+
     Assert-Contains 'fixed_remote' ([IO.File]::ReadAllText($Common)) 'ssh://git@ssh.github.com:443/superboynick/win-mac-dual-channel.git'
     Assert-Contains 'fixed_allowed_hash' ([IO.File]::ReadAllText($Common)) 'DB1ADA7DBB7472C43CF32405A3C02F755AE5D291F4348E01C35C60C8EB2A79A6'
     Assert-Contains 'fixed_mac_hash' ([IO.File]::ReadAllText($Common)) '0DCA6F17DECAF03EF17C97EFA69EEDD0A54C173D01AC63D3C8B29821709661A6'
@@ -375,13 +502,19 @@ try {
     Assert-Contains 'fixed_ssh_variant' ([IO.File]::ReadAllText($Common)) '$env:GIT_SSH_VARIANT = ''ssh'''
     Assert-Contains 'fixed_ssh_command_shell_path' ([IO.File]::ReadAllText($Common)) 'C:/Windows/System32/OpenSSH/ssh.exe'
     Assert-Contains 'fixed_poll_default_10' ([IO.File]::ReadAllText($Watcher)) '[ValidateRange(10, 3600)][int]$PollSeconds = 10'
-    Assert-Contains 'runner_sandbox' ([IO.File]::ReadAllText($Runner)) 'exec -C $script:RepoRoot -s workspace-write -c ''approval_policy="never"'''
-    Assert-Contains 'runner_test_mode_guard' ([IO.File]::ReadAllText($Runner)) 'BLOCKED_TEST_MODE_CODEX_FORBIDDEN'
+    $commonText = [IO.File]::ReadAllText($Common)
+    $runnerText = [IO.File]::ReadAllText($Runner)
+    Assert-Contains 'runner_sandbox' $runnerText '-ApprovalPolicyConfig ''approval_policy="never"'''
+    Assert-Contains 'runner_test_mode_guard' $runnerText 'BLOCKED_TEST_MODE_CODEX_FORBIDDEN'
+    Assert-Contains 'runner_prompt_utf8_stdin' $commonText '$global:OutputEncoding = $utf8'
+    Assert-Contains 'runner_prompt_stdin_dash' $commonText '$Prompt | & $Codex exec'
+    Assert-Contains 'runner_prompt_stdin_terminal_dash' $commonText '-o $ReportFile -'
+    Assert-NotContains 'runner_prompt_not_argv' ($commonText + "`n" + $runnerText) '-o $ReportFile $Prompt'
     Assert-Contains 'atomic_processed_claim' ([IO.File]::ReadAllText($Common)) '[IO.FileMode]::CreateNew'
     Assert-Contains 'watcher_runtime_guard' ([IO.File]::ReadAllText($Watcher)) 'BLOCKED_RUNTIME_'
     Assert-Contains 'installer_default_no_register' ([IO.File]::ReadAllText($Installer)) 'if ($RegisterAtLogOn)'
 
-    $ExpectedPassCount = 54
+    $ExpectedPassCount = 72
     if ($PassCount -ne $ExpectedPassCount) { Fail "pass_count_expected_$ExpectedPassCount`_actual_$PassCount" }
     Write-Output "WINDOWS_CORE_CASES_PASS=$PassCount"
     Write-Output "EXPECTED_PASS_COUNT=$ExpectedPassCount"
@@ -392,7 +525,7 @@ try {
     Write-Output 'VISIBLE_WAKE=SKIPPED_BY_DESIGN'
     Write-Output 'OVERALL=PASS_CORE_RUNTIME_ENABLED_MANUAL'
 } finally {
-    foreach ($name in @('AIRJET_WATCHER_TEST_MODE','AIRJET_REPO_ROOT','AIRJET_WATCHER_STATE_ROOT','AIRJET_TEST_EXPECTED_REMOTE','AIRJET_TEST_ALLOWED_SIGNERS_FILE','AIRJET_TEST_MAC_SIGNERS_FILE','AIRJET_TEST_KRL_FILE','AIRJET_TEST_SSH_KEYGEN','AIRJET_TEST_ALLOWED_HASH','AIRJET_TEST_MAC_HASH','AIRJET_TEST_KRL_HASH','GIT_CONFIG_COUNT','GIT_CONFIG_KEY_0','GIT_CONFIG_VALUE_0')) {
+    foreach ($name in @('AIRJET_WATCHER_TEST_MODE','AIRJET_REPO_ROOT','AIRJET_WATCHER_STATE_ROOT','AIRJET_TEST_EXPECTED_REMOTE','AIRJET_TEST_ALLOWED_SIGNERS_FILE','AIRJET_TEST_MAC_SIGNERS_FILE','AIRJET_TEST_KRL_FILE','AIRJET_TEST_SSH_KEYGEN','AIRJET_TEST_ALLOWED_HASH','AIRJET_TEST_MAC_HASH','AIRJET_TEST_KRL_HASH','AIRJET_FAKE_STDIN_PATH','AIRJET_FAKE_ARGV_PATH','AIRJET_FAKE_EXIT','GIT_CONFIG_COUNT','GIT_CONFIG_KEY_0','GIT_CONFIG_VALUE_0')) {
         Remove-Item "Env:$name" -ErrorAction SilentlyContinue
     }
     if (Test-Path -LiteralPath $Root) { Remove-Item -LiteralPath $Root -Recurse -Force -ErrorAction SilentlyContinue }
