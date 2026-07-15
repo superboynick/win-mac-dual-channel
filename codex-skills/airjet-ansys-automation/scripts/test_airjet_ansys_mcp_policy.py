@@ -50,6 +50,8 @@ FULL_PRODUCT_VARIANT_TEST = V2_CONTRACT_ROOT / "test_full_product_trusted_varian
 FULL_PRODUCT_CAMPAIGN = V2_CONTRACT_ROOT / "trusted_full_product_gen1" / "campaign.json"
 FULL_PRODUCT_REVIEWER = REPO / "airjet-simulation" / "checklists" / "prepare_p1_cad_review.py"
 FULL_PRODUCT_REVIEWER_TEST = REPO / "airjet-simulation" / "checklists" / "test_prepare_p1_cad_review_static.py"
+V02_TOPOLOGY_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_topology_observer_006.py"
+V02_TOPOLOGY_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_run_v02_topology_observer_006.py"
 T1_PREDECESSOR_NEGATIVE = (
     SKILL_ROOT / "scripts" / "test_t1_predecessor_negative.py"
 )
@@ -1380,6 +1382,7 @@ expected_profile_ids = {
     "ajm005-spaceclaim-cad-t1-v2",
     "ajm005-workbench-semantic-reconstruction-t1-v2",
     "ajm006-spaceclaim-v02-preliminary-v1",
+    "ajm006-workbench-v02-topology-observer-v1",
 }
 if profile_ids != expected_profile_ids:
     fail(f"approved profile set is not exact: {sorted(profile_ids)}")
@@ -1402,6 +1405,8 @@ for required_path in (
     FULL_PRODUCT_CAMPAIGN,
     FULL_PRODUCT_REVIEWER,
     FULL_PRODUCT_REVIEWER_TEST,
+    V02_TOPOLOGY_RUNNER,
+    V02_TOPOLOGY_RUNNER_TEST,
 ):
     if not required_path.is_file():
         fail(f"missing mandatory v2 route file: {required_path}")
@@ -1731,6 +1736,52 @@ for invariant in (
         fail(f"V02 producer lacks frozen dependency invariant: {invariant}")
 if 'os.environ["AIRJET_REPO_ROOT"]' in v02_source:
     fail("V02 producer reads mutable repository dependencies")
+
+v02_observer_profile = by_profile_id[
+    "ajm006-workbench-v02-topology-observer-v1"
+]
+v02_observer_source = (
+    APPROVED / v02_observer_profile["script"]
+).read_text(encoding="utf-8")
+v02_observer_predecessor = v02_observer_profile.get("predecessor")
+if (
+    not isinstance(v02_observer_predecessor, dict)
+    or v02_observer_predecessor.get("profile_id")
+    != "ajm006-spaceclaim-v02-preliminary-v1"
+    or set(v02_observer_predecessor.get("artifacts") or [])
+    != {
+        "v02_preliminary_producer.json",
+        "product.step",
+        "v02_face_inventory.json",
+        "native_reopen.json",
+        "step_reimport.json",
+    }
+):
+    fail("V02 topology observer predecessor contract changed")
+for invariant in (
+    'os.environ["AIRJET_PREDECESSOR_DIR"]',
+    "predecessor-manifest.json",
+    "predecessor_final_recheck",
+    "GetGeometryFileAndSaveData",
+    "model_container.Refresh()",
+    'model_container.SendCommand(Language="Python", Command=model_script)',
+    "ExtAPI.DataModel.GeoData",
+    "GetBoundingBox",
+    '"Body", "Bodies", "Parent", "AdjacentBodies"',
+    "expected_orifice_xy_keys",
+    "972_SHARED_SINGLE_FACE",
+    "972_COINCIDENT_FACE_PAIRS",
+    "DOWNSTREAM_HEALED_SINGLE_FACE",
+    "MIXED_OR_OTHER",
+    '"formal_006_completion": False',
+    '"p1_stage_gate": "NOT_RUN"',
+    '"p1_p6_gates": "NOT_RUN"',
+    "NOT_EVALUATED_NO_MESH",
+):
+    if invariant not in v02_observer_source:
+        fail("V02 topology observer lacks invariant: " + invariant)
+for path in (V02_TOPOLOGY_RUNNER, V02_TOPOLOGY_RUNNER_TEST):
+    assert_python39_static_compatibility(path)
 
 native_profile = by_profile_id.get("ajm005-workbench-transfer-t1-v1")
 if not isinstance(native_profile, dict):

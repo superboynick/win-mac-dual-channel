@@ -270,6 +270,42 @@
         "v02_preliminary_producer.json"
       ],
       "predecessor": null
+    },
+    {
+      "profile_id": "ajm006-workbench-v02-topology-observer-v1",
+      "engine": "workbench",
+      "script": "006/v02_preliminary_topology_observer.wbjn",
+      "sha256": "dd38228bedbfe13c790ad75146232dd146997e5055ddb2b9eb6ae78768b6842c",
+      "timeout_seconds": 3600,
+      "output_root_id": "p1_cad_006",
+      "reports": [
+        "v02_preliminary_topology_observer.json"
+      ],
+      "predecessor": {
+        "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
+        "report": "v02_preliminary_producer.json",
+        "required_probe": "v02_preliminary_producer",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
+        "required_assertions": [
+          "input_contract",
+          "gen1_target",
+          "full_product_scope",
+          "complete_flow_path",
+          "two_fluid_zone",
+          "native_save",
+          "native_reopen",
+          "step_export_reimport",
+          "artifact_hashes",
+          "physics_guards"
+        ],
+        "artifacts": [
+          "v02_preliminary_producer.json",
+          "product.step",
+          "v02_face_inventory.json",
+          "native_reopen.json",
+          "step_reimport.json"
+        ]
+      }
     }
   ]
 }

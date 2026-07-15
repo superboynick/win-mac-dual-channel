@@ -1,0 +1,840 @@
+# AJM-006 V02 preliminary Workbench/Mechanical topology discovery observer.
+import hashlib
+import json
+import math
+import os
+import traceback
+
+
+job_dir = os.environ["AIRJET_JOB_DIR"]
+predecessor_dir = os.environ["AIRJET_PREDECESSOR_DIR"]
+report_path = os.path.join(job_dir, "v02_preliminary_topology_observer.json")
+inspection_path = os.path.join(job_dir, "v02_solver_topology_inventory.json")
+project_path = os.path.join(job_dir, "v02_preliminary_topology_observer.wbpj")
+geometry_path = os.path.join(predecessor_dir, "product.step")
+producer_report_path = os.path.join(
+    predecessor_dir, "v02_preliminary_producer.json"
+)
+face_inventory_path = os.path.join(predecessor_dir, "v02_face_inventory.json")
+native_reopen_path = os.path.join(predecessor_dir, "native_reopen.json")
+step_reimport_path = os.path.join(predecessor_dir, "step_reimport.json")
+predecessor_manifest_path = os.path.join(
+    predecessor_dir, "predecessor-manifest.json"
+)
+
+EXPECTED_PREDECESSOR_PROFILE = "ajm006-spaceclaim-v02-preliminary-v1"
+EXPECTED_ORIFICE_COUNT = 972
+INTERFACE_Z_MM = 1.5175
+ORIFICE_RADIUS_MM = 0.125
+ORIFICE_AREA_MM2 = math.pi * ORIFICE_RADIUS_MM * ORIFICE_RADIUS_MM
+
+REQUIRED_ASSERTIONS = (
+    "input_contract",
+    "gen1_target",
+    "full_product_scope",
+    "complete_flow_path",
+    "two_fluid_zone",
+    "native_save",
+    "native_reopen",
+    "step_export_reimport",
+    "artifact_hashes",
+    "physics_guards",
+)
+
+result = {
+    "schema_version": 1,
+    "task": "AJM006_V02_PRELIMINARY_TOPOLOGY_OBSERVER",
+    "probe": "v02_preliminary_topology_observer",
+    "status": "FAIL_PRELIMINARY_OBSERVER",
+    "engineering_capability": "FAIL_PRELIMINARY_OBSERVER",
+    "formal_006_completion": False,
+    "p1_stage_gate": "NOT_RUN",
+    "p1_p6_gates": "NOT_RUN",
+    "license_arguments_added": False,
+    "diagnostic_only": True,
+    "geometry_route": "HASH_BOUND_STEP_TO_WORKBENCH_MECHANICAL_GEODATA",
+    "claim_boundary": (
+        "IMPORT_TOPOLOGY_DISCOVERY_ONLY_NOT_MESH_OR_SHARED_NODE_PROOF"
+    ),
+    "topology_result": "NOT_EVALUATED",
+    "assertions": {
+        "predecessor_identity": False,
+        "predecessor_immutable": False,
+        "workbench_import": False,
+        "solver_entity_inventory": False,
+        "topology_classified": False,
+        "project_save": False,
+        "artifact_hashes": False,
+        "claim_boundaries": False,
+    },
+    "execution_reach": {
+        "predecessor_identity": "NOT_REACHED",
+        "geometry_import": "NOT_REACHED",
+        "mechanical_inventory": "NOT_REACHED",
+        "topology_classification": "NOT_REACHED",
+        "project_save": "NOT_REACHED",
+    },
+    "error": None,
+}
+
+
+def sha256_file(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        while True:
+            chunk = handle.read(1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def read_json(path):
+    with open(path, "r") as handle:
+        value = json.load(handle)
+    if not isinstance(value, dict):
+        raise Exception("JSON_ROOT_NOT_OBJECT:%s" % os.path.basename(path))
+    return value
+
+
+try:
+    producer = read_json(producer_report_path)
+    face_inventory = read_json(face_inventory_path)
+    native_reopen = read_json(native_reopen_path)
+    step_reimport = read_json(step_reimport_path)
+    predecessor_manifest = read_json(predecessor_manifest_path)
+    manifest_entries = dict(
+        (item.get("relative_path"), item)
+        for item in predecessor_manifest.get("artifacts", [])
+    )
+    expected_names = {
+        "v02_preliminary_producer.json",
+        "product.step",
+        "v02_face_inventory.json",
+        "native_reopen.json",
+        "step_reimport.json",
+    }
+    actual_paths = {
+        "v02_preliminary_producer.json": producer_report_path,
+        "product.step": geometry_path,
+        "v02_face_inventory.json": face_inventory_path,
+        "native_reopen.json": native_reopen_path,
+        "step_reimport.json": step_reimport_path,
+    }
+    actual_hashes = dict(
+        (name, sha256_file(path)) for name, path in actual_paths.items()
+    )
+    producer_files = producer.get("files", {})
+    role_to_name = {
+        "step": "product.step",
+        "face_inventory": "v02_face_inventory.json",
+        "native_reopen": "native_reopen.json",
+        "step_reimport": "step_reimport.json",
+    }
+    predecessor_identity_ok = (
+        predecessor_manifest.get("predecessor_profile_id")
+        == EXPECTED_PREDECESSOR_PROFILE
+        and predecessor_manifest.get("git_head")
+        == os.environ.get("AIRJET_GIT_HEAD")
+        and producer.get("probe") == "v02_preliminary_producer"
+        and producer.get("status") == "PASS_PARTIAL_CAD_CAPABILITY"
+        and producer.get("engineering_capability")
+        == "PASS_PARTIAL_CAD_CAPABILITY"
+        and producer.get("formal_006_completion") is False
+        and producer.get("p1_stage_gate") == "NOT_RUN"
+        and producer.get("p1_p6_gates") == "NOT_RUN"
+        and producer.get("license_arguments_added") is False
+        and producer.get("identity", {}).get("git_head")
+        == os.environ.get("AIRJET_GIT_HEAD")
+        and producer.get("identity", {}).get("profile_id")
+        == EXPECTED_PREDECESSOR_PROFILE
+        and producer.get("identity", {}).get("case_id")
+        == os.environ.get("AIRJET_CASE_ID")
+        and set(producer.get("assertions", {})) == set(REQUIRED_ASSERTIONS)
+        and all(
+            producer.get("assertions", {}).get(name) is True
+            for name in REQUIRED_ASSERTIONS
+        )
+        and set(manifest_entries) == expected_names
+        and all(
+            manifest_entries.get(name, {}).get("sha256")
+            == actual_hashes.get(name)
+            for name in expected_names
+        )
+        and all(
+            producer_files.get(role, {}).get("sha256")
+            == actual_hashes.get(name)
+            for role, name in role_to_name.items()
+        )
+        and face_inventory.get("claim_scope")
+        == "V02_PRELIMINARY_GEOMETRY_ONLY"
+        and face_inventory.get("downstream_orifice_candidates")
+        == EXPECTED_ORIFICE_COUNT
+        and native_reopen.get("body_count") == 2
+        and step_reimport.get("body_count") == 2
+        and step_reimport.get("shared_interface_identity")
+        == "NOT_EVALUATED_UNTIL_WORKBENCH_OBSERVER"
+    )
+    result["predecessor"] = {
+        "job_id": predecessor_manifest.get("predecessor_job_id"),
+        "profile_id": predecessor_manifest.get("predecessor_profile_id"),
+        "git_head": predecessor_manifest.get("git_head"),
+        "artifact_manifest_snapshot_sha256": predecessor_manifest.get(
+            "artifact_manifest_snapshot_sha256"
+        ),
+        "step_sha256": actual_hashes.get("product.step"),
+        "source_native_face_counts": sorted(
+            item.get("face_count")
+            for item in native_reopen.get("body_fingerprints", [])
+        ),
+        "source_step_face_counts": sorted(
+            item.get("face_count")
+            for item in step_reimport.get("body_fingerprints", [])
+        ),
+    }
+    result["predecessor_job_id"] = predecessor_manifest.get(
+        "predecessor_job_id"
+    )
+    result["identity"] = {
+        "git_head": os.environ.get("AIRJET_GIT_HEAD"),
+        "profile_id": os.environ.get("AIRJET_PROFILE_ID"),
+        "profile_contract_sha256": os.environ.get(
+            "AIRJET_PROFILE_CONTRACT_SHA256"
+        ),
+        "script_sha256": os.environ.get("AIRJET_SCRIPT_SHA256"),
+        "case_id": os.environ.get("AIRJET_CASE_ID"),
+    }
+    result["assertions"]["predecessor_identity"] = predecessor_identity_ok
+    if not predecessor_identity_ok:
+        raise Exception("PREDECESSOR_IDENTITY_ASSERTION_FAILED")
+    result["execution_reach"]["predecessor_identity"] = "PASS"
+    expected_step_sha256 = actual_hashes["product.step"]
+
+    Reset()
+    result["execution_reach"]["geometry_import"] = "CALLED"
+    source_template = GetTemplate(TemplateName="Geometry")
+    source_system = source_template.CreateSystem()
+    source_geometry = source_system.GetContainer(ComponentName="Geometry")
+    source_properties = source_geometry.GetGeometryProperties()
+    source_properties.GeometryImportNamedSelections = True
+    source_properties.GeometryImportNamedSelectionsFilter = ""
+    source_geometry.SetFile(FilePath=geometry_path)
+    source_component = source_system.GetComponent(Name="Geometry")
+    static_template = GetTemplate(
+        TemplateName="Static Structural", Solver="ANSYS"
+    )
+    static_system = static_template.CreateSystem(
+        ComponentsToShare=[source_component]
+    )
+    target_geometry = static_system.GetContainer(ComponentName="Geometry")
+    target_properties = target_geometry.GetGeometryProperties()
+    target_properties.GeometryImportNamedSelections = True
+    target_properties.GeometryImportNamedSelectionsFilter = ""
+    source_geometry.GetGeometryFileAndSaveData()
+    model_container = static_system.GetContainer(ComponentName="Model")
+    model_container.Refresh()
+    result["execution_reach"]["geometry_import"] = "RETURNED"
+    result["assertions"]["workbench_import"] = True
+
+    model_script = r'''
+import json
+import math
+import traceback
+
+inspection_path = %r
+expected_step_sha256 = %r
+source_face_inventory_path = %r
+source_step_reimport_path = %r
+expected_orifice_count = %d
+interface_z_mm = %.12f
+orifice_area_mm2 = %.16f
+inspection = {
+    "schema_version": 1,
+    "probe": "v02_solver_topology_inventory",
+    "status": "FAIL_OBSERVATION",
+    "diagnostic_only": True,
+    "formal_006_completion": False,
+    "p1_stage_gate": "NOT_RUN",
+    "p1_p6_gates": "NOT_RUN",
+    "source_step_sha256": expected_step_sha256,
+    "topology_result": "NOT_EVALUATED",
+}
+
+try:
+    geo = ExtAPI.DataModel.GeoData
+    convert = Ansys.Core.Units.UnitsManager.ConvertUnit
+    cad_unit = str(geo.Unit)
+    with open(source_face_inventory_path, "r") as handle:
+        source_face_inventory = json.load(handle)
+    with open(source_step_reimport_path, "r") as handle:
+        source_step_reimport = json.load(handle)
+
+    def to_mm(value):
+        return float(convert(value, cad_unit, "mm"))
+
+    def to_mm2(value):
+        return float(convert(value, cad_unit + "^2", "mm^2"))
+
+    def entity_id(value):
+        try:
+            return int(value.Id)
+        except Exception:
+            return None
+
+    def collection_ids(value):
+        ids = []
+        if value is None:
+            return ids
+        single = entity_id(value)
+        if single is not None:
+            return [single]
+        try:
+            for item in value:
+                item_id = entity_id(item)
+                if item_id is not None:
+                    ids.append(item_id)
+        except Exception:
+            pass
+        return sorted(set(ids))
+
+    def relationship_probe(face):
+        values = {}
+        errors = {}
+        for name in ("Body", "Bodies", "Parent", "AdjacentBodies"):
+            try:
+                values[name] = collection_ids(getattr(face, name))
+            except Exception as error:
+                values[name] = []
+                errors[name] = str(error)
+        return values, errors
+
+    def bounding_box_probe(entity):
+        errors = []
+        candidates = []
+        try:
+            candidates.append(("GetBoundingBox", entity.GetBoundingBox()))
+        except Exception as error:
+            errors.append("GetBoundingBox:" + str(error))
+        try:
+            candidates.append(("BoundingBox", entity.BoundingBox))
+        except Exception as error:
+            errors.append("BoundingBox:" + str(error))
+        for route, value in candidates:
+            try:
+                sequence = list(value)
+                if len(sequence) == 6:
+                    return {
+                        "route": route,
+                        "min_mm": [to_mm(sequence[index]) for index in range(3)],
+                        "max_mm": [to_mm(sequence[index]) for index in range(3, 6)],
+                    }, errors
+            except Exception as error:
+                errors.append(route + "_sequence:" + str(error))
+            for names in (
+                ("XMin", "YMin", "ZMin", "XMax", "YMax", "ZMax"),
+                ("MinX", "MinY", "MinZ", "MaxX", "MaxY", "MaxZ"),
+            ):
+                try:
+                    values = [getattr(value, name) for name in names]
+                    return {
+                        "route": route + ":" + ",".join(names),
+                        "min_mm": [to_mm(values[index]) for index in range(3)],
+                        "max_mm": [to_mm(values[index]) for index in range(3, 6)],
+                    }, errors
+                except Exception as error:
+                    errors.append(route + "_properties:" + str(error))
+        return None, errors
+
+    def safe_name(value):
+        try:
+            return str(value.Name)
+        except Exception:
+            return None
+
+    bodies = []
+    body_context = {}
+    for assembly in geo.Assemblies:
+        for part in assembly.AllParts:
+            for body in part.Bodies:
+                if not body.Suppressed:
+                    bodies.append(body)
+                    body_context[str(int(body.Id))] = {
+                        "assembly_raw_id": entity_id(assembly),
+                        "assembly_name": safe_name(assembly),
+                        "part_raw_id": entity_id(part),
+                        "part_name": safe_name(part),
+                    }
+
+    body_details = []
+    all_face_details = []
+    face_owners = {}
+    for body in bodies:
+        body_id = int(body.Id)
+        body_name = str(body.Name)
+        body_faces = []
+        for face in body.Faces:
+            face_id = int(face.Id)
+            center = face.Centroid
+            centroid_mm = [
+                to_mm(center[0]), to_mm(center[1]), to_mm(center[2])
+            ]
+            area_mm2 = to_mm2(face.Area)
+            surface_type = None
+            surface_type_error = None
+            try:
+                surface_type = str(face.SurfaceType)
+            except Exception as error:
+                surface_type_error = str(error)
+            edge_count = None
+            edge_count_error = None
+            try:
+                try:
+                    edge_count = int(face.Edges.Count)
+                except Exception:
+                    edge_count = len(list(face.Edges))
+            except Exception as error:
+                edge_count_error = str(error)
+            normal = None
+            normal_error = None
+            try:
+                parameter = face.ParamAtPoint(center)
+                value = face.NormalAtParam(parameter[0], parameter[1])
+                normal = [float(value[0]), float(value[1]), float(value[2])]
+            except Exception as error:
+                normal_error = str(error)
+            relations, relation_errors = relationship_probe(face)
+            bounding_box, bounding_box_errors = bounding_box_probe(face)
+            incident_ids = sorted(set(
+                relations.get("Bodies", []) + relations.get("Body", [])
+            ))
+            detail = {
+                "id": face_id,
+                "actual_id": "mechanical-face-%%d" %% face_id,
+                "owner_body_id": body_id,
+                "owner_body_actual_id": "mechanical-body-%%d" %% body_id,
+                "owner_body_name": body_name,
+                "centroid_mm": centroid_mm,
+                "area_mm2": area_mm2,
+                "surface_type": surface_type,
+                "surface_type_error": surface_type_error,
+                "edge_count": edge_count,
+                "edge_count_error": edge_count_error,
+                "normal_at_centroid": normal,
+                "normal_error": normal_error,
+                "relationship_ids": relations,
+                "relationship_errors": relation_errors,
+                "incident_body_ids": incident_ids,
+                "bounding_box_mm": bounding_box,
+                "bounding_box_errors": bounding_box_errors,
+            }
+            body_faces.append(detail)
+            all_face_details.append(detail)
+            face_owners.setdefault(str(face_id), []).append(body_id)
+        centroid = None
+        centroid_error = None
+        try:
+            value = body.Centroid
+            centroid = [to_mm(value[0]), to_mm(value[1]), to_mm(value[2])]
+        except Exception as error:
+            centroid_error = str(error)
+        volume_mm3 = None
+        volume_error = None
+        try:
+            volume_mm3 = float(
+                convert(body.Volume, cad_unit + "^3", "mm^3")
+            )
+        except Exception as error:
+            volume_error = str(error)
+        body_bounding_box, body_bounding_box_errors = bounding_box_probe(body)
+        body_detail = {
+            "id": body_id,
+            "actual_id": "mechanical-body-%%d" %% body_id,
+            "name": body_name,
+            "face_count": len(body_faces),
+            "face_ids": sorted(item["id"] for item in body_faces),
+            "centroid_mm": centroid,
+            "centroid_error": centroid_error,
+            "volume_mm3": volume_mm3,
+            "volume_error": volume_error,
+            "bounding_box_mm": body_bounding_box,
+            "bounding_box_errors": body_bounding_box_errors,
+        }
+        body_detail.update(body_context.get(str(body_id), {}))
+        body_details.append(body_detail)
+
+    body_details.sort(key=lambda item: item["face_count"], reverse=True)
+    source_step_face_counts = sorted(
+        int(item["face_count"])
+        for item in source_step_reimport.get("body_fingerprints", [])
+    )
+    observed_face_counts = sorted(item["face_count"] for item in body_details)
+    role_binding_exact = observed_face_counts == source_step_face_counts
+    role_binding_ok = (
+        len(body_details) == 2
+        and len(set(observed_face_counts)) == 2
+        and len(source_step_face_counts) == 2
+        and len(set(source_step_face_counts)) == 2
+    )
+    upstream_body = body_details[0] if body_details else None
+    downstream_body = body_details[-1] if len(body_details) > 1 else None
+    upstream_id = upstream_body["id"] if upstream_body else None
+    downstream_id = downstream_body["id"] if downstream_body else None
+    z_tolerance_mm = 0.02
+    area_tolerance_mm2 = 0.001
+    xy_tolerance_mm = 0.02
+    expected_orifice_points = sorted(
+        [
+            [float(item["center_mm"][0]), float(item["center_mm"][1])]
+            for item in source_face_inventory.get("upstream_faces", [])
+            if item.get("classification") == "ORIFICE_EXIT_UPSTREAM"
+        ],
+        key=lambda item: (item[1], item[0]),
+    )
+    expected_orifice_xy_keys = [
+        "%%04d:%%.8f,%%.8f" %% (index, point[0], point[1])
+        for index, point in enumerate(expected_orifice_points)
+    ]
+
+    def expected_point_matches(face):
+        x_value = float(face["centroid_mm"][0])
+        y_value = float(face["centroid_mm"][1])
+        return [
+            index for index, point in enumerate(expected_orifice_points)
+            if abs(x_value - point[0]) <= xy_tolerance_mm
+            and abs(y_value - point[1]) <= xy_tolerance_mm
+        ]
+    upstream_candidates = []
+    downstream_candidates = []
+    downstream_interface_faces = []
+    for face in all_face_details:
+        at_interface = abs(face["centroid_mm"][2] - interface_z_mm) <= z_tolerance_mm
+        circle_area = abs(face["area_mm2"] - orifice_area_mm2) <= area_tolerance_mm2
+        if face["owner_body_id"] == upstream_id and at_interface and circle_area:
+            upstream_candidates.append(face)
+        if face["owner_body_id"] == downstream_id and at_interface:
+            downstream_interface_faces.append(face)
+            if circle_area:
+                downstream_candidates.append(face)
+
+    upstream_by_expected = dict(
+        (index, []) for index in range(len(expected_orifice_points))
+    )
+    downstream_by_expected = dict(
+        (index, []) for index in range(len(expected_orifice_points))
+    )
+    unmatched_upstream_ids = []
+    unmatched_downstream_ids = []
+    ambiguous_candidate_ids = []
+    for face, mapping, unmatched in (
+        [(item, upstream_by_expected, unmatched_upstream_ids) for item in upstream_candidates]
+        + [(item, downstream_by_expected, unmatched_downstream_ids) for item in downstream_candidates]
+    ):
+        matches = expected_point_matches(face)
+        if len(matches) == 1:
+            mapping[matches[0]].append(face)
+        elif len(matches) == 0:
+            unmatched.append(face["id"])
+        else:
+            ambiguous_candidate_ids.append(face["id"])
+    hole_records = []
+    paired = 0
+    same_id_pairs = 0
+    shared_membership_pairs = 0
+    opposite_normal_pairs = 0
+    ambiguous = len(ambiguous_candidate_ids)
+    missing_expected_xy_keys = []
+    duplicate_expected_xy_keys = []
+    downstream_missing_expected_xy_keys = []
+    downstream_duplicate_expected_xy_keys = []
+    for expected_index, expected_point in enumerate(expected_orifice_points):
+        upstream_matches = upstream_by_expected[expected_index]
+        downstream_matches = downstream_by_expected[expected_index]
+        key = expected_orifice_xy_keys[expected_index]
+        if len(upstream_matches) == 0:
+            missing_expected_xy_keys.append(key)
+        elif len(upstream_matches) > 1:
+            duplicate_expected_xy_keys.append(key)
+        if len(downstream_matches) == 0:
+            downstream_missing_expected_xy_keys.append(key)
+        elif len(downstream_matches) > 1:
+            downstream_duplicate_expected_xy_keys.append(key)
+        if len(upstream_matches) == 1 and len(downstream_matches) == 1:
+            face = upstream_matches[0]
+            matches = downstream_matches
+            paired += 1
+            if matches[0]["id"] == face["id"]:
+                same_id_pairs += 1
+                if set(face_owners.get(str(face["id"]), [])) == set(
+                    [upstream_id, downstream_id]
+                ):
+                    shared_membership_pairs += 1
+            left_normal = face.get("normal_at_centroid")
+            right_normal = matches[0].get("normal_at_centroid")
+            if left_normal is not None and right_normal is not None:
+                normal_dot = sum(
+                    float(left_normal[index]) * float(right_normal[index])
+                    for index in range(3)
+                )
+                if normal_dot <= -0.99:
+                    opposite_normal_pairs += 1
+        hole_records.append({
+            "expected_xy_key_mm": key,
+            "upstream_face_ids": sorted(item["id"] for item in upstream_matches),
+            "downstream_face_ids": sorted(item["id"] for item in downstream_matches),
+            "same_actual_id": (
+                len(upstream_matches) == 1
+                and len(downstream_matches) == 1
+                and downstream_matches[0]["id"] == upstream_matches[0]["id"]
+            ),
+        })
+
+    duplicate_cross_body_ids = sorted(
+        int(face_id)
+        for face_id, owner_ids in face_owners.items()
+        if len(set(owner_ids)) > 1
+    )
+    downstream_top_large_faces = [
+        item for item in downstream_interface_faces
+        if item["area_mm2"] > orifice_area_mm2 * 10.0
+    ]
+    shared_interface_candidate_ids = sorted(set(
+        item["id"] for item in upstream_candidates
+        if set(item.get("incident_body_ids", []))
+        == set([upstream_id, downstream_id])
+        or set(face_owners.get(str(item["id"]), []))
+        == set([upstream_id, downstream_id])
+    ))
+    upstream_xy_contract_exact = (
+        len(expected_orifice_xy_keys) == expected_orifice_count
+        and not missing_expected_xy_keys
+        and not duplicate_expected_xy_keys
+        and not unmatched_upstream_ids
+        and not ambiguous_candidate_ids
+        and len(upstream_candidates) == expected_orifice_count
+    )
+    downstream_xy_contract_exact = (
+        len(expected_orifice_xy_keys) == expected_orifice_count
+        and not downstream_missing_expected_xy_keys
+        and not downstream_duplicate_expected_xy_keys
+        and not unmatched_downstream_ids
+        and not ambiguous_candidate_ids
+        and len(downstream_candidates) == expected_orifice_count
+    )
+    if (
+        upstream_xy_contract_exact
+        and len(set(item["id"] for item in upstream_candidates))
+        == expected_orifice_count
+        and len(shared_interface_candidate_ids) == expected_orifice_count
+    ):
+        topology_result = "972_SHARED_SINGLE_FACE"
+    elif (
+        upstream_xy_contract_exact
+        and
+        len(upstream_candidates) == expected_orifice_count
+        and len(downstream_candidates) == expected_orifice_count
+        and downstream_xy_contract_exact
+        and paired == expected_orifice_count
+        and same_id_pairs == 0
+        and opposite_normal_pairs == expected_orifice_count
+    ):
+        topology_result = "972_COINCIDENT_FACE_PAIRS"
+    elif (
+        upstream_xy_contract_exact
+        and
+        len(upstream_candidates) == expected_orifice_count
+        and len(downstream_candidates) == 0
+        and len(downstream_top_large_faces) == 1
+    ):
+        topology_result = "DOWNSTREAM_HEALED_SINGLE_FACE"
+    else:
+        topology_result = "MIXED_OR_OTHER"
+
+    summary = {
+        "body_count": len(body_details),
+        "body_face_counts": [item["face_count"] for item in body_details],
+        "source_step_face_counts": source_step_face_counts,
+        "role_binding_by_predecessor_face_counts": role_binding_ok,
+        "role_binding_face_counts_exact": role_binding_exact,
+        "body_ids": [item["id"] for item in body_details],
+        "total_body_face_references": len(all_face_details),
+        "unique_face_ids": len(set(item["id"] for item in all_face_details)),
+        "duplicate_cross_body_face_ids": duplicate_cross_body_ids,
+        "upstream_body_id": upstream_id,
+        "downstream_body_id": downstream_id,
+        "upstream_orifice_candidates": len(upstream_candidates),
+        "downstream_orifice_candidates": len(downstream_candidates),
+        "downstream_interface_face_count": len(downstream_interface_faces),
+        "downstream_large_interface_face_ids": sorted(
+            item["id"] for item in downstream_top_large_faces
+        ),
+        "paired_xy_count": paired,
+        "same_actual_id_pair_count": same_id_pairs,
+        "shared_membership_pair_count": shared_membership_pairs,
+        "shared_interface_candidate_count": len(
+            shared_interface_candidate_ids
+        ),
+        "shared_interface_candidate_ids": shared_interface_candidate_ids,
+        "opposite_normal_pair_count": opposite_normal_pairs,
+        "ambiguous_xy_count": ambiguous,
+        "unpaired_upstream_count": len(upstream_candidates) - paired - ambiguous,
+        "expected_orifice_xy_count": len(expected_orifice_xy_keys),
+        "observed_upstream_orifice_xy_count": len(upstream_candidates),
+        "upstream_xy_contract_exact": upstream_xy_contract_exact,
+        "downstream_xy_contract_exact": downstream_xy_contract_exact,
+        "xy_tolerance_mm": xy_tolerance_mm,
+        "missing_expected_xy_keys": missing_expected_xy_keys,
+        "duplicate_expected_xy_keys": duplicate_expected_xy_keys,
+        "downstream_missing_expected_xy_keys": downstream_missing_expected_xy_keys,
+        "downstream_duplicate_expected_xy_keys": downstream_duplicate_expected_xy_keys,
+        "unmatched_upstream_face_ids": sorted(unmatched_upstream_ids),
+        "unmatched_downstream_face_ids": sorted(unmatched_downstream_ids),
+        "ambiguous_candidate_face_ids": sorted(ambiguous_candidate_ids),
+        "topology_result": topology_result,
+        "shared_node_or_conformal_mesh": "NOT_EVALUATED_NO_MESH",
+    }
+    inspection.update({
+        "status": "PASS_OBSERVATION",
+        "cad_unit": cad_unit,
+        "body_details": body_details,
+        "face_details": all_face_details,
+        "face_owner_body_ids": face_owners,
+        "hole_records": hole_records,
+        "summary": summary,
+        "topology_result": topology_result,
+    })
+except Exception as error:
+    inspection["error_type"] = type(error).__name__
+    inspection["error"] = str(error)
+    inspection["traceback"] = traceback.format_exc()
+
+with open(inspection_path, "w") as handle:
+    json.dump(inspection, handle, indent=2, sort_keys=True)
+if inspection.get("status") != "PASS_OBSERVATION":
+    raise Exception("V02_SOLVER_TOPOLOGY_INVENTORY_FAILED")
+''' % (
+        inspection_path,
+        expected_step_sha256,
+        face_inventory_path,
+        step_reimport_path,
+        EXPECTED_ORIFICE_COUNT,
+        INTERFACE_Z_MM,
+        ORIFICE_AREA_MM2,
+    )
+    result["execution_reach"]["mechanical_inventory"] = "CALLED"
+    model_container.SendCommand(Language="Python", Command=model_script)
+    result["execution_reach"]["mechanical_inventory"] = "RETURNED"
+
+    inspection = read_json(inspection_path)
+    summary = inspection.get("summary", {})
+    topology_result = inspection.get("topology_result")
+    valid_topology_results = {
+        "972_SHARED_SINGLE_FACE",
+        "972_COINCIDENT_FACE_PAIRS",
+        "DOWNSTREAM_HEALED_SINGLE_FACE",
+        "MIXED_OR_OTHER",
+    }
+    inventory_ok = (
+        inspection.get("status") == "PASS_OBSERVATION"
+        and inspection.get("source_step_sha256") == expected_step_sha256
+        and inspection.get("formal_006_completion") is False
+        and inspection.get("p1_stage_gate") == "NOT_RUN"
+        and inspection.get("p1_p6_gates") == "NOT_RUN"
+        and summary.get("body_count") == 2
+        and summary.get("role_binding_by_predecessor_face_counts") is True
+        and summary.get("total_body_face_references", 0) > 0
+        and isinstance(inspection.get("face_details"), list)
+        and len(inspection["face_details"])
+        == summary.get("total_body_face_references")
+    )
+    topology_classified_ok = topology_result in valid_topology_results
+    result["execution_reach"]["topology_classification"] = (
+        "RETURNED" if topology_classified_ok else "FAILED"
+    )
+    result["assertions"]["solver_entity_inventory"] = inventory_ok
+    result["assertions"]["topology_classified"] = topology_classified_ok
+    result["topology_result"] = topology_result
+    compact_summary = {}
+    compacted_fields = []
+    for name, value in summary.items():
+        if isinstance(value, list) and len(value) > 32:
+            compact_summary[name + "_count"] = len(value)
+            compacted_fields.append(name)
+        else:
+            compact_summary[name] = value
+    compact_summary["compacted_list_fields"] = sorted(compacted_fields)
+    compact_summary["full_lists_artifact"] = (
+        "v02_solver_topology_inventory.json"
+    )
+    result["observer_summary"] = compact_summary
+    result["claim_interpretation"] = {
+        "import_topology_observed": inventory_ok,
+        "shared_interface_proven": (
+            topology_result == "972_SHARED_SINGLE_FACE"
+        ),
+        "coincident_pair_route_observed": (
+            topology_result == "972_COINCIDENT_FACE_PAIRS"
+        ),
+        "downstream_imprint_loss_observed": (
+            topology_result == "DOWNSTREAM_HEALED_SINGLE_FACE"
+        ),
+        "mesh_conformality": "NOT_EVALUATED_NO_MESH",
+        "formal_semantic_contract": "NOT_EVALUATED_DISCOVERY_ONLY",
+    }
+
+    result["execution_reach"]["project_save"] = "CALLED"
+    Save(FilePath=project_path, Overwrite=True)
+    result["execution_reach"]["project_save"] = "RETURNED"
+    project_ok = os.path.isfile(project_path) and os.path.getsize(project_path) > 0
+    result["assertions"]["project_save"] = project_ok
+    result["assertions"]["claim_boundaries"] = (
+        result["formal_006_completion"] is False
+        and result["p1_stage_gate"] == "NOT_RUN"
+        and result["p1_p6_gates"] == "NOT_RUN"
+        and result["diagnostic_only"] is True
+    )
+    files = {}
+    for role, path in (
+        ("inspection", inspection_path),
+        ("project", project_path),
+    ):
+        files[role] = {
+            "path": path,
+            "exists": os.path.isfile(path),
+            "size": os.path.getsize(path) if os.path.isfile(path) else 0,
+            "sha256": sha256_file(path) if os.path.isfile(path) else None,
+        }
+    result["files"] = files
+    result["assertions"]["artifact_hashes"] = all(
+        item["exists"]
+        and item["size"] > 0
+        and isinstance(item["sha256"], str)
+        and len(item["sha256"]) == 64
+        for item in files.values()
+    )
+    final_predecessor_hashes = dict(
+        (name, sha256_file(path)) for name, path in actual_paths.items()
+    )
+    result["predecessor_final_recheck"] = {
+        "before": actual_hashes,
+        "after": final_predecessor_hashes,
+        "unchanged": final_predecessor_hashes == actual_hashes,
+    }
+    result["assertions"]["predecessor_immutable"] = (
+        final_predecessor_hashes == actual_hashes
+    )
+    if all(result["assertions"].values()):
+        result["status"] = "PASS_PRELIMINARY_TOPOLOGY_OBSERVATION"
+        result["engineering_capability"] = (
+            "PASS_PRELIMINARY_TOPOLOGY_OBSERVATION"
+        )
+    else:
+        result["error"] = "PRELIMINARY_OBSERVER_ASSERTION_FAILED"
+except Exception as error:
+    result["error_type"] = type(error).__name__
+    result["error"] = str(error)
+    result["traceback"] = traceback.format_exc()
+
+with open(report_path, "w") as handle:
+    json.dump(result, handle, indent=2, sort_keys=True)
+if result["status"] != "PASS_PRELIMINARY_TOPOLOGY_OBSERVATION":
+    raise Exception("AJM006_V02_PRELIMINARY_TOPOLOGY_OBSERVER_FAILED")

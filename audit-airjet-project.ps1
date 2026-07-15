@@ -78,7 +78,11 @@ $Required = @(
     'airjet-simulation\windows-prompts\AJM_WIN_ANSYS_OFFICIAL_TRIAL_INSTALL_AND_SMOKE_004.md',
     'airjet-simulation\windows-prompts\AJM_WIN_ANSYS_STUDENT_CAPABILITY_SMOKE_005.md',
     'airjet-simulation\windows-prompts\AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md',
+    'airjet-simulation\windows-prompts\AJM_WIN_V02_TOPOLOGY_OBSERVER_006.md',
     'airjet-simulation\automation\ansys\profiles.json',
+    'airjet-simulation\automation\ansys\approved\006\v02_preliminary_topology_observer.wbjn',
+    'airjet-simulation\automation\ansys\run_v02_topology_observer_006.py',
+    'airjet-simulation\automation\ansys\test_run_v02_topology_observer_006.py',
     'airjet-simulation\automation\ansys\contracts\full_product_semantic_contract_v1.py',
     'airjet-simulation\automation\ansys\contracts\full_product_semantic_sidecar_v1.schema.json',
     'airjet-simulation\automation\ansys\contracts\test_full_product_semantic_contract_v1.py',
@@ -1466,7 +1470,8 @@ if (Test-Path -LiteralPath $AnsysProfilesPath) {
             'ajm005-workbench-semantic-reconstruction-t1-v1',
             'ajm005-spaceclaim-cad-t1-v2',
             'ajm005-workbench-semantic-reconstruction-t1-v2',
-            'ajm006-spaceclaim-v02-preliminary-v1'
+            'ajm006-spaceclaim-v02-preliminary-v1',
+            'ajm006-workbench-v02-topology-observer-v1'
         )
         $RootFields = @($ProfileData.PSObject.Properties.Name)
         if ($ProfileData.schema_version -ne 2 -or
@@ -1546,7 +1551,7 @@ if (Test-Path -LiteralPath $AnsysProfilesPath) {
             $env:PYTHONDONTWRITEBYTECODE = $PreviousNoBytecode
         }
         if ($PolicyExit -ne 0 -or
-            -not (($PolicyOutput -join "`n").Contains('AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=11 tools=5'))) {
+            -not (($PolicyOutput -join "`n").Contains('AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=12 tools=5'))) {
             Add-Failure "mandatory ANSYS v2 route/policy audit failed: $($PolicyOutput -join ' | ')"
         }
         $ReviewerTest = Join-Path $RepoRoot 'airjet-simulation\checklists\test_prepare_p1_cad_review_static.py'
