@@ -1429,12 +1429,12 @@
 - 原始错误短摘：`PARASOLID_EXPORT_ASSERTION_FAILED`。
 - 原始日志路径 + SHA-256：Windows `D:\AirJet_P1\AJM-P1-CAD-006\V02_PARASOLID_TOPOLOGY_RUN_SUMMARY.json`（保留原始 job 目录）。
 - 假设与最小区分实验：v261 API 文档要求 `ExportOptions.Create()` 并显式设置 `Parasolid.Version`；仅替换导出调用，不改变几何或前置链。
-- 结果：待签名修补后重试。
-- 根因及置信度：导出 API 选项不足，置信度中高；尚非几何路线结论。
-- 采取/拒绝的 workaround：采用官方 v261 `ExportOptions` 路径；不绕过断言、不改用未审 API。
+- 结果：签名修补后重试仍失败；job `AJM006-V02-PRELIMINARY-555909407cfe` 通过 native reopen，未生成 `product.x_t`，observer 未启动。
+- 根因及置信度：显式 `ExportOptions.Create()` + `ParasolidVersion.V23` 后仍无导出文件，说明当前 Student/SpaceClaim 环境的该导出能力或对象支持仍不可用；置信度中高，尚非整机几何结论。
+- 采取/拒绝的 workaround：不绕过断言、不伪造 x_t、不继续重复试跑；保留原生 `.scdocx` 产物并转入 native/Workbench 路线。
 - 对 Gate/论文主张的影响：P1--P6、mesh、physics、route assessment 继续 `NOT_RUN`。
-- 下一步：Windows 拉取新签名 commit，重跑同一 runner 并保留 raw evidence。
-- 状态：OPEN_PENDING_SIGNED_RETRY
+- 下一步：以 native `.scdocx` 为主输入推进 Workbench/Mechanical 连接性检查；Parasolid 仅保留为已审计的失败诊断路线。
+- 状态：CLOSED_DIAGNOSTIC_ROUTE_BLOCKED
 
 ## 新条目模板
 
