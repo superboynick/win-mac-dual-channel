@@ -1,0 +1,623 @@
+{
+  "assertions": {
+    "artifact_hashes": true, 
+    "central_anchor_geometry": true, 
+    "claim_boundaries": true, 
+    "equivalent_plate_geometry": true, 
+    "evidence_class_guards": true, 
+    "free_perimeter_contract": true, 
+    "input_contract": true, 
+    "native_reopen": true, 
+    "native_save": true, 
+    "physics_guards": true, 
+    "single_cell_calibration_scope": true, 
+    "source_candidate_binding": true, 
+    "step_anchor_region_preserved": true, 
+    "step_export": true, 
+    "step_reimport": true, 
+    "step_semantic_sidecar": true
+  }, 
+  "claim_ceiling": "PASS_PRE_GATE_P2_S0_EQUIVALENT_PLATE_BASELINE", 
+  "claim_scope": "P2_S0_EQUIVALENT_PLATE_CAD_PILOT_ONLY", 
+  "dependency_manifest": {
+    "path": "D:\\AirJet_P2\\AJM-P2-STRUCTURAL-008\\AJM-P2-S0-EQ-M7-C005\\AJM-P2-S0-EQ-M7-C005-e8f61480898c\\input\\dependencies\\dependency-manifest.json", 
+    "sha256": "59056ed5bf3ae433fd689994e90d0a304add7417ca14ddd8026b84b518062823"
+  }, 
+  "engineering_capability": "PASS_PARTIAL_CAD_CAPABILITY", 
+  "exact_product_geometry": "NOT_CLAIMED", 
+  "files": {
+    "p2_s0_equivalent_plate.scdocx": {
+      "path": "D:\\AirJet_P2\\AJM-P2-STRUCTURAL-008\\AJM-P2-S0-EQ-M7-C005\\AJM-P2-S0-EQ-M7-C005-e8f61480898c\\p2_s0_equivalent_plate.scdocx", 
+      "sha256": "edcbab93442c57af4451a256f91181b81c184c5cc30b05097e47d6a576c5165c", 
+      "size": 23228
+    }, 
+    "p2_s0_equivalent_plate.step": {
+      "path": "D:\\AirJet_P2\\AJM-P2-STRUCTURAL-008\\AJM-P2-S0-EQ-M7-C005\\AJM-P2-S0-EQ-M7-C005-e8f61480898c\\p2_s0_equivalent_plate.step", 
+      "sha256": "6c740353ffd50dae7bffd94f67b8b36b6c6c91455a9977272eaf4a3079287b89", 
+      "size": 15365
+    }, 
+    "p2_s0_equivalent_plate_sidecar.json": {
+      "path": "D:\\AirJet_P2\\AJM-P2-STRUCTURAL-008\\AJM-P2-S0-EQ-M7-C005\\AJM-P2-S0-EQ-M7-C005-e8f61480898c\\p2_s0_equivalent_plate_sidecar.json", 
+      "sha256": "82a644d430e5456ff0f3a5ef22e9b0fba115041f4f4795f85e2bd0d5115e4b66", 
+      "size": 19514
+    }
+  }, 
+  "formal_p2_completion": false, 
+  "formal_p2_gate": "NOT_RUN", 
+  "fsi": "NOT_RUN", 
+  "geometry": {
+    "authored": {
+      "bbox_max_mm": [
+        3.5, 
+        3.5, 
+        0.27500000000000002
+      ], 
+      "bbox_min_mm": [
+        -3.5, 
+        -3.5, 
+        -0.050000000000000003
+      ], 
+      "face_count": 11, 
+      "is_closed": true, 
+      "is_manifold": true, 
+      "name": "AJM_P2_S0_EQ_CENTRAL_ANCHOR_C", 
+      "piece_count": 1, 
+      "volume_mm3": 13.728125000000002
+    }, 
+    "free_perimeter": true, 
+    "native_reopen": {
+      "body": {
+        "bbox_max_mm": [
+          3.5, 
+          3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          -3.5, 
+          -0.050000000000000003
+        ], 
+        "face_count": 11, 
+        "is_closed": true, 
+        "is_manifold": true, 
+        "name": "AJM_P2_S0_EQ_CENTRAL_ANCHOR_C", 
+        "piece_count": 1, 
+        "volume_mm3": 13.728125000000002
+      }, 
+      "faces": [
+        {
+          "area_mm2": 43.9375, 
+          "bbox_max_mm": [
+            3.5, 
+            3.5, 
+            0.0
+          ], 
+          "bbox_min_mm": [
+            -3.5, 
+            -3.5, 
+            0.0
+          ], 
+          "center_mm": [
+            0.0, 
+            0.0, 
+            0.0
+          ], 
+          "role": "UNCLASSIFIED"
+        }, 
+        {
+          "area_mm2": 49.000000000000007, 
+          "bbox_max_mm": [
+            3.5, 
+            3.5, 
+            0.27500000000000002
+          ], 
+          "bbox_min_mm": [
+            -3.5, 
+            -3.5, 
+            0.27500000000000002
+          ], 
+          "center_mm": [
+            0.0, 
+            0.0, 
+            0.27500000000000002
+          ], 
+          "role": "NS_MEMBRANE_TOP"
+        }, 
+        {
+          "area_mm2": 1.9250000000000003, 
+          "bbox_max_mm": [
+            3.5, 
+            3.5, 
+            0.27500000000000002
+          ], 
+          "bbox_min_mm": [
+            -3.5, 
+            3.5, 
+            0.0
+          ], 
+          "center_mm": [
+            0.0, 
+            3.5, 
+            0.13750000000000001
+          ], 
+          "role": "UNCLASSIFIED"
+        }, 
+        {
+          "area_mm2": 1.9250000000000003, 
+          "bbox_max_mm": [
+            3.5, 
+            3.5, 
+            0.27500000000000002
+          ], 
+          "bbox_min_mm": [
+            3.5, 
+            -3.5, 
+            0.0
+          ], 
+          "center_mm": [
+            3.5, 
+            0.0, 
+            0.13750000000000001
+          ], 
+          "role": "NS_TIP_X_PLUS"
+        }, 
+        {
+          "area_mm2": 1.9250000000000003, 
+          "bbox_max_mm": [
+            3.5, 
+            -3.5, 
+            0.27500000000000002
+          ], 
+          "bbox_min_mm": [
+            -3.5, 
+            -3.5, 
+            0.0
+          ], 
+          "center_mm": [
+            0.0, 
+            -3.5, 
+            0.13750000000000001
+          ], 
+          "role": "UNCLASSIFIED"
+        }, 
+        {
+          "area_mm2": 1.9250000000000003, 
+          "bbox_max_mm": [
+            -3.5, 
+            3.5, 
+            0.27500000000000002
+          ], 
+          "bbox_min_mm": [
+            -3.5, 
+            -3.5, 
+            0.0
+          ], 
+          "center_mm": [
+            -3.5, 
+            0.0, 
+            0.13750000000000001
+          ], 
+          "role": "NS_TIP_X_MINUS"
+        }, 
+        {
+          "area_mm2": 5.062500000000001, 
+          "bbox_max_mm": [
+            1.1250000000000002, 
+            1.1250000000000002, 
+            -0.050000000000000003
+          ], 
+          "bbox_min_mm": [
+            -1.1250000000000002, 
+            -1.1250000000000002, 
+            -0.050000000000000003
+          ], 
+          "center_mm": [
+            0.0, 
+            0.0, 
+            -0.050000000000000003
+          ], 
+          "role": "NS_ANCHOR_FIXED"
+        }, 
+        {
+          "area_mm2": 0.11250000000000002, 
+          "bbox_max_mm": [
+            1.1250000000000002, 
+            1.1250000000000002, 
+            0.0
+          ], 
+          "bbox_min_mm": [
+            -1.1250000000000002, 
+            1.1250000000000002, 
+            -0.050000000000000003
+          ], 
+          "center_mm": [
+            0.0, 
+            1.1250000000000002, 
+            -0.025000000000000001
+          ], 
+          "role": "UNCLASSIFIED"
+        }, 
+        {
+          "area_mm2": 0.11250000000000002, 
+          "bbox_max_mm": [
+            1.1250000000000002, 
+            1.1250000000000002, 
+            0.0
+          ], 
+          "bbox_min_mm": [
+            1.1250000000000002, 
+            -1.1250000000000002, 
+            -0.050000000000000003
+          ], 
+          "center_mm": [
+            1.1250000000000002, 
+            0.0, 
+            -0.025000000000000001
+          ], 
+          "role": "UNCLASSIFIED"
+        }, 
+        {
+          "area_mm2": 0.11250000000000002, 
+          "bbox_max_mm": [
+            1.1250000000000002, 
+            -1.1250000000000002, 
+            0.0
+          ], 
+          "bbox_min_mm": [
+            -1.1250000000000002, 
+            -1.1250000000000002, 
+            -0.050000000000000003
+          ], 
+          "center_mm": [
+            0.0, 
+            -1.1250000000000002, 
+            -0.025000000000000001
+          ], 
+          "role": "UNCLASSIFIED"
+        }, 
+        {
+          "area_mm2": 0.11250000000000002, 
+          "bbox_max_mm": [
+            -1.1250000000000002, 
+            1.1250000000000002, 
+            0.0
+          ], 
+          "bbox_min_mm": [
+            -1.1250000000000002, 
+            -1.1250000000000002, 
+            -0.050000000000000003
+          ], 
+          "center_mm": [
+            -1.1250000000000002, 
+            0.0, 
+            -0.025000000000000001
+          ], 
+          "role": "UNCLASSIFIED"
+        }
+      ], 
+      "group_counts": {
+        "NS_ANCHOR_FIXED": 1, 
+        "NS_EQ_BODY": 1, 
+        "NS_MEMBRANE_ALL": 1, 
+        "NS_MEMBRANE_TOP": 1, 
+        "NS_TIP_X_MINUS": 1, 
+        "NS_TIP_X_PLUS": 1
+      }
+    }, 
+    "observed_face_count_is_diagnostic_only": true, 
+    "step_reimport": {
+      "body": {
+        "bbox_max_mm": [
+          3.5, 
+          3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          -3.5, 
+          -0.050000000000000003
+        ], 
+        "face_count": 11, 
+        "is_closed": true, 
+        "is_manifold": true, 
+        "name": "\u5b9e\u4f53", 
+        "piece_count": 1, 
+        "volume_mm3": 13.728125000000002
+      }, 
+      "faces": [
+        {
+          "area_mm2": 0.11249999999999999, 
+          "bbox_max_mm": [
+            -1.125, 
+            1.125, 
+            0.0
+          ], 
+          "bbox_min_mm": [
+            -1.125, 
+            -1.125, 
+            -0.050000000000000003
+          ], 
+          "center_mm": [
+            -1.125, 
+            0.0, 
+            -0.025000000000000001
+          ], 
+          "role": "UNCLASSIFIED"
+        }, 
+        {
+          "area_mm2": 0.1125, 
+          "bbox_max_mm": [
+            1.125, 
+            -1.125, 
+            0.0
+          ], 
+          "bbox_min_mm": [
+            -1.125, 
+            -1.125, 
+            -0.050000000000000003
+          ], 
+          "center_mm": [
+            0.0, 
+            -1.125, 
+            -0.025000000000000001
+          ], 
+          "role": "UNCLASSIFIED"
+        }, 
+        {
+          "area_mm2": 0.11249999999999999, 
+          "bbox_max_mm": [
+            1.125, 
+            1.125, 
+            0.0
+          ], 
+          "bbox_min_mm": [
+            1.125, 
+            -1.125, 
+            -0.050000000000000003
+          ], 
+          "center_mm": [
+            1.125, 
+            0.0, 
+            -0.025000000000000001
+          ], 
+          "role": "UNCLASSIFIED"
+        }, 
+        {
+          "area_mm2": 0.11249999999999999, 
+          "bbox_max_mm": [
+            1.125, 
+            1.125, 
+            0.0
+          ], 
+          "bbox_min_mm": [
+            -1.125, 
+            1.125, 
+            -0.050000000000000003
+          ], 
+          "center_mm": [
+            0.0, 
+            1.125, 
+            -0.025000000000000001
+          ], 
+          "role": "UNCLASSIFIED"
+        }, 
+        {
+          "area_mm2": 5.062499999999999, 
+          "bbox_max_mm": [
+            1.125, 
+            1.125, 
+            -0.050000000000000003
+          ], 
+          "bbox_min_mm": [
+            -1.125, 
+            -1.125, 
+            -0.050000000000000003
+          ], 
+          "center_mm": [
+            0.0, 
+            0.0, 
+            -0.050000000000000003
+          ], 
+          "role": "NS_ANCHOR_FIXED"
+        }, 
+        {
+          "area_mm2": 1.9250000000000003, 
+          "bbox_max_mm": [
+            -3.5, 
+            3.5, 
+            0.27500000000000002
+          ], 
+          "bbox_min_mm": [
+            -3.5, 
+            -3.5, 
+            0.0
+          ], 
+          "center_mm": [
+            -3.5, 
+            0.0, 
+            0.13750000000000001
+          ], 
+          "role": "NS_TIP_X_MINUS"
+        }, 
+        {
+          "area_mm2": 1.9250000000000003, 
+          "bbox_max_mm": [
+            3.5, 
+            -3.5, 
+            0.27500000000000002
+          ], 
+          "bbox_min_mm": [
+            -3.5, 
+            -3.5, 
+            0.0
+          ], 
+          "center_mm": [
+            0.0, 
+            -3.5, 
+            0.13750000000000001
+          ], 
+          "role": "UNCLASSIFIED"
+        }, 
+        {
+          "area_mm2": 1.9250000000000003, 
+          "bbox_max_mm": [
+            3.5, 
+            3.5, 
+            0.27500000000000002
+          ], 
+          "bbox_min_mm": [
+            3.5, 
+            -3.5, 
+            0.0
+          ], 
+          "center_mm": [
+            3.5, 
+            0.0, 
+            0.13750000000000001
+          ], 
+          "role": "NS_TIP_X_PLUS"
+        }, 
+        {
+          "area_mm2": 1.9250000000000003, 
+          "bbox_max_mm": [
+            3.5, 
+            3.5, 
+            0.27500000000000002
+          ], 
+          "bbox_min_mm": [
+            -3.5, 
+            3.5, 
+            0.0
+          ], 
+          "center_mm": [
+            0.0, 
+            3.5, 
+            0.13750000000000001
+          ], 
+          "role": "UNCLASSIFIED"
+        }, 
+        {
+          "area_mm2": 49.000000000000014, 
+          "bbox_max_mm": [
+            3.5, 
+            3.5, 
+            0.27500000000000002
+          ], 
+          "bbox_min_mm": [
+            -3.5, 
+            -3.5, 
+            0.27500000000000002
+          ], 
+          "center_mm": [
+            0.0, 
+            0.0, 
+            0.27500000000000002
+          ], 
+          "role": "NS_MEMBRANE_TOP"
+        }, 
+        {
+          "area_mm2": 43.937500000000007, 
+          "bbox_max_mm": [
+            3.5, 
+            3.5, 
+            0.0
+          ], 
+          "bbox_min_mm": [
+            -3.5, 
+            -3.5, 
+            0.0
+          ], 
+          "center_mm": [
+            0.0, 
+            0.0, 
+            0.0
+          ], 
+          "role": "UNCLASSIFIED"
+        }
+      ], 
+      "named_selection_transfer_assumed": false, 
+      "reconstructed_role_counts": {
+        "NS_ANCHOR_FIXED": 1, 
+        "NS_MEMBRANE_TOP": 1, 
+        "NS_TIP_X_MINUS": 1, 
+        "NS_TIP_X_PLUS": 1
+      }
+    }
+  }, 
+  "harmonic": "NOT_RUN", 
+  "identity": {
+    "case_id": "AJM-P2-S0-EQ-M7-C005", 
+    "dependency_manifest_sha256": "59056ed5bf3ae433fd689994e90d0a304add7417ca14ddd8026b84b518062823", 
+    "git_head": "1a703cf741c4a421ed2799789486d7230e133132", 
+    "profile_contract_sha256": "0c3add8529a9b00e71e931591eea2d29ce311e0ec252de0a2dc1f76ade27eb10", 
+    "profile_id": "ajm008-spaceclaim-p2-s0-equivalent-plate-v1", 
+    "script_sha256": "8681318dadbb14556980dd38bd7d49be681f2e85fa4f39e24a0f84aa171619f4"
+  }, 
+  "license_arguments_added": false, 
+  "material_boundary": {
+    "candidate_rows": [
+      {
+        "allowed_claim": "equivalent_property_sensitivity_only", 
+        "candidate_id": "EQ-A-Z005", 
+        "damping_ratio": "0.005", 
+        "density_kg_m3": "7800", 
+        "evidence_class": "C", 
+        "poissons_ratio": "0.30", 
+        "product_fact": "false", 
+        "source_logic": "low_stiffness_bracket_with_density_held_fixed", 
+        "status": "engineering_sensitivity_candidate", 
+        "youngs_modulus_GPa": "70"
+      }, 
+      {
+        "allowed_claim": "equivalent_property_sensitivity_only", 
+        "candidate_id": "EQ-B-Z015", 
+        "damping_ratio": "0.015", 
+        "density_kg_m3": "7800", 
+        "evidence_class": "C", 
+        "poissons_ratio": "0.30", 
+        "product_fact": "false", 
+        "source_logic": "mid_stiffness_and_damping_bracket_with_density_held_fixed", 
+        "status": "engineering_sensitivity_candidate", 
+        "youngs_modulus_GPa": "120"
+      }, 
+      {
+        "allowed_claim": "equivalent_property_sensitivity_only", 
+        "candidate_id": "EQ-C-Z030", 
+        "damping_ratio": "0.030", 
+        "density_kg_m3": "7800", 
+        "evidence_class": "C", 
+        "poissons_ratio": "0.30", 
+        "product_fact": "false", 
+        "source_logic": "high_stiffness_and_damping_bracket_with_density_held_fixed", 
+        "status": "engineering_sensitivity_candidate", 
+        "youngs_modulus_GPa": "200"
+      }
+    ], 
+    "design": "paired_candidate_bundle_not_factorial", 
+    "interpretation": "controlled_equivalent_property_sensitivity_not_product_material_identification", 
+    "product_material_identification": "NOT_CLAIMED"
+  }, 
+  "mechanical": "NOT_RUN", 
+  "mesh": "NOT_RUN", 
+  "modal": "NOT_RUN", 
+  "p1_geometry_extraction": "NOT_PROVEN", 
+  "p1_p6_gates": "NOT_RUN", 
+  "p1_stage_gate": "NOT_RUN", 
+  "p2_activity_status": "PRE_GATE_BASELINE_ONLY", 
+  "p2_stage_gate": "NOT_RUN", 
+  "p3_stage_gate": "NOT_RUN", 
+  "physics": "NOT_RUN", 
+  "piezoelectric_coupling": "NOT_RUN", 
+  "pilot_result": "PASS_PRE_GATE_P2_S0_EQUIVALENT_PLATE_BASELINE", 
+  "probe": "p2_s0_equivalent_plate_producer", 
+  "product_id": "AIRJET_MINI_GEN1", 
+  "product_material_identification": "NOT_CLAIMED", 
+  "schema_version": 1, 
+  "script_api": "V261", 
+  "source_cell_id": "CELL_005", 
+  "source_configuration_id": "AJM006_GEN1_CFG_M-3x4-7.0", 
+  "source_variant_id": "M-3x4-7.0__R50_BALANCED", 
+  "status": "PASS_PARTIAL_CAD_CAPABILITY", 
+  "task": "AJM_P2_S0_EQUIVALENT_PLATE_GEOMETRY_PRODUCER", 
+  "visibility": "NOT_USER_OBSERVED"
+}

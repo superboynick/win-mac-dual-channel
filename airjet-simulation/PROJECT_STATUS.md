@@ -146,15 +146,26 @@
   为 `19cf163f4d56a804b9082c9185ad62fae83fecaf404721c4dde4c641d5dc3168`。这只证明当前
   证据约束候选的几何和 STEP handoff；972、0.25 mm 孔径与 0.10 mm 喉长均不是 Mini 量产实测值，
   也不等于正式 006 或 P1 PASS。
-- PyFluent Stage 2 尚未形成 mesh。首次真实启动暴露最小环境缺少 `PROCESSOR_ARCHITECTURE`；
-  后续固定 `AMD64`、loopback remoting 和逐步 checkpoint。commit `3e950c31c6978cab100d8b84f57e75205e5015d8`
-  的真机 stack dump 又把启动前挂起精确定位到 Python 3.12 `platform.system()` 的 Windows WMI 查询，
-  当时尚未构造 Fluent 命令。签名修复 `21bdeec7cc116ce2ddad4d89e42f30fe45712da7` 只在已验证
-  `os.name=nt` 且 `PROCESSOR_ARCHITECTURE=AMD64` 时固定 PyFluent 的 Windows 平台判断。真机 stack
-  已证明这越过第一个 WMI 调用，但自动查找 Fluent 路径又在 `fluent_version._get_fluent_exe_path()`
-  内触发同一 WMI；下一提交改为传入已核验存在且 Authenticode `Valid` 的官方 Student v261
-  `fluent.exe` 绝对路径，不能提前写成 mesh PASS。当前准确状态仍是 V03 geometry preliminary PASS、watertight
-  import/mesh `NOT_RUN`、Git 凝练运行证据待归档、P1--P6 `NOT_RUN`。
+- V03 PyFluent high-resolution Stage 2 已越过启动、STEP import、4/1/972 role reconstruction、0.05 mm
+  throat local sizing、surface mesh 和 4 `velocity-inlet`/1 `pressure-outlet` zone-type update。commit
+  `ca62c01bd0727f2a4ab1ab6357c9904d8fcc6715` 的 Fluent internal telemetry 报告 poly-hexcore volume
+  operation 达到 1,580,277 cells、12 cell zones、min OQ 0.23064141；cell 数超过 Student 1,000,000
+  上限 580,277（58.0277%）。许可失败发生在脚本 postconditions 与 artifact write 前，因此
+  `volume_mesh/one_fluid_cell_zone/972 occupancy/integrity/student guard/mesh hash` 未通过，没有
+  `.msh.h5`，只能登记 `FAIL_PRELIMINARY_MESH_CAPABILITY`。证据见
+  `logs/evidence/AJM006_V03_CONTINUOUS_MESH_20260715T201240563188Z_6bb939df1818/`；P1--P6 仍
+  `NOT_RUN`。commit `a9b5dc6ecb5e4d5a3f951233c953b94724f801c4` 的 Student-coarse C1 随后完成
+  volume-mesh API：413,405 cells、min OQ 0.24604596，且不再触发 Student license；但 Fluent surface
+  stage 明确报告 `1 fluid/solid region and 11 voids`，volume 后为 12 个约 34k-cell fluid zones。
+  consumer 按单 common fluid-zone 合同 fail closed，未写 `.msh.h5`。这把 blocker 从算力/许可收敛到
+  region 分类：11 个 actuator 占位空腔可能应保持 dead/void，而现有 workflow 把它们一并转为
+  fluid。尚不能由 12 zones 单独断言几何断连，也不允许 merge/rename 掩盖。证据见
+  `logs/evidence/AJM006_V03_STUDENT_COARSE_C1_20260715T203439589791Z_369955ab58a4/`。
+- P2-S0 等效板 CAD 前置基线已在 commit `1a703cf741c4a421ed2799789486d7230e133132` 真机通过：
+  job `AJM-P2-S0-EQ-M7-C005-e8f61480898c` exit 0、16/16 assertions；7×7 mm 等效板、中央锚区、
+  Native semantics、STEP 几何重建与三件 artifact SHA 已闭合。Mechanical、mesh、modal、harmonic、
+  材料识别与 P2 Gate 均未运行；准确说法是“具备进入 Mechanical 的几何条件”，不是“P2 已通过”。
+  证据见 `logs/evidence/AJM008_P2_S0_EQUIVALENT_PLATE_20260715T202639027481Z_e8f61480898c/`。
 - 006 后的 007 独立复核已定义：先核验真实 005 副本、精确 006 commit 合同 bundle、9 个 variant 的 producer/observer 身份、独立 artifact-manifest、STEP/sidecar/binding/observation、solver actual IDs、机器检查/252 行 evidence 和完整目录 SHA256，再实际调用 production validator；computed missing/unexpected/dangling/orphan/coverage/assignment 结果必须逐字段闭合。finalize 复用同一硬校验并要求 252/252 hard Gate PASS。transfer limitation 不可接受。当前没有 006 产物，所以 007 也未运行。
 
 ## 2. 尚未完成，不能声称完成
@@ -162,8 +173,8 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | V03 单一连续流体体 preliminary geometry 已 PASS：build/native/STEP 均为 1 个 continuous fluid body 与 972/972 个有限孔喉；正式九变体未开始，P1 仍 BLOCKED | 完成同一冻结 predecessor 的 PyFluent watertight import、surface/volume mesh、单 fluid cell zone、972 throat occupancy、质量/Student 限额和 `.msh.h5` 哈希证据；当前 mesh=`NOT_RUN`。随后才可注册并运行正式 006；P1–P6 仍 `NOT_RUN`。 |
-| P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
+| P1 整机 CAD | V03 preliminary geometry PASS；C1 已完成 413,405-cell volume mesh API，cell count 低于 1M 阈值且未观察到 license error，但 node limit/完整 Student guard 未运行；solver 得到 1 region+11 voids/12 fluid zones，单区合同 FAIL、无 `.msh.h5`，P1 仍 BLOCKED | 先捕获 update-regions 前的真实 name/type，显式保留唯一主流体 region 并将 actuator pockets 标记为 dead/void；只有证据证明真实几何断连时才改 CAD。随后重新闭合 `<1M cells/nodes`、单 fluid cell zone、972 occupancy、integrity 与有效 `.msh.h5`/hash。 |
+| P2 执行片结构 | S0 等效板 CAD precondition PASS；Mechanical/modal/harmonic 未运行，P2 Gate=`NOT_RUN` | 在同一 MCP session 重跑 producer 后接 PyMechanical modal smoke；再做材料/网格敏感性、谐响应、位移场和功耗闭合。 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
 | P5 整机 CHT | 未开始 | 扩散板/TIM/热源/自热、温度场和 5.25/4.25 W 热账户 |
@@ -194,14 +205,21 @@
    case 与同一冻结 predecessor 下继续受限 PyFluent consumer；用 prelaunch trace、stack dump、
    stdout/stderr 与 terminal state 区分 launcher、STEP import 和网格阶段。只有 hash-bound consumer
    report、有效 `.msh.h5`、mesh inventory、单 fluid cell zone、972 throat occupancy、mesh integrity
-   与 Student 限额全部闭合，才能写 `PASS_PRELIMINARY_MESH_CAPABILITY`。启动成功或单次 health
+   与 Student 限额全部闭合，才能写 `PASS_PRELIMINARY_MESH_CAPABILITY`。high-resolution 实跑已证明
+   1,580,277 cells/12 zones 且未写文件；C1 降低分辨率后已把规模压到 413,405 cells 并完成 volume API，
+   但稳定重现 12 zones，且 surface stage 直接观察到 11 voids。下一动作先只读捕获
+   `update_regions` 执行前的 region names/types；若 11 个确为 actuator pockets，必须将它们保持为
+   dead/void，只转移唯一主流体 region。不得删孔、删 cell 或把多 zone 合并为虚假的单流体区；
+   只在 region-state 证据仍显示真实流体断连时才修改 CAD overlap。启动成功或 Fluent internal completion
    不能替代 mesh PASS。该 pilot 通过后才执行
    `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：同一母版生成 4 个整机配置、
    6 个交付/残差变体和主配置 3 个有独立 ID/Gate 的单因素派生变体。006 最多写
    `PENDING_PEER_REVIEW`，不能由生成模型的同一会话自评 P1 PASS。
 3. 已提交的 Ansys 30 天官方试用申请继续等待；只有 entitlement 实际激活后才执行 004，不让等待阻塞 Student 可完成的 P1 工作。
 4. 先闭合 2.8 mm 厚度预算、四个候选顶盖 vent、单侧 spout 和全流路连通，再允许给 `S_image`/`S_geometry` 正式评分。
-5. P1 Gate 通过后，才按 P2 → P3 → P4 → P5 → P6 顺序推进；不以高保真单 cell 替代整机主线。
+5. P2-S0 CAD precondition 已可与 P1 meshability 并行推进；下一任务是同一 MCP session 内重新运行
+   producer→冻结 predecessor→PyMechanical modal smoke。该并行只验证单 cell 校准链，不替代整机 P1，
+   也不改变 P2 Gate=`NOT_RUN`。P3 仍须等待可复核的结构驱动输入；不以高保真单 cell 替代整机主线。
 
 ## 4. 用户需要理解的边界
 

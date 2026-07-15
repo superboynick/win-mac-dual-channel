@@ -1520,6 +1520,88 @@
 - 关联 decision/annotation/run：AJM-P1-GEO-007、AJM-P1-GEO-008；本轮两条 run-index。
 - 状态：CLOSED_SPLIT_STEP_ZERO_THICKNESS_INTERFACE_ROUTE
 
+## REAL-20260715-066：V03 high-resolution volume operation 超出 Student 限额且未形成持久网格
+- UTC：2026-07-15T20:12:40Z--20:18:25Z
+- Stage/task：AJM-006 V03 two-stage continuous-fluid PyFluent mesh pilot
+- Machine/operator：Windows ANSYS Student 2026 R1 / Mac Codex via SSH MCP
+- run/job/profile：producer `AJM006-V03-CONTINUOUS-092614ddce36`；consumer
+  `AJM006-V03-CONTINUOUS-6bb939df1818` / `ajm006-pyfluent-v03-continuous-mesh-pilot-v1`
+- 期望：在同一冻结 predecessor 下完成 watertight import、4/1/972 roles、surface/volume mesh、单一
+  fluid cell zone、972 throat occupancy、integrity/quality、Student limits 与 `.msh.h5` hash。
+- 实际观察：producer exit 0；consumer 通过 STEP import、roles、0.05 mm throat sizing、surface mesh 和
+  4 velocity-inlet/1 pressure-outlet 类型更新。Fluent transcript 随后报告 1,580,277 cells、12 cell
+  zones、min OQ 0.23064141，并在 volume-mesh API 返回前报 Student license error。
+- 原始错误短摘：`Exception encountered in S_ExecuteTask: Exiting due to license issue`。
+- 原始日志路径 + SHA-256：Windows suite summary raw SHA
+  `abf22d9eb04c808dc42e3645452f2f2a1ea3d2a51ad22878690b9f604ef0b808`；凝练与 raw 文本副本见
+  `logs/evidence/AJM006_V03_CONTINUOUS_MESH_20260715T201240563188Z_6bb939df1818/`。
+- 假设与最小区分实验：首选 C1 = throat 0.075 / surface 0.05--0.75 / volume 0.75 mm；保持几何、
+  972 throat 与全部 fail-closed checks。若仍超限才允许 C2 = 0.10 / 0.075--1.0 / 1.0 mm。
+- 结果：Student 上限超出 580,277 cells（58.0277%）；12 zones 也不满足单 common fluid-zone 合同。
+  API 抛错先于 postconditions 与 artifact write，没有 `.msh.h5`。
+- 根因及置信度：Student entity limit 是本轮 license 中断的高置信直接原因；12 zones 的几何/region
+  成因尚未闭合，不能靠 merge/rename 隐藏。
+- 采取/拒绝的 workaround：只降网格分辨率做拓扑诊断；未删孔、未删 cell、未改流路、未把 internal
+  telemetry 写成 accepted volume mesh、未把 OQ 写成正式质量验收。
+- 对 Gate/论文主张的影响：V03 geometry preliminary PASS 保留；mesh artifact FAIL；formal 006、P1--P6
+  均 `NOT_RUN`。论文可描述受限网格尝试和失败边界，不能使用不存在的 mesh/result 图。
+- 下一步：运行 C1；只有 `<1M cells/nodes`、1 fluid zone、972 occupancy、integrity/quality 与 hash-bound
+  `.msh.h5` 同时闭合才允许 preliminary mesh PASS。
+- 关联 decision/annotation/run：AJM-P1-GEO-008、AJM-P1-MESH-002；本轮两条 run-index。
+- 状态：OPEN_STUDENT_COARSE_TOPOLOGY_AND_CONNECTIVITY_DIAGNOSTIC
+
+## REAL-20260715-067：P2-S0 等效板 CAD 前置基线真机通过
+- UTC：2026-07-15T20:26:33Z--20:27:00Z
+- Stage/task：AJM-008 P2-S0 equivalent-plate SpaceClaim geometry producer
+- Machine/operator：Windows ANSYS Student 2026 R1 / Mac Codex via SSH MCP
+- run/job/profile：`AJM-P2-S0-EQ-M7-C005-e8f61480898c` /
+  `ajm008-spaceclaim-p2-s0-equivalent-plate-v1`
+- 期望：生成 7×7 mm 中央锚固等效板候选，冻结 Native/STEP 几何、语义和材料候选边界，且不运行物理。
+- 实际观察：进程 exit 0，16/16 assertions；bbox `[-3.5,-3.5,-0.05]--[3.5,3.5,0.275] mm`、
+  volume 13.728125 mm3、single-piece/closed/manifold，Native 六组 semantics 和 STEP 四类几何重建闭合。
+- 原始错误短摘：无。
+- 原始日志路径 + SHA-256：Windows runner summary raw SHA
+  `1441bb695ad718c58ef55dca3a3c32ea7cc2d69f83c829228d5a2072f1ee44c0`；完整小型 CAD/STEP/report
+  证据包见 `logs/evidence/AJM008_P2_S0_EQUIVALENT_PLATE_20260715T202639027481Z_e8f61480898c/`。
+- 结果：`PASS_PRE_GATE_P2_S0_EQUIVALENT_PLATE_GEOMETRY`，具备进入 Mechanical 的几何条件。
+- 根因及置信度：不适用；本轮是前置能力 PASS。
+- 采取/拒绝的 workaround：未把三个 paired C-class material candidates 写成产品材料；未运行 mesh、
+  modal、harmonic、piezo 或 physical amplitude。
+- 对 Gate/论文主张的影响：P2 Gate 仍 `NOT_RUN`；不能写“P2 已通过”“膜片材料已确定”或“20--25 kHz
+  已匹配”。
+- 下一步：同一 MCP session 重跑 producer→冻结 manifest→PyMechanical modal smoke；server 重启后的
+  旧 job ID 不能直接作为 predecessor。
+- 关联 decision/annotation/run：AJM-P2-S0-001；本轮一条 run-index。
+- 状态：CLOSED_CAD_PRECONDITION_MODAL_SMOKE_NEXT
+
+## REAL-20260715-068：C1 解除 Student cell-count 阻塞并暴露 region 分类问题
+- UTC：2026-07-15T20:34:39Z--20:38:36Z
+- Stage/task：AJM-006 V03 Student-coarse C1 two-stage mesh diagnostic
+- Machine/operator：Windows ANSYS Student 2026 R1 / Mac Codex via SSH MCP
+- run/job/profile：producer `AJM006-V03-CONTINUOUS-18a19a556432`；consumer
+  `AJM006-V03-CONTINUOUS-369955ab58a4` / `ajm006-pyfluent-v03-continuous-mesh-pilot-v1`
+- 期望：用 C1 粗网格在 `<1M` 下到达完整 postconditions，并验证一个 common fluid cell zone。
+- 实际观察：volume-mesh API 成功返回；413,405 cells、min OQ 0.24604596，无 license error。surface
+  stage 报 `1 fluid/solid regions and 11 voids`；volume 后列出 12 个 fluid zone IDs，每区约 34k cells。
+- 原始错误短摘：`CELL_ZONE_COUNT_NOT_ONE:[631, 628, 625, 622, 619, 616, 613, 610, 607, 604, 601, 598]`。
+- 原始日志路径 + SHA-256：Windows suite summary raw SHA
+  `e1bfe361c2c5dbfb14b1f933111b244540308b285c9db821ec2d6f58fc66ebc5`；证据见
+  `logs/evidence/AJM006_V03_STUDENT_COARSE_C1_20260715T203439589791Z_369955ab58a4/`。
+- 假设与最小区分实验：surface stage 的 11 voids 可能是受设计的 actuator exclusion pockets，现有
+  workflow 把它们一并更新为 fluid。下一轮先只读捕获 `update_regions` 前的 names/types，不改几何。
+- 结果：Student cell-count blocker 已关闭；region classification 成为首个阻塞。consumer 在
+  单区检查 fail closed，未运行 common-zone occupancy/完整 Student node guard，未写 `.msh.h5`。
+- 根因及置信度：12 个 volume-mesh cell zones 是高置信实测；其中 11 个是真实流体断连还是应被
+  排除的 void/dead regions 尚未验证，不能提前归因于 CAD 未 union。
+- 采取/拒绝的 workaround：未 merge/rename/fuse solver zones，未放宽单区 Gate，未把 413,405 cells
+  当成可交付 mesh。
+- 对 Gate/论文主张的影响：可以写“C1 的 413,405 cells 低于 1M cell threshold，并暴露 region 分类问题”；不能写连续整机网格
+  PASS。formal 006、P1--P6 仍 `NOT_RUN`。
+- 下一步：先增加只读 `update_regions` 执行前 state capture 并复跑 C1；按实测 type 区分唯一主流体与
+  actuator dead/void pockets。只在仍证明几何断连时才冻结 V04 overlap representation。
+- 关联 decision/annotation/run：AJM-P1-GEO-008、AJM-P1-MESH-002；本轮两条 run-index。
+- 状态：OPEN_GEOMETRY_VOLUMETRIC_CONNECTIVITY_FIX
+
 ## 新条目模板
 
 ```text

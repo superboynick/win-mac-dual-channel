@@ -1,0 +1,49 @@
+{
+  "case_id": "AJM006-V03-CONTINUOUS",
+  "ended_at": "2026-07-15T20:38:36.606564+00:00",
+  "engine": "pyfluent",
+  "exit_code": 2,
+  "git_head": "a9b5dc6ecb5e4d5a3f951233c953b94724f801c4",
+  "job_directory": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-369955ab58a4",
+  "job_id": "AJM006-V03-CONTINUOUS-369955ab58a4",
+  "license_arguments_added": false,
+  "output_root_id": "p1_cad_006",
+  "phase": "FAILED_PROCESS",
+  "pid": 27252,
+  "predecessor_artifacts": [
+    {
+      "relative_path": "v03_continuous_fluid_producer.json",
+      "sha256": "16896c2547780e2d1c7509ab2288e7a5d469fde2701be86371af7b48af1c33b3",
+      "size": 14998
+    },
+    {
+      "relative_path": "product_continuous_fluid.step",
+      "sha256": "159a34261fe835f334636bd5bb77560d3aa280982a80ea9e114081dd41372058",
+      "size": 16619010
+    },
+    {
+      "relative_path": "v03_step_reimport.json",
+      "sha256": "1c93452e1ea9cd24eac37f0307f070aa323c82b90199f27916d3cf15a48b5892",
+      "size": 568085
+    },
+    {
+      "relative_path": "v03_throat_inventory.json",
+      "sha256": "f8f90ecb2a3d4053dca1632cff8f232be0bd5d522025eb0c76e0ab518a3d2d9e",
+      "size": 1141685
+    },
+    {
+      "relative_path": "v03_source_chain.json",
+      "sha256": "cddf323a5bb661905bedf899e8157728935ffb18440dd19f2abe8469e527773c",
+      "size": 1615
+    }
+  ],
+  "predecessor_job_id": "AJM006-V03-CONTINUOUS-18a19a556432",
+  "profile_contract_sha256": "57f7ecd94d1bca395db2af8968fbbf4591b67c2a42c10ef5008e60e11acfcf44",
+  "profile_dependency_artifacts": [],
+  "profile_dependency_manifest_sha256": null,
+  "profile_id": "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
+  "reason": null,
+  "schema_version": 4,
+  "script_sha256": "8e397683c7bbb534213e632f71b40e15516e94fd1abe337aae16f0a3f348db35",
+  "started_at": "2026-07-15T20:36:40.788423+00:00"
+}

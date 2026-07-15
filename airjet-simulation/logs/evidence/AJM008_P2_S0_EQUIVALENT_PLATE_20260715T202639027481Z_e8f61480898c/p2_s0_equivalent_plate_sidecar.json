@@ -1,0 +1,841 @@
+{
+  "anchor_evidence_class": "C", 
+  "anchor_product_fact": false, 
+  "authored": {
+    "body": {
+      "bbox_max_mm": [
+        3.5, 
+        3.5, 
+        0.27500000000000002
+      ], 
+      "bbox_min_mm": [
+        -3.5, 
+        -3.5, 
+        -0.050000000000000003
+      ], 
+      "face_count": 11, 
+      "is_closed": true, 
+      "is_manifold": true, 
+      "name": "AJM_P2_S0_EQ_CENTRAL_ANCHOR_C", 
+      "piece_count": 1, 
+      "volume_mm3": 13.728125000000002
+    }, 
+    "faces": [
+      {
+        "area_mm2": 43.9375, 
+        "bbox_max_mm": [
+          3.5, 
+          3.5, 
+          0.0
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          -3.5, 
+          0.0
+        ], 
+        "center_mm": [
+          0.0, 
+          0.0, 
+          0.0
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 49.000000000000007, 
+        "bbox_max_mm": [
+          3.5, 
+          3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          -3.5, 
+          0.27500000000000002
+        ], 
+        "center_mm": [
+          0.0, 
+          0.0, 
+          0.27500000000000002
+        ], 
+        "role": "NS_MEMBRANE_TOP"
+      }, 
+      {
+        "area_mm2": 1.9250000000000003, 
+        "bbox_max_mm": [
+          3.5, 
+          3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          3.5, 
+          0.0
+        ], 
+        "center_mm": [
+          0.0, 
+          3.5, 
+          0.13750000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 1.9250000000000003, 
+        "bbox_max_mm": [
+          3.5, 
+          3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          3.5, 
+          -3.5, 
+          0.0
+        ], 
+        "center_mm": [
+          3.5, 
+          0.0, 
+          0.13750000000000001
+        ], 
+        "role": "NS_TIP_X_PLUS"
+      }, 
+      {
+        "area_mm2": 1.9250000000000003, 
+        "bbox_max_mm": [
+          3.5, 
+          -3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          -3.5, 
+          0.0
+        ], 
+        "center_mm": [
+          0.0, 
+          -3.5, 
+          0.13750000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 1.9250000000000003, 
+        "bbox_max_mm": [
+          -3.5, 
+          3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          -3.5, 
+          0.0
+        ], 
+        "center_mm": [
+          -3.5, 
+          0.0, 
+          0.13750000000000001
+        ], 
+        "role": "NS_TIP_X_MINUS"
+      }, 
+      {
+        "area_mm2": 5.062500000000001, 
+        "bbox_max_mm": [
+          1.1250000000000002, 
+          1.1250000000000002, 
+          -0.050000000000000003
+        ], 
+        "bbox_min_mm": [
+          -1.1250000000000002, 
+          -1.1250000000000002, 
+          -0.050000000000000003
+        ], 
+        "center_mm": [
+          0.0, 
+          0.0, 
+          -0.050000000000000003
+        ], 
+        "role": "NS_ANCHOR_FIXED"
+      }, 
+      {
+        "area_mm2": 0.11250000000000002, 
+        "bbox_max_mm": [
+          1.1250000000000002, 
+          1.1250000000000002, 
+          0.0
+        ], 
+        "bbox_min_mm": [
+          -1.1250000000000002, 
+          1.1250000000000002, 
+          -0.050000000000000003
+        ], 
+        "center_mm": [
+          0.0, 
+          1.1250000000000002, 
+          -0.025000000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 0.11250000000000002, 
+        "bbox_max_mm": [
+          1.1250000000000002, 
+          1.1250000000000002, 
+          0.0
+        ], 
+        "bbox_min_mm": [
+          1.1250000000000002, 
+          -1.1250000000000002, 
+          -0.050000000000000003
+        ], 
+        "center_mm": [
+          1.1250000000000002, 
+          0.0, 
+          -0.025000000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 0.11250000000000002, 
+        "bbox_max_mm": [
+          1.1250000000000002, 
+          -1.1250000000000002, 
+          0.0
+        ], 
+        "bbox_min_mm": [
+          -1.1250000000000002, 
+          -1.1250000000000002, 
+          -0.050000000000000003
+        ], 
+        "center_mm": [
+          0.0, 
+          -1.1250000000000002, 
+          -0.025000000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 0.11250000000000002, 
+        "bbox_max_mm": [
+          -1.1250000000000002, 
+          1.1250000000000002, 
+          0.0
+        ], 
+        "bbox_min_mm": [
+          -1.1250000000000002, 
+          -1.1250000000000002, 
+          -0.050000000000000003
+        ], 
+        "center_mm": [
+          -1.1250000000000002, 
+          0.0, 
+          -0.025000000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }
+    ], 
+    "group_counts": {
+      "NS_ANCHOR_FIXED": 1, 
+      "NS_EQ_BODY": 1, 
+      "NS_MEMBRANE_ALL": 1, 
+      "NS_MEMBRANE_TOP": 1, 
+      "NS_TIP_X_MINUS": 1, 
+      "NS_TIP_X_PLUS": 1
+    }
+  }, 
+  "claim_scope": "P2_S0_EQUIVALENT_PLATE_CAD_PILOT_ONLY", 
+  "contract": {
+    "relative_path": "p2_s0_equivalent_plate_v1.json", 
+    "sha256": "4b362503ec1c9b8ef9376ec52e791b617486bd8321f73f298829fe91fdc13ac8"
+  }, 
+  "expected_bbox_max_mm": [
+    3.5, 
+    3.5, 
+    0.27500000000000002
+  ], 
+  "expected_bbox_min_mm": [
+    -3.5, 
+    -3.5, 
+    -0.050000000000000003
+  ], 
+  "expected_volume_mm3": 13.728125, 
+  "formal_p2_gate": "NOT_RUN", 
+  "local_model_origin_reset": true, 
+  "material_candidates": {
+    "candidate_ids": [
+      "EQ-A-Z005", 
+      "EQ-B-Z015", 
+      "EQ-C-Z030"
+    ], 
+    "candidate_rows": [
+      {
+        "allowed_claim": "equivalent_property_sensitivity_only", 
+        "candidate_id": "EQ-A-Z005", 
+        "damping_ratio": "0.005", 
+        "density_kg_m3": "7800", 
+        "evidence_class": "C", 
+        "poissons_ratio": "0.30", 
+        "product_fact": "false", 
+        "source_logic": "low_stiffness_bracket_with_density_held_fixed", 
+        "status": "engineering_sensitivity_candidate", 
+        "youngs_modulus_GPa": "70"
+      }, 
+      {
+        "allowed_claim": "equivalent_property_sensitivity_only", 
+        "candidate_id": "EQ-B-Z015", 
+        "damping_ratio": "0.015", 
+        "density_kg_m3": "7800", 
+        "evidence_class": "C", 
+        "poissons_ratio": "0.30", 
+        "product_fact": "false", 
+        "source_logic": "mid_stiffness_and_damping_bracket_with_density_held_fixed", 
+        "status": "engineering_sensitivity_candidate", 
+        "youngs_modulus_GPa": "120"
+      }, 
+      {
+        "allowed_claim": "equivalent_property_sensitivity_only", 
+        "candidate_id": "EQ-C-Z030", 
+        "damping_ratio": "0.030", 
+        "density_kg_m3": "7800", 
+        "evidence_class": "C", 
+        "poissons_ratio": "0.30", 
+        "product_fact": "false", 
+        "source_logic": "high_stiffness_and_damping_bracket_with_density_held_fixed", 
+        "status": "engineering_sensitivity_candidate", 
+        "youngs_modulus_GPa": "200"
+      }
+    ], 
+    "design": "paired_candidate_bundle_not_factorial", 
+    "product_fact": false, 
+    "relative_path": "p2_s0_equivalent_material_candidates.csv", 
+    "sha256": "e18ada28b3b18a5f4b7d7876432bc1622fcf04b66a47d2d007f5d59b0aeeebab"
+  }, 
+  "mechanical_reconstruction_required": true, 
+  "native_groups": {
+    "NS_ANCHOR_FIXED": 1, 
+    "NS_EQ_BODY": 1, 
+    "NS_MEMBRANE_ALL": 1, 
+    "NS_MEMBRANE_TOP": 1, 
+    "NS_TIP_X_MINUS": 1, 
+    "NS_TIP_X_PLUS": 1
+  }, 
+  "native_reopen": {
+    "body": {
+      "bbox_max_mm": [
+        3.5, 
+        3.5, 
+        0.27500000000000002
+      ], 
+      "bbox_min_mm": [
+        -3.5, 
+        -3.5, 
+        -0.050000000000000003
+      ], 
+      "face_count": 11, 
+      "is_closed": true, 
+      "is_manifold": true, 
+      "name": "AJM_P2_S0_EQ_CENTRAL_ANCHOR_C", 
+      "piece_count": 1, 
+      "volume_mm3": 13.728125000000002
+    }, 
+    "faces": [
+      {
+        "area_mm2": 43.9375, 
+        "bbox_max_mm": [
+          3.5, 
+          3.5, 
+          0.0
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          -3.5, 
+          0.0
+        ], 
+        "center_mm": [
+          0.0, 
+          0.0, 
+          0.0
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 49.000000000000007, 
+        "bbox_max_mm": [
+          3.5, 
+          3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          -3.5, 
+          0.27500000000000002
+        ], 
+        "center_mm": [
+          0.0, 
+          0.0, 
+          0.27500000000000002
+        ], 
+        "role": "NS_MEMBRANE_TOP"
+      }, 
+      {
+        "area_mm2": 1.9250000000000003, 
+        "bbox_max_mm": [
+          3.5, 
+          3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          3.5, 
+          0.0
+        ], 
+        "center_mm": [
+          0.0, 
+          3.5, 
+          0.13750000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 1.9250000000000003, 
+        "bbox_max_mm": [
+          3.5, 
+          3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          3.5, 
+          -3.5, 
+          0.0
+        ], 
+        "center_mm": [
+          3.5, 
+          0.0, 
+          0.13750000000000001
+        ], 
+        "role": "NS_TIP_X_PLUS"
+      }, 
+      {
+        "area_mm2": 1.9250000000000003, 
+        "bbox_max_mm": [
+          3.5, 
+          -3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          -3.5, 
+          0.0
+        ], 
+        "center_mm": [
+          0.0, 
+          -3.5, 
+          0.13750000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 1.9250000000000003, 
+        "bbox_max_mm": [
+          -3.5, 
+          3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          -3.5, 
+          0.0
+        ], 
+        "center_mm": [
+          -3.5, 
+          0.0, 
+          0.13750000000000001
+        ], 
+        "role": "NS_TIP_X_MINUS"
+      }, 
+      {
+        "area_mm2": 5.062500000000001, 
+        "bbox_max_mm": [
+          1.1250000000000002, 
+          1.1250000000000002, 
+          -0.050000000000000003
+        ], 
+        "bbox_min_mm": [
+          -1.1250000000000002, 
+          -1.1250000000000002, 
+          -0.050000000000000003
+        ], 
+        "center_mm": [
+          0.0, 
+          0.0, 
+          -0.050000000000000003
+        ], 
+        "role": "NS_ANCHOR_FIXED"
+      }, 
+      {
+        "area_mm2": 0.11250000000000002, 
+        "bbox_max_mm": [
+          1.1250000000000002, 
+          1.1250000000000002, 
+          0.0
+        ], 
+        "bbox_min_mm": [
+          -1.1250000000000002, 
+          1.1250000000000002, 
+          -0.050000000000000003
+        ], 
+        "center_mm": [
+          0.0, 
+          1.1250000000000002, 
+          -0.025000000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 0.11250000000000002, 
+        "bbox_max_mm": [
+          1.1250000000000002, 
+          1.1250000000000002, 
+          0.0
+        ], 
+        "bbox_min_mm": [
+          1.1250000000000002, 
+          -1.1250000000000002, 
+          -0.050000000000000003
+        ], 
+        "center_mm": [
+          1.1250000000000002, 
+          0.0, 
+          -0.025000000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 0.11250000000000002, 
+        "bbox_max_mm": [
+          1.1250000000000002, 
+          -1.1250000000000002, 
+          0.0
+        ], 
+        "bbox_min_mm": [
+          -1.1250000000000002, 
+          -1.1250000000000002, 
+          -0.050000000000000003
+        ], 
+        "center_mm": [
+          0.0, 
+          -1.1250000000000002, 
+          -0.025000000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 0.11250000000000002, 
+        "bbox_max_mm": [
+          -1.1250000000000002, 
+          1.1250000000000002, 
+          0.0
+        ], 
+        "bbox_min_mm": [
+          -1.1250000000000002, 
+          -1.1250000000000002, 
+          -0.050000000000000003
+        ], 
+        "center_mm": [
+          -1.1250000000000002, 
+          0.0, 
+          -0.025000000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }
+    ], 
+    "group_counts": {
+      "NS_ANCHOR_FIXED": 1, 
+      "NS_EQ_BODY": 1, 
+      "NS_MEMBRANE_ALL": 1, 
+      "NS_MEMBRANE_TOP": 1, 
+      "NS_TIP_X_MINUS": 1, 
+      "NS_TIP_X_PLUS": 1
+    }
+  }, 
+  "p1_p6_gates": "NOT_RUN", 
+  "perimeter_constraint": "FREE_NO_CAD_CONSTRAINT_DEFINED", 
+  "product_id": "AIRJET_MINI_GEN1", 
+  "representation": "ONE_CONNECTED_SOLID", 
+  "schema_version": 1, 
+  "semantic_contract": "P2_S0_EQUIVALENT_PLATE_CENTRAL_ANCHOR_V1", 
+  "source_cell": {
+    "axes": [
+      [
+        1.0, 
+        0.0, 
+        0.0
+      ], 
+      [
+        0.0, 
+        1.0, 
+        0.0
+      ], 
+      [
+        0.0, 
+        0.0, 
+        1.0
+      ]
+    ], 
+    "cell_index": 5, 
+    "frame_id": "CELL_005", 
+    "origin_mm": [
+      0.0, 
+      -3.625, 
+      0.0
+    ], 
+    "parent_frame_id": "GLOBAL"
+  }, 
+  "source_configuration_id": "AJM006_GEN1_CFG_M-3x4-7.0", 
+  "source_variant": {
+    "relative_path": "variant_02_m_3x4_7_0_r50_balanced.json", 
+    "sha256": "17253b5ad35ecea541b9357e942eca6175a689517948f8b56cae254ebcc5b03a"
+  }, 
+  "source_variant_id": "M-3x4-7.0__R50_BALANCED", 
+  "step": {
+    "relative_path": "p2_s0_equivalent_plate.step", 
+    "sha256": "6c740353ffd50dae7bffd94f67b8b36b6c6c91455a9977272eaf4a3079287b89", 
+    "size": 15365
+  }, 
+  "step_named_selection_transfer": "NOT_ASSUMED", 
+  "step_reimport": {
+    "body": {
+      "bbox_max_mm": [
+        3.5, 
+        3.5, 
+        0.27500000000000002
+      ], 
+      "bbox_min_mm": [
+        -3.5, 
+        -3.5, 
+        -0.050000000000000003
+      ], 
+      "face_count": 11, 
+      "is_closed": true, 
+      "is_manifold": true, 
+      "name": "\u5b9e\u4f53", 
+      "piece_count": 1, 
+      "volume_mm3": 13.728125000000002
+    }, 
+    "faces": [
+      {
+        "area_mm2": 0.11249999999999999, 
+        "bbox_max_mm": [
+          -1.125, 
+          1.125, 
+          0.0
+        ], 
+        "bbox_min_mm": [
+          -1.125, 
+          -1.125, 
+          -0.050000000000000003
+        ], 
+        "center_mm": [
+          -1.125, 
+          0.0, 
+          -0.025000000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 0.1125, 
+        "bbox_max_mm": [
+          1.125, 
+          -1.125, 
+          0.0
+        ], 
+        "bbox_min_mm": [
+          -1.125, 
+          -1.125, 
+          -0.050000000000000003
+        ], 
+        "center_mm": [
+          0.0, 
+          -1.125, 
+          -0.025000000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 0.11249999999999999, 
+        "bbox_max_mm": [
+          1.125, 
+          1.125, 
+          0.0
+        ], 
+        "bbox_min_mm": [
+          1.125, 
+          -1.125, 
+          -0.050000000000000003
+        ], 
+        "center_mm": [
+          1.125, 
+          0.0, 
+          -0.025000000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 0.11249999999999999, 
+        "bbox_max_mm": [
+          1.125, 
+          1.125, 
+          0.0
+        ], 
+        "bbox_min_mm": [
+          -1.125, 
+          1.125, 
+          -0.050000000000000003
+        ], 
+        "center_mm": [
+          0.0, 
+          1.125, 
+          -0.025000000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 5.062499999999999, 
+        "bbox_max_mm": [
+          1.125, 
+          1.125, 
+          -0.050000000000000003
+        ], 
+        "bbox_min_mm": [
+          -1.125, 
+          -1.125, 
+          -0.050000000000000003
+        ], 
+        "center_mm": [
+          0.0, 
+          0.0, 
+          -0.050000000000000003
+        ], 
+        "role": "NS_ANCHOR_FIXED"
+      }, 
+      {
+        "area_mm2": 1.9250000000000003, 
+        "bbox_max_mm": [
+          -3.5, 
+          3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          -3.5, 
+          0.0
+        ], 
+        "center_mm": [
+          -3.5, 
+          0.0, 
+          0.13750000000000001
+        ], 
+        "role": "NS_TIP_X_MINUS"
+      }, 
+      {
+        "area_mm2": 1.9250000000000003, 
+        "bbox_max_mm": [
+          3.5, 
+          -3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          -3.5, 
+          0.0
+        ], 
+        "center_mm": [
+          0.0, 
+          -3.5, 
+          0.13750000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 1.9250000000000003, 
+        "bbox_max_mm": [
+          3.5, 
+          3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          3.5, 
+          -3.5, 
+          0.0
+        ], 
+        "center_mm": [
+          3.5, 
+          0.0, 
+          0.13750000000000001
+        ], 
+        "role": "NS_TIP_X_PLUS"
+      }, 
+      {
+        "area_mm2": 1.9250000000000003, 
+        "bbox_max_mm": [
+          3.5, 
+          3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          3.5, 
+          0.0
+        ], 
+        "center_mm": [
+          0.0, 
+          3.5, 
+          0.13750000000000001
+        ], 
+        "role": "UNCLASSIFIED"
+      }, 
+      {
+        "area_mm2": 49.000000000000014, 
+        "bbox_max_mm": [
+          3.5, 
+          3.5, 
+          0.27500000000000002
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          -3.5, 
+          0.27500000000000002
+        ], 
+        "center_mm": [
+          0.0, 
+          0.0, 
+          0.27500000000000002
+        ], 
+        "role": "NS_MEMBRANE_TOP"
+      }, 
+      {
+        "area_mm2": 43.937500000000007, 
+        "bbox_max_mm": [
+          3.5, 
+          3.5, 
+          0.0
+        ], 
+        "bbox_min_mm": [
+          -3.5, 
+          -3.5, 
+          0.0
+        ], 
+        "center_mm": [
+          0.0, 
+          0.0, 
+          0.0
+        ], 
+        "role": "UNCLASSIFIED"
+      }
+    ], 
+    "named_selection_transfer_assumed": false, 
+    "reconstructed_role_counts": {
+      "NS_ANCHOR_FIXED": 1, 
+      "NS_MEMBRANE_TOP": 1, 
+      "NS_TIP_X_MINUS": 1, 
+      "NS_TIP_X_PLUS": 1
+    }
+  }
+}

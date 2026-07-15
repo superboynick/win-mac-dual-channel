@@ -1,0 +1,42 @@
+{
+  "case_id": "AJM-P2-S0-EQ-M7-C005",
+  "ended_at": "2026-07-15T20:27:00.623352+00:00",
+  "engine": "spaceclaim",
+  "exit_code": 0,
+  "git_head": "1a703cf741c4a421ed2799789486d7230e133132",
+  "job_directory": "D:\\AirJet_P2\\AJM-P2-STRUCTURAL-008\\AJM-P2-S0-EQ-M7-C005\\AJM-P2-S0-EQ-M7-C005-e8f61480898c",
+  "job_id": "AJM-P2-S0-EQ-M7-C005-e8f61480898c",
+  "license_arguments_added": false,
+  "output_root_id": "p2_structural_008",
+  "phase": "PROCESS_EXITED_0",
+  "pid": 32904,
+  "predecessor_artifacts": [],
+  "predecessor_job_id": null,
+  "profile_contract_sha256": "0c3add8529a9b00e71e931591eea2d29ce311e0ec252de0a2dc1f76ade27eb10",
+  "profile_dependency_artifacts": [
+    {
+      "git_path": "airjet-simulation/automation/ansys/contracts/p2_s0_equivalent_plate_v1.json",
+      "relative_path": "p2_s0_equivalent_plate_v1.json",
+      "sha256": "4b362503ec1c9b8ef9376ec52e791b617486bd8321f73f298829fe91fdc13ac8",
+      "size": 2369
+    },
+    {
+      "git_path": "airjet-simulation/parameters/p2_s0_equivalent_material_candidates.csv",
+      "relative_path": "p2_s0_equivalent_material_candidates.csv",
+      "sha256": "e18ada28b3b18a5f4b7d7876432bc1622fcf04b66a47d2d007f5d59b0aeeebab",
+      "size": 626
+    },
+    {
+      "git_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
+      "relative_path": "variant_02_m_3x4_7_0_r50_balanced.json",
+      "sha256": "17253b5ad35ecea541b9357e942eca6175a689517948f8b56cae254ebcc5b03a",
+      "size": 1781515
+    }
+  ],
+  "profile_dependency_manifest_sha256": "59056ed5bf3ae433fd689994e90d0a304add7417ca14ddd8026b84b518062823",
+  "profile_id": "ajm008-spaceclaim-p2-s0-equivalent-plate-v1",
+  "reason": null,
+  "schema_version": 4,
+  "script_sha256": "8681318dadbb14556980dd38bd7d49be681f2e85fa4f39e24a0f84aa171619f4",
+  "started_at": "2026-07-15T20:26:39.027481+00:00"
+}

@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "task": "AJM_P2_S0_EQUIVALENT_PLATE_GEOMETRY_PRODUCER",
+  "case_id": "AJM-P2-S0-EQ-M7-C005",
+  "git_head": "1a703cf741c4a421ed2799789486d7230e133132",
+  "final_status": "PASS_PRE_GATE_P2_S0_EQUIVALENT_PLATE_GEOMETRY",
+  "claim_boundary": "P2_S0_EQUIVALENT_PLATE_CAD_PRECONDITION_PASS;_MECHANICAL_MESH_MODAL_HARMONIC_MATERIAL_IDENTIFICATION_AND_FORMAL_P2_GATE_NOT_RUN",
+  "job": {
+    "job_id": "AJM-P2-S0-EQ-M7-C005-e8f61480898c",
+    "started_at_utc": "2026-07-15T20:26:39.027481+00:00",
+    "ended_at_utc": "2026-07-15T20:27:00.623352+00:00",
+    "duration_s": 21.595871,
+    "terminal_phase": "PROCESS_EXITED_0",
+    "exit_code": 0,
+    "profile_id": "ajm008-spaceclaim-p2-s0-equivalent-plate-v1",
+    "profile_contract_sha256": "0c3add8529a9b00e71e931591eea2d29ce311e0ec252de0a2dc1f76ade27eb10",
+    "dependency_manifest_sha256": "59056ed5bf3ae433fd689994e90d0a304add7417ca14ddd8026b84b518062823",
+    "script_sha256": "8681318dadbb14556980dd38bd7d49be681f2e85fa4f39e24a0f84aa171619f4"
+  },
+  "producer": {
+    "status": "PASS_PARTIAL_CAD_CAPABILITY",
+    "pilot_result": "PASS_PRE_GATE_P2_S0_EQUIVALENT_PLATE_BASELINE",
+    "claim_ceiling": "PASS_PRE_GATE_P2_S0_EQUIVALENT_PLATE_BASELINE",
+    "assertions_passed": 16,
+    "assertions_total": 16,
+    "formal_p2_completion": false,
+    "formal_p2_gate": "NOT_RUN",
+    "p2_stage_gate": "NOT_RUN",
+    "p1_p6_gates": "NOT_RUN",
+    "mesh": "NOT_RUN",
+    "mechanical": "NOT_RUN",
+    "modal": "NOT_RUN",
+    "harmonic": "NOT_RUN",
+    "exact_product_geometry": "NOT_CLAIMED",
+    "product_material_identification": "NOT_CLAIMED",
+    "visibility": "NOT_USER_OBSERVED"
+  },
+  "geometry": {
+    "bbox_min_mm": [-3.5, -3.5, -0.05],
+    "bbox_max_mm": [3.5, 3.5, 0.275],
+    "volume_mm3": 13.728125,
+    "piece_count": 1,
+    "is_closed": true,
+    "is_manifold": true,
+    "native_group_counts": {
+      "NS_EQ_BODY": 1,
+      "NS_ANCHOR_FIXED": 1,
+      "NS_MEMBRANE_TOP": 1,
+      "NS_MEMBRANE_ALL": 1,
+      "NS_TIP_X_PLUS": 1,
+      "NS_TIP_X_MINUS": 1
+    },
+    "step_reconstructed_role_counts": {
+      "NS_ANCHOR_FIXED": 1,
+      "NS_MEMBRANE_TOP": 1,
+      "NS_TIP_X_PLUS": 1,
+      "NS_TIP_X_MINUS": 1
+    },
+    "step_named_selection_transfer": "NOT_ASSUMED"
+  },
+  "material_boundary": {
+    "design": "paired_candidate_bundle_not_factorial",
+    "candidate_ids": ["EQ-A-Z005", "EQ-B-Z015", "EQ-C-Z030"],
+    "interpretation": "CONTROLLED_EQUIVALENT_PROPERTY_SENSITIVITY_NOT_PRODUCT_MATERIAL_IDENTIFICATION"
+  },
+  "artifacts": {
+    "p2_s0_equivalent_plate.scdocx": {
+      "absolute_path": "D:\\AirJet_P2\\AJM-P2-STRUCTURAL-008\\AJM-P2-S0-EQ-M7-C005\\AJM-P2-S0-EQ-M7-C005-e8f61480898c\\p2_s0_equivalent_plate.scdocx",
+      "storage": "WINDOWS_EXTERNAL_RECORDED_IN_THIS_SUMMARY",
+      "size": 23228,
+      "sha256": "edcbab93442c57af4451a256f91181b81c184c5cc30b05097e47d6a576c5165c"
+    },
+    "p2_s0_equivalent_plate.step": {
+      "size": 15365,
+      "sha256": "6c740353ffd50dae7bffd94f67b8b36b6c6c91455a9977272eaf4a3079287b89"
+    },
+    "p2_s0_equivalent_plate_sidecar.json": {
+      "source_raw_size": 19514,
+      "source_raw_sha256": "82a644d430e5456ff0f3a5ef22e9b0fba115041f4f4795f85e2bd0d5115e4b66",
+      "repo_copy_size": 18674,
+      "repo_copy_sha256": "8f1b70bd125c2ed302844de28d1b72e5ad637f769ca38886f5293b67e64271db"
+    },
+    "p2_s0_equivalent_plate_producer.json": {
+      "source_raw_size": 17132,
+      "source_raw_sha256": "0925a5512da27e418f0768c743df2b0751bbc392f624be0d8a9d9a72b714f94d",
+      "repo_copy_size": 16510,
+      "repo_copy_sha256": "693cea37fbbe92872f967c2296b8af1880478f236224dc2d25df6ece289717e1"
+    },
+    "P2_S0_EQUIVALENT_PLATE_RUN_SUMMARY.json": {
+      "source_raw_size": 50781,
+      "source_raw_sha256": "1441bb695ad718c58ef55dca3a3c32ea7cc2d69f83c829228d5a2072f1ee44c0",
+      "repo_copy_size": 49261,
+      "repo_copy_sha256": "31583ee7cb001b9d4146ef25f436916457fe9b90170a7dfdfd19cc092120986a"
+    },
+    "job.json": {
+      "source_raw_size": 1928,
+      "source_raw_sha256": "e732c68f877b7a0ab83e99dee91403600ff227b5afd03db992b1b00834a55fe0",
+      "repo_copy_size": 1887,
+      "repo_copy_sha256": "8258676f5fa3ed8fa6a3c9a51cb5994b7e15971bce37407ee71a0b42e9323f8e"
+    },
+    "stdout.log": {
+      "source_raw_size": 36207,
+      "source_raw_sha256": "6cd66ecec31703bd1da7da569999b68979da6c6f5b76dcd6747346e4553a898c",
+      "repo_copy_size": 35528,
+      "repo_copy_sha256": "9b045a8cc8173579f312d518b0a25d2f719c83b4a101e5680ccb31f6a4c9c68f"
+    },
+    "stderr.log": {
+      "source_raw_size": 0,
+      "source_raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "repo_copy_size": 0,
+      "repo_copy_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

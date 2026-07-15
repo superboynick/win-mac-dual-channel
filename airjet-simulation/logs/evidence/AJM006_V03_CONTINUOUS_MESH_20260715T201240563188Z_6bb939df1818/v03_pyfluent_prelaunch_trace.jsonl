@@ -1,0 +1,16 @@
+{"checkpoint": "predecessor_validation_started", "details": {}, "utc": "2026-07-15T20:14:49.426060+00:00"}
+{"checkpoint": "predecessor_validation_completed", "details": {"predecessor_job_id": "AJM006-V03-CONTINUOUS-092614ddce36"}, "utc": "2026-07-15T20:14:49.471062+00:00"}
+{"checkpoint": "step_copy_started", "details": {"source_size": 16619010}, "utc": "2026-07-15T20:14:49.472064+00:00"}
+{"checkpoint": "step_copy_completed", "details": {"staged_size": 16619010}, "utc": "2026-07-15T20:14:49.478064+00:00"}
+{"checkpoint": "source_step_hash_started", "details": {}, "utc": "2026-07-15T20:14:49.478064+00:00"}
+{"checkpoint": "source_step_hash_completed", "details": {"sha256": "e526096a4753aadb7785a1e601a202a83deff43d0b81c5126673b2f302254788"}, "utc": "2026-07-15T20:14:49.486572+00:00"}
+{"checkpoint": "staged_step_hash_started", "details": {}, "utc": "2026-07-15T20:14:49.486572+00:00"}
+{"checkpoint": "staged_step_hash_completed", "details": {"sha256": "e526096a4753aadb7785a1e601a202a83deff43d0b81c5126673b2f302254788"}, "utc": "2026-07-15T20:14:49.495573+00:00"}
+{"checkpoint": "boundary_role_points_completed", "details": {"inlet_count": 4, "outlet_count": 1, "throat_count": 972}, "utc": "2026-07-15T20:14:49.496571+00:00"}
+{"checkpoint": "pyfluent_windows_platform_pinned", "details": {"os_name": "nt", "processor_architecture": "AMD64"}, "utc": "2026-07-15T20:14:49.497572+00:00"}
+{"checkpoint": "pinned_fluent_executable_verified", "details": {"executable_name": "fluent.exe"}, "utc": "2026-07-15T20:14:49.497572+00:00"}
+{"checkpoint": "fluent_launch_started", "details": {"start_timeout_seconds": 60}, "utc": "2026-07-15T20:14:49.497572+00:00"}
+{"checkpoint": "fluent_launch_completed", "details": {}, "utc": "2026-07-15T20:15:00.646673+00:00"}
+{"checkpoint": "import_face_zone_inventory_completed", "details": {"face_zone_count": 106}, "utc": "2026-07-15T20:15:10.223951+00:00"}
+{"checkpoint": "boundary_zone_queries_completed", "details": {"inlet_zone_hits": [24, 18, 9, 4], "outlet_zone_hits": [32], "throat_hit_count": 972, "throat_unique_zone_ids": [2, 31]}, "utc": "2026-07-15T20:15:25.474740+00:00"}
+{"checkpoint": "boundary_zone_types_updated", "details": {"observed_types": {"4": "velocity-inlet", "9": "velocity-inlet", "18": "velocity-inlet", "24": "velocity-inlet", "32": "pressure-outlet"}}, "utc": "2026-07-15T20:16:11.163458+00:00"}

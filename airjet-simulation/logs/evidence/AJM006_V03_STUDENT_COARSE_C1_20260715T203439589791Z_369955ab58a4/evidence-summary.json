@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "task": "AJM006_V03_TWO_STAGE_CONTINUOUS_MESH_SUITE",
+  "candidate": "STUDENT_COARSE_TOPOLOGY_DIAGNOSTIC_C1",
+  "git_head": "a9b5dc6ecb5e4d5a3f951233c953b94724f801c4",
+  "runner_final_status": "FAIL_PRELIMINARY_V03_TWO_STAGE_MESH_SUITE",
+  "reconstructed_outcome": "FAIL_PRELIMINARY_V03_C1_TWELVE_DISCONNECTED_FLUID_ZONES_NO_DURABLE_MESH",
+  "claim_boundary": "STAGE1_PRELIMINARY_GEOMETRY_PASS;_C1_STEP_IMPORT_ROLES_SURFACE_BOUNDARY_TYPES_AND_VOLUME_MESH_API_PASS;_FLUENT_REPORTED_413405_CELLS_MIN_OQ_0.24604596_AND_12_CELL_ZONES;_SURFACE_STAGE_REPORTED_1_REGION_AND_11_VOIDS;_SINGLE_COMMON_FLUID_ZONE_FAILED;_NO_MSH_H5;_P1_P6_NOT_RUN",
+  "formal_006_completion": false,
+  "p1_stage_gate": "NOT_RUN",
+  "p1_p6_gates": "NOT_RUN",
+  "visibility": "NOT_USER_OBSERVED",
+  "stage1": {
+    "job_id": "AJM006-V03-CONTINUOUS-18a19a556432",
+    "started_at_utc": "2026-07-15T20:34:39.589791+00:00",
+    "ended_at_utc": "2026-07-15T20:36:38.676984+00:00",
+    "duration_s": 119.087193,
+    "terminal_phase": "PROCESS_EXITED_0",
+    "exit_code": 0,
+    "profile_id": "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
+    "profile_contract_sha256": "fa231e60e7ad739adea0d363b5781d92f0ab9e2dc6fdb0bea11f351f2f87cc57",
+    "script_sha256": "be0f4787aff784734137a463482dcfc7c14dde23da565928c055ed305f1aeacb",
+    "report_status": "PASS_PARTIAL_CAD_CAPABILITY"
+  },
+  "stage2": {
+    "job_id": "AJM006-V03-CONTINUOUS-369955ab58a4",
+    "predecessor_job_id": "AJM006-V03-CONTINUOUS-18a19a556432",
+    "started_at_utc": "2026-07-15T20:36:40.788423+00:00",
+    "ended_at_utc": "2026-07-15T20:38:36.606564+00:00",
+    "duration_s": 115.818141,
+    "terminal_phase": "FAILED_PROCESS",
+    "exit_code": 2,
+    "profile_id": "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
+    "profile_contract_sha256": "57f7ecd94d1bca395db2af8968fbbf4591b67c2a42c10ef5008e60e11acfcf44",
+    "script_sha256": "8e397683c7bbb534213e632f71b40e15516e94fd1abe337aae16f0a3f348db35",
+    "report_status": "FAIL_PRELIMINARY_MESH_CAPABILITY",
+    "mesh_contract_mm": {
+      "surface_min": 0.05,
+      "surface_max": 0.75,
+      "throat_local": 0.075,
+      "volume_max": 0.75
+    },
+    "assertion_progress": {
+      "watertight_step_import": true,
+      "boundary_roles_reconstructed": true,
+      "throat_roles_reconstructed_972": true,
+      "throat_local_sizing_contract": true,
+      "surface_mesh": true,
+      "volume_mesh": true,
+      "single_fluid_region": false,
+      "one_fluid_cell_zone": false,
+      "mesh_write_hash": false
+    },
+    "fluent_telemetry": {
+      "surface_regions": 1,
+      "surface_voids": 11,
+      "cell_count": 413405,
+      "cell_zone_count": 12,
+      "cell_zone_ids": [631, 628, 625, 622, 619, 616, 613, 610, 607, 604, 601, 598],
+      "cell_count_range_per_zone": [33838, 35168],
+      "min_orthogonal_quality": 0.24604596
+    },
+    "student_license_failure": false,
+    "student_cell_limit": 1000000,
+    "mesh_artifact": "NOT_CREATED",
+    "error": "CELL_ZONE_COUNT_NOT_ONE:[631, 628, 625, 622, 619, 616, 613, 610, 607, 604, 601, 598]"
+  },
+  "source_files": {
+    "suite_summary": {
+      "relative_path": "suite-summary.json",
+      "source_raw_size": 69695,
+      "source_raw_sha256": "e1bfe361c2c5dbfb14b1f933111b244540308b285c9db821ec2d6f58fc66ebc5",
+      "repo_copy_size": 68111,
+      "repo_copy_sha256": "7c2cd99c8058cb380d02e18f6caac0334386abeaf4618b498ec091de4c394e47"
+    },
+    "stage1_job": {
+      "relative_path": "stage1-job.json",
+      "source_raw_size": 5734,
+      "source_raw_sha256": "39950c893a8b758d1e9687fe0383026225eedeb74a9734ab4cec7b3bd16bcdd1",
+      "repo_copy_size": 5609,
+      "repo_copy_sha256": "b3787ef72a8e811091903161701ec82b7b76d6e817c773c44c2408dbab598d54"
+    },
+    "stage1_report": {
+      "relative_path": "v03_continuous_fluid_producer.json",
+      "source_raw_size": 14998,
+      "source_raw_sha256": "16896c2547780e2d1c7509ab2288e7a5d469fde2701be86371af7b48af1c33b3",
+      "repo_copy_size": 14560,
+      "repo_copy_sha256": "08c01943761a4db2f830b1a9cb778648689c58bd07541e05850a7d54a0cafac3"
+    },
+    "stage1_stdout": {
+      "relative_path": "stage1-stdout.log",
+      "source_raw_size": 36903,
+      "source_raw_sha256": "911f479debf0d5edf9424cf3a15c0ea248922742530d7cac8c8485ed01aa0684",
+      "repo_copy_size": 36200,
+      "repo_copy_sha256": "d86ddb790cad0515f9ebccc985917410efb4b5696502b5327b0ae27f5220049e"
+    },
+    "stage1_stderr": {
+      "relative_path": "stage1-stderr.log",
+      "source_raw_size": 0,
+      "source_raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "repo_copy_size": 0,
+      "repo_copy_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stage2_job": {
+      "relative_path": "stage2-job.json",
+      "source_raw_size": 1890,
+      "source_raw_sha256": "41045d0811ce8e29a928f7617f41df4992d5751cc2de410aef82bdb85ebcda9d",
+      "repo_copy_size": 1842,
+      "repo_copy_sha256": "d8713f690df0d07a9777032309bab16396aa691864ed9ad3cf3738898c1015ef"
+    },
+    "stage2_report": {
+      "relative_path": "v03_pyfluent_watertight_mesh_consumer.json",
+      "source_raw_size": 3006,
+      "source_raw_sha256": "edee68a3135ad549c7493047ed3ce07817720bf4256b1ae66027fd9ef08aee80",
+      "repo_copy_size": 2934,
+      "repo_copy_sha256": "8d2d793fb105b42828714d9dbc89979f52ef6d1d49996ddf3c4b421b9f35067e"
+    },
+    "stage2_trace": {
+      "relative_path": "v03_pyfluent_prelaunch_trace.jsonl",
+      "source_raw_size": 2377,
+      "source_raw_sha256": "14bf1e828352ad3faadcafa63dc5a9ee0cf9ac977e80447bf0c5866737906ac9",
+      "repo_copy_size": 2361,
+      "repo_copy_sha256": "ca0964277761feab88aaaaa8b9a202c6e7174685e354df2aaf4149104e8613dd"
+    },
+    "stage2_stdout": {
+      "relative_path": "stage2-stdout.log",
+      "source_raw_size": 14800,
+      "source_raw_sha256": "256aff1a0692c9bd4fc54273ced4d94a62625fd766aed7656348235c1f1990f5",
+      "repo_copy_size": 14525,
+      "repo_copy_sha256": "4fa240b263591ff8ec0c5ebddb02134349f61096ae54b6cb4c3d6cd13e4e819f"
+    },
+    "stage2_stderr": {
+      "relative_path": "stage2-stderr.log",
+      "source_raw_size": 0,
+      "source_raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "repo_copy_size": 0,
+      "repo_copy_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fluent_transcript": {
+      "absolute_path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-369955ab58a4\\fluent-20260716-043645-24888.trn",
+      "storage": "WINDOWS_EXTERNAL_RECORDED_IN_THIS_SUMMARY",
+      "source_raw_size": 17061,
+      "source_raw_sha256": "f14603d69820248685dee81c4592ba508f21bbc7f7cf9452984734c4b8163572"
+    }
+  }
+}
