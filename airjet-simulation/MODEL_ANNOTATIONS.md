@@ -229,7 +229,7 @@ mesh/shared nodes/P1 PASS。
 ## AJM-P1-GEO-006：V02 native staging Workbench observer
 
 日期：2026-07-15
-状态：15-profile policy、observer guards、144-file audit 静态 PASS；等待 Windows 实跑
+状态：Windows 实跑关闭；external native attach 在 Workbench Refresh 失败
 
 **目的**：直接观察 producer 的 `product_two_zone.scdocx` 在 Workbench/Mechanical 的实际 body/face
 拓扑，区分 STEP translator 的单侧损失与 native attach 本身的能力边界。
@@ -238,5 +238,20 @@ mesh/shared nodes/P1 PASS。
 inventory、native reopen 四件前驱产物。native 先复制为 job-local staging 并校验 SHA；Workbench
 仅 SetFile、Refresh、Mechanical GeoData inventory 与 Save。native 分支不 Edit、不 mesh、不求解。
 
-**主张边界**：观察链 PASS 与路线有利/不利分开。即使接口仍丢失，只要实际 inventory 和证据闭合，
-也只写诊断观察；`formal_006_completion=false`、P1--P6 与 mesh/physics 继续 `NOT_RUN`。
+**实际结果**：predecessor identity、native staging size/SHA 均通过；Workbench `SetFile` 返回后，
+`Model.Refresh()` 报无法附加 `.scdocx` 几何结构，Mechanical inventory 未到达。关闭 external native
+attach 路线；`formal_006_completion=false`、P1--P6 与 mesh/physics 继续 `NOT_RUN`。
+
+## AJM-P1-GEO-007：V02 split STEP 转换候选
+
+日期：2026-07-15
+状态：静态包准备中；Windows `NOT_RUN`
+
+**单一改变**：从同一冻结 two-zone native 分别删除另一流体 body，导出独立
+`upstream.step`/`downstream.step`，避免同一 STEP 文件内的跨体 healer 改写接口。
+
+**第一道 Gate**：每个 STEP 单独回读时必须只有一个 closed/manifold body，逐角色 face count、bbox、
+volume 与 native 指纹保持；这只证明两个独立表示，尚不证明同一 solver 模型内 adjacency、连接或网格。
+
+**后续路线**：只有 split converter 实跑通过，才建立双 Workbench system observer，逐侧按冻结 972
+XY 观察接口；任一侧缺失即拒绝。formal 006、P1--P6、mesh、physics 继续 `NOT_RUN`。

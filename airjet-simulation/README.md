@@ -49,7 +49,8 @@
 - `windows-prompts/AJM_WIN_V02_PRELIMINARY_006.md`：已完成的 V02 两区整机 producer 历史入口；12-cell/972-hole preliminary CAD 已 PASS，不重复无差别 producer。
 - `windows-prompts/AJM_WIN_V02_TOPOLOGY_OBSERVER_006.md`：已完成的 V02 Workbench/Mechanical topology observer 历史入口；修正版确认当前 STEP handoff 只保留 downstream 972 个孔印记而丢失 upstream 对应界面，不重复运行。
 - `windows-prompts/AJM_WIN_V02_PARASOLID_TOPOLOGY_OBSERVER_006.md`：已完成的失败诊断入口；官方 v261 export options 下仍未生成 x_t，未启动 observer，不代表整机几何失败。
-- `automation/ansys/run_v02_native_topology_observer_006.py`：当前固定入口；同一 MCP 会话运行 producer→job-local native staging→Workbench/Mechanical 只读 topology observer，禁止 Edit、mesh 和物理求解。
+- `automation/ansys/run_v02_native_topology_observer_006.py`：已完成的失败诊断入口；native staging 哈希通过，但 Workbench Refresh 无法附加外部 `.scdocx`，Mechanical 未到达。
+- `automation/ansys/run_v02_split_step_converter_006.py`：当前固定入口；同一 MCP 会话运行 producer→独立 upstream/downstream STEP 转换与回读，尚不组合 solver model、不 mesh、不求解。
 - `logs/evidence/AJM006_V02_PRELIMINARY_20260715T113939945030Z_1082d551ee85/`：V02 PASS 凝练证据；三轮 113-file 原始副本另存 Mac/Windows Downloads ZIP，六产物与 ZIP 的大小/SHA 见该目录 `evidence-summary.json`。正式 P1 的 `logs/external-files.csv` 在 P1 前保持 canonical empty。
 - `logs/evidence/AJM006_V02_TOPOLOGY_OBSERVER_20260715T122149298547Z_2bdb5b95702a/` 与 `...T122907417508Z_2fb76257a827/`：首次及修正版 topology observer 凝练证据；首次 inventory 保留但角色分类被修正版取代。修正版 PASS 表示观测闭合，不是 mesh、formal 006 或 P1 PASS。
 - `notebooks/airjet-mini-layout-baseline.ipynb`：可执行的产品指标核对与 Layout-L/M/S 几何候选枚举；几何可装入不等于真实内部布局。

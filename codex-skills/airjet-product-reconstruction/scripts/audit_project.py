@@ -1576,6 +1576,7 @@ def main() -> int:
                 "ajm006-workbench-v02-topology-observer-v1",
                 "ajm006-workbench-v02-native-topology-observer-v1",
                 "ajm006-spaceclaim-v02-parasolid-converter-v1",
+                "ajm006-spaceclaim-v02-split-step-converter-v1",
                 "ajm006-workbench-v02-parasolid-topology-observer-v1",
             }
             if (
@@ -1690,7 +1691,7 @@ def main() -> int:
             )
             if (
                 completed_policy.returncode != 0
-                or "AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=15 tools=5"
+                or "AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=16 tools=5"
                 not in completed_policy.stdout
             ):
                 failures.append(

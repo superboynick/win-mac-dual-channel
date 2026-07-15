@@ -16,9 +16,19 @@ from SpaceClaim.Api.V261 import ExportOptions, ParasolidVersion
 
 job_dir = os.environ["AIRJET_JOB_DIR"]
 predecessor_dir = os.environ["AIRJET_PREDECESSOR_DIR"]
-report_path = os.path.join(job_dir, "v02_parasolid_converter.json")
+profile_id = os.environ.get("AIRJET_PROFILE_ID")
+SPLIT_STEP_PROFILE = "ajm006-spaceclaim-v02-split-step-converter-v1"
+split_step_route = profile_id == SPLIT_STEP_PROFILE
+report_path = os.path.join(
+    job_dir,
+    "v02_split_step_converter.json"
+    if split_step_route else "v02_parasolid_converter.json",
+)
 parasolid_path = os.path.join(job_dir, "product.x_t")
 reimport_path = os.path.join(job_dir, "parasolid_reimport.json")
+upstream_step_path = os.path.join(job_dir, "upstream.step")
+downstream_step_path = os.path.join(job_dir, "downstream.step")
+split_reimport_path = os.path.join(job_dir, "split_step_reimport.json")
 inventory_copy_path = os.path.join(job_dir, "v02_face_inventory.json")
 source_chain_path = os.path.join(job_dir, "source_chain.json")
 staging_dir = os.path.join(job_dir, "input", "staging")
@@ -49,7 +59,7 @@ REQUIRED_PRODUCER_ASSERTIONS = (
     "artifact_hashes",
     "physics_guards",
 )
-ASSERTIONS = (
+PARASOLID_ASSERTIONS = (
     "predecessor_identity",
     "predecessor_immutable",
     "staging_copy_hash_equal",
@@ -63,14 +73,46 @@ ASSERTIONS = (
     "artifact_hashes",
     "claim_boundaries",
 )
+SPLIT_STEP_ASSERTIONS = (
+    "predecessor_identity",
+    "predecessor_immutable",
+    "staging_copy_hash_equal",
+    "staging_workspace_exact",
+    "source_native_open",
+    "source_native_exact",
+    "split_step_export",
+    "split_step_reimport",
+    "split_body_envelope_and_face_count_preserved",
+    "evidence_copy_hash_equal",
+    "artifact_hashes",
+    "claim_boundaries",
+)
+ASSERTIONS = SPLIT_STEP_ASSERTIONS if split_step_route else PARASOLID_ASSERTIONS
 
 result = {
     "schema_version": 1,
-    "task": "AJM006_V02_PARASOLID_ROUTE_DISCOVERY_CONVERTER",
-    "probe": "v02_parasolid_converter",
-    "status": "FAIL_PARASOLID_CONVERTER",
-    "engineering_capability": "FAIL_PARASOLID_CONVERTER",
-    "claim_scope": "V02_PRELIMINARY_PARASOLID_ROUTE_DISCOVERY_ONLY",
+    "task": (
+        "AJM006_V02_SPLIT_STEP_ROUTE_DISCOVERY_CONVERTER"
+        if split_step_route
+        else "AJM006_V02_PARASOLID_ROUTE_DISCOVERY_CONVERTER"
+    ),
+    "probe": (
+        "v02_split_step_converter"
+        if split_step_route else "v02_parasolid_converter"
+    ),
+    "status": (
+        "FAIL_SPLIT_STEP_CONVERTER"
+        if split_step_route else "FAIL_PARASOLID_CONVERTER"
+    ),
+    "engineering_capability": (
+        "FAIL_SPLIT_STEP_CONVERTER"
+        if split_step_route else "FAIL_PARASOLID_CONVERTER"
+    ),
+    "claim_scope": (
+        "V02_PRELIMINARY_SPLIT_STEP_ROUTE_DISCOVERY_ONLY"
+        if split_step_route
+        else "V02_PRELIMINARY_PARASOLID_ROUTE_DISCOVERY_ONLY"
+    ),
     "formal_006_completion": False,
     "p1_stage_gate": "NOT_RUN",
     "p1_p6_gates": "NOT_RUN",
@@ -80,7 +122,11 @@ result = {
     "physics": "NOT_RUN",
     "source_native_mutated": False,
     "representation_conversion": True,
-    "interface_topology": "NOT_EVALUATED_UNTIL_PARASOLID_OBSERVER",
+    "interface_topology": (
+        "SEPARATE_BODY_FILES_ONLY_NOT_SOLVER_COMBINED"
+        if split_step_route
+        else "NOT_EVALUATED_UNTIL_PARASOLID_OBSERVER"
+    ),
     "assertions": dict((name, False) for name in ASSERTIONS),
     "error": None,
 }
@@ -230,6 +276,25 @@ def fingerprints_shape_equivalent(
     return True
 
 
+def single_fingerprint_equivalent(expected, actual):
+    if not isinstance(expected, dict) or not isinstance(actual, dict):
+        return False
+    if int(expected["face_count"]) != int(actual["face_count"]):
+        return False
+    if not actual["is_closed"] or not actual["is_manifold"]:
+        return False
+    if actual["piece_count"] != 1:
+        return False
+    for key in ("bbox_min_mm", "bbox_max_mm"):
+        for left_value, right_value in zip(expected[key], actual[key]):
+            if abs(float(left_value) - float(right_value)) > 0.005:
+                return False
+    volume_scale = max(abs(float(expected["volume_mm3"])), 1.0)
+    return abs(
+        float(expected["volume_mm3"]) - float(actual["volume_mm3"])
+    ) <= max(0.005, volume_scale * 1.0e-5)
+
+
 def close_document_fail_soft():
     try:
         DocumentHelper.CloseDocument()
@@ -376,80 +441,161 @@ try:
     if not source_native_open or not source_native_exact:
         raise Exception("SOURCE_NATIVE_REOPEN_MISMATCH")
 
-    export_options = ExportOptions.Create()
-    export_options.Parasolid.Version = ParasolidVersion.V23
-    exported = DocumentSave.Execute(parasolid_path, export_options)
-    parasolid_export_ok = (
-        bool(exported.Success)
-        and os.path.isfile(parasolid_path)
-        and os.path.getsize(parasolid_path) > 0
-    )
-    result["assertions"]["parasolid_export"] = parasolid_export_ok
-    result["parasolid_export_options"] = {
-        "api_version": "V261",
-        "parasolid_version": "V23",
-    }
-    if not parasolid_export_ok:
-        raise Exception("PARASOLID_EXPORT_ASSERTION_FAILED")
+    if split_step_route:
+        by_name = dict((item.Name, item) for item in native_bodies)
+        upstream_name = "AJM006_V02_FLUID_UPSTREAM"
+        downstream_name = "AJM006_V02_FLUID_DOWNSTREAM"
+        if set(by_name) != {upstream_name, downstream_name}:
+            raise Exception("SPLIT_STEP_SOURCE_BODY_NAMES_MISMATCH")
+        expected_by_name = dict(
+            (item["name"], item) for item in source_fingerprints
+        )
 
-    close_document_fail_soft()
-    reopened = DocumentOpen.Execute(parasolid_path)
-    parasolid_bodies = get_all_bodies_without_extension_binding(GetRootPart())
-    parasolid_fingerprints = [
-        body_fingerprint(body) for body in parasolid_bodies
-    ]
-    comparison_deltas = fingerprint_deltas(
-        source_fingerprints, parasolid_fingerprints
-    )
-    parasolid_reimport_ok = (
-        bool(reopened.Success)
-        and len(parasolid_bodies) == 2
-        and all(
-            item["piece_count"] == 1
-            and item["is_closed"]
-            and item["is_manifold"]
-            for item in parasolid_fingerprints
+        Delete.Execute(Selection.Create(by_name[downstream_name]))
+        upstream_export = DocumentSave.Execute(upstream_step_path)
+        upstream_export_ok = (
+            bool(upstream_export.Success)
+            and os.path.isfile(upstream_step_path)
+            and os.path.getsize(upstream_step_path) > 0
         )
-    )
-    parasolid_body_envelope_and_face_count_preserved = (
-        sorted(item["face_count"] for item in parasolid_fingerprints)
-        == [978, 2044]
-        and fingerprints_shape_equivalent(
-            source_fingerprints,
-            parasolid_fingerprints,
-            require_names=False,
-            require_face_count=True,
+        close_document_fail_soft()
+
+        reopened_source = DocumentOpen.Execute(staged_native_path)
+        source_bodies_again = get_all_bodies_without_extension_binding(
+            GetRootPart()
         )
-    )
-    reimport = {
-        "schema_version": 1,
-        "route": "SPACECLAIM_NATIVE_TO_PARASOLID_X_T_AND_REOPEN",
-        "source_native_body_fingerprints": source_fingerprints,
-        "body_count": len(parasolid_bodies),
-        "body_fingerprints": parasolid_fingerprints,
-        "comparison_tolerances": {
-            "bbox_tolerance_mm": 0.005,
-            "volume_absolute_tolerance_mm3": 0.005,
-            "volume_relative_tolerance": 1.0e-5,
-            "face_count_required": True,
-            "names_required": False,
-        },
-        "comparison_deltas": comparison_deltas,
-        "solver_interface_identity": "NOT_EVALUATED_UNTIL_PARASOLID_OBSERVER",
-    }
-    write_json(reimport_path, reimport)
-    result["assertions"]["parasolid_reimport"] = parasolid_reimport_ok
-    result["assertions"][
-        "parasolid_body_envelope_and_face_count_preserved"
-    ] = (
-        parasolid_body_envelope_and_face_count_preserved
-    )
-    if (
-        not parasolid_reimport_ok
-        or not parasolid_body_envelope_and_face_count_preserved
-    ):
-        raise Exception("PARASOLID_BODY_ENVELOPE_OR_FACE_COUNT_NOT_PRESERVED")
-    close_document_fail_soft()
+        by_name_again = dict((item.Name, item) for item in source_bodies_again)
+        if not bool(reopened_source.Success) or set(by_name_again) != {
+            upstream_name,
+            downstream_name,
+        }:
+            raise Exception("SPLIT_STEP_SOURCE_SECOND_OPEN_MISMATCH")
+        Delete.Execute(Selection.Create(by_name_again[upstream_name]))
+        downstream_export = DocumentSave.Execute(downstream_step_path)
+        downstream_export_ok = (
+            bool(downstream_export.Success)
+            and os.path.isfile(downstream_step_path)
+            and os.path.getsize(downstream_step_path) > 0
+        )
+        split_export_ok = upstream_export_ok and downstream_export_ok
+        result["assertions"]["split_step_export"] = split_export_ok
+        if not split_export_ok:
+            raise Exception("SPLIT_STEP_EXPORT_ASSERTION_FAILED")
+        close_document_fail_soft()
+
+        upstream_open = DocumentOpen.Execute(upstream_step_path)
+        upstream_bodies = get_all_bodies_without_extension_binding(
+            GetRootPart()
+        )
+        upstream_fingerprints = [
+            body_fingerprint(body) for body in upstream_bodies
+        ]
+        close_document_fail_soft()
+        downstream_open = DocumentOpen.Execute(downstream_step_path)
+        downstream_bodies = get_all_bodies_without_extension_binding(
+            GetRootPart()
+        )
+        downstream_fingerprints = [
+            body_fingerprint(body) for body in downstream_bodies
+        ]
+        split_step_reimport_ok = (
+            bool(upstream_open.Success)
+            and bool(downstream_open.Success)
+            and len(upstream_fingerprints) == 1
+            and len(downstream_fingerprints) == 1
+        )
+        split_shape_ok = (
+            split_step_reimport_ok
+            and single_fingerprint_equivalent(
+                expected_by_name[upstream_name], upstream_fingerprints[0]
+            )
+            and single_fingerprint_equivalent(
+                expected_by_name[downstream_name], downstream_fingerprints[0]
+            )
+        )
+        split_reimport = {
+            "schema_version": 1,
+            "route": "NATIVE_TWO_BODY_TO_TWO_INDEPENDENT_STEP_FILES",
+            "source_native_body_fingerprints": source_fingerprints,
+            "upstream_body_fingerprints": upstream_fingerprints,
+            "downstream_body_fingerprints": downstream_fingerprints,
+            "solver_combination": "NOT_EVALUATED_SEPARATE_FILES_ONLY",
+        }
+        write_json(split_reimport_path, split_reimport)
+        result["assertions"]["split_step_reimport"] = split_step_reimport_ok
+        result["assertions"][
+            "split_body_envelope_and_face_count_preserved"
+        ] = split_shape_ok
+        if not split_step_reimport_ok or not split_shape_ok:
+            raise Exception("SPLIT_STEP_BODY_SHAPE_OR_FACE_COUNT_NOT_PRESERVED")
+        close_document_fail_soft()
+        comparison_deltas = None
+        parasolid_fingerprints = []
+    else:
+        export_options = ExportOptions.Create()
+        export_options.Parasolid.Version = ParasolidVersion.V23
+        exported = DocumentSave.Execute(parasolid_path, export_options)
+        parasolid_export_ok = (
+            bool(exported.Success)
+            and os.path.isfile(parasolid_path)
+            and os.path.getsize(parasolid_path) > 0
+        )
+        result["assertions"]["parasolid_export"] = parasolid_export_ok
+        result["parasolid_export_options"] = {
+            "api_version": "V261",
+            "parasolid_version": "V23",
+        }
+        if not parasolid_export_ok:
+            raise Exception("PARASOLID_EXPORT_ASSERTION_FAILED")
+
+        close_document_fail_soft()
+        reopened = DocumentOpen.Execute(parasolid_path)
+        parasolid_bodies = get_all_bodies_without_extension_binding(
+            GetRootPart()
+        )
+        parasolid_fingerprints = [
+            body_fingerprint(body) for body in parasolid_bodies
+        ]
+        comparison_deltas = fingerprint_deltas(
+            source_fingerprints, parasolid_fingerprints
+        )
+        parasolid_reimport_ok = (
+            bool(reopened.Success)
+            and len(parasolid_bodies) == 2
+            and all(
+                item["piece_count"] == 1
+                and item["is_closed"]
+                and item["is_manifold"]
+                for item in parasolid_fingerprints
+            )
+        )
+        parasolid_shape_ok = (
+            sorted(item["face_count"] for item in parasolid_fingerprints)
+            == [978, 2044]
+            and fingerprints_shape_equivalent(
+                source_fingerprints,
+                parasolid_fingerprints,
+                require_names=False,
+                require_face_count=True,
+            )
+        )
+        reimport = {
+            "schema_version": 1,
+            "route": "SPACECLAIM_NATIVE_TO_PARASOLID_X_T_AND_REOPEN",
+            "source_native_body_fingerprints": source_fingerprints,
+            "body_count": len(parasolid_bodies),
+            "body_fingerprints": parasolid_fingerprints,
+            "comparison_deltas": comparison_deltas,
+            "solver_interface_identity": "NOT_EVALUATED_UNTIL_PARASOLID_OBSERVER",
+        }
+        write_json(reimport_path, reimport)
+        result["assertions"]["parasolid_reimport"] = parasolid_reimport_ok
+        result["assertions"][
+            "parasolid_body_envelope_and_face_count_preserved"
+        ] = parasolid_shape_ok
+        if not parasolid_reimport_ok or not parasolid_shape_ok:
+            raise Exception("PARASOLID_BODY_ENVELOPE_OR_FACE_COUNT_NOT_PRESERVED")
+        close_document_fail_soft()
 
     File.Copy(source_inventory_path, inventory_copy_path, True)
     evidence_copy_hash_equal = (
@@ -473,15 +619,31 @@ try:
         ),
         "source_hashes": source_hashes_before,
         "staged_native": staged_native_before,
-        "parasolid": {
-            "size": os.path.getsize(parasolid_path),
-            "sha256": sha256_file(parasolid_path),
-        },
         "native_open_fingerprints": native_fingerprints,
-        "conversion": "PRODUCT_TWO_ZONE_SCDOCX_TO_PRODUCT_X_T",
+        "conversion": (
+            "PRODUCT_TWO_ZONE_SCDOCX_TO_TWO_INDEPENDENT_STEP_FILES"
+            if split_step_route
+            else "PRODUCT_TWO_ZONE_SCDOCX_TO_PRODUCT_X_T"
+        ),
         "formal_006_completion": False,
         "p1_p6_gates": "NOT_RUN",
     }
+    if split_step_route:
+        source_chain["split_step"] = {
+            "upstream": {
+                "size": os.path.getsize(upstream_step_path),
+                "sha256": sha256_file(upstream_step_path),
+            },
+            "downstream": {
+                "size": os.path.getsize(downstream_step_path),
+                "sha256": sha256_file(downstream_step_path),
+            },
+        }
+    else:
+        source_chain["parasolid"] = {
+            "size": os.path.getsize(parasolid_path),
+            "sha256": sha256_file(parasolid_path),
+        }
     write_json(source_chain_path, source_chain)
 
     source_hashes_after = dict(
@@ -509,19 +671,30 @@ try:
         raise Exception("STAGING_WORKSPACE_CHANGED")
 
     files = {}
-    for role, path in (
-        ("parasolid", parasolid_path),
-        ("parasolid_reimport", reimport_path),
-        ("face_inventory", inventory_copy_path),
-        ("source_chain", source_chain_path),
-    ):
+    route_files = (
+        (
+            ("upstream_step", upstream_step_path),
+            ("downstream_step", downstream_step_path),
+            ("split_step_reimport", split_reimport_path),
+            ("face_inventory", inventory_copy_path),
+            ("source_chain", source_chain_path),
+        )
+        if split_step_route
+        else (
+            ("parasolid", parasolid_path),
+            ("parasolid_reimport", reimport_path),
+            ("face_inventory", inventory_copy_path),
+            ("source_chain", source_chain_path),
+        )
+    )
+    for role, path in route_files:
         files[role] = {
             "path": path,
             "size": os.path.getsize(path),
             "sha256": sha256_file(path),
         }
     artifact_hashes_ok = (
-        len(files) == 4
+        len(files) == (5 if split_step_route else 4)
         and files["face_inventory"]["sha256"]
         == source_hashes_before["v02_face_inventory.json"]
     )
@@ -536,7 +709,11 @@ try:
         and result["source_native_mutated"] is False
         and result["representation_conversion"] is True
         and result["interface_topology"]
-        == "NOT_EVALUATED_UNTIL_PARASOLID_OBSERVER"
+        == (
+            "SEPARATE_BODY_FILES_ONLY_NOT_SOLVER_COMBINED"
+            if split_step_route
+            else "NOT_EVALUATED_UNTIL_PARASOLID_OBSERVER"
+        )
     )
     result["identity"] = {
         "git_head": os.environ.get("AIRJET_GIT_HEAD"),
@@ -573,17 +750,32 @@ try:
         "native_open_face_counts": sorted(
             item["face_count"] for item in native_fingerprints
         ),
-        "parasolid_reimport_face_counts": sorted(
-            item["face_count"] for item in parasolid_fingerprints
-        ),
-        "comparison_deltas": comparison_deltas,
     }
+    if split_step_route:
+        result["conversion"]["split_step_reimport_face_counts"] = sorted(
+            [
+                upstream_fingerprints[0]["face_count"],
+                downstream_fingerprints[0]["face_count"],
+            ]
+        )
+        result["conversion"]["solver_combination"] = (
+            "NOT_EVALUATED_SEPARATE_FILES_ONLY"
+        )
+    else:
+        result["conversion"]["parasolid_reimport_face_counts"] = sorted(
+            item["face_count"] for item in parasolid_fingerprints
+        )
+        result["conversion"]["comparison_deltas"] = comparison_deltas
     result["files"] = files
     if all(result["assertions"].values()):
         result["status"] = "PASS_PARTIAL_CAD_CAPABILITY"
         result["engineering_capability"] = "PASS_PARTIAL_CAD_CAPABILITY"
     else:
-        result["error"] = "PARASOLID_CONVERTER_ASSERTION_FAILED"
+        result["error"] = (
+            "SPLIT_STEP_CONVERTER_ASSERTION_FAILED"
+            if split_step_route
+            else "PARASOLID_CONVERTER_ASSERTION_FAILED"
+        )
 except Exception as error:
     result["error_type"] = type(error).__name__
     result["error"] = str(error)
@@ -592,4 +784,8 @@ except Exception as error:
 close_document_fail_soft()
 write_json(report_path, result)
 if result["status"] != "PASS_PARTIAL_CAD_CAPABILITY":
-    raise Exception("AJM006_V02_PARASOLID_CONVERTER_FAILED")
+    raise Exception(
+        "AJM006_V02_SPLIT_STEP_CONVERTER_FAILED"
+        if split_step_route
+        else "AJM006_V02_PARASOLID_CONVERTER_FAILED"
+    )

@@ -555,6 +555,25 @@ def test_runner_uses_three_stage_isolated_chain():
     assert '"predecessor_job_id": converter_state["job_id"]' in source
 
 
+def test_split_step_wrapper_is_converter_only_and_fail_closed():
+    root = Path(__file__).resolve().parent
+    wrapper = (root / "run_v02_split_step_converter_006.py").read_text(
+        encoding="utf-8"
+    )
+    converter = (
+        root / "approved" / "006" / "v02_parasolid_converter.py"
+    ).read_text(encoding="utf-8")
+    assert "ajm006-spaceclaim-v02-split-step-converter-v1" in wrapper
+    assert "base.CONVERTER_ONLY = True" in wrapper
+    assert "upstream.step" in wrapper and "downstream.step" in wrapper
+    assert "SPLIT_STEP_SOURCE_BODY_NAMES_MISMATCH" in converter
+    assert "Delete.Execute(Selection.Create(" in converter
+    assert "NOT_EVALUATED_SEPARATE_FILES_ONLY" in converter
+    assert "DocumentSave.Execute(native_path)" not in converter
+    assert "GenerateMesh(" not in converter
+    assert ".Solve(" not in converter
+
+
 def main():
     tests = [
         test_preflight_passes,
@@ -573,6 +592,7 @@ def main():
         test_embedded_mechanical_script_formats_and_compiles,
         test_embedded_classifier_requires_pair_geometry_and_adjacent_bodies,
         test_runner_uses_three_stage_isolated_chain,
+        test_split_step_wrapper_is_converter_only_and_fail_closed,
     ]
     for test in tests:
         test()

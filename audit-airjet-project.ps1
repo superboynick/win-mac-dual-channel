@@ -1479,6 +1479,7 @@ if (Test-Path -LiteralPath $AnsysProfilesPath) {
             'ajm006-workbench-v02-topology-observer-v1',
             'ajm006-workbench-v02-native-topology-observer-v1',
             'ajm006-spaceclaim-v02-parasolid-converter-v1',
+            'ajm006-spaceclaim-v02-split-step-converter-v1',
             'ajm006-workbench-v02-parasolid-topology-observer-v1'
         )
         $RootFields = @($ProfileData.PSObject.Properties.Name)
@@ -1559,7 +1560,7 @@ if (Test-Path -LiteralPath $AnsysProfilesPath) {
             $env:PYTHONDONTWRITEBYTECODE = $PreviousNoBytecode
         }
         if ($PolicyExit -ne 0 -or
-            -not (($PolicyOutput -join "`n").Contains('AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=15 tools=5'))) {
+            -not (($PolicyOutput -join "`n").Contains('AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=16 tools=5'))) {
             Add-Failure "mandatory ANSYS v2 route/policy audit failed: $($PolicyOutput -join ' | ')"
         }
         $ReviewerTest = Join-Path $RepoRoot 'airjet-simulation\checklists\test_prepare_p1_cad_review_static.py'

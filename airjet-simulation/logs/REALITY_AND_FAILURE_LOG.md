@@ -1449,6 +1449,19 @@
 - 下一步：native `.scdocx` 只读 Workbench observer 需新建、静态审计、签名注册后再运行。
 - 状态：CLOSED_OBSERVATION_WITH_TOPOLOGY_LIMITATION
 
+## REAL-20260715-062：V02 native staging Workbench attach 失败
+- UTC：2026-07-15
+- Stage/task：AJM-006 V02 native topology observer
+- Machine/operator：Windows ANSYS Student 2026 R1 / Codex
+- run/job/profile：producer `AJM006-V02-PRELIMINARY-939d21f59c47`；observer `AJM006-V02-PRELIMINARY-c1ff3339dcb9`
+- 期望：从 hash-equal job-local `.scdocx` staging attach 到 Workbench/Mechanical 并枚举两体拓扑。
+- 实际观察：predecessor identity 与 staging SHA 通过；`SetFile` 后 `Model.Refresh()` 报“无法附加几何结构”，Mechanical inventory 未到达。
+- 原始证据：`D:\AirJet_P1\AJM-P1-CAD-006\V02_NATIVE_TOPOLOGY_OBSERVER_RUN_SUMMARY.json` 与 observer raw job。
+- 结果：关闭当前 external native attach 路线；不是 native 几何本体失败。
+- 对 Gate/论文主张的影响：formal 006、P1--P6、mesh、physics 继续 `NOT_RUN`。
+- 下一步：独立导出 upstream/downstream STEP，先逐侧验证 972 接口保留，再设计 solver-side 重组。
+- 状态：CLOSED_NATIVE_ATTACH_ROUTE_BLOCKED
+
 ## 新条目模板
 
 ```text

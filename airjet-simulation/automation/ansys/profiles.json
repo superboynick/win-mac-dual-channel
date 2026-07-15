@@ -346,11 +346,46 @@
       "profile_id": "ajm006-spaceclaim-v02-parasolid-converter-v1",
       "engine": "spaceclaim",
       "script": "006/v02_parasolid_converter.py",
-      "sha256": "c8a450b3b4648457f90df3553e25e75447cc683b162c7afa63eaaaf528bd588f",
+      "sha256": "0e54b98f9169e28c20ade139b41d4038e54c957a7f7cae7af1956071ffe6927c",
       "timeout_seconds": 3600,
       "output_root_id": "p1_cad_006",
       "reports": [
         "v02_parasolid_converter.json"
+      ],
+      "predecessor": {
+        "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
+        "report": "v02_preliminary_producer.json",
+        "required_probe": "v02_preliminary_producer",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
+        "required_assertions": [
+          "input_contract",
+          "gen1_target",
+          "full_product_scope",
+          "complete_flow_path",
+          "two_fluid_zone",
+          "native_save",
+          "native_reopen",
+          "step_export_reimport",
+          "artifact_hashes",
+          "physics_guards"
+        ],
+        "artifacts": [
+          "v02_preliminary_producer.json",
+          "product_two_zone.scdocx",
+          "v02_face_inventory.json",
+          "native_reopen.json"
+        ]
+      }
+    },
+    {
+      "profile_id": "ajm006-spaceclaim-v02-split-step-converter-v1",
+      "engine": "spaceclaim",
+      "script": "006/v02_parasolid_converter.py",
+      "sha256": "0e54b98f9169e28c20ade139b41d4038e54c957a7f7cae7af1956071ffe6927c",
+      "timeout_seconds": 3600,
+      "output_root_id": "p1_cad_006",
+      "reports": [
+        "v02_split_step_converter.json"
       ],
       "predecessor": {
         "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",

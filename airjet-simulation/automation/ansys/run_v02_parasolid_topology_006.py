@@ -43,8 +43,9 @@ POLICY_GIT_PATH = producer_runner.POLICY_GIT_PATH
 PRODUCER_PROFILE_ID = producer_runner.PROFILE_ID
 PRODUCER_SCRIPT_SHA256 = producer_runner.PROFILE_SCRIPT_SHA256
 CONVERTER_PROFILE_ID = "ajm006-spaceclaim-v02-parasolid-converter-v1"
+CONVERTER_SCRIPT_RELATIVE = "006/v02_parasolid_converter.py"
 CONVERTER_SCRIPT_SHA256 = (
-    "c8a450b3b4648457f90df3553e25e75447cc683b162c7afa63eaaaf528bd588f"
+    "0e54b98f9169e28c20ade139b41d4038e54c957a7f7cae7af1956071ffe6927c"
 )
 OBSERVER_PROFILE_ID = (
     "ajm006-workbench-v02-parasolid-topology-observer-v1"
@@ -81,6 +82,9 @@ EXPECTED_CONVERTER_ASSERTIONS = {
     "claim_boundaries",
 }
 CONVERTER_REPORT = "v02_parasolid_converter.json"
+CONVERTER_PROBE = "v02_parasolid_converter"
+CONVERTER_INTERFACE_TOPOLOGY = "NOT_EVALUATED_UNTIL_PARASOLID_OBSERVER"
+CONVERTER_REIMPORT_FACE_COUNTS_FIELD = "parasolid_reimport_face_counts"
 EXPECTED_CONVERTER_FILES = {
     "parasolid": "product.x_t",
     "parasolid_reimport": "parasolid_reimport.json",
@@ -116,6 +120,8 @@ VALID_TOPOLOGY_PAIRS = {
     ),
     ("MIXED_OR_OTHER", "UNRESOLVED_MIXED"),
 }
+CONVERTER_ONLY = False
+SUITE_PASS_STATUS = "PASS_PRELIMINARY_PARASOLID_TOPOLOGY_OBSERVER"
 
 
 def utc_now() -> str:
@@ -157,7 +163,7 @@ def combined_preflight() -> dict[str, Any]:
                 if (
                     converter.get("engine") != "spaceclaim"
                     or converter.get("script")
-                    != "006/v02_parasolid_converter.py"
+                    != CONVERTER_SCRIPT_RELATIVE
                     or converter.get("output_root_id") != "p1_cad_006"
                     or converter.get("reports") != [CONVERTER_REPORT]
                     or not isinstance(predecessor, dict)
@@ -175,7 +181,10 @@ def combined_preflight() -> dict[str, Any]:
                 ):
                     errors.append("BLOCKED_CONVERTER_PROFILE_CONTRACT")
             observer = by_id.get(OBSERVER_PROFILE_ID)
-            if not isinstance(observer, dict):
+            if CONVERTER_ONLY:
+                result["observer_profile_found"] = True
+                result["observer_script_sha256_matches"] = True
+            elif not isinstance(observer, dict):
                 errors.append("BLOCKED_OBSERVER_PROFILE_NOT_UNIQUE")
             else:
                 result["observer_profile_found"] = True
@@ -349,7 +358,7 @@ def validate_converter_report(
     if not isinstance(report, dict):
         raise RuntimeError("CONVERTER_REPORT_NOT_INLINED")
     if (
-        report.get("probe") != "v02_parasolid_converter"
+        report.get("probe") != CONVERTER_PROBE
         or report.get("status") != "PASS_PARTIAL_CAD_CAPABILITY"
         or report.get("engineering_capability")
         != "PASS_PARTIAL_CAD_CAPABILITY"
@@ -365,7 +374,7 @@ def validate_converter_report(
         or report.get("source_native_mutated") is not False
         or report.get("representation_conversion") is not True
         or report.get("interface_topology")
-        != "NOT_EVALUATED_UNTIL_PARASOLID_OBSERVER"
+        != CONVERTER_INTERFACE_TOPOLOGY
         or report.get("license_arguments_added") is not False
     ):
         raise RuntimeError("CONVERTER_CLAIM_BOUNDARY_VIOLATION")
@@ -398,7 +407,7 @@ def validate_converter_report(
         not isinstance(conversion, dict)
         or conversion.get("source_native_face_counts") != [978, 2044]
         or conversion.get("native_open_face_counts") != [978, 2044]
-        or conversion.get("parasolid_reimport_face_counts") != [978, 2044]
+        or conversion.get(CONVERTER_REIMPORT_FACE_COUNTS_FIELD) != [978, 2044]
         or not isinstance(staging, dict)
         or staging.get("unchanged") is not True
         or staging.get("workspace_exact") is not True
@@ -665,11 +674,13 @@ async def run_suite() -> int:
                     ):
                         raise RuntimeError("BLOCKED_INVENTORY_NOT_READY")
                     approved = set(inventory.get("approved_profiles") or [])
-                    if not {
+                    required_profiles = {
                         PRODUCER_PROFILE_ID,
                         CONVERTER_PROFILE_ID,
-                        OBSERVER_PROFILE_ID,
-                    } <= approved:
+                    }
+                    if not CONVERTER_ONLY:
+                        required_profiles.add(OBSERVER_PROFILE_ID)
+                    if not required_profiles <= approved:
                         raise RuntimeError("BLOCKED_REQUIRED_PROFILE_NOT_APPROVED")
                     contracts = inventory.get("profile_contract_sha256")
                     if not isinstance(contracts, dict):
@@ -677,13 +688,12 @@ async def run_suite() -> int:
                     producer_contract = contracts.get(PRODUCER_PROFILE_ID)
                     converter_contract = contracts.get(CONVERTER_PROFILE_ID)
                     observer_contract = contracts.get(OBSERVER_PROFILE_ID)
+                    required_contracts = [producer_contract, converter_contract]
+                    if not CONVERTER_ONLY:
+                        required_contracts.append(observer_contract)
                     if not all(
                         isinstance(item, str) and re.fullmatch(r"[0-9a-f]{64}", item)
-                        for item in (
-                            producer_contract,
-                            converter_contract,
-                            observer_contract,
-                        )
+                        for item in required_contracts
                     ):
                         raise RuntimeError("BLOCKED_PROFILE_CONTRACT_HASH")
 
@@ -791,6 +801,10 @@ async def run_suite() -> int:
                         "manifest": converter_manifest,
                         "report": converter_report,
                     }
+                    if CONVERTER_ONLY:
+                        result["final_status"] = SUITE_PASS_STATUS
+                        exit_code = 0
+                        return exit_code
 
                     observer_state = await call_json(
                         session,
@@ -852,9 +866,7 @@ async def run_suite() -> int:
                     result["route_assessment"] = observer_report[
                         "route_assessment"
                     ]
-                    result["final_status"] = (
-                        "PASS_PRELIMINARY_PARASOLID_TOPOLOGY_OBSERVER"
-                    )
+                    result["final_status"] = SUITE_PASS_STATUS
                     exit_code = 0
     except Exception as exc:
         result["error"] = {

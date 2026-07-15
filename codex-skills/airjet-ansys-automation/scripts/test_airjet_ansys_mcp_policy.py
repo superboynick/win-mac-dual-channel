@@ -55,6 +55,7 @@ V02_TOPOLOGY_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" /
 V02_NATIVE_TOPOLOGY_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_native_topology_observer_006.py"
 V02_PARASOLID_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_parasolid_topology_006.py"
 V02_PARASOLID_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_run_v02_parasolid_topology_006.py"
+V02_SPLIT_STEP_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_split_step_converter_006.py"
 T1_PREDECESSOR_NEGATIVE = (
     SKILL_ROOT / "scripts" / "test_t1_predecessor_negative.py"
 )
@@ -1388,6 +1389,7 @@ expected_profile_ids = {
     "ajm006-workbench-v02-topology-observer-v1",
     "ajm006-workbench-v02-native-topology-observer-v1",
     "ajm006-spaceclaim-v02-parasolid-converter-v1",
+    "ajm006-spaceclaim-v02-split-step-converter-v1",
     "ajm006-workbench-v02-parasolid-topology-observer-v1",
 }
 if profile_ids != expected_profile_ids:
@@ -1416,6 +1418,7 @@ for required_path in (
     V02_NATIVE_TOPOLOGY_RUNNER,
     V02_PARASOLID_RUNNER,
     V02_PARASOLID_RUNNER_TEST,
+    V02_SPLIT_STEP_RUNNER,
 ):
     if not required_path.is_file():
         fail(f"missing mandatory v2 route file: {required_path}")
@@ -1899,7 +1902,7 @@ for invariant in (
     "parasolid_body_envelope_and_face_count_preserved",
     '"source_native_mutated": False',
     '"representation_conversion": True',
-    '"interface_topology": "NOT_EVALUATED_UNTIL_PARASOLID_OBSERVER"',
+    '"NOT_EVALUATED_UNTIL_PARASOLID_OBSERVER"',
     '"formal_006_completion": False',
     '"p1_stage_gate": "NOT_RUN"',
     '"p1_p6_gates": "NOT_RUN"',
@@ -1910,6 +1913,44 @@ if "DocumentSave.Execute(parasolid_path)" in v02_parasolid_converter_source:
     fail("V02 Parasolid converter restored deprecated implicit export options")
 if 'os.environ["AIRJET_REPO_ROOT"]' in v02_parasolid_converter_source:
     fail("V02 Parasolid converter reads mutable repository dependencies")
+
+v02_split_profile = by_profile_id[
+    "ajm006-spaceclaim-v02-split-step-converter-v1"
+]
+v02_split_predecessor = v02_split_profile.get("predecessor")
+if (
+    v02_split_profile.get("engine") != "spaceclaim"
+    or v02_split_profile.get("script") != "006/v02_parasolid_converter.py"
+    or v02_split_profile.get("reports") != ["v02_split_step_converter.json"]
+    or not isinstance(v02_split_predecessor, dict)
+    or v02_split_predecessor.get("profile_id")
+    != "ajm006-spaceclaim-v02-preliminary-v1"
+    or set(v02_split_predecessor.get("artifacts") or [])
+    != {
+        "v02_preliminary_producer.json",
+        "product_two_zone.scdocx",
+        "v02_face_inventory.json",
+        "native_reopen.json",
+    }
+):
+    fail("V02 split STEP converter profile contract changed")
+for invariant in (
+    'SPLIT_STEP_PROFILE = "ajm006-spaceclaim-v02-split-step-converter-v1"',
+    'upstream_step_path = os.path.join(job_dir, "upstream.step")',
+    'downstream_step_path = os.path.join(job_dir, "downstream.step")',
+    "Delete.Execute(Selection.Create(",
+    "SPLIT_STEP_SOURCE_BODY_NAMES_MISMATCH",
+    "SPLIT_STEP_BODY_SHAPE_OR_FACE_COUNT_NOT_PRESERVED",
+    "NOT_EVALUATED_SEPARATE_FILES_ONLY",
+    '"formal_006_completion": False',
+    '"p1_stage_gate": "NOT_RUN"',
+    '"p1_p6_gates": "NOT_RUN"',
+):
+    if invariant not in v02_parasolid_converter_source:
+        fail("V02 split STEP converter lacks invariant: " + invariant)
+for forbidden in ("DocumentSave.Execute(native_path)", "GenerateMesh(", ".Solve("):
+    if forbidden in v02_parasolid_converter_source:
+        fail("V02 split STEP converter contains forbidden action: " + forbidden)
 
 v02_parasolid_observer_profile = by_profile_id[
     "ajm006-workbench-v02-parasolid-topology-observer-v1"
