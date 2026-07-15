@@ -1436,6 +1436,19 @@
 - 下一步：以 native `.scdocx` 为主输入推进 Workbench/Mechanical 连接性检查；Parasolid 仅保留为已审计的失败诊断路线。
 - 状态：CLOSED_DIAGNOSTIC_ROUTE_BLOCKED
 
+## REAL-20260715-061：V02 STEP solver-side 拓扑观察完成
+- UTC：2026-07-15
+- Stage/task：AJM-006 V02 preliminary topology observer
+- Machine/operator：Windows ANSYS Student 2026 R1 / Codex
+- run/job/profile：producer `AJM006-V02-PRELIMINARY-36220012f2a3`；observer `AJM006-V02-PRELIMINARY-32f6ab51f170`
+- 期望：在 Workbench/Mechanical 侧读取整机 STEP 交接物并对 972 孔接口进行只读分类。
+- 实际观察：`PASS_PRELIMINARY_TOPOLOGY_OBSERVER`；分类 `MIXED_OR_OTHER`；`UPSTREAM_ORIFICE_GEOMETRY_LOST_DOWNSTREAM_972_IMPRINTS_RETAINED`。
+- 原始证据：`D:\AirJet_P1\AJM-P1-CAD-006\V02_TOPOLOGY_OBSERVER_RUN_SUMMARY.json` 及 observer job inventory。
+- 结果：solver-side inventory 成功生成；上游实体孔几何未保留，下游 972 个 imprint 保留。
+- 对 Gate/论文主张的影响：证明了 STEP observer 链路可执行，但接口拓扑不完整；P1--P6、mesh、physics 仍 `NOT_RUN`，不得写成完整流固接口。
+- 下一步：native `.scdocx` 只读 Workbench observer 需新建、静态审计、签名注册后再运行。
+- 状态：CLOSED_OBSERVATION_WITH_TOPOLOGY_LIMITATION
+
 ## 新条目模板
 
 ```text
