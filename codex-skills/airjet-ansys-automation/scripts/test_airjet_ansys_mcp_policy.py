@@ -59,6 +59,8 @@ V02_PARASOLID_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" 
 V02_SPLIT_STEP_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_split_step_converter_006.py"
 V03_CONTINUOUS_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v03_continuous_fluid_006.py"
 V03_CONTINUOUS_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_run_v03_continuous_fluid_006.py"
+V03_MESH_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v03_continuous_mesh_006.py"
+V03_MESH_CONSUMER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_v03_pyfluent_watertight_mesh_consumer.py"
 T1_PREDECESSOR_NEGATIVE = (
     SKILL_ROOT / "scripts" / "test_t1_predecessor_negative.py"
 )
@@ -1415,6 +1417,7 @@ expected_profile_ids = {
     "ajm006-spaceclaim-v02-split-step-converter-v1",
     "ajm006-workbench-v02-parasolid-topology-observer-v1",
     "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
+    "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
 }
 if profile_ids != expected_profile_ids:
     fail(f"approved profile set is not exact: {sorted(profile_ids)}")
@@ -1446,6 +1449,8 @@ for required_path in (
     V02_SPLIT_STEP_RUNNER,
     V03_CONTINUOUS_RUNNER,
     V03_CONTINUOUS_RUNNER_TEST,
+    V03_MESH_RUNNER,
+    V03_MESH_CONSUMER_TEST,
 ):
     if not required_path.is_file():
         fail(f"missing mandatory v2 route file: {required_path}")
@@ -1862,6 +1867,63 @@ if (
 ):
     fail("V03 runner/profile binding changed")
 for path in (V03_CONTINUOUS_RUNNER, V03_CONTINUOUS_RUNNER_TEST):
+    assert_python39_static_compatibility(path)
+
+v03_mesh_profile = by_profile_id[
+    "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
+]
+v03_mesh_source_path = APPROVED / v03_mesh_profile["script"]
+if (
+    v03_mesh_profile.get("engine") != "pyfluent"
+    or v03_mesh_profile.get("script")
+    != "006/v03_pyfluent_watertight_mesh_consumer.py"
+    or v03_mesh_profile.get("timeout_seconds") != 7200
+    or v03_mesh_profile.get("output_root_id") != "p1_cad_006"
+    or v03_mesh_profile.get("reports")
+    != ["v03_pyfluent_watertight_mesh_consumer.json"]
+    or not isinstance(v03_mesh_profile.get("predecessor"), dict)
+    or v03_mesh_profile["predecessor"].get("profile_id")
+    != "ajm006-spaceclaim-v03-continuous-throat-pilot-v1"
+    or v03_mesh_profile["predecessor"].get("report")
+    != "v03_continuous_fluid_producer.json"
+    or v03_mesh_profile["predecessor"].get("required_probe")
+    != "v03_continuous_fluid_producer"
+    or v03_mesh_profile["predecessor"].get("required_status")
+    != "PASS_PARTIAL_CAD_CAPABILITY"
+    or len(v03_mesh_profile["predecessor"].get("required_assertions") or [])
+    != 17
+    or v03_mesh_profile["predecessor"].get("artifacts")
+    != [
+        "v03_continuous_fluid_producer.json",
+        "product_continuous_fluid.step",
+        "v03_step_reimport.json",
+        "v03_throat_inventory.json",
+        "v03_source_chain.json",
+    ]
+):
+    fail("V03 PyFluent mesh profile contract changed")
+if hashlib.sha256(v03_mesh_source_path.read_bytes()).hexdigest() != v03_mesh_profile.get("sha256"):
+    fail("V03 PyFluent mesh script hash differs")
+if actual_dependency_git_paths.get(v03_mesh_profile["profile_id"]) is not None:
+    fail("V03 PyFluent consumer must not receive repository dependencies")
+v03_mesh_source = v03_mesh_source_path.read_text(encoding="utf-8")
+for invariant in (
+    "FluentVersion.v261",
+    "FluentMode.MESHING",
+    "processor_count=1",
+    "THROAT_COUNT = 972",
+    "STUDENT_ENTITY_LIMIT = 1_000_000",
+    "session.tui.report.mesh_size()",
+    "session.tui.file.write_mesh(str(MESH_PATH))",
+    '"physics": "NOT_RUN"',
+    '"solver_iterations": 0',
+):
+    if invariant not in v03_mesh_source:
+        fail("V03 PyFluent consumer lacks invariant: " + invariant)
+for forbidden in ("switch_to_solver", "additional_arguments=", ".iterate("):
+    if forbidden in v03_mesh_source:
+        fail("V03 PyFluent consumer contains forbidden action: " + forbidden)
+for path in (V03_MESH_RUNNER, V03_MESH_CONSUMER_TEST, v03_mesh_source_path):
     assert_python39_static_compatibility(path)
 
 v02_observer_profile = by_profile_id[

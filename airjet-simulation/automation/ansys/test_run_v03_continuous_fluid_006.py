@@ -75,7 +75,12 @@ def throat_inventory(
         "accepted_area_model_counts": {
             "EFFECTIVE_0P100_MM": 0,
             "CONSTRUCTION_0P102_MM": 972,
+            "STEP_KERNEL_OTHER_AREA": 0,
         },
+        "observed_candidate_area_range_mm2": [
+            0.08011061266653972,
+            0.08011061266653972,
+        ],
         "xy_inventory": {
             "expected_count": 972,
             "actual_count": 972,

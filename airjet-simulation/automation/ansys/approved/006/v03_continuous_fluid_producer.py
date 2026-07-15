@@ -465,7 +465,9 @@ def classify_throat_walls(
     area_model_counts = {
         "EFFECTIVE_0P100_MM": 0,
         "CONSTRUCTION_0P102_MM": 0,
+        "STEP_KERNEL_OTHER_AREA": 0,
     }
+    candidate_areas = []
     for face in body.Faces:
         item = face_fingerprint(face, body.Name)
         center = item["center_mm"]
@@ -480,11 +482,13 @@ def classify_throat_walls(
             area_model = "EFFECTIVE_0P100_MM"
         if (
             close_enough(center[2], expected_center_z, geometry_tolerance_mm)
-            and area_model is not None
             and item.get("edge_count") == 2
         ):
+            if area_model is None:
+                area_model = "STEP_KERNEL_OTHER_AREA"
             item["accepted_area_model"] = area_model
             area_model_counts[area_model] += 1
+            candidate_areas.append(float(item["area_mm2"]))
             faces.append(face)
             details.append(item)
             actual_xy.append(item["center_mm"][:2])
@@ -504,6 +508,10 @@ def classify_throat_walls(
         "candidate_face_count": len(faces),
         "candidate_faces": details,
         "accepted_area_model_counts": area_model_counts,
+        "observed_candidate_area_range_mm2": (
+            [min(candidate_areas), max(candidate_areas)]
+            if candidate_areas else None
+        ),
         "xy_inventory": xy_inventory,
         "geometry_tolerance_mm": geometry_tolerance_mm,
         "area_tolerance_mm2": area_tolerance_mm2,
@@ -537,6 +545,9 @@ def compact_throat_inventory(value):
         "candidate_face_count": value.get("candidate_face_count"),
         "accepted_area_model_counts": value.get(
             "accepted_area_model_counts"
+        ),
+        "observed_candidate_area_range_mm2": value.get(
+            "observed_candidate_area_range_mm2"
         ),
         "geometry_tolerance_mm": value.get("geometry_tolerance_mm"),
         "area_tolerance_mm2": value.get("area_tolerance_mm2"),

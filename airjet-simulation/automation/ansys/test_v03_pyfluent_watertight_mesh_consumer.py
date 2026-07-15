@@ -1,0 +1,166 @@
+#!/usr/bin/env python3
+"""Static fail-closed guards for the V03 PyFluent mesh-only consumer."""
+
+from __future__ import annotations
+
+import ast
+from pathlib import Path
+
+
+HERE = Path(__file__).resolve().parent
+SOURCE_PATH = HERE / "approved" / "006" / "v03_pyfluent_watertight_mesh_consumer.py"
+SOURCE = SOURCE_PATH.read_text(encoding="utf-8")
+TREE = ast.parse(SOURCE)
+
+
+def literal_assignments() -> dict:
+    result = {}
+    for node in TREE.body:
+        if (
+            isinstance(node, (ast.Assign, ast.AnnAssign))
+            and ((isinstance(node, ast.Assign) and len(node.targets) == 1)
+                 or isinstance(node, ast.AnnAssign))
+        ):
+            target = node.targets[0] if isinstance(node, ast.Assign) else node.target
+            value = node.value
+            if isinstance(target, ast.Name):
+                try:
+                    result[target.id] = ast.literal_eval(value)
+                except (ValueError, TypeError):
+                    pass
+    return result
+
+
+def test_exact_profile_and_assertion_contract() -> None:
+    values = literal_assignments()
+    assert values["PROFILE_ID"] == "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
+    assert values["PREDECESSOR_PROFILE_ID"] == (
+        "ajm006-spaceclaim-v03-continuous-throat-pilot-v1"
+    )
+    assert values["PREDECESSOR_ARTIFACTS"] == {
+        "v03_continuous_fluid_producer.json",
+        "product_continuous_fluid.step",
+        "v03_step_reimport.json",
+        "v03_throat_inventory.json",
+        "v03_source_chain.json",
+    }
+    assert len(values["PRODUCER_ASSERTIONS"]) == 17
+    assertions = values["ASSERTION_NAMES"]
+    assert len(assertions) == 17 and len(set(assertions)) == 17
+    assert values["STUDENT_ENTITY_LIMIT"] == 1_000_000
+    assert values["THROAT_COUNT"] == 972
+
+
+def test_launch_is_v261_mesh_only_and_single_process() -> None:
+    for required in (
+        "product_version=FluentVersion.v261",
+        "mode=FluentMode.MESHING",
+        "precision=Precision.DOUBLE",
+        "dimension=Dimension.THREE",
+        "processor_count=1",
+        "ui_mode=UIMode.NO_GUI_OR_GRAPHICS",
+        "cleanup_on_exit=True",
+        "session.watertight()",
+    ):
+        assert required in SOURCE
+    for forbidden in (
+        "additional_arguments=",
+        "license_server",
+        "switch_to_solver",
+        "solver_session",
+        ".solution.",
+        ".initialize",
+        ".iterate",
+    ):
+        assert forbidden not in SOURCE
+
+
+def test_exact_byte_predecessor_and_role_reconstruction() -> None:
+    for required in (
+        'PREDECESSOR_DIR / "predecessor-manifest.json"',
+        "PREDECESSOR_TREE_NOT_EXACT",
+        "PREDECESSOR_FILE_HASH_MISMATCH",
+        "PREDECESSOR_ASSERTIONS_NOT_EXACT_PASS",
+        "STAGED_STEP_NOT_BYTE_IDENTICAL",
+        "get_face_zones(",
+        "convert_zone_ids_to_name_strings(",
+        "convert_zone_name_strings_to_ids(",
+        "THROAT_CENTER_SET_NOT_972_UNIQUE",
+        "RECONSTRUCTED_BOUNDARY_ZONE_ROLE_CONFLICT",
+    ):
+        assert required in SOURCE
+
+
+def test_official_v261_watertight_calls_are_pinned() -> None:
+    for required in (
+        "workflow.import_geometry.file_name",
+        'workflow.import_geometry.length_unit = "mm"',
+        "local.add_child_and_update(",
+        '"boi_face_zone_list": throat_zone_names',
+        '"boi_size": 0.05',
+        "workflow.create_surface_mesh",
+        "surface.cfd_surface_mesh_controls.min_size = 0.025",
+        "surface.cfd_surface_mesh_controls.max_size = 0.5",
+        "workflow.describe_geometry.update_child_tasks(setup_type_changed=False)",
+        "workflow.describe_geometry.update_child_tasks(setup_type_changed=True)",
+        "workflow.update_regions()",
+        "workflow.create_volume_mesh_wtm",
+        'volume_mesh.volume_fill = "poly-hexcore"',
+        "volume_mesh.volume_fill_controls.hex_max_cell_length = 0.5",
+    ):
+        assert required in SOURCE
+
+
+def test_volume_mesh_and_student_guards_precede_write() -> None:
+    for required in (
+        "utilities.mesh_exists() is not True",
+        'utilities.get_cell_zones(filter="*")',
+        "utilities.get_cell_zone_count(",
+        "utilities.get_cell_zone_volume(",
+        "utilities.get_free_faces_count(",
+        "utilities.get_multi_faces_count(",
+        "utilities.mesh_check(",
+        "utilities.get_cell_quality_limits(",
+        "session.tui.report.mesh_size()",
+        "MESH_STATS_LEVEL_ZERO_ROW_NOT_UNIQUE",
+        "STUDENT_LIMIT_UNPROVEN_OR_EXCEEDED",
+        "session.tui.file.write_mesh(str(MESH_PATH))",
+    ):
+        assert required in SOURCE
+    assert SOURCE.index("STUDENT_LIMIT_UNPROVEN_OR_EXCEEDED") < SOURCE.index(
+        "session.tui.file.write_mesh(str(MESH_PATH))"
+    )
+
+
+def test_claim_ceiling_is_explicit() -> None:
+    for required in (
+        '"formal_006_completion": False',
+        '"p1_stage_gate": "NOT_RUN"',
+        '"p1_mesh_gate": "NOT_RUN"',
+        '"p1_p6_gates": "NOT_RUN"',
+        '"physics": "NOT_RUN"',
+        '"boundary_conditions": "NOT_APPLIED"',
+        '"solver_mode": "NOT_ENTERED"',
+        '"solver_initialization": "NOT_RUN"',
+        '"solver_iterations": 0',
+        '"solution": "NOT_RUN"',
+        '"cht": "NOT_RUN"',
+        '"fsi": "NOT_RUN"',
+        '"license_arguments_added": False',
+    ):
+        assert required in SOURCE
+
+
+def main() -> None:
+    tests = [
+        value for name, value in sorted(globals().items())
+        if name.startswith("test_") and callable(value)
+    ]
+    for test in tests:
+        test()
+        print("PASS", test.__name__)
+    print("AJM006_V03_PYFLUENT_CONSUMER_GUARDS=PASS_ALL")
+
+
+if __name__ == "__main__":
+    main()

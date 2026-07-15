@@ -489,13 +489,56 @@
       "profile_id": "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
       "engine": "spaceclaim",
       "script": "006/v03_continuous_fluid_producer.py",
-      "sha256": "308d36d0e04379969e448efa43035de334a5d40b5853be56d4be170899e772aa",
+      "sha256": "d8e347b1cf826da75c6c5715d23bea7760d54a8e10ddd32b29f8e230d7fa7d5e",
       "timeout_seconds": 7200,
       "output_root_id": "p1_cad_006",
       "reports": [
         "v03_continuous_fluid_producer.json"
       ],
       "predecessor": null
+    },
+    {
+      "profile_id": "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
+      "engine": "pyfluent",
+      "script": "006/v03_pyfluent_watertight_mesh_consumer.py",
+      "sha256": "82ce9dc781948e8f04d8b1004ac91f31dd338c2380f6a733fbe97d32b3821fed",
+      "timeout_seconds": 7200,
+      "output_root_id": "p1_cad_006",
+      "reports": [
+        "v03_pyfluent_watertight_mesh_consumer.json"
+      ],
+      "predecessor": {
+        "profile_id": "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
+        "report": "v03_continuous_fluid_producer.json",
+        "required_probe": "v03_continuous_fluid_producer",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
+        "required_assertions": [
+          "input_contract",
+          "gen1_target",
+          "preliminary_full_product_scope",
+          "c016_candidate_boundary",
+          "explicit_throat_construction",
+          "single_continuous_fluid_boolean",
+          "native_save",
+          "native_reopen_single_body",
+          "native_throat_inventory",
+          "step_export",
+          "step_reopen_single_body",
+          "step_throat_inventory",
+          "complete_flow_path",
+          "round_trip_shape_fidelity",
+          "artifact_hashes",
+          "claim_boundaries",
+          "physics_guards"
+        ],
+        "artifacts": [
+          "v03_continuous_fluid_producer.json",
+          "product_continuous_fluid.step",
+          "v03_step_reimport.json",
+          "v03_throat_inventory.json",
+          "v03_source_chain.json"
+        ]
+      }
     }
   ]
 }

@@ -96,6 +96,9 @@ $Required = @(
     'airjet-simulation\automation\ansys\contracts\v03_finite_throat_route_v1.json',
     'airjet-simulation\automation\ansys\contracts\v03_finite_throat_contract_v1.py',
     'airjet-simulation\automation\ansys\contracts\test_v03_finite_throat_contract_v1.py',
+    'airjet-simulation\automation\ansys\approved\006\v03_pyfluent_watertight_mesh_consumer.py',
+    'airjet-simulation\automation\ansys\run_v03_continuous_mesh_006.py',
+    'airjet-simulation\automation\ansys\test_v03_pyfluent_watertight_mesh_consumer.py',
     'airjet-simulation\automation\ansys\contracts\full_product_semantic_contract_v1.py',
     'airjet-simulation\automation\ansys\contracts\full_product_semantic_sidecar_v1.schema.json',
     'airjet-simulation\automation\ansys\contracts\test_full_product_semantic_contract_v1.py',
@@ -1490,7 +1493,8 @@ if (Test-Path -LiteralPath $AnsysProfilesPath) {
             'ajm006-spaceclaim-v02-parasolid-converter-v1',
             'ajm006-spaceclaim-v02-split-step-converter-v1',
             'ajm006-workbench-v02-parasolid-topology-observer-v1',
-            'ajm006-spaceclaim-v03-continuous-throat-pilot-v1'
+            'ajm006-spaceclaim-v03-continuous-throat-pilot-v1',
+            'ajm006-pyfluent-v03-continuous-mesh-pilot-v1'
         )
         $RootFields = @($ProfileData.PSObject.Properties.Name)
         if ($ProfileData.schema_version -ne 2 -or
@@ -1570,7 +1574,7 @@ if (Test-Path -LiteralPath $AnsysProfilesPath) {
             $env:PYTHONDONTWRITEBYTECODE = $PreviousNoBytecode
         }
         if ($PolicyExit -ne 0 -or
-            -not (($PolicyOutput -join "`n").Contains('AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=18 tools=5'))) {
+            -not (($PolicyOutput -join "`n").Contains('AIRJET_ANSYS_MCP_STATIC_POLICY=PASS profiles=19 tools=5'))) {
             Add-Failure "mandatory ANSYS v2 route/policy audit failed: $($PolicyOutput -join ' | ')"
         }
         $ReviewerTest = Join-Path $RepoRoot 'airjet-simulation\checklists\test_prepare_p1_cad_review_static.py'
