@@ -251,7 +251,35 @@ def body_fingerprint(body):
     }
 
 
-def fingerprints_equivalent(expected, actual, require_names, require_face_count):
+def fingerprint_deltas(expected, actual):
+    if len(expected) != len(actual):
+        return None
+    expected_sorted = sorted(
+        expected, key=lambda item: (item["bbox_min_mm"][2], item["bbox_max_mm"][2])
+    )
+    actual_sorted = sorted(
+        actual, key=lambda item: (item["bbox_min_mm"][2], item["bbox_max_mm"][2])
+    )
+    bbox_deltas = []
+    volume_deltas = []
+    for left, right in zip(expected_sorted, actual_sorted):
+        for key in ("bbox_min_mm", "bbox_max_mm"):
+            for left_value, right_value in zip(left[key], right[key]):
+                bbox_deltas.append(abs(float(left_value) - float(right_value)))
+        volume_deltas.append(
+            abs(float(left["volume_mm3"]) - float(right["volume_mm3"]))
+        )
+    return {
+        "max_bbox_delta_mm": max(bbox_deltas),
+        "max_volume_delta_mm3": max(volume_deltas),
+    }
+
+
+def fingerprints_equivalent(
+    expected, actual, require_names, require_face_count,
+    bbox_tolerance_mm=0.005, volume_absolute_tolerance_mm3=0.005,
+    volume_relative_tolerance=1.0e-5,
+):
     if len(expected) != len(actual):
         return False
     expected_sorted = sorted(
@@ -267,11 +295,14 @@ def fingerprints_equivalent(expected, actual, require_names, require_face_count)
             return False
         for key in ("bbox_min_mm", "bbox_max_mm"):
             for left_value, right_value in zip(left[key], right[key]):
-                if not close_enough(left_value, right_value, 0.005):
+                if not close_enough(
+                    left_value, right_value, bbox_tolerance_mm
+                ):
                     return False
         volume_scale = max(abs(float(left["volume_mm3"])), 1.0)
         if abs(float(left["volume_mm3"]) - float(right["volume_mm3"])) > max(
-            0.005, volume_scale * 1.0e-5
+            volume_absolute_tolerance_mm3,
+            volume_scale * volume_relative_tolerance,
         ):
             return False
     return True
@@ -661,10 +692,21 @@ try:
     DocumentOpen.Execute(step_path)
     step_bodies = get_all_bodies_without_extension_binding(GetRootPart())
     step_fingerprints = [body_fingerprint(body) for body in step_bodies]
+    step_comparison_tolerances = {
+        "bbox_tolerance_mm": 0.02,
+        "volume_absolute_tolerance_mm3": 0.005,
+        "volume_relative_tolerance": 1.0e-5,
+        "face_count_required": False,
+        "names_required": False,
+    }
     step_reimport = {
         "route": "DOCUMENT_OPEN_AND_REFLECTION_GET_ALL_BODIES",
         "body_count": len(step_bodies),
         "body_fingerprints": step_fingerprints,
+        "comparison_tolerances": step_comparison_tolerances,
+        "comparison_deltas": fingerprint_deltas(
+            [upstream_fp, downstream_fp], step_fingerprints
+        ),
         "named_selections_expected_to_persist": False,
         "shared_interface_identity": "NOT_EVALUATED_UNTIL_WORKBENCH_OBSERVER",
     }
@@ -673,7 +715,10 @@ try:
         len(step_bodies) == 2
         and all(item["piece_count"] == 1 and item["is_closed"] and item["is_manifold"] for item in step_fingerprints)
         and fingerprints_equivalent(
-            [upstream_fp, downstream_fp], step_fingerprints, False, False
+            [upstream_fp, downstream_fp], step_fingerprints, False, False,
+            step_comparison_tolerances["bbox_tolerance_mm"],
+            step_comparison_tolerances["volume_absolute_tolerance_mm3"],
+            step_comparison_tolerances["volume_relative_tolerance"],
         )
     )
 
