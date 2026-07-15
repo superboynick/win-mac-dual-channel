@@ -464,7 +464,7 @@ def classify_throat_walls(
     actual_xy = []
     area_model_counts = {
         "EFFECTIVE_0P100_MM": 0,
-        "CONSTRUCTION_0P102_MM": 0,
+        "CONSTRUCTION_OVERLAP_EXTENDED": 0,
         "STEP_KERNEL_OTHER_AREA": 0,
     }
     candidate_areas = []
@@ -484,7 +484,7 @@ def classify_throat_walls(
         if close_enough(
             item["area_mm2"], expected_construction_area, area_tolerance_mm2
         ):
-            area_model = "CONSTRUCTION_0P102_MM"
+            area_model = "CONSTRUCTION_OVERLAP_EXTENDED"
         elif close_enough(
             item["area_mm2"], expected_effective_area, area_tolerance_mm2
         ):
@@ -751,6 +751,7 @@ try:
     outlet_width = float(exhaust["outlet_width_mm"])
     radius = float(layout["orifice_diameter_candidate_mm"]) / 2.0
     numerical_overlap_mm = 0.02
+    vent_riser_overlap_mm = 0.001
     throat_length_mm = orifice_top_z - interface_z
     c016_budget = thickness["ORIFICE_PLATE"]
     impingement_budget = thickness["IMPINGEMENT_CHANNEL"]
@@ -849,7 +850,7 @@ try:
         box = [cx - half_x, cy - half_y, cx + half_x, cy + half_y]
         vent_boxes.append(box)
         risers.append(create_block(
-            box[0], box[1], plenum_top_z - numerical_overlap_mm,
+            box[0], box[1], plenum_top_z - vent_riser_overlap_mm,
             box[2], box[3], product_top_z,
             "AJM006_V03_RISER_%s" % vent["vent_id"],
         ))
@@ -1167,6 +1168,11 @@ try:
     native_throat_ok = (
         isinstance(native_throat_inventory, dict)
         and native_throat_inventory["pass"]
+        and native_throat_inventory["accepted_area_model_counts"] == {
+            "EFFECTIVE_0P100_MM": 972,
+            "CONSTRUCTION_OVERLAP_EXTENDED": 0,
+            "STEP_KERNEL_OTHER_AREA": 0,
+        }
     )
 
     DocumentHelper.CloseDocument()
@@ -1252,6 +1258,11 @@ try:
     step_throat_ok = (
         isinstance(step_throat_inventory, dict)
         and step_throat_inventory["pass"]
+        and step_throat_inventory["accepted_area_model_counts"] == {
+            "EFFECTIVE_0P100_MM": 972,
+            "CONSTRUCTION_OVERLAP_EXTENDED": 0,
+            "STEP_KERNEL_OTHER_AREA": 0,
+        }
         and step_boundary_counts == dict(
             (name, value) for name, value in group_required.items()
             if name != "FLUID_CONTINUOUS"
@@ -1314,6 +1325,7 @@ try:
         ),
         "preferred_porosity_guard_pct": [8.0, 12.0],
         "numerical_overlap_mm": numerical_overlap_mm,
+        "vent_riser_overlap_mm": vent_riser_overlap_mm,
         "expected_overlap_volume_mm3": expected_overlap_volume_mm3,
         "expected_union_volume_mm3": expected_union_volume_mm3,
         "boolean_volume_delta_mm3": boolean_volume_delta_mm3,
@@ -1386,6 +1398,11 @@ try:
     result_data["assertions"]["c016_candidate_boundary"] = c016_candidate_ok
     result_data["assertions"]["explicit_throat_construction"] = (
         throat_inventory["pass"]
+        and throat_inventory["accepted_area_model_counts"] == {
+            "EFFECTIVE_0P100_MM": 972,
+            "CONSTRUCTION_OVERLAP_EXTENDED": 0,
+            "STEP_KERNEL_OTHER_AREA": 0,
+        }
         and expected_xy_evidence["pass"]
         and close_enough(throat_length_mm, 0.10, 1.0e-12)
         and close_enough(2.0 * radius, 0.25, 1.0e-12)

@@ -40,7 +40,7 @@ OUTPUT_ROOT = Path(r"D:\AirJet_P1\AJM-P1-CAD-006")
 RESULT_PATH = OUTPUT_ROOT / "V03_CONTINUOUS_FLUID_RUN_SUMMARY.json"
 POLICY_GIT_PATH = "airjet-simulation/automation/ansys/profiles.json"
 PROFILE_ID = "ajm006-spaceclaim-v03-continuous-throat-pilot-v1"
-PROFILE_SCRIPT_SHA256 = "613f3bb50bd13d1fbad390080f92a69fca42bb57110a8194c22bf530fe69d6dd"
+PROFILE_SCRIPT_SHA256 = "413e2963007ea63047e34820a5e0888d4c8153303ebb8d67cc5995528bdeaf2b"
 PROFILE_SCRIPT = "006/v03_continuous_fluid_producer.py"
 CASE_ID = "AJM006-V03-CONTINUOUS"
 EXPECTED_TOOLS = {
@@ -297,7 +297,7 @@ def validate_throat_inventory(
         or not numeric_close(value.get("expected_diameter_mm"), 0.25)
         or not numeric_close(value.get("expected_length_mm"), 0.10)
         or not numeric_close(
-            value.get("expected_construction_length_mm"), 0.102
+            value.get("expected_construction_length_mm"), 0.14
         )
         or not math.isclose(
             value.get("expected_effective_lateral_area_mm2", -1.0),
@@ -307,7 +307,7 @@ def validate_throat_inventory(
         )
         or not math.isclose(
             value.get("expected_construction_lateral_area_mm2", -1.0),
-            0.08011061266653972,
+            0.10995574287564276,
             rel_tol=0.0,
             abs_tol=1.0e-12,
         )
@@ -324,11 +324,14 @@ def validate_throat_inventory(
         or set(area_models)
         != {
             "EFFECTIVE_0P100_MM",
-            "CONSTRUCTION_0P102_MM",
+            "CONSTRUCTION_OVERLAP_EXTENDED",
             "STEP_KERNEL_OTHER_AREA",
         }
-        or any(type(count) is not int or count < 0 for count in area_models.values())
-        or sum(area_models.values()) != 972
+        or area_models != {
+            "EFFECTIVE_0P100_MM": 972,
+            "CONSTRUCTION_OVERLAP_EXTENDED": 0,
+            "STEP_KERNEL_OTHER_AREA": 0,
+        }
         or not isinstance(observed_area_range, list)
         or len(observed_area_range) != 2
         or any(
@@ -538,6 +541,7 @@ def validate_producer_report(
         or geometry.get("throat_length_range_mm") != [0.05, 0.20]
         or geometry.get("throat_length_evidence_class") != "C"
         or not numeric_close(geometry.get("numerical_overlap_mm"), 0.02)
+        or not numeric_close(geometry.get("vent_riser_overlap_mm"), 0.001)
         or not isinstance(
             geometry.get("boolean_volume_delta_mm3"), (int, float)
         )
