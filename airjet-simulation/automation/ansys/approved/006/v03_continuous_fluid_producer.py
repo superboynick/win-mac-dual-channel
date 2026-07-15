@@ -462,18 +462,29 @@ def classify_throat_walls(
     faces = []
     details = []
     actual_xy = []
+    area_model_counts = {
+        "EFFECTIVE_0P100_MM": 0,
+        "CONSTRUCTION_0P102_MM": 0,
+    }
     for face in body.Faces:
         item = face_fingerprint(face, body.Name)
         center = item["center_mm"]
+        area_model = None
+        if close_enough(
+            item["area_mm2"], expected_construction_area, area_tolerance_mm2
+        ):
+            area_model = "CONSTRUCTION_0P102_MM"
+        elif close_enough(
+            item["area_mm2"], expected_effective_area, area_tolerance_mm2
+        ):
+            area_model = "EFFECTIVE_0P100_MM"
         if (
             close_enough(center[2], expected_center_z, geometry_tolerance_mm)
-            and close_enough(
-                item["area_mm2"],
-                expected_construction_area,
-                area_tolerance_mm2,
-            )
+            and area_model is not None
             and item.get("edge_count") == 2
         ):
+            item["accepted_area_model"] = area_model
+            area_model_counts[area_model] += 1
             faces.append(face)
             details.append(item)
             actual_xy.append(item["center_mm"][:2])
@@ -492,6 +503,7 @@ def classify_throat_walls(
         "expected_z_max_mm": throat_z_max,
         "candidate_face_count": len(faces),
         "candidate_faces": details,
+        "accepted_area_model_counts": area_model_counts,
         "xy_inventory": xy_inventory,
         "geometry_tolerance_mm": geometry_tolerance_mm,
         "area_tolerance_mm2": area_tolerance_mm2,
@@ -523,6 +535,9 @@ def compact_throat_inventory(value):
         "expected_z_min_mm": value.get("expected_z_min_mm"),
         "expected_z_max_mm": value.get("expected_z_max_mm"),
         "candidate_face_count": value.get("candidate_face_count"),
+        "accepted_area_model_counts": value.get(
+            "accepted_area_model_counts"
+        ),
         "geometry_tolerance_mm": value.get("geometry_tolerance_mm"),
         "area_tolerance_mm2": value.get("area_tolerance_mm2"),
         "xy_inventory": {

@@ -40,7 +40,7 @@ OUTPUT_ROOT = Path(r"D:\AirJet_P1\AJM-P1-CAD-006")
 RESULT_PATH = OUTPUT_ROOT / "V03_CONTINUOUS_FLUID_RUN_SUMMARY.json"
 POLICY_GIT_PATH = "airjet-simulation/automation/ansys/profiles.json"
 PROFILE_ID = "ajm006-spaceclaim-v03-continuous-throat-pilot-v1"
-PROFILE_SCRIPT_SHA256 = "8bea8ed6264ae072648fe8caa62b99cbb115587f35ed1515961b7becefd7b34f"
+PROFILE_SCRIPT_SHA256 = "308d36d0e04379969e448efa43035de334a5d40b5853be56d4be170899e772aa"
 PROFILE_SCRIPT = "006/v03_continuous_fluid_producer.py"
 CASE_ID = "AJM006-V03-CONTINUOUS"
 EXPECTED_TOOLS = {
@@ -282,6 +282,7 @@ def validate_throat_inventory(
     if not isinstance(value, dict):
         raise RuntimeError("THROAT_INVENTORY_NOT_OBJECT")
     xy = value.get("xy_inventory")
+    area_models = value.get("accepted_area_model_counts")
     if (
         value.get("pass") is not True
         or value.get("candidate_face_count") != 972
@@ -312,6 +313,11 @@ def validate_throat_inventory(
         or not numeric_close(
             value.get("area_tolerance_mm2"), area_tolerance_mm2
         )
+        or not isinstance(area_models, dict)
+        or set(area_models)
+        != {"EFFECTIVE_0P100_MM", "CONSTRUCTION_0P102_MM"}
+        or any(type(count) is not int or count < 0 for count in area_models.values())
+        or sum(area_models.values()) != 972
         or not isinstance(xy, dict)
         or xy.get("expected_count") != 972
         or xy.get("actual_count") != 972

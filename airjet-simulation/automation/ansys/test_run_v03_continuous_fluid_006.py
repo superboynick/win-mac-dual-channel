@@ -72,6 +72,10 @@ def throat_inventory(
         "expected_z_max_mm": 1.6175,
         "geometry_tolerance_mm": geometry_tolerance,
         "area_tolerance_mm2": 0.001,
+        "accepted_area_model_counts": {
+            "EFFECTIVE_0P100_MM": 0,
+            "CONSTRUCTION_0P102_MM": 972,
+        },
         "xy_inventory": {
             "expected_count": 972,
             "actual_count": 972,
