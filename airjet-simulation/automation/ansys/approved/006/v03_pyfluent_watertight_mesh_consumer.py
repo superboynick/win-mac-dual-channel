@@ -9,6 +9,7 @@ iterations.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import faulthandler
 import hashlib
 import json
 import math
@@ -33,6 +34,7 @@ VERIFICATION_PATH = JOB_DIR / "v03_predecessor_verification.json"
 SOURCE_CHAIN_PATH = JOB_DIR / "v03_pyfluent_source_chain.json"
 TRANSCRIPT_PATH = JOB_DIR / "v03_pyfluent_transcript.txt"
 PRELAUNCH_TRACE_PATH = JOB_DIR / "v03_pyfluent_prelaunch_trace.jsonl"
+LAUNCH_STACK_PATH = JOB_DIR / "v03_pyfluent_launch_stack.txt"
 STAGING_DIR = JOB_DIR / "input" / "staging"
 STAGED_STEP_PATH = STAGING_DIR / "product_continuous_fluid.step"
 
@@ -421,17 +423,27 @@ try:
     if len(inlet_points) != 4 or len(outlet_points) != 1:
         raise RuntimeError("BOUNDARY_POINT_COUNTS_NOT_4_INLET_1_OUTLET")
 
-    trace_checkpoint("fluent_launch_started")
-    session = pyfluent.launch_fluent(
-        product_version=FluentVersion.v261,
-        mode=FluentMode.MESHING,
-        precision=Precision.DOUBLE,
-        dimension=Dimension.THREE,
-        processor_count=1,
-        ui_mode=UIMode.NO_GUI_OR_GRAPHICS,
-        cleanup_on_exit=True,
-        cwd=str(JOB_DIR),
-    )
+    trace_checkpoint("fluent_launch_started", start_timeout_seconds=60)
+    with LAUNCH_STACK_PATH.open("w", encoding="utf-8") as launch_stack:
+        faulthandler.enable(file=launch_stack, all_threads=True)
+        faulthandler.dump_traceback_later(
+            45, repeat=True, file=launch_stack, exit=False
+        )
+        try:
+            session = pyfluent.launch_fluent(
+                product_version=FluentVersion.v261,
+                mode=FluentMode.MESHING,
+                precision=Precision.DOUBLE,
+                dimension=Dimension.THREE,
+                processor_count=1,
+                start_timeout=60,
+                ui_mode=UIMode.NO_GUI_OR_GRAPHICS,
+                cleanup_on_exit=True,
+                cwd=str(JOB_DIR),
+            )
+        finally:
+            faulthandler.cancel_dump_traceback_later()
+            faulthandler.disable()
     trace_checkpoint("fluent_launch_completed")
     result["assertions"]["fluent_v261_meshing_health"] = True
     workflow = session.watertight()

@@ -58,6 +58,7 @@ def test_launch_is_v261_mesh_only_and_single_process() -> None:
         "precision=Precision.DOUBLE",
         "dimension=Dimension.THREE",
         "processor_count=1",
+        "start_timeout=60",
         "ui_mode=UIMode.NO_GUI_OR_GRAPHICS",
         "cleanup_on_exit=True",
         "session.watertight()",
@@ -114,6 +115,10 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
 def test_prelaunch_trace_and_predecessor_identity_are_pinned() -> None:
     for required in (
         'PRELAUNCH_TRACE_PATH = JOB_DIR / "v03_pyfluent_prelaunch_trace.jsonl"',
+        'LAUNCH_STACK_PATH = JOB_DIR / "v03_pyfluent_launch_stack.txt"',
+        "faulthandler.dump_traceback_later(",
+        "45, repeat=True, file=launch_stack, exit=False",
+        "faulthandler.cancel_dump_traceback_later()",
         'trace_checkpoint("predecessor_validation_started")',
         '"predecessor_validation_completed"',
         'trace_checkpoint("step_copy_started"',
@@ -123,7 +128,7 @@ def test_prelaunch_trace_and_predecessor_identity_are_pinned() -> None:
         'trace_checkpoint("staged_step_hash_started")',
         'trace_checkpoint("staged_step_hash_completed"',
         '"boundary_role_points_completed"',
-        'trace_checkpoint("fluent_launch_started")',
+        'trace_checkpoint("fluent_launch_started", start_timeout_seconds=60)',
         'trace_checkpoint("fluent_launch_completed")',
         'result["identity"]["predecessor_job_id"] = manifest.get(',
     ):
