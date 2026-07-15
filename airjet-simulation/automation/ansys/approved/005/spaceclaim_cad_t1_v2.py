@@ -89,7 +89,7 @@ dependency_manifest_path = verify_dependency_bundle(
 
 
 base_sha256 = sha256_file(base_path)
-if base_sha256 != "4fdaf2f1f5ae2063f79b99adc8ac6ae91a147032c1386fc4119b5abd4ceff17e":
+if base_sha256 != "dde33311f88cefa6eaa351705497568c6681d0041ab679086eb1f658ab3c6dc3":
     raise Exception("AJM005_V2_BASE_PRODUCER_HASH_MISMATCH")
 
 execfile(base_path)

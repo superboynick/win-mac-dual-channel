@@ -5,7 +5,7 @@ import math
 import os
 import traceback
 
-from System import Array, String
+from System import Array, Object, String, Type
 
 
 job_dir = os.environ["AIRJET_JOB_DIR"]
@@ -111,6 +111,25 @@ def close_enough(actual, expected, tolerance):
 def group_count(name):
     """CreateByGroups requires a .NET String array in the v261 script host."""
     return int(Selection.CreateByGroups(Array[String]([name])).Count)
+
+
+def get_all_bodies_without_extension_binding(part):
+    """Invoke the v261 PartExtensions method without IronPython sugar."""
+    extension_type = Type.GetType(
+        "SpaceClaim.Api.V261.Scripting.Extensions.PartExtensions, "
+        "SpaceClaim.Api.V261.Scripting"
+    )
+    if extension_type is None:
+        raise RuntimeError("PartExtensions type is not loaded")
+    candidates = [
+        method
+        for method in extension_type.GetMethods()
+        if method.Name == "GetAllBodies" and len(method.GetParameters()) == 1
+    ]
+    if len(candidates) != 1:
+        raise RuntimeError("single-argument GetAllBodies overload is not unique")
+    bodies = candidates[0].Invoke(None, Array[Object]([part]))
+    return [body for body in bodies]
 
 
 def find_boundary_faces(body):
@@ -430,7 +449,7 @@ try:
     DocumentOpen.Execute(step_path)
     step_root_body_count = int(GetRootPart().Bodies.Count)
     step_component_count = int(GetRootPart().Components.Count)
-    step_bodies = [body for body in GetRootPart().GetAllBodies()]
+    step_bodies = get_all_bodies_without_extension_binding(GetRootPart())
     step_body = step_bodies[0] if len(step_bodies) == 1 else None
     step_fingerprint = body_fingerprint(step_body) if step_body is not None else None
     step_reimport_ok = (
@@ -454,7 +473,7 @@ try:
         )
     )
     result_data["step_reimport"] = {
-        "route": "DOCUMENT_OPEN_AND_GET_ALL_BODIES",
+        "route": "DOCUMENT_OPEN_AND_REFLECTION_GET_ALL_BODIES",
         "root_body_count": step_root_body_count,
         "component_count": step_component_count,
         "all_body_count": len(step_bodies),

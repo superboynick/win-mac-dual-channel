@@ -19,9 +19,9 @@
   },
   "producer": {
     "profile_id": "ajm005-spaceclaim-cad-t1-v2",
-    "script_sha256": "4c5a63a7724a29ab5c133d8431e52bec950a3835168ba7bd52ab8203de11c9a1",
-    "profile_contract_sha256": "f5890c43b0ad1bfceae8c266a90cca44ba97bfefca21ea54d5e037a8ecfe1369",
-    "base_script_sha256": "4fdaf2f1f5ae2063f79b99adc8ac6ae91a147032c1386fc4119b5abd4ceff17e",
+    "script_sha256": "67b38e2e02fb5c99e92fa3a7b28147c4855b26ea3bd01eaa877d8e7e78af1b1d",
+    "profile_contract_sha256": "564eb4a95bd24a64da3d946c43fe9246489bb2cc3b8a3da00fb209f8db07440c",
+    "base_script_sha256": "dde33311f88cefa6eaa351705497568c6681d0041ab679086eb1f658ab3c6dc3",
     "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
     "required_assertions": [
       "script_parameterization_equivalent",
