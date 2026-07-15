@@ -489,9 +489,14 @@ def classify_throat_walls(
             item["area_mm2"], expected_effective_area, area_tolerance_mm2
         ):
             area_model = "EFFECTIVE_0P100_MM"
-        if near_expected_xy:
-            if area_model is None:
-                area_model = "STEP_KERNEL_OTHER_AREA"
+        if (
+            near_expected_xy
+            and close_enough(
+                center[2], expected_center_z, geometry_tolerance_mm
+            )
+            and area_model is not None
+            and item.get("edge_count") in (2, 4)
+        ):
             item["accepted_area_model"] = area_model
             area_model_counts[area_model] += 1
             candidate_areas.append(float(item["area_mm2"]))
