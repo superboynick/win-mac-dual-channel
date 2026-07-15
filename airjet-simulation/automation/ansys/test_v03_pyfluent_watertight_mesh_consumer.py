@@ -171,8 +171,13 @@ def test_volume_mesh_and_student_guards_precede_write() -> None:
         "MESH_STATS_LEVEL_ZERO_ROW_NOT_UNIQUE",
         "STUDENT_LIMIT_UNPROVEN_OR_EXCEEDED",
         "session.tui.file.write_mesh(str(MESH_PATH))",
+        'cell_zone_raw = list(utilities.get_cell_zones(filter="*"))',
+        "list(utilities.get_cell_zones(xyz_coordinates=point))",
+        "quality_limits = list(",
     ):
         assert required in SOURCE
+    assert "type(cell_zone_raw) is not list" not in SOURCE
+    assert "type(quality_limits) is not list" not in SOURCE
     assert SOURCE.index("STUDENT_LIMIT_UNPROVEN_OR_EXCEEDED") < SOURCE.index(
         "session.tui.file.write_mesh(str(MESH_PATH))"
     )

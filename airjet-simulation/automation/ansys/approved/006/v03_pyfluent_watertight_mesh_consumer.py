@@ -595,11 +595,11 @@ try:
 
     if utilities.mesh_exists() is not True:
         raise RuntimeError("MESH_EXISTS_POSTCONDITION_FALSE")
-    cell_zone_raw = utilities.get_cell_zones(filter="*")
+    cell_zone_raw = list(utilities.get_cell_zones(filter="*"))
     if (
-        type(cell_zone_raw) is not list
-        or len(cell_zone_raw) != 1
-        or type(cell_zone_raw[0]) is not int
+        len(cell_zone_raw) != 1
+        or isinstance(cell_zone_raw[0], bool)
+        or not isinstance(cell_zone_raw[0], int)
     ):
         raise RuntimeError(f"CELL_ZONE_COUNT_NOT_ONE:{cell_zone_raw}")
     cell_zone_ids = list(cell_zone_raw)
@@ -627,20 +627,24 @@ try:
         for point in throat_query_points
     ]
     occupancy = [
-        utilities.get_cell_zones(xyz_coordinates=point)
+        list(utilities.get_cell_zones(xyz_coordinates=point))
         for point in throat_axis_points
     ]
     if any(values != [cell_zone_ids[0]] for values in occupancy):
         raise RuntimeError("THROAT_CENTER_OCCUPANCY_NOT_SINGLE_COMMON_CELL_ZONE")
     upstream_anchor_hits = [
-        utilities.get_cell_zones(
-            xyz_coordinates=[point[0], point[1], point[2] - 0.01]
+        list(
+            utilities.get_cell_zones(
+                xyz_coordinates=[point[0], point[1], point[2] - 0.01]
+            )
         )
         for point in inlet_points
     ]
     downstream_anchor_hits = [
-        utilities.get_cell_zones(
-            xyz_coordinates=[point[0], point[1] - 0.01, point[2]]
+        list(
+            utilities.get_cell_zones(
+                xyz_coordinates=[point[0], point[1] - 0.01, point[2]]
+            )
         )
         for point in outlet_points
     ]
@@ -665,10 +669,12 @@ try:
         face_zone_name_pattern="*",
         cell_zone_id_list=cell_zone_ids,
     )
-    quality_limits = utilities.get_cell_quality_limits(
-        cell_zone_id_list=cell_zone_ids, measure="Orthogonal Quality"
+    quality_limits = list(
+        utilities.get_cell_quality_limits(
+            cell_zone_id_list=cell_zone_ids, measure="Orthogonal Quality"
+        )
     )
-    if type(quality_limits) is not list or len(quality_limits) != 6:
+    if len(quality_limits) != 6:
         raise RuntimeError(f"QUALITY_LIMITS_INVALID:{quality_limits}")
     quality_values = [float(value) for value in quality_limits]
     min_orthogonal_quality = quality_values[1]
