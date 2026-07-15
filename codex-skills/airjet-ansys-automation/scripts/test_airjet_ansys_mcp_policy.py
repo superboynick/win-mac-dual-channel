@@ -52,6 +52,7 @@ FULL_PRODUCT_REVIEWER = REPO / "airjet-simulation" / "checklists" / "prepare_p1_
 FULL_PRODUCT_REVIEWER_TEST = REPO / "airjet-simulation" / "checklists" / "test_prepare_p1_cad_review_static.py"
 V02_TOPOLOGY_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_topology_observer_006.py"
 V02_TOPOLOGY_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_run_v02_topology_observer_006.py"
+V02_NATIVE_TOPOLOGY_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_native_topology_observer_006.py"
 V02_PARASOLID_RUNNER = REPO / "airjet-simulation" / "automation" / "ansys" / "run_v02_parasolid_topology_006.py"
 V02_PARASOLID_RUNNER_TEST = REPO / "airjet-simulation" / "automation" / "ansys" / "test_run_v02_parasolid_topology_006.py"
 T1_PREDECESSOR_NEGATIVE = (
@@ -1385,6 +1386,7 @@ expected_profile_ids = {
     "ajm005-workbench-semantic-reconstruction-t1-v2",
     "ajm006-spaceclaim-v02-preliminary-v1",
     "ajm006-workbench-v02-topology-observer-v1",
+    "ajm006-workbench-v02-native-topology-observer-v1",
     "ajm006-spaceclaim-v02-parasolid-converter-v1",
     "ajm006-workbench-v02-parasolid-topology-observer-v1",
 }
@@ -1411,6 +1413,7 @@ for required_path in (
     FULL_PRODUCT_REVIEWER_TEST,
     V02_TOPOLOGY_RUNNER,
     V02_TOPOLOGY_RUNNER_TEST,
+    V02_NATIVE_TOPOLOGY_RUNNER,
     V02_PARASOLID_RUNNER,
     V02_PARASOLID_RUNNER_TEST,
 ):
@@ -1788,7 +1791,49 @@ for invariant in (
 ):
     if invariant not in v02_observer_source:
         fail("V02 topology observer lacks invariant: " + invariant)
-for path in (V02_TOPOLOGY_RUNNER, V02_TOPOLOGY_RUNNER_TEST):
+
+v02_native_observer_profile = by_profile_id[
+    "ajm006-workbench-v02-native-topology-observer-v1"
+]
+v02_native_predecessor = v02_native_observer_profile.get("predecessor")
+if (
+    v02_native_observer_profile.get("script")
+    != "006/v02_preliminary_topology_observer.wbjn"
+    or v02_native_observer_profile.get("reports")
+    != ["v02_native_topology_observer.json"]
+    or not isinstance(v02_native_predecessor, dict)
+    or v02_native_predecessor.get("profile_id")
+    != "ajm006-spaceclaim-v02-preliminary-v1"
+    or set(v02_native_predecessor.get("artifacts") or [])
+    != {
+        "v02_preliminary_producer.json",
+        "product_two_zone.scdocx",
+        "v02_face_inventory.json",
+        "native_reopen.json",
+    }
+):
+    fail("V02 native topology observer predecessor contract changed")
+for invariant in (
+    'NATIVE_PROFILE = "ajm006-workbench-v02-native-topology-observer-v1"',
+    "shutil.copy2(native_path, staged_native_path)",
+    "NATIVE_STAGING_COPY_HASH_MISMATCH",
+    "if not native_route:",
+    "source_geometry.SetFile(FilePath=geometry_path)",
+    "model_container.Refresh()",
+    'model_container.SendCommand(Language="Python", Command=model_script)',
+    '"edit_called": False',
+    '"PASS_PRELIMINARY_NATIVE_TOPOLOGY_OBSERVATION"',
+):
+    if invariant not in v02_observer_source:
+        fail("V02 native topology observer lacks invariant: " + invariant)
+for forbidden in ("GenerateMesh(", ".Solve(", "SetFile(FilePath=native_path)"):
+    if forbidden in v02_observer_source:
+        fail("V02 native topology observer contains forbidden action: " + forbidden)
+for path in (
+    V02_TOPOLOGY_RUNNER,
+    V02_TOPOLOGY_RUNNER_TEST,
+    V02_NATIVE_TOPOLOGY_RUNNER,
+):
     assert_python39_static_compatibility(path)
 
 v02_parasolid_converter_profile = by_profile_id[
@@ -1847,7 +1892,9 @@ for invariant in (
     "predecessor-manifest.json",
     "expected_predecessor_tree_names",
     "staging_workspace_exact",
-    "DocumentSave.Execute(parasolid_path)",
+    "ExportOptions.Create()",
+    "ParasolidVersion.V23",
+    "DocumentSave.Execute(parasolid_path, export_options)",
     "DocumentOpen.Execute(parasolid_path)",
     "parasolid_body_envelope_and_face_count_preserved",
     '"source_native_mutated": False',

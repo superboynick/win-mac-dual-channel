@@ -202,7 +202,7 @@
 ## AJM-P1-GEO-005：V02 Parasolid x_t solver-handoff 诊断候选
 
 日期：2026-07-15
-状态：Mac 静态包 PASS；Windows/ANSYS `NOT_RUN`；正式 006 与 P1 Gate 未运行
+状态：Windows converter 实跑失败并关闭；未产生 x_t，observer 未运行；正式 006 与 P1 Gate 未运行
 
 **单一改变**：保持完整 V02、12-cell/972-hole、两流体区、参数和 Mechanical 分类目标不变，
 只把 solver handoff 候选从 STEP 改为 Parasolid x_t。STEP 继续输出/保留作归档，不把 x_t 冒充
@@ -217,11 +217,26 @@ face count、bbox、volume；孔口 shared/coincident 判定还要求 972 点 XY
 centroid/plane/bbox/area/normal。观察链 PASS 与 `PASS_CANDIDATE_ROUTE_TO_MESH` 分离；后者也不等于
 mesh/shared nodes/P1 PASS。
 
-**当前结果**：仅 CPython/embedded-script 静态检查、16 项 runner guard、14-profile MCP policy 和
-144-file Mac audit PASS。没有真实 `product.x_t`、Mechanical inventory 或 `.wbpj`，故不得写路线成功
-或失败。
+**当前结果**：converter 已通过 predecessor、staging 和 native reopen，但显式 v261
+`ExportOptions.Create()` / `ParasolidVersion.V23` 后仍未生成 `product.x_t`；observer 按设计未启动。
+这关闭当前环境的 x_t 诊断路线，不是整机几何失败，也不提供 mesh 或 P1 证据。
 
 **追溯**：`automation/ansys/approved/006/v02_parasolid_converter.py`、
 `automation/ansys/approved/006/v02_parasolid_topology_observer.wbjn`、
 `automation/ansys/run_v02_parasolid_topology_006.py`、
 `windows-prompts/AJM_WIN_V02_PARASOLID_TOPOLOGY_OBSERVER_006.md`。
+
+## AJM-P1-GEO-006：V02 native staging Workbench observer
+
+日期：2026-07-15
+状态：15-profile policy、observer guards、144-file audit 静态 PASS；等待 Windows 实跑
+
+**目的**：直接观察 producer 的 `product_two_zone.scdocx` 在 Workbench/Mechanical 的实际 body/face
+拓扑，区分 STEP translator 的单侧损失与 native attach 本身的能力边界。
+
+**安全序列**：同一 MCP 会话重新运行 producer；observer 只接收 report、two-zone native、face
+inventory、native reopen 四件前驱产物。native 先复制为 job-local staging 并校验 SHA；Workbench
+仅 SetFile、Refresh、Mechanical GeoData inventory 与 Save。native 分支不 Edit、不 mesh、不求解。
+
+**主张边界**：观察链 PASS 与路线有利/不利分开。即使接口仍丢失，只要实际 inventory 和证据闭合，
+也只写诊断观察；`formal_006_completion=false`、P1--P6 与 mesh/physics 继续 `NOT_RUN`。

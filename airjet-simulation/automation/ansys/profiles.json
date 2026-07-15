@@ -275,7 +275,7 @@
       "profile_id": "ajm006-workbench-v02-topology-observer-v1",
       "engine": "workbench",
       "script": "006/v02_preliminary_topology_observer.wbjn",
-      "sha256": "790247a205e26a82ecc73ecf788ed6a217ea9334673ea02b60db62a37bb4a0ba",
+      "sha256": "d41ffd4a53fb3c9cd7c9c95bd7240c6eda71ce4962673e3c3d696bfa5f152999",
       "timeout_seconds": 3600,
       "output_root_id": "p1_cad_006",
       "reports": [
@@ -304,6 +304,41 @@
           "v02_face_inventory.json",
           "native_reopen.json",
           "step_reimport.json"
+        ]
+      }
+    },
+    {
+      "profile_id": "ajm006-workbench-v02-native-topology-observer-v1",
+      "engine": "workbench",
+      "script": "006/v02_preliminary_topology_observer.wbjn",
+      "sha256": "d41ffd4a53fb3c9cd7c9c95bd7240c6eda71ce4962673e3c3d696bfa5f152999",
+      "timeout_seconds": 3600,
+      "output_root_id": "p1_cad_006",
+      "reports": [
+        "v02_native_topology_observer.json"
+      ],
+      "predecessor": {
+        "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
+        "report": "v02_preliminary_producer.json",
+        "required_probe": "v02_preliminary_producer",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
+        "required_assertions": [
+          "input_contract",
+          "gen1_target",
+          "full_product_scope",
+          "complete_flow_path",
+          "two_fluid_zone",
+          "native_save",
+          "native_reopen",
+          "step_export_reimport",
+          "artifact_hashes",
+          "physics_guards"
+        ],
+        "artifacts": [
+          "v02_preliminary_producer.json",
+          "product_two_zone.scdocx",
+          "v02_face_inventory.json",
+          "native_reopen.json"
         ]
       }
     },

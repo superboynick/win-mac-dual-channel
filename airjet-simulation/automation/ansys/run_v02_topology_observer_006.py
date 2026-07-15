@@ -43,8 +43,9 @@ POLICY_GIT_PATH = producer_runner.POLICY_GIT_PATH
 PRODUCER_PROFILE_ID = producer_runner.PROFILE_ID
 PRODUCER_SCRIPT_SHA256 = producer_runner.PROFILE_SCRIPT_SHA256
 OBSERVER_PROFILE_ID = "ajm006-workbench-v02-topology-observer-v1"
+OBSERVER_SCRIPT_RELATIVE = "006/v02_preliminary_topology_observer.wbjn"
 OBSERVER_SCRIPT_SHA256 = (
-    "790247a205e26a82ecc73ecf788ed6a217ea9334673ea02b60db62a37bb4a0ba"
+    "d41ffd4a53fb3c9cd7c9c95bd7240c6eda71ce4962673e3c3d696bfa5f152999"
 )
 CASE_ID = producer_runner.CASE_ID
 EXPECTED_TOOLS = producer_runner.EXPECTED_TOOLS
@@ -61,6 +62,12 @@ EXPECTED_PREDECESSOR_ARTIFACTS = {
     "step_reimport.json",
 }
 OBSERVER_REPORT = "v02_preliminary_topology_observer.json"
+OBSERVER_PROBE = "v02_preliminary_topology_observer"
+OBSERVER_PASS_STATUS = "PASS_PRELIMINARY_TOPOLOGY_OBSERVATION"
+SUITE_TASK = "AJM006_V02_PRELIMINARY_TOPOLOGY_OBSERVER_SUITE"
+SUITE_FAIL_STATUS = "FAIL_PRELIMINARY_TOPOLOGY_OBSERVER"
+SUITE_PASS_STATUS = "PASS_PRELIMINARY_TOPOLOGY_OBSERVER"
+STDERR_PREFIX = "V02_TOPOLOGY_OBSERVER_MCP_STDERR"
 EXPECTED_OBSERVER_FILES = {
     "inspection": "v02_solver_topology_inventory.json",
     "project": "v02_preliminary_topology_observer.wbpj",
@@ -127,7 +134,7 @@ def combined_preflight() -> dict[str, Any]:
                 if (
                     profile.get("engine") != "workbench"
                     or profile.get("script")
-                    != "006/v02_preliminary_topology_observer.wbjn"
+                    != OBSERVER_SCRIPT_RELATIVE
                     or profile.get("output_root_id") != "p1_cad_006"
                     or profile.get("reports") != [OBSERVER_REPORT]
                     or not isinstance(predecessor, dict)
@@ -274,11 +281,11 @@ def validate_observer_report(
     if not isinstance(report, dict):
         raise RuntimeError("OBSERVER_REPORT_NOT_INLINED")
     if (
-        report.get("probe") != "v02_preliminary_topology_observer"
+        report.get("probe") != OBSERVER_PROBE
         or report.get("status")
-        != "PASS_PRELIMINARY_TOPOLOGY_OBSERVATION"
+        != OBSERVER_PASS_STATUS
         or report.get("engineering_capability")
-        != "PASS_PRELIMINARY_TOPOLOGY_OBSERVATION"
+        != OBSERVER_PASS_STATUS
     ):
         raise RuntimeError("OBSERVER_REPORT_STATUS_OR_PROBE_MISMATCH")
     if (
@@ -362,14 +369,14 @@ async def run_suite() -> int:
     )
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
     stderr_path = OUTPUT_ROOT / (
-        "V02_TOPOLOGY_OBSERVER_MCP_STDERR_{}.log".format(stamp)
+        "{}_{}.log".format(STDERR_PREFIX, stamp)
     )
     result: dict[str, Any] = {
-        "task": "AJM006_V02_PRELIMINARY_TOPOLOGY_OBSERVER_SUITE",
+        "task": SUITE_TASK,
         "case_id": CASE_ID,
         "started_at": utc_now(),
         "ended_at": None,
-        "final_status": "FAIL_PRELIMINARY_TOPOLOGY_OBSERVER",
+        "final_status": SUITE_FAIL_STATUS,
         "preflight": None,
         "inventory": None,
         "producer": None,
@@ -546,9 +553,7 @@ async def run_suite() -> int:
                     result["topology_detail"] = observer_report[
                         "topology_detail"
                     ]
-                    result["final_status"] = (
-                        "PASS_PRELIMINARY_TOPOLOGY_OBSERVER"
-                    )
+                    result["final_status"] = SUITE_PASS_STATUS
                     exit_code = 0
     except Exception as exc:
         result["error"] = {

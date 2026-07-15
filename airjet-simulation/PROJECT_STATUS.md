@@ -142,7 +142,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 005 alternate-route v2 工具链前置已 PASS；V02 两区 preliminary producer 与 STEP topology observer 均已实跑 PASS；observer 确认 STEP handoff 只保留 downstream 972 个印记而丢失 upstream 972-interface，当前两区路线被拒绝；Parasolid converter/observer 两个诊断 profile 已静态注册但未在 Windows 运行；正式九变体 CAD 未开始，两个正式 006 production profile 尚未注册，P1 BLOCKED | 在 Windows 运行固定 Parasolid pilot 并重新 observer，证明两侧 972-interface、逐角色整机形状和后续 mesh 入口；随后才注册正式 producer/observer profiles 并运行九变体 006。P1 Stage 仍 `NOT_RUN`，P1–P6 均未通过 |
+| P1 整机 CAD | 005 alternate-route v2 工具链前置已 PASS；V02 preliminary producer 与 STEP observer 均已实跑，STEP 只保留下游 972 印记；Parasolid export 在显式 v261 options 下仍未生成 x_t，路线已关闭；native staging observer 已静态注册，尚待 Windows 实跑；正式九变体 CAD 未开始，P1 BLOCKED | 运行固定 native staging observer，实测 `.scdocx` attach 后两侧 972-interface 与逐体指纹；若 attach/拓扑仍失败，转受审 solver-side upstream interface reconstruction。之后才注册正式九变体 profiles。P1–P6 仍 `NOT_RUN`。 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -168,7 +168,7 @@
    solver-side reconstruction 补名；Mechanical/Fluent 可删除 T1 能力检查并入 alternate-route
    confirmation 与后续 pilot 的受审 profiles。run #19--#22 的完整因果链仍见
    `learning/T1_CAD_TRANSFER_WORKBOOK.md` 与 `logs/REALITY_AND_FAILURE_LOG.md`，没有被 run #22 覆盖。
-2. V02 固定 producer 与修正版 STEP observer 已完成。真实 solver import 没有给出 shared-face 或 paired-interface：downstream 972 个 imprint 全在，upstream 972-interface 全失，因此当前 STEP 两区表示被拒绝。下一轮已收敛为 hash-bound Parasolid x_t pilot：同一 MCP 进程依次运行 producer、converter、observer，STEP 只作归档；Windows 恢复后只能用 `windows-prompts/AJM_WIN_V02_PARASOLID_TOPOLOGY_OBSERVER_006.md` 的固定 runner 运行。若 x_t 仍不能同时保持两侧 actual IDs/owner/adjacency、逐角色整机形状和后续 mesh 入口，再转受审 solver-side upstream interface reconstruction；不得靠放宽 area/位置阈值“找回”不存在的面。只有新路线关闭且 `profiles.json` 中两个正式 006 production profile 已注册并由静态 policy/双审计锁定后，才执行
+2. V02 STEP observer 已确认 downstream 972 imprint 保留、upstream 972-interface 丢失；Parasolid converter 在显式 v261 `ExportOptions` 下仍未生成 x_t，observer 未启动，该路线已关闭。当前只运行新注册的 hash-bound native staging observer：复制冻结 `.scdocx` 到 job-local staging，Workbench 只做 SetFile/Refresh/Mechanical inventory/Save，不 Edit、不 mesh、不求解。若 native attach 或接口拓扑仍不能关闭，立即转受审 solver-side upstream interface reconstruction；不得靠放宽 area/位置阈值“找回”不存在的面。只有新路线关闭且 `profiles.json` 中两个正式 006 production profile 已注册并由静态 policy/双审计锁定后，才执行
    `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：同一母版生成 4 个整机配置、
    6 个交付/残差变体和主配置 3 个有独立 ID/Gate 的单因素派生变体。006 最多写
    `PENDING_PEER_REVIEW`，不能由生成模型的同一会话自评 P1 PASS。

@@ -286,6 +286,7 @@ def test_embedded_mechanical_script_formats_and_compiles():
     rendered = template % (
         "inspection.json",
         "a" * 64,
+        "HASH_BOUND_STEP_TO_WORKBENCH_MECHANICAL_GEODATA",
         "inventory.json",
         "step.json",
         972,
@@ -302,6 +303,25 @@ def test_runner_uses_isolated_mode_safe_sibling_import():
     assert "import run_v02_preliminary_006" not in source
 
 
+def test_native_wrapper_and_observer_are_fail_closed():
+    root = Path(__file__).resolve().parent
+    wrapper = (root / "run_v02_native_topology_observer_006.py").read_text(
+        encoding="utf-8"
+    )
+    observer = (
+        root / "approved" / "006" / "v02_preliminary_topology_observer.wbjn"
+    ).read_text(encoding="utf-8")
+    assert "ajm006-workbench-v02-native-topology-observer-v1" in wrapper
+    assert "product_two_zone.scdocx" in wrapper
+    assert "product.step" not in wrapper
+    assert "shutil.copy2(native_path, staged_native_path)" in observer
+    assert "SetFile(FilePath=native_path)" not in observer
+    assert "GenerateMesh(" not in observer
+    assert ".Solve(" not in observer
+    assert '"edit_called": False' in observer
+    assert "if not native_route:" in observer
+
+
 def main():
     tests = [
         test_preflight_passes,
@@ -314,6 +334,7 @@ def main():
         test_validate_observer_rejects_hash_mismatch,
         test_embedded_mechanical_script_formats_and_compiles,
         test_runner_uses_isolated_mode_safe_sibling_import,
+        test_native_wrapper_and_observer_are_fail_closed,
     ]
     for test in tests:
         test()

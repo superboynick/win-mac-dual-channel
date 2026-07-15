@@ -3,15 +3,35 @@ import hashlib
 import json
 import math
 import os
+import shutil
 import traceback
 
 
 job_dir = os.environ["AIRJET_JOB_DIR"]
 predecessor_dir = os.environ["AIRJET_PREDECESSOR_DIR"]
-report_path = os.path.join(job_dir, "v02_preliminary_topology_observer.json")
-inspection_path = os.path.join(job_dir, "v02_solver_topology_inventory.json")
-project_path = os.path.join(job_dir, "v02_preliminary_topology_observer.wbpj")
-geometry_path = os.path.join(predecessor_dir, "product.step")
+profile_id = os.environ.get("AIRJET_PROFILE_ID")
+NATIVE_PROFILE = "ajm006-workbench-v02-native-topology-observer-v1"
+native_route = profile_id == NATIVE_PROFILE
+report_name = (
+    "v02_native_topology_observer.json"
+    if native_route else "v02_preliminary_topology_observer.json"
+)
+inspection_name = (
+    "v02_native_solver_topology_inventory.json"
+    if native_route else "v02_solver_topology_inventory.json"
+)
+project_name = (
+    "v02_native_topology_observer.wbpj"
+    if native_route else "v02_preliminary_topology_observer.wbpj"
+)
+report_path = os.path.join(job_dir, report_name)
+inspection_path = os.path.join(job_dir, inspection_name)
+project_path = os.path.join(job_dir, project_name)
+native_path = os.path.join(predecessor_dir, "product_two_zone.scdocx")
+step_path = os.path.join(predecessor_dir, "product.step")
+staging_dir = os.path.join(job_dir, "input", "staging")
+staged_native_path = os.path.join(staging_dir, "product_two_zone.scdocx")
+geometry_path = staged_native_path if native_route else step_path
 producer_report_path = os.path.join(
     predecessor_dir, "v02_preliminary_producer.json"
 )
@@ -43,8 +63,14 @@ REQUIRED_ASSERTIONS = (
 
 result = {
     "schema_version": 1,
-    "task": "AJM006_V02_PRELIMINARY_TOPOLOGY_OBSERVER",
-    "probe": "v02_preliminary_topology_observer",
+    "task": (
+        "AJM006_V02_NATIVE_TOPOLOGY_OBSERVER"
+        if native_route else "AJM006_V02_PRELIMINARY_TOPOLOGY_OBSERVER"
+    ),
+    "probe": (
+        "v02_native_topology_observer"
+        if native_route else "v02_preliminary_topology_observer"
+    ),
     "status": "FAIL_PRELIMINARY_OBSERVER",
     "engineering_capability": "FAIL_PRELIMINARY_OBSERVER",
     "formal_006_completion": False,
@@ -52,7 +78,10 @@ result = {
     "p1_p6_gates": "NOT_RUN",
     "license_arguments_added": False,
     "diagnostic_only": True,
-    "geometry_route": "HASH_BOUND_STEP_TO_WORKBENCH_MECHANICAL_GEODATA",
+    "geometry_route": (
+        "HASH_BOUND_NATIVE_STAGING_TO_WORKBENCH_MECHANICAL_GEODATA"
+        if native_route else "HASH_BOUND_STEP_TO_WORKBENCH_MECHANICAL_GEODATA"
+    ),
     "claim_boundary": (
         "IMPORT_TOPOLOGY_DISCOVERY_ONLY_NOT_MESH_OR_SHARED_NODE_PROOF"
     ),
@@ -101,36 +130,37 @@ try:
     producer = read_json(producer_report_path)
     face_inventory = read_json(face_inventory_path)
     native_reopen = read_json(native_reopen_path)
-    step_reimport = read_json(step_reimport_path)
+    step_reimport = None if native_route else read_json(step_reimport_path)
     predecessor_manifest = read_json(predecessor_manifest_path)
     manifest_entries = dict(
         (item.get("relative_path"), item)
         for item in predecessor_manifest.get("artifacts", [])
     )
     expected_names = {
-        "v02_preliminary_producer.json",
-        "product.step",
-        "v02_face_inventory.json",
-        "native_reopen.json",
-        "step_reimport.json",
-    }
-    actual_paths = {
         "v02_preliminary_producer.json": producer_report_path,
-        "product.step": geometry_path,
         "v02_face_inventory.json": face_inventory_path,
         "native_reopen.json": native_reopen_path,
-        "step_reimport.json": step_reimport_path,
     }
+    if native_route:
+        expected_names["product_two_zone.scdocx"] = native_path
+    else:
+        expected_names["product.step"] = step_path
+        expected_names["step_reimport.json"] = step_reimport_path
+    actual_paths = expected_names
+    expected_names = set(actual_paths)
     actual_hashes = dict(
         (name, sha256_file(path)) for name, path in actual_paths.items()
     )
     producer_files = producer.get("files", {})
     role_to_name = {
-        "step": "product.step",
         "face_inventory": "v02_face_inventory.json",
         "native_reopen": "native_reopen.json",
-        "step_reimport": "step_reimport.json",
     }
+    if native_route:
+        role_to_name["two_zone_native"] = "product_two_zone.scdocx"
+    else:
+        role_to_name["step"] = "product.step"
+        role_to_name["step_reimport"] = "step_reimport.json"
     predecessor_identity_ok = (
         predecessor_manifest.get("predecessor_profile_id")
         == EXPECTED_PREDECESSOR_PROFILE
@@ -171,9 +201,14 @@ try:
         and face_inventory.get("downstream_orifice_candidates")
         == EXPECTED_ORIFICE_COUNT
         and native_reopen.get("body_count") == 2
-        and step_reimport.get("body_count") == 2
-        and step_reimport.get("shared_interface_identity")
-        == "NOT_EVALUATED_UNTIL_WORKBENCH_OBSERVER"
+        and (
+            native_route
+            or (
+                step_reimport.get("body_count") == 2
+                and step_reimport.get("shared_interface_identity")
+                == "NOT_EVALUATED_UNTIL_WORKBENCH_OBSERVER"
+            )
+        )
     )
     result["predecessor"] = {
         "job_id": predecessor_manifest.get("predecessor_job_id"),
@@ -182,14 +217,19 @@ try:
         "artifact_manifest_snapshot_sha256": predecessor_manifest.get(
             "artifact_manifest_snapshot_sha256"
         ),
-        "step_sha256": actual_hashes.get("product.step"),
+        "geometry_route": result["geometry_route"],
+        "geometry_sha256": actual_hashes.get(
+            "product_two_zone.scdocx" if native_route else "product.step"
+        ),
         "source_native_face_counts": sorted(
             item.get("face_count")
             for item in native_reopen.get("body_fingerprints", [])
         ),
-        "source_step_face_counts": sorted(
+        "source_transfer_face_counts": sorted(
             item.get("face_count")
-            for item in step_reimport.get("body_fingerprints", [])
+            for item in (
+                native_reopen if native_route else step_reimport
+            ).get("body_fingerprints", [])
         ),
     }
     result["predecessor_job_id"] = predecessor_manifest.get(
@@ -208,7 +248,29 @@ try:
     if not predecessor_identity_ok:
         raise Exception("PREDECESSOR_IDENTITY_ASSERTION_FAILED")
     result["execution_reach"]["predecessor_identity"] = "PASS"
-    expected_step_sha256 = actual_hashes["product.step"]
+    expected_geometry_sha256 = actual_hashes[
+        "product_two_zone.scdocx" if native_route else "product.step"
+    ]
+    source_role_inventory_path = (
+        native_reopen_path if native_route else step_reimport_path
+    )
+
+    if native_route:
+        if not os.path.isdir(staging_dir):
+            os.makedirs(staging_dir)
+        shutil.copy2(native_path, staged_native_path)
+        staging_copy_hash_equal = (
+            sha256_file(staged_native_path) == expected_geometry_sha256
+        )
+        result["staging"] = {
+            "path": staged_native_path,
+            "source_sha256": expected_geometry_sha256,
+            "copy_sha256": sha256_file(staged_native_path),
+            "hash_equal": staging_copy_hash_equal,
+            "edit_called": False,
+        }
+        if not staging_copy_hash_equal:
+            raise Exception("NATIVE_STAGING_COPY_HASH_MISMATCH")
 
     Reset()
     result["execution_reach"]["geometry_import"] = "CALLED"
@@ -230,7 +292,8 @@ try:
     target_properties = target_geometry.GetGeometryProperties()
     target_properties.GeometryImportNamedSelections = True
     target_properties.GeometryImportNamedSelectionsFilter = ""
-    source_geometry.GetGeometryFileAndSaveData()
+    if not native_route:
+        source_geometry.GetGeometryFileAndSaveData()
     model_container = static_system.GetContainer(ComponentName="Model")
     model_container.Refresh()
     result["execution_reach"]["geometry_import"] = "RETURNED"
@@ -242,9 +305,10 @@ import math
 import traceback
 
 inspection_path = %r
-expected_step_sha256 = %r
+expected_geometry_sha256 = %r
+geometry_route = %r
 source_face_inventory_path = %r
-source_step_reimport_path = %r
+source_role_inventory_path = %r
 expected_orifice_count = %d
 interface_z_mm = %.12f
 orifice_area_mm2 = %.16f
@@ -256,7 +320,8 @@ inspection = {
     "formal_006_completion": False,
     "p1_stage_gate": "NOT_RUN",
     "p1_p6_gates": "NOT_RUN",
-    "source_step_sha256": expected_step_sha256,
+    "source_geometry_sha256": expected_geometry_sha256,
+    "geometry_route": geometry_route,
     "topology_result": "NOT_EVALUATED",
 }
 
@@ -266,8 +331,8 @@ try:
     cad_unit = str(geo.Unit)
     with open(source_face_inventory_path, "r") as handle:
         source_face_inventory = json.load(handle)
-    with open(source_step_reimport_path, "r") as handle:
-        source_step_reimport = json.load(handle)
+    with open(source_role_inventory_path, "r") as handle:
+        source_role_inventory = json.load(handle)
 
     def to_mm(value):
         return float(convert(value, cad_unit, "mm"))
@@ -463,12 +528,12 @@ try:
         body_details.append(body_detail)
 
     body_details.sort(key=lambda item: item["id"])
-    source_step_face_counts = sorted(
+    source_transfer_face_counts = sorted(
         int(item["face_count"])
-        for item in source_step_reimport.get("body_fingerprints", [])
+        for item in source_role_inventory.get("body_fingerprints", [])
     )
     observed_face_counts = sorted(item["face_count"] for item in body_details)
-    role_binding_exact = observed_face_counts == source_step_face_counts
+    role_binding_exact = observed_face_counts == source_transfer_face_counts
     named_upstream = [
         item for item in body_details if "FLUID_UPSTREAM" in item["name"]
     ]
@@ -713,7 +778,7 @@ try:
     summary = {
         "body_count": len(body_details),
         "body_face_counts": [item["face_count"] for item in body_details],
-        "source_step_face_counts": source_step_face_counts,
+        "source_transfer_face_counts": source_transfer_face_counts,
         "role_binding_by_predecessor_face_counts": role_binding_ok,
         "role_binding_route": role_binding_route,
         "role_binding_face_counts_exact": role_binding_exact,
@@ -786,9 +851,10 @@ if inspection.get("status") != "PASS_OBSERVATION":
     raise Exception("V02_SOLVER_TOPOLOGY_INVENTORY_FAILED")
 ''' % (
         inspection_path,
-        expected_step_sha256,
+        expected_geometry_sha256,
+        result["geometry_route"],
         face_inventory_path,
-        step_reimport_path,
+        source_role_inventory_path,
         EXPECTED_ORIFICE_COUNT,
         INTERFACE_Z_MM,
         ORIFICE_AREA_MM2,
@@ -816,7 +882,9 @@ if inspection.get("status") != "PASS_OBSERVATION":
     }
     inventory_ok = (
         inspection.get("status") == "PASS_OBSERVATION"
-        and inspection.get("source_step_sha256") == expected_step_sha256
+        and inspection.get("source_geometry_sha256")
+        == expected_geometry_sha256
+        and inspection.get("geometry_route") == result["geometry_route"]
         and inspection.get("formal_006_completion") is False
         and inspection.get("p1_stage_gate") == "NOT_RUN"
         and inspection.get("p1_p6_gates") == "NOT_RUN"
@@ -848,9 +916,7 @@ if inspection.get("status") != "PASS_OBSERVATION":
         else:
             compact_summary[name] = value
     compact_summary["compacted_list_fields"] = sorted(compacted_fields)
-    compact_summary["full_lists_artifact"] = (
-        "v02_solver_topology_inventory.json"
-    )
+    compact_summary["full_lists_artifact"] = inspection_name
     result["observer_summary"] = compact_summary
     result["claim_interpretation"] = {
         "import_topology_observed": inventory_ok,
@@ -912,11 +978,22 @@ if inspection.get("status") != "PASS_OBSERVATION":
     result["assertions"]["predecessor_immutable"] = (
         final_predecessor_hashes == actual_hashes
     )
-    if all(result["assertions"].values()):
-        result["status"] = "PASS_PRELIMINARY_TOPOLOGY_OBSERVATION"
-        result["engineering_capability"] = (
-            "PASS_PRELIMINARY_TOPOLOGY_OBSERVATION"
+    if native_route:
+        result["staging"]["final_sha256"] = sha256_file(staged_native_path)
+        result["staging"]["unchanged_after_import"] = (
+            result["staging"]["final_sha256"] == expected_geometry_sha256
         )
+        result["assertions"]["workbench_import"] = (
+            result["assertions"]["workbench_import"]
+            and result["staging"]["unchanged_after_import"]
+        )
+    pass_status = (
+        "PASS_PRELIMINARY_NATIVE_TOPOLOGY_OBSERVATION"
+        if native_route else "PASS_PRELIMINARY_TOPOLOGY_OBSERVATION"
+    )
+    if all(result["assertions"].values()):
+        result["status"] = pass_status
+        result["engineering_capability"] = pass_status
     else:
         result["error"] = "PRELIMINARY_OBSERVER_ASSERTION_FAILED"
 except Exception as error:
@@ -926,5 +1003,9 @@ except Exception as error:
 
 with open(report_path, "w") as handle:
     json.dump(result, handle, indent=2, sort_keys=True)
-if result["status"] != "PASS_PRELIMINARY_TOPOLOGY_OBSERVATION":
+expected_pass_status = (
+    "PASS_PRELIMINARY_NATIVE_TOPOLOGY_OBSERVATION"
+    if native_route else "PASS_PRELIMINARY_TOPOLOGY_OBSERVATION"
+)
+if result["status"] != expected_pass_status:
     raise Exception("AJM006_V02_PRELIMINARY_TOPOLOGY_OBSERVER_FAILED")
