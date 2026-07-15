@@ -258,6 +258,7 @@ def validate_consumer_report(
         "throat_local_size_mm": 0.075,
         "volume_max_size_mm": 0.75,
         "resolution_class": "STUDENT_COARSE_TOPOLOGY_DIAGNOSTIC_C1",
+        "cad_one_zone_per": "face",
         "student_cell_limit": 1_000_000,
         "student_node_limit": 1_000_000,
     }:
