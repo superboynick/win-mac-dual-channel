@@ -115,44 +115,52 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
         "mesh_evidence": {
             "cell_count": 500_000,
             "node_count": 600_000,
-            "cell_zone_count": 3,
-            "cell_zone_ids": [1, 2, 3],
-            "cell_zone_types": {"1": "fluid", "2": "fluid", "3": "fluid"},
-            "cell_counts_by_zone": {"1": 160_000, "2": 170_000, "3": 170_000},
-            "cell_volumes_by_zone": {"1": 1.0, "2": 2.0, "3": 3.0},
+            "cell_zone_count": 1,
+            "cell_zone_ids": [1],
+            "cell_zone_types": {"1": "fluid"},
+            "cell_counts_by_zone": {"1": 500_000},
+            "cell_volumes_by_zone": {"1": 451.8},
             "cell_zone_graph_connected": True,
-            "interior_face_zone_count": 2,
-            "interior_face_records": [
-                {
-                    "face_zone_id": 10,
-                    "raw_none": False,
-                    "adjacent_cell_zone_ids": [1, 2],
-                    "face_count": 20,
-                    "zone_type": "interior",
-                },
-                {
-                    "face_zone_id": 11,
-                    "raw_none": False,
-                    "adjacent_cell_zone_ids": [2, 3],
-                    "face_count": 30,
-                    "zone_type": "interior",
-                },
-            ],
-            "reached_cell_zone_ids": [1, 2, 3],
+            "interior_face_zone_count": 0,
+            "interior_face_records": [],
+            "reached_cell_zone_ids": [1],
             "boundary_face_adjacency": {
-                "100": [1], "101": [1], "102": [2], "103": [2], "104": [3]
+                "100": [1], "101": [1], "102": [1], "103": [1], "104": [1]
             },
             "boundary_adjacency_ok": True,
-            "anchor_zone_ids": [1, 3],
-            "anchor_occupancy_ok": True,
+            "post_volume_role_resolution_ok": True,
+            "post_volume_inlet_zone_count": 4,
+            "post_volume_outlet_zone_count": 1,
+            "post_volume_throat_zone_count": 972,
+            "throat_face_adjacency": {
+                str(200 + index): {
+                    "label": "THROAT_FACE_ADJACENCY",
+                    "raw_none": False,
+                    "values": [1],
+                }
+                for index in range(972)
+            },
+            "throat_face_adjacency_ok": True,
+            "anchor_zone_ids": [],
+            "anchor_occupancy_ok": False,
             "baffle_zone_count": 0,
             "embedded_baffle_zone_count": 0,
-            "throat_occupancy_hit_count": 972,
-            "throat_occupancy_miss_count": 0,
-            "throat_occupancy_raw_none_count": 0,
-            "throat_occupancy_zone_counts": {"1": 486, "2": 486},
+            "external_baffle_resolved": True,
+            "external_baffle_count": 0,
+            "unresolved_all_face_adjacency_count": 0,
+            "two_fluid_non_interior_count": 0,
+            "throat_occupancy_hit_count": 0,
+            "throat_occupancy_miss_count": 12,
+            "throat_occupancy_raw_none_count": 12,
+            "throat_occupancy_zone_counts": {},
             "throat_query_count": 972,
+            "throat_occupancy_executed_query_count": 12,
             "throat_zone_count": 972,
+            "expected_step_flow_volume_mm3": 451.77324837529704,
+            "meshed_cell_volume_mm3": 451.8,
+            "target_flow_volume_delta_mm3": 0.02675162470294712,
+            "target_flow_volume_tolerance_mm3": 1.0,
+            "target_flow_volume_matches_predecessor": True,
             "free_face_count": 0,
             "multi_face_count": 0,
             "min_orthogonal_quality": 0.12,
@@ -184,7 +192,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
 
 def test_consumer_report_accepts_exact_contract() -> None:
     assert runner.CONSUMER_SCRIPT_SHA256 == (
-        "751fb2aff63c3798ff89ffb49de232ecd7a4b0e32471aaaba4731be37930d264"
+        "cca6ad65262bd97ceb1ce4f4c0b29543d9101944d1039d751914b659c82b2c3a"
     )
     report, state, manifest = valid_report_state_manifest()
     assert runner.validate_consumer_report(manifest, state, HEAD) == report
@@ -223,18 +231,18 @@ def test_consumer_report_rejects_student_and_quality_overclaim() -> None:
     )
 
 
-def test_consumer_report_rejects_disconnected_or_fake_throat_graph() -> None:
-    rejects(
-        lambda report, _state, _manifest: report["mesh_evidence"][
-            "interior_face_records"
-        ][1].__setitem__("adjacent_cell_zone_ids", [3]),
-        "GRAPH_DISCONNECTED",
-    )
+def test_consumer_report_rejects_wrong_target_or_fake_throat_graph() -> None:
     rejects(
         lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
-            "throat_occupancy_hit_count", 971
+            "meshed_cell_volume_mm3", 13.475
         ),
-        "TOPOLOGY_INVALID",
+        "TARGET_VOLUME_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"][
+            "throat_face_adjacency"
+        ]["200"].__setitem__("values", []),
+        "THROAT_GRAPH_INVALID",
     )
     rejects(
         lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(

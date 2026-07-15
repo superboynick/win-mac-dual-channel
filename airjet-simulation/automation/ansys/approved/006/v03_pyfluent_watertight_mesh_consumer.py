@@ -502,6 +502,36 @@ def zone_names(meshing_utilities: Any, zone_ids: list[int]) -> list[str]:
     return [str(name) for name in names]
 
 
+def zone_names_one_way(
+    meshing_utilities: Any, zone_ids: list[int]
+) -> list[str]:
+    """Resolve post-volume names without the unreliable reverse converter.
+
+    Fluent 2026 R1 exposes ``convert_zone_ids_to_name_strings`` in meshing
+    utilities.  The reverse converter has returned ``None`` after volume
+    meshing in a real C4 run, so it is deliberately not part of this
+    observation-only post-volume lookup.
+    """
+    raw_names = meshing_utilities.convert_zone_ids_to_name_strings(
+        zone_id_list=zone_ids
+    )
+    if raw_names is None:
+        raise RuntimeError("POST_VOLUME_ZONE_ID_TO_NAME_RETURNED_NONE")
+    try:
+        names = list(raw_names)
+    except TypeError as exc:
+        raise RuntimeError(
+            "POST_VOLUME_ZONE_ID_TO_NAME_NOT_ITERABLE"
+        ) from exc
+    if (
+        len(names) != len(zone_ids)
+        or len(set(names)) != len(names)
+        or any(not isinstance(name, str) or not name for name in names)
+    ):
+        raise RuntimeError("POST_VOLUME_ZONE_ID_TO_NAME_CONVERSION_FAILED")
+    return [str(name) for name in names]
+
+
 def parse_mesh_size(transcript: str) -> tuple[int, int, int, int]:
     lines = [line.strip() for line in transcript.splitlines()]
     header_indices = [
@@ -1053,10 +1083,8 @@ try:
     )
     embedded_baffle_zone_ids = embedded_baffle_observation["values"]
 
-    all_face_name_by_id = {
-        face_zone_id: utilities.get_zone_name(zone_id=face_zone_id)
-        for face_zone_id in all_face_zone_ids
-    }
+    all_face_names = zone_names_one_way(utilities, all_face_zone_ids)
+    all_face_name_by_id = dict(zip(all_face_zone_ids, all_face_names))
     post_volume_inlet_observation = optional_int_sequence(
         utilities.get_zones(type_name="velocity-inlet"),
         "POST_VOLUME_INLET",
@@ -1078,7 +1106,12 @@ try:
         and len(post_volume_inlet_zone_ids) == 4
         and len(post_volume_outlet_zone_ids) == 1
         and not set(post_volume_inlet_zone_ids) & set(post_volume_outlet_zone_ids)
-        and bool(post_volume_throat_zone_ids)
+        and len(post_volume_throat_zone_ids) == THROAT_COUNT
+        and {
+            all_face_name_by_id[face_zone_id]
+            for face_zone_id in post_volume_throat_zone_ids
+        }
+        == set(throat_zone_names)
     )
     trace_checkpoint(
         "post_volume_role_resolution_observed",
@@ -1457,10 +1490,22 @@ try:
         "reached_cell_zone_ids": reached_cell_zone_ids,
         "boundary_face_adjacency": boundary_face_adjacency,
         "boundary_adjacency_ok": boundary_adjacency_ok,
+        "post_volume_role_resolution_ok": post_volume_role_resolution_ok,
+        "post_volume_inlet_zone_count": len(post_volume_inlet_zone_ids),
+        "post_volume_outlet_zone_count": len(post_volume_outlet_zone_ids),
+        "post_volume_throat_zone_count": len(post_volume_throat_zone_ids),
+        "throat_face_adjacency": throat_face_adjacency,
+        "throat_face_adjacency_ok": throat_face_adjacency_ok,
         "anchor_zone_ids": anchor_zone_ids,
         "anchor_occupancy_ok": anchor_occupancy_ok,
         "baffle_zone_count": len(baffle_zone_ids),
         "embedded_baffle_zone_count": len(embedded_baffle_zone_ids),
+        "external_baffle_resolved": external_baffle_inventory["resolved"],
+        "external_baffle_count": external_baffle_inventory["count"],
+        "unresolved_all_face_adjacency_count": len(
+            unresolved_all_face_adjacency
+        ),
+        "two_fluid_non_interior_count": len(two_fluid_non_interior),
         "throat_occupancy_hit_count": len(occupancy) - len(occupancy_misses),
         "throat_occupancy_miss_count": len(occupancy_misses),
         "throat_occupancy_raw_none_count": sum(
@@ -1468,7 +1513,17 @@ try:
         ),
         "throat_occupancy_zone_counts": occupancy_zone_counts,
         "throat_query_count": len(throat_query_points),
+        "throat_occupancy_executed_query_count": len(occupancy),
         "throat_zone_count": len(throat_zone_ids),
+        "expected_step_flow_volume_mm3": expected_target_flow_volume_mm3,
+        "meshed_cell_volume_mm3": float(cell_volume),
+        "target_flow_volume_delta_mm3": target_flow_volume_delta_mm3,
+        "target_flow_volume_tolerance_mm3": (
+            TARGET_FLOW_VOLUME_MESH_TOLERANCE_MM3
+        ),
+        "target_flow_volume_matches_predecessor": (
+            target_flow_volume_matches_predecessor
+        ),
         "free_face_count": free_faces,
         "multi_face_count": multi_faces,
         "min_orthogonal_quality": min_orthogonal_quality,

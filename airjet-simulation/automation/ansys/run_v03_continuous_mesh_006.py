@@ -26,7 +26,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "751fb2aff63c3798ff89ffb49de232ecd7a4b0e32471aaaba4731be37930d264"
+CONSUMER_SCRIPT_SHA256 = "cca6ad65262bd97ceb1ce4f4c0b29543d9101944d1039d751914b659c82b2c3a"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -197,16 +197,32 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         "reached_cell_zone_ids",
         "boundary_face_adjacency",
         "boundary_adjacency_ok",
+        "post_volume_role_resolution_ok",
+        "post_volume_inlet_zone_count",
+        "post_volume_outlet_zone_count",
+        "post_volume_throat_zone_count",
+        "throat_face_adjacency",
+        "throat_face_adjacency_ok",
         "anchor_zone_ids",
         "anchor_occupancy_ok",
         "baffle_zone_count",
         "embedded_baffle_zone_count",
+        "external_baffle_resolved",
+        "external_baffle_count",
+        "unresolved_all_face_adjacency_count",
+        "two_fluid_non_interior_count",
         "throat_occupancy_hit_count",
         "throat_occupancy_miss_count",
         "throat_occupancy_raw_none_count",
         "throat_occupancy_zone_counts",
         "throat_query_count",
+        "throat_occupancy_executed_query_count",
         "throat_zone_count",
+        "expected_step_flow_volume_mm3",
+        "meshed_cell_volume_mm3",
+        "target_flow_volume_delta_mm3",
+        "target_flow_volume_tolerance_mm3",
+        "target_flow_volume_matches_predecessor",
         "free_face_count",
         "multi_face_count",
         "min_orthogonal_quality",
@@ -217,7 +233,7 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
     if (
         not positive_int(evidence.get("cell_count"), 1_000_000)
         or not positive_int(evidence.get("node_count"), 1_000_000)
-        or not positive_int(evidence.get("cell_zone_count"), 12)
+        or evidence.get("cell_zone_count") != 1
     ):
         raise RuntimeError("CONSUMER_MESH_EVIDENCE_ENTITY_COUNT_INVALID")
 
@@ -319,27 +335,94 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
             or value[0] not in zone_set
             for value in boundary.values()
         )
-        or evidence.get("anchor_occupancy_ok") is not True
         or not isinstance(anchors, list)
-        or not anchors
         or anchors != sorted(set(anchors))
         or any(value not in zone_set for value in anchors)
     ):
         raise RuntimeError("CONSUMER_MESH_EVIDENCE_BOUNDARY_GRAPH_INVALID")
 
+    throat_adjacency = evidence.get("throat_face_adjacency")
+    if (
+        evidence.get("post_volume_role_resolution_ok") is not True
+        or evidence.get("post_volume_inlet_zone_count") != 4
+        or evidence.get("post_volume_outlet_zone_count") != 1
+        or evidence.get("post_volume_throat_zone_count") != 972
+        or evidence.get("throat_face_adjacency_ok") is not True
+        or not isinstance(throat_adjacency, dict)
+        or len(throat_adjacency)
+        != evidence.get("post_volume_throat_zone_count")
+        or any(
+            not isinstance(value, dict)
+            or set(value) != {"label", "raw_none", "values"}
+            or value.get("label") != "THROAT_FACE_ADJACENCY"
+            or value.get("raw_none") is not False
+            or value.get("values") != zone_ids
+            for value in throat_adjacency.values()
+        )
+    ):
+        raise RuntimeError("CONSUMER_MESH_EVIDENCE_THROAT_GRAPH_INVALID")
+
+    expected_volume = evidence.get("expected_step_flow_volume_mm3")
+    meshed_volume = evidence.get("meshed_cell_volume_mm3")
+    volume_delta = evidence.get("target_flow_volume_delta_mm3")
+    volume_tolerance = evidence.get("target_flow_volume_tolerance_mm3")
+    if (
+        any(
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            for value in (
+                expected_volume,
+                meshed_volume,
+                volume_delta,
+                volume_tolerance,
+            )
+        )
+        or float(expected_volume) <= 0.0
+        or float(meshed_volume) <= 0.0
+        or float(volume_delta) < 0.0
+        or float(volume_tolerance) != 1.0
+        or not math.isclose(
+            sum(float(value) for value in volumes.values()),
+            float(meshed_volume),
+            rel_tol=1.0e-9,
+            abs_tol=1.0e-9,
+        )
+        or not math.isclose(
+            abs(float(meshed_volume) - float(expected_volume)),
+            float(volume_delta),
+            rel_tol=1.0e-9,
+            abs_tol=1.0e-9,
+        )
+        or float(volume_delta) > float(volume_tolerance)
+        or evidence.get("target_flow_volume_matches_predecessor") is not True
+    ):
+        raise RuntimeError("CONSUMER_MESH_EVIDENCE_TARGET_VOLUME_INVALID")
+
     ownership = evidence.get("throat_occupancy_zone_counts")
+    executed_queries = evidence.get("throat_occupancy_executed_query_count")
+    hit_count = evidence.get("throat_occupancy_hit_count")
+    miss_count = evidence.get("throat_occupancy_miss_count")
+    raw_none_count = evidence.get("throat_occupancy_raw_none_count")
     if (
         evidence.get("baffle_zone_count") != 0
         or evidence.get("embedded_baffle_zone_count") != 0
+        or evidence.get("external_baffle_resolved") is not True
+        or evidence.get("external_baffle_count") != 0
+        or evidence.get("unresolved_all_face_adjacency_count") != 0
+        or evidence.get("two_fluid_non_interior_count") != 0
         or evidence.get("throat_query_count") != 972
-        or evidence.get("throat_occupancy_hit_count") != 972
-        or evidence.get("throat_occupancy_miss_count") != 0
-        or evidence.get("throat_occupancy_raw_none_count") != 0
+        or executed_queries not in {12, 972}
+        or type(hit_count) is not int
+        or type(miss_count) is not int
+        or type(raw_none_count) is not int
+        or min(hit_count, miss_count, raw_none_count) < 0
+        or hit_count + miss_count != executed_queries
+        or raw_none_count > miss_count
         or not isinstance(ownership, dict)
-        or not ownership
         or any(key not in zone_keys for key in ownership)
         or any(not positive_int(value) for value in ownership.values())
-        or sum(ownership.values()) != 972
+        or sum(ownership.values()) != hit_count
         or not positive_int(evidence.get("throat_zone_count"), 972)
         or evidence.get("free_face_count") != 0
         or evidence.get("multi_face_count") != 0
