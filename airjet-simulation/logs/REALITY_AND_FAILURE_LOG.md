@@ -1106,8 +1106,9 @@
   `471b5f3b...` / `7a5637fe...` / `e18e66ec...`。Git 外 raw evidence ZIP 为 85822 bytes、
   22 个 payload，SHA-256 `56dbc5c8...`，已由本 run 的
   `external-raw-evidence-pointer.json` 登记；脱敏进程观察 JSON 记录结束后相关进程数 0。
-- 下一步：只把 `Edit(Interactive=False)` 改为 `Edit(Interactive=True)`，其余 payload、SendCommand、
-  RunScript、path、timeout、fixture、cleanup 和 Gate 合同不变。marker 精确出现只支持
+- 下一步：只把受审 outer journal 的 `Edit(Interactive=False)` 改为 `Edit(Interactive=True)`；其余
+  payload、SendCommand、RunScript、path-generation/binding、timeout、fixture 逻辑、cleanup 和 Gate
+  合同不变，但 per-run absolute path 与注入后的 bytes 会重生成。marker 精确出现只支持
   `Interactive` mode/session 相关假设；同样空引用只关闭“仅改该参数即可修复”，不能全局排除
   batch/session 因素，之后再做 interactive RunScript-only。
 - Gate/论文影响：P1 readiness BLOCKED；P1--P6 `NOT_RUN`；visibility `NOT_USER_OBSERVED`。本轮不是
@@ -1138,9 +1139,11 @@
 - run/jobs：`AJM005_T1_CONNECTED_SC_SUITE_20260715T003805172375Z_13dedbfe`；SC
   `a5c-8f6666935605-7a9a0e332873`；WB `a5c-8f6666935605-2ba2edec9fd8`；签名 commit
   `fe84454565b286a12efa8fe1550304212dc64ffb`。
-- 单变量合同：outer journal 唯一运行变化为 `Interactive=False→True`；profile 只更新 script SHA；
-  AST policy 锁定唯一 Edit、两个 literal True keywords 及 Edit→SendCommand→RunScript 同一 body 顺序。
-  payload、路径、fixture、timeout、前驱、cleanup、transfer/Mechanical/Gate 均不变。
+- 单变量合同：受审 outer journal 唯一有意运行变化为 `Interactive=False→True`；profile 只更新
+  outer script SHA；AST policy 锁定唯一 Edit、两个 literal True keywords 及
+  Edit→SendCommand→RunScript 同一 body 顺序。path-generation/binding 合同、fixture template/逻辑、
+  marker payload、timeout、前驱、cleanup、transfer/Mechanical/Gate 不变；每轮 absolute job path 及
+  注入该路径后生成的 child/command bytes 会变化。
 - producer：21.703735 秒 PASS；transfer native 32147 bytes/SHA `675ea6ca...`；report SHA
   `fbec220d...`。producer 与注入 job path 的 child 每轮重生成，不能把跨 run 全部输入写成 byte-identical。
 - consumer：empty cell/Interactive=True Edit RETURNED；SendCommand 再次 CALLED 后在 line 553 抛同一

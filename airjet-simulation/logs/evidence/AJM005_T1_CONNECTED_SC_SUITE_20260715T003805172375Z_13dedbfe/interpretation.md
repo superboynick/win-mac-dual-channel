@@ -1,10 +1,14 @@
 # AJM-005 T1 connected SpaceClaim：Interactive=True 单参数仍不足
 
-本轮严格保持 run #20 的 empty Geometry route、inline payload、SendCommand、后续 RunScript、literal
-path、marker exact size/SHA、fixture、predecessor、timeout、cleanup、transfer/Mechanical assertions
-和 Gate 不变；唯一有意运行变化是把
+本轮保持 run #20 的 empty Geometry route、inline marker payload、SendCommand、后续 RunScript、
+path-generation/binding contract、marker exact size/SHA、fixture template/逻辑、predecessor、timeout、
+cleanup、transfer/Mechanical assertions 和 Gate 不变；受审 outer journal 的唯一有意运行变化是把
 `Edit(Interactive=False, IsSpaceClaimGeometry=True)` 改为 literal `Interactive=True`。静态策略用 AST
 锁定唯一 Edit、精确两个 True keyword 及 Edit→SendCommand→RunScript 的同一 `Try.body` 顺序。
+
+每轮 case 会重建 absolute job path，并将其注入 child 和 inline command；因此 per-run absolute path、
+child/command bytes 及其 SHA 会变化。这里的“单参数”只描述受审 outer journal 的有意运行干预，
+不是声称整组输入 byte-identical。
 
 producer 以 21.703735 秒 PASS。consumer 的 empty cell 和 `Edit(Interactive=True)` RETURNED；
 `SendCommand` 再次只到 CALLED 就在 journal line 553 抛相同外部错误文本

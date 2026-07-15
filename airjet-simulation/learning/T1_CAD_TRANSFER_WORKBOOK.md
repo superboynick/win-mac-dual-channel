@@ -961,11 +961,12 @@ Workbench replay journal 的相关 editor scripting 序列记录了 Edit、SendC
 约 256 秒，但没有调用级 timer，所以可写“job
 在 SendCommand 调用未返回的路径上结束”，不可写“SendCommand 精确耗时 256 秒”。
 
-下一轮采用真正单变量：只将 `Interactive=False` 改为 `Interactive=True`。官方 API 把它定义为
+下一轮采用受审 outer journal 单变量：只将 `Interactive=False` 改为 `Interactive=True`。官方 API 把它定义为
 batch/interactive，且默认是 true；这正好检验 run #19 与 #20 的共同未决因素——`Interactive`
 模式变化是否与 connected scripting path 的结果变化相伴。不能同时删除 SendCommand、换
 `.scscript`、改 payload、
-动几何或修许可，否则即使结果改变也无法归因。
+动几何或修许可，否则即使结果改变也无法归因。case-specific absolute path 和注入后的 child/command
+bytes 会按同一 generation/binding 合同重建，因此“单变量”不表示整组输入 byte-identical。
 
 ## 29. 第二十一次实跑：单参数未修复只关闭一个窄命题
 

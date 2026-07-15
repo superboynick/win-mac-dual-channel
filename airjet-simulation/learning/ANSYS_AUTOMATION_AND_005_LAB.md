@@ -687,7 +687,8 @@ messages 为空。正确写法是：
 
 ### 25.4 下一轮判读
 
-只改 `Edit(Interactive=True)`：
+只改受审 outer journal 的 `Edit(Interactive=True)`；case-specific absolute path 和注入后的 bytes 会按
+同一合同重建，并非整组输入 byte-identical：
 
 | observation | next inference/action |
 |---|---|

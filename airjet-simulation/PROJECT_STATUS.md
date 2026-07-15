@@ -98,9 +98,10 @@
   `Edit(Interactive=False)` RETURNED，但 `SendCommand` 仅到 CALLED 就抛 Workbench 空引用；
   post-SendCommand probe 与 `.py` RunScript 都未到达，failure freeze 中两个 sentinel/build report
   全 absent，cleanup Exit 返回。分类必须是 `CHECKPOINT_NOT_REACHED`，不能写成两通道都失败。
-  下一轮只把 Edit 改为 `Interactive=True`，检验 batch connected session 这一共同未决变量；其余
-  payload、API 顺序、路径、timeout、fixture 和 Gate 合同不变。
-  commit `fe84454...` 的严格单参数复测随后得到同一外部失败签名：literal True 的 Edit RETURNED，
+  下一轮只把受审 outer journal 的 Edit 改为 `Interactive=True`，检验 batch connected session 这一
+  共同未决变量；其余 payload、API 顺序、path-generation/binding、timeout、fixture 逻辑和 Gate 合同
+  不变；per-run absolute path 与注入后的 bytes 仍会重生成。
+  commit `fe84454...` 的受审 outer journal 单参数复测随后得到同一外部失败签名：literal True 的 Edit RETURNED，
   recorded journal 也把它 canonicalize 为默认 interactive 写法，但 SendCommand 仍在 line 553 空引用；
   post-call probe 与 RunScript 未到达，cleanup Exit 返回。由此只关闭“改一个 Interactive 参数就足以
   修复”这一窄命题，不能声称真实 GUI/session 已被用户观察或所有 session 因素已排除。下一轮保持

@@ -152,8 +152,8 @@
     }
   ],
   "paired_inference": {
-    "run_20_interactive": false,
-    "run_21_interactive": true,
+    "run_20_edit_interactive_argument": false,
+    "run_21_edit_interactive_argument": true,
     "observed_external_failure_signature_same": true,
     "only_interactive_argument_true_sufficient_fix": false,
     "interactive_desktop_session_observation": "NOT_USER_OBSERVED",
