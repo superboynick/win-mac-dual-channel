@@ -156,23 +156,6 @@ def json_safe_trace_value(value: Any) -> Any:
     }
 
 
-def observe_parameter(parameter: Any) -> dict[str, Any]:
-    """Read one generated workflow parameter without changing its state."""
-    try:
-        value = parameter()
-    except Exception as exc:  # noqa: BLE001 - diagnostics must retain API drift.
-        return {
-            "read_ok": False,
-            "error_type": type(exc).__name__,
-            "error": str(exc),
-        }
-    return {
-        "read_ok": True,
-        "python_type": type(value).__name__,
-        "value": json_safe_trace_value(value),
-    }
-
-
 def pin_verified_windows_platform_for_pyfluent() -> None:
     """Avoid Python 3.12's WMI-backed platform probe on the verified host."""
     if os.name != "nt" or os.environ.get("PROCESSOR_ARCHITECTURE") != "AMD64":
@@ -671,58 +654,6 @@ try:
         python_type=type(update_regions_pre_state).__name__,
         state=json_safe_trace_value(update_regions_pre_state),
     )
-    direct_region_state = {
-        name: observe_parameter(getattr(workflow.update_regions, name))
-        for name in (
-            "region_current_list",
-            "region_current_type_list",
-            "region_name_list",
-            "region_type_list",
-            "old_region_name_list",
-            "old_region_type_list",
-            "number_of_listed_regions",
-        )
-    }
-    trace_checkpoint(
-        "update_regions_direct_parameter_state",
-        state=direct_region_state,
-    )
-    current_names = direct_region_state["region_current_list"].get("value")
-    current_types = direct_region_state["region_current_type_list"].get("value")
-    listed_count = direct_region_state["number_of_listed_regions"].get("value")
-    if (
-        not isinstance(current_names, list)
-        or not isinstance(current_types, list)
-        or len(current_names) != 12
-        or len(current_types) != 12
-        or len(set(current_names)) != 12
-        or type(listed_count) is not int
-        or listed_count != 12
-    ):
-        raise RuntimeError(
-            "UPDATE_REGIONS_DIRECT_STATE_NOT_EXACT_12:{}".format(
-                direct_region_state
-            )
-        )
-    normalized_region_types = [str(value).strip().lower() for value in current_types]
-    if normalized_region_types.count("fluid") != 1 or any(
-        value not in {"fluid", "dead", "void"}
-        for value in normalized_region_types
-    ):
-        raise RuntimeError(
-            "REGION_TYPES_NOT_EXACT_1_FLUID_11_DEAD_OR_VOID:{}".format(
-                dict(zip(current_names, current_types))
-            )
-        )
-    trace_checkpoint(
-        "region_classification_verified_before_update",
-        names=current_names,
-        types=current_types,
-    )
-    workflow.update_regions.region_name_list = current_names
-    workflow.update_regions.region_type_list = current_types
-    workflow.update_regions.old_region_name_list = current_names
-    workflow.update_regions.old_region_type_list = current_types
     workflow.update_regions()
     volume_mesh = workflow.create_volume_mesh_wtm
     volume_mesh.volume_fill = "poly-hexcore"

@@ -750,7 +750,7 @@ try:
     manifold_y_max = float(exhaust["manifold_y_max_mm"])
     outlet_width = float(exhaust["outlet_width_mm"])
     radius = float(layout["orifice_diameter_candidate_mm"]) / 2.0
-    numerical_overlap_mm = 0.001
+    numerical_overlap_mm = 0.02
     throat_length_mm = orifice_top_z - interface_z
     c016_budget = thickness["ORIFICE_PLATE"]
     impingement_budget = thickness["IMPINGEMENT_CHANNEL"]

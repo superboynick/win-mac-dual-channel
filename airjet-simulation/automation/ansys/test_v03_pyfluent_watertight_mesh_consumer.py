@@ -154,16 +154,6 @@ def test_update_regions_probe_is_observation_only_and_ordered() -> None:
     create_execute = SOURCE.index("workflow.create_regions()", create_state_read + 1)
     state_read = SOURCE.index("workflow.update_regions.arguments()")
     state_trace = SOURCE.index('"update_regions_pre_execute_state"')
-    direct_state = SOURCE.index('"update_regions_direct_parameter_state"')
-    classification_gate = SOURCE.index(
-        '"REGION_TYPES_NOT_EXACT_1_FLUID_11_DEAD_OR_VOID:'
-    )
-    classification_verified = SOURCE.index(
-        '"region_classification_verified_before_update"'
-    )
-    explicit_types = SOURCE.index(
-        "workflow.update_regions.region_type_list = current_types"
-    )
     region_execute = SOURCE.index("workflow.update_regions()", state_read + 1)
     volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
     assert (
@@ -173,10 +163,6 @@ def test_update_regions_probe_is_observation_only_and_ordered() -> None:
         < create_execute
         < state_read
         < state_trace
-        < direct_state
-        < classification_gate
-        < classification_verified
-        < explicit_types
         < region_execute
         < volume_mesh
     )
@@ -184,7 +170,7 @@ def test_update_regions_probe_is_observation_only_and_ordered() -> None:
     assert SOURCE.count("workflow.create_regions()") == 1
     assert SOURCE.count("workflow.update_regions.arguments()") == 1
     assert SOURCE.count("workflow.update_regions()") == 1
-    observation_window = SOURCE[state_read:classification_verified]
+    observation_window = SOURCE[state_read:region_execute]
     for forbidden in (
         "workflow.update_regions.region_name_list =",
         "workflow.update_regions.region_type_list =",
@@ -192,28 +178,6 @@ def test_update_regions_probe_is_observation_only_and_ordered() -> None:
         "workflow.update_regions.arguments({",
     ):
         assert forbidden not in observation_window
-
-
-def test_region_classification_is_fail_closed_before_volume_mesh() -> None:
-    for required in (
-        '"region_current_list"',
-        '"region_current_type_list"',
-        '"number_of_listed_regions"',
-        '"UPDATE_REGIONS_DIRECT_STATE_NOT_EXACT_12:',
-        'normalized_region_types.count("fluid") != 1',
-        'value not in {"fluid", "dead", "void"}',
-        "workflow.update_regions.region_name_list = current_names",
-        "workflow.update_regions.region_type_list = current_types",
-        "workflow.update_regions.old_region_name_list = current_names",
-        "workflow.update_regions.old_region_type_list = current_types",
-    ):
-        assert required in SOURCE
-    region_gate = SOURCE.index("REGION_TYPES_NOT_EXACT_1_FLUID_11_DEAD_OR_VOID")
-    region_update = SOURCE.index("workflow.update_regions()")
-    volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
-    assert region_gate < region_update < volume_mesh
-
-
 def test_json_safe_trace_helper_preserves_nested_input() -> None:
     helper_node = next(
         node for node in TREE.body

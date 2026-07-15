@@ -40,7 +40,7 @@ OUTPUT_ROOT = Path(r"D:\AirJet_P1\AJM-P1-CAD-006")
 RESULT_PATH = OUTPUT_ROOT / "V03_CONTINUOUS_FLUID_RUN_SUMMARY.json"
 POLICY_GIT_PATH = "airjet-simulation/automation/ansys/profiles.json"
 PROFILE_ID = "ajm006-spaceclaim-v03-continuous-throat-pilot-v1"
-PROFILE_SCRIPT_SHA256 = "be0f4787aff784734137a463482dcfc7c14dde23da565928c055ed305f1aeacb"
+PROFILE_SCRIPT_SHA256 = "613f3bb50bd13d1fbad390080f92a69fca42bb57110a8194c22bf530fe69d6dd"
 PROFILE_SCRIPT = "006/v03_continuous_fluid_producer.py"
 CASE_ID = "AJM006-V03-CONTINUOUS"
 EXPECTED_TOOLS = {
@@ -537,7 +537,7 @@ def validate_producer_report(
         or not numeric_close(geometry.get("throat_length_mm"), 0.10)
         or geometry.get("throat_length_range_mm") != [0.05, 0.20]
         or geometry.get("throat_length_evidence_class") != "C"
-        or not numeric_close(geometry.get("numerical_overlap_mm"), 0.001)
+        or not numeric_close(geometry.get("numerical_overlap_mm"), 0.02)
         or not isinstance(
             geometry.get("boolean_volume_delta_mm3"), (int, float)
         )

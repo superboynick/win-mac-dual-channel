@@ -185,7 +185,7 @@ def valid_report_and_manifest() -> tuple[dict, dict, dict]:
             "throat_length_mm": 0.10,
             "throat_length_range_mm": [0.05, 0.20],
             "throat_length_evidence_class": "C",
-            "numerical_overlap_mm": 0.001,
+            "numerical_overlap_mm": 0.02,
             "boolean_volume_delta_mm3": 0.0,
             "route_analytic_volume_mm3": 451.7788188426395,
             "native_analytic_volume_delta_mm3": 0.0,
