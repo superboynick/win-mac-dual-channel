@@ -529,7 +529,7 @@ try:
     result["execution_reach"]["empty_geometry_system"] = "RETURNED"
 
     result["execution_reach"]["connected_editor_edit"] = "CALLED"
-    source_geometry.Edit(Interactive=False, IsSpaceClaimGeometry=True)
+    source_geometry.Edit(Interactive=True, IsSpaceClaimGeometry=True)
     result["execution_reach"]["connected_editor_edit"] = "RETURNED"
     connected_editor_open = True
 

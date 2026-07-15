@@ -280,7 +280,7 @@ connected_script = (
 for invariant in (
     '"WORKBENCH_MANAGED_CONNECTED_SPACECLAIM_DOCUMENT"',
     "source_properties.GeometryFilePath",
-    "source_geometry.Edit(Interactive=False, IsSpaceClaimGeometry=True)",
+    "source_geometry.Edit(Interactive=True, IsSpaceClaimGeometry=True)",
     'source_geometry.SendCommand(Command=inline_command, Language="Python")',
     "source_geometry.RunScript(ScriptFile=build_script_path)",
     "source_geometry.Exit()",
@@ -406,22 +406,66 @@ try:
         if isinstance(node, ast.Call)
         and dotted_call_name(node.func) == "source_geometry.RunScript"
     ]
-    if len(send_command_calls) != 1 or len(run_script_calls) != 1:
+    edit_calls = [
+        node
+        for node in ast.walk(connected_tree)
+        if isinstance(node, ast.Call)
+        and dotted_call_name(node.func) == "source_geometry.Edit"
+    ]
+    edit_attribute_references = [
+        node
+        for node in ast.walk(connected_tree)
+        if isinstance(node, ast.Attribute)
+        and node.attr == "Edit"
+    ]
+    if (
+        len(edit_calls) != 1
+        or len(edit_attribute_references) != 1
+        or len(send_command_calls) != 1
+        or len(run_script_calls) != 1
+    ):
         fail("connected inline/file diagnostic call cardinality changed")
+    if edit_attribute_references[0] is not edit_calls[0].func:
+        fail("connected editor Edit attribute escaped the reviewed direct call")
+    if any(
+        isinstance(node, ast.Constant) and node.value == "Edit"
+        for node in ast.walk(connected_tree)
+    ):
+        fail("connected editor Edit must not use reflective string dispatch")
+    if "Interactive=False" in connected_script:
+        fail("connected interactive diagnostic retains batch Edit mode")
+    edit_call = edit_calls[0]
+    if edit_call.args or any(keyword.arg is None for keyword in edit_call.keywords):
+        fail("connected editor Edit must use only explicit reviewed keywords")
+    edit_keywords = {keyword.arg: keyword.value for keyword in edit_call.keywords}
+    if set(edit_keywords) != {"Interactive", "IsSpaceClaimGeometry"} or any(
+        not isinstance(edit_keywords[name], ast.Constant)
+        or edit_keywords[name].value is not True
+        for name in ("Interactive", "IsSpaceClaimGeometry")
+    ):
+        fail("connected editor Edit must be exact interactive SpaceClaim mode")
+    edit_statement = outer_parent_by_node.get(edit_call)
     send_statement = outer_parent_by_node.get(send_command_calls[0])
     run_statement = outer_parent_by_node.get(run_script_calls[0])
+    edit_body = outer_parent_by_node.get(edit_statement)
     send_body = outer_parent_by_node.get(send_statement)
     run_body = outer_parent_by_node.get(run_statement)
     if not (
-        isinstance(send_statement, ast.Expr)
+        isinstance(edit_statement, ast.Expr)
+        and isinstance(send_statement, ast.Expr)
         and isinstance(run_statement, ast.Expr)
+        and isinstance(edit_body, ast.Try)
+        and edit_body is send_body
         and isinstance(send_body, ast.Try)
         and send_body is run_body
+        and edit_statement in send_body.body
         and send_statement in send_body.body
         and run_statement in send_body.body
-        and send_body.body.index(send_statement) < send_body.body.index(run_statement)
+        and send_body.body.index(edit_statement)
+        < send_body.body.index(send_statement)
+        < send_body.body.index(run_statement)
     ):
-        fail("connected inline and file calls must execute in order in one try body")
+        fail("connected edit inline and file calls must execute in one ordered try body")
     embedded_assignments = [
         node
         for node in connected_tree.body
