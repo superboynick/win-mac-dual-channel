@@ -56,6 +56,7 @@ Success means only:
 ```text
 RUNNER_FINAL_STATUS=PASS_PRELIMINARY_TOPOLOGY_OBSERVER
 TOPOLOGY_RESULT=<one of the four classifications>
+TOPOLOGY_DETAIL=<exact diagnostic subtype, including one-sided interface loss when observed>
 FORMAL_006_COMPLETION=false
 P1_STAGE_GATE=NOT_RUN
 P2_P6_GATES=NOT_RUN

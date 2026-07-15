@@ -1773,6 +1773,8 @@ for invariant in (
     "972_COINCIDENT_FACE_PAIRS",
     "DOWNSTREAM_HEALED_SINGLE_FACE",
     "MIXED_OR_OTHER",
+    "UPSTREAM_ORIFICE_GEOMETRY_LOST_DOWNSTREAM_972_IMPRINTS_RETAINED",
+    "PERSISTED_BODY_NAME",
     '"formal_006_completion": False',
     '"p1_stage_gate": "NOT_RUN"',
     '"p1_p6_gates": "NOT_RUN"',

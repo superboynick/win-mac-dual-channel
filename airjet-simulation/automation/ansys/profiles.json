@@ -275,7 +275,7 @@
       "profile_id": "ajm006-workbench-v02-topology-observer-v1",
       "engine": "workbench",
       "script": "006/v02_preliminary_topology_observer.wbjn",
-      "sha256": "dd38228bedbfe13c790ad75146232dd146997e5055ddb2b9eb6ae78768b6842c",
+      "sha256": "790247a205e26a82ecc73ecf788ed6a217ea9334673ea02b60db62a37bb4a0ba",
       "timeout_seconds": 3600,
       "output_root_id": "p1_cad_006",
       "reports": [

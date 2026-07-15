@@ -462,25 +462,53 @@ try:
         body_detail.update(body_context.get(str(body_id), {}))
         body_details.append(body_detail)
 
-    body_details.sort(key=lambda item: item["face_count"], reverse=True)
+    body_details.sort(key=lambda item: item["id"])
     source_step_face_counts = sorted(
         int(item["face_count"])
         for item in source_step_reimport.get("body_fingerprints", [])
     )
     observed_face_counts = sorted(item["face_count"] for item in body_details)
     role_binding_exact = observed_face_counts == source_step_face_counts
+    named_upstream = [
+        item for item in body_details if "FLUID_UPSTREAM" in item["name"]
+    ]
+    named_downstream = [
+        item for item in body_details if "FLUID_DOWNSTREAM" in item["name"]
+    ]
+    role_binding_route = "PERSISTED_BODY_NAME"
+    if len(named_upstream) == 1 and len(named_downstream) == 1:
+        upstream_body = named_upstream[0]
+        downstream_body = named_downstream[0]
+    else:
+        role_binding_route = "Z_EXTENT_FALLBACK"
+        def top_z(item):
+            box = item.get("bounding_box_mm")
+            if isinstance(box, dict) and isinstance(box.get("max_mm"), list):
+                return float(box["max_mm"][2])
+            return -1.0e30
+        by_top_z = sorted(
+            body_details,
+            key=top_z,
+            reverse=True,
+        )
+        upstream_body = by_top_z[0] if len(by_top_z) == 2 else None
+        downstream_body = by_top_z[1] if len(by_top_z) == 2 else None
     role_binding_ok = (
         len(body_details) == 2
-        and len(set(observed_face_counts)) == 2
-        and len(source_step_face_counts) == 2
-        and len(set(source_step_face_counts)) == 2
+        and upstream_body is not None
+        and downstream_body is not None
+        and upstream_body["id"] != downstream_body["id"]
+        and upstream_body.get("bounding_box_mm") is not None
+        and downstream_body.get("bounding_box_mm") is not None
+        and upstream_body["bounding_box_mm"]["max_mm"][2]
+        > downstream_body["bounding_box_mm"]["max_mm"][2]
     )
-    upstream_body = body_details[0] if body_details else None
-    downstream_body = body_details[-1] if len(body_details) > 1 else None
     upstream_id = upstream_body["id"] if upstream_body else None
     downstream_id = downstream_body["id"] if downstream_body else None
     z_tolerance_mm = 0.02
     area_tolerance_mm2 = 0.001
+    orifice_diameter_mm = 0.25
+    orifice_bbox_tolerance_mm = 0.02
     xy_tolerance_mm = 0.02
     expected_orifice_points = sorted(
         [
@@ -503,17 +531,34 @@ try:
             if abs(x_value - point[0]) <= xy_tolerance_mm
             and abs(y_value - point[1]) <= xy_tolerance_mm
         ]
+
+    def has_orifice_footprint(face):
+        box = face.get("bounding_box_mm")
+        if not isinstance(box, dict):
+            return False
+        minimum = box.get("min_mm")
+        maximum = box.get("max_mm")
+        if not isinstance(minimum, list) or not isinstance(maximum, list):
+            return False
+        span_x = float(maximum[0]) - float(minimum[0])
+        span_y = float(maximum[1]) - float(minimum[1])
+        return (
+            face.get("edge_count") == 1
+            and face.get("surface_type") == "GeoSurfacePlane"
+            and abs(span_x - orifice_diameter_mm) <= orifice_bbox_tolerance_mm
+            and abs(span_y - orifice_diameter_mm) <= orifice_bbox_tolerance_mm
+        )
     upstream_candidates = []
     downstream_candidates = []
     downstream_interface_faces = []
     for face in all_face_details:
         at_interface = abs(face["centroid_mm"][2] - interface_z_mm) <= z_tolerance_mm
-        circle_area = abs(face["area_mm2"] - orifice_area_mm2) <= area_tolerance_mm2
-        if face["owner_body_id"] == upstream_id and at_interface and circle_area:
+        orifice_footprint = has_orifice_footprint(face)
+        if face["owner_body_id"] == upstream_id and at_interface and orifice_footprint:
             upstream_candidates.append(face)
         if face["owner_body_id"] == downstream_id and at_interface:
             downstream_interface_faces.append(face)
-            if circle_area:
+            if orifice_footprint:
                 downstream_candidates.append(face)
 
     upstream_by_expected = dict(
@@ -627,6 +672,7 @@ try:
         and len(shared_interface_candidate_ids) == expected_orifice_count
     ):
         topology_result = "972_SHARED_SINGLE_FACE"
+        topology_detail = "SHARED_ID_MEMBERSHIP_CONFIRMED"
     elif (
         upstream_xy_contract_exact
         and
@@ -638,6 +684,7 @@ try:
         and opposite_normal_pairs == expected_orifice_count
     ):
         topology_result = "972_COINCIDENT_FACE_PAIRS"
+        topology_detail = "COINCIDENT_PAIR_GEOMETRY_CONFIRMED"
     elif (
         upstream_xy_contract_exact
         and
@@ -646,14 +693,29 @@ try:
         and len(downstream_top_large_faces) == 1
     ):
         topology_result = "DOWNSTREAM_HEALED_SINGLE_FACE"
+        topology_detail = "DOWNSTREAM_HEALED_SINGLE_FACE"
     else:
         topology_result = "MIXED_OR_OTHER"
+        if (
+            len(upstream_candidates) == 0
+            and downstream_xy_contract_exact
+            and len(downstream_candidates) == expected_orifice_count
+            and upstream_body["bounding_box_mm"]["min_mm"][2]
+            > interface_z_mm + z_tolerance_mm
+        ):
+            topology_detail = (
+                "UPSTREAM_ORIFICE_GEOMETRY_LOST_"
+                "DOWNSTREAM_972_IMPRINTS_RETAINED"
+            )
+        else:
+            topology_detail = "UNRESOLVED_MIXED"
 
     summary = {
         "body_count": len(body_details),
         "body_face_counts": [item["face_count"] for item in body_details],
         "source_step_face_counts": source_step_face_counts,
         "role_binding_by_predecessor_face_counts": role_binding_ok,
+        "role_binding_route": role_binding_route,
         "role_binding_face_counts_exact": role_binding_exact,
         "body_ids": [item["id"] for item in body_details],
         "total_body_face_references": len(all_face_details),
@@ -690,6 +752,16 @@ try:
         "unmatched_downstream_face_ids": sorted(unmatched_downstream_ids),
         "ambiguous_candidate_face_ids": sorted(ambiguous_candidate_ids),
         "topology_result": topology_result,
+        "topology_detail": topology_detail,
+        "interface_candidate_predicate": {
+            "z_tolerance_mm": z_tolerance_mm,
+            "xy_tolerance_mm": xy_tolerance_mm,
+            "bbox_diameter_mm": orifice_diameter_mm,
+            "bbox_tolerance_mm": orifice_bbox_tolerance_mm,
+            "edge_count": 1,
+            "surface_type": "GeoSurfacePlane",
+            "area_is_diagnostic_not_match_anchor": True,
+        },
         "shared_node_or_conformal_mesh": "NOT_EVALUATED_NO_MESH",
     }
     inspection.update({
@@ -701,6 +773,7 @@ try:
         "hole_records": hole_records,
         "summary": summary,
         "topology_result": topology_result,
+        "topology_detail": topology_detail,
     })
 except Exception as error:
     inspection["error_type"] = type(error).__name__
@@ -727,11 +800,19 @@ if inspection.get("status") != "PASS_OBSERVATION":
     inspection = read_json(inspection_path)
     summary = inspection.get("summary", {})
     topology_result = inspection.get("topology_result")
+    topology_detail = inspection.get("topology_detail")
     valid_topology_results = {
         "972_SHARED_SINGLE_FACE",
         "972_COINCIDENT_FACE_PAIRS",
         "DOWNSTREAM_HEALED_SINGLE_FACE",
         "MIXED_OR_OTHER",
+    }
+    valid_topology_details = {
+        "SHARED_ID_MEMBERSHIP_CONFIRMED",
+        "COINCIDENT_PAIR_GEOMETRY_CONFIRMED",
+        "DOWNSTREAM_HEALED_SINGLE_FACE",
+        "UPSTREAM_ORIFICE_GEOMETRY_LOST_DOWNSTREAM_972_IMPRINTS_RETAINED",
+        "UNRESOLVED_MIXED",
     }
     inventory_ok = (
         inspection.get("status") == "PASS_OBSERVATION"
@@ -746,13 +827,18 @@ if inspection.get("status") != "PASS_OBSERVATION":
         and len(inspection["face_details"])
         == summary.get("total_body_face_references")
     )
-    topology_classified_ok = topology_result in valid_topology_results
+    topology_classified_ok = (
+        topology_result in valid_topology_results
+        and topology_detail in valid_topology_details
+        and summary.get("topology_detail") == topology_detail
+    )
     result["execution_reach"]["topology_classification"] = (
         "RETURNED" if topology_classified_ok else "FAILED"
     )
     result["assertions"]["solver_entity_inventory"] = inventory_ok
     result["assertions"]["topology_classified"] = topology_classified_ok
     result["topology_result"] = topology_result
+    result["topology_detail"] = topology_detail
     compact_summary = {}
     compacted_fields = []
     for name, value in summary.items():
@@ -776,6 +862,10 @@ if inspection.get("status") != "PASS_OBSERVATION":
         ),
         "downstream_imprint_loss_observed": (
             topology_result == "DOWNSTREAM_HEALED_SINGLE_FACE"
+        ),
+        "one_sided_interface_loss_observed": (
+            topology_detail
+            == "UPSTREAM_ORIFICE_GEOMETRY_LOST_DOWNSTREAM_972_IMPRINTS_RETAINED"
         ),
         "mesh_conformality": "NOT_EVALUATED_NO_MESH",
         "formal_semantic_contract": "NOT_EVALUATED_DISCOVERY_ONLY",

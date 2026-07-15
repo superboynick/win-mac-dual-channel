@@ -44,7 +44,7 @@ PRODUCER_PROFILE_ID = producer_runner.PROFILE_ID
 PRODUCER_SCRIPT_SHA256 = producer_runner.PROFILE_SCRIPT_SHA256
 OBSERVER_PROFILE_ID = "ajm006-workbench-v02-topology-observer-v1"
 OBSERVER_SCRIPT_SHA256 = (
-    "dd38228bedbfe13c790ad75146232dd146997e5055ddb2b9eb6ae78768b6842c"
+    "790247a205e26a82ecc73ecf788ed6a217ea9334673ea02b60db62a37bb4a0ba"
 )
 CASE_ID = producer_runner.CASE_ID
 EXPECTED_TOOLS = producer_runner.EXPECTED_TOOLS
@@ -80,6 +80,13 @@ VALID_TOPOLOGY_RESULTS = {
     "972_COINCIDENT_FACE_PAIRS",
     "DOWNSTREAM_HEALED_SINGLE_FACE",
     "MIXED_OR_OTHER",
+}
+VALID_TOPOLOGY_DETAILS = {
+    "SHARED_ID_MEMBERSHIP_CONFIRMED",
+    "COINCIDENT_PAIR_GEOMETRY_CONFIRMED",
+    "DOWNSTREAM_HEALED_SINGLE_FACE",
+    "UPSTREAM_ORIFICE_GEOMETRY_LOST_DOWNSTREAM_972_IMPRINTS_RETAINED",
+    "UNRESOLVED_MIXED",
 }
 
 
@@ -307,11 +314,14 @@ def validate_observer_report(
     ):
         raise RuntimeError("OBSERVER_ASSERTIONS_FAILED")
     topology_result = report.get("topology_result")
+    topology_detail = report.get("topology_detail")
     summary = report.get("observer_summary")
     if (
         topology_result not in VALID_TOPOLOGY_RESULTS
+        or topology_detail not in VALID_TOPOLOGY_DETAILS
         or not isinstance(summary, dict)
         or summary.get("topology_result") != topology_result
+        or summary.get("topology_detail") != topology_detail
         or summary.get("body_count") != 2
         or summary.get("total_body_face_references", 0) <= 0
         or summary.get("role_binding_by_predecessor_face_counts") is not True
@@ -365,6 +375,7 @@ async def run_suite() -> int:
         "producer": None,
         "observer": None,
         "topology_result": None,
+        "topology_detail": None,
         "error": None,
     }
     exit_code = 2
@@ -532,6 +543,9 @@ async def run_suite() -> int:
                     result["topology_result"] = observer_report[
                         "topology_result"
                     ]
+                    result["topology_detail"] = observer_report[
+                        "topology_detail"
+                    ]
                     result["final_status"] = (
                         "PASS_PRELIMINARY_TOPOLOGY_OBSERVER"
                     )
@@ -551,6 +565,7 @@ async def run_suite() -> int:
             "exit_code": exit_code,
             "final_status": result["final_status"],
             "topology_result": result["topology_result"],
+            "topology_detail": result["topology_detail"],
             "result_path": str(RESULT_PATH),
         }, sort_keys=True))
     return exit_code

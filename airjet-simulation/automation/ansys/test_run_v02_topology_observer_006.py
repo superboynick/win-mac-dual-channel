@@ -133,7 +133,10 @@ def test_preflight_rejects_external_artifact_contract():
     assert "BLOCKED_OBSERVER_PROFILE_CONTRACT" in result["preflight_errors"]
 
 
-def valid_report(topology_result="DOWNSTREAM_HEALED_SINGLE_FACE"):
+def valid_report(
+    topology_result="DOWNSTREAM_HEALED_SINGLE_FACE",
+    topology_detail="DOWNSTREAM_HEALED_SINGLE_FACE",
+):
     artifacts = {}
     for index, (role, relative) in enumerate(
         sorted(runner.EXPECTED_OBSERVER_FILES.items())
@@ -169,8 +172,10 @@ def valid_report(topology_result="DOWNSTREAM_HEALED_SINGLE_FACE"):
             (name, True) for name in runner.EXPECTED_OBSERVER_ASSERTIONS
         ),
         "topology_result": topology_result,
+        "topology_detail": topology_detail,
         "observer_summary": {
             "topology_result": topology_result,
+            "topology_detail": topology_detail,
             "body_count": 2,
             "total_body_face_references": 2050,
             "role_binding_by_predecessor_face_counts": True,
@@ -217,12 +222,24 @@ def test_validate_observer_accepts_healed_observation():
 
 
 def test_validate_observer_accepts_mixed_as_diagnostic_only():
-    report = valid_report("MIXED_OR_OTHER")
+    report = valid_report("MIXED_OR_OTHER", "UNRESOLVED_MIXED")
     returned = runner.validate_observer_report(
         manifest_for(report), job_state(), HEAD, PREDECESSOR_JOB_ID
     )
     assert returned["formal_006_completion"] is False
     assert returned["p1_stage_gate"] == "NOT_RUN"
+
+
+def test_validate_observer_accepts_one_sided_interface_loss():
+    detail = (
+        "UPSTREAM_ORIFICE_GEOMETRY_LOST_"
+        "DOWNSTREAM_972_IMPRINTS_RETAINED"
+    )
+    report = valid_report("MIXED_OR_OTHER", detail)
+    returned = runner.validate_observer_report(
+        manifest_for(report), job_state(), HEAD, PREDECESSOR_JOB_ID
+    )
+    assert returned["topology_detail"] == detail
 
 
 def test_validate_observer_rejects_p1_overclaim():
@@ -292,6 +309,7 @@ def main():
         test_preflight_rejects_external_artifact_contract,
         test_validate_observer_accepts_healed_observation,
         test_validate_observer_accepts_mixed_as_diagnostic_only,
+        test_validate_observer_accepts_one_sided_interface_loss,
         test_validate_observer_rejects_p1_overclaim,
         test_validate_observer_rejects_hash_mismatch,
         test_embedded_mechanical_script_formats_and_compiles,
