@@ -723,6 +723,10 @@ def sanitized_environment(
         ),
         "PATHEXT": ".COM;.EXE;.BAT;.CMD",
         "USERPROFILE": r"C:\Users\admin",
+        # Python's getpass.getuser() falls back to the Unix-only pwd module
+        # when all login-name variables are absent.  Fluent's CAD bridge calls
+        # that path, so pin the already audited Windows service account.
+        "USERNAME": "admin",
         "HOMEDRIVE": "C:",
         "HOMEPATH": r"\Users\admin",
         "APPDATA": r"C:\Users\admin\AppData\Roaming",

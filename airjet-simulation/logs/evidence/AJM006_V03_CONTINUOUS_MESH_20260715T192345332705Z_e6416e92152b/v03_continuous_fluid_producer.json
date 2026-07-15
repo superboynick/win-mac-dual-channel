@@ -1,0 +1,439 @@
+{
+  "assertions": {
+    "artifact_hashes": true, 
+    "c016_candidate_boundary": true, 
+    "claim_boundaries": true, 
+    "complete_flow_path": true, 
+    "explicit_throat_construction": true, 
+    "gen1_target": true, 
+    "input_contract": true, 
+    "native_reopen_single_body": true, 
+    "native_save": true, 
+    "native_throat_inventory": true, 
+    "physics_guards": true, 
+    "preliminary_full_product_scope": true, 
+    "round_trip_shape_fidelity": true, 
+    "single_continuous_fluid_boolean": true, 
+    "step_export": true, 
+    "step_reopen_single_body": true, 
+    "step_throat_inventory": true
+  }, 
+  "c016_candidate": {
+    "evidence_class": "C", 
+    "parameter_id": "C016", 
+    "product_fact": false, 
+    "range_mm": [
+      0.050000000000000003, 
+      0.20000000000000001
+    ], 
+    "status": "cad_placeholder", 
+    "uncertainty_scan": "REQUIRED_LATER_NOT_RUN", 
+    "value_mm": 0.10000000000000001
+  }, 
+  "claim_scope": "V03_CONTINUOUS_FLUID_GEOMETRY_PILOT_ONLY", 
+  "engineering_capability": "PASS_PARTIAL_CAD_CAPABILITY", 
+  "exact_product_geometry": "NOT_CLAIMED", 
+  "external_native_attach": "NOT_PROVEN", 
+  "files": {
+    "authoring_native": {
+      "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-107ec79a5cda\\v03_full_product_authoring.scdocx", 
+      "sha256": "4318755b2218c61a7f40ed3e2f53e7fcd2950ed4079979579689597f9fe5fac7", 
+      "size": 9375207
+    }, 
+    "continuous_native": {
+      "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-107ec79a5cda\\product_continuous_fluid.scdocx", 
+      "sha256": "064db2498e954373a9d11fd7fd07071affecd65334aba72b4cea6c096fe52dd5", 
+      "size": 9367912
+    }, 
+    "continuous_step": {
+      "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-107ec79a5cda\\product_continuous_fluid.step", 
+      "sha256": "8c4f1fa60da50c2af0bf1c08b521d73fd3b7238e3dca93d249610b3e68f5f171", 
+      "size": 16619010
+    }, 
+    "native_reopen": {
+      "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-107ec79a5cda\\v03_native_reopen.json", 
+      "sha256": "6544b8038c1a7dc1e8f12c26a78628a87a6605fcd6290c5f633ce71020cd449e", 
+      "size": 569252
+    }, 
+    "source_chain": {
+      "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-107ec79a5cda\\v03_source_chain.json", 
+      "sha256": "7a28dcff4b6af0ee44ca34fe3b49ff72e37185baf7f4ad07568dba467ef51e1c", 
+      "size": 1615
+    }, 
+    "step_reimport": {
+      "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-107ec79a5cda\\v03_step_reimport.json", 
+      "sha256": "ebeefff8d0c23caf71f544898b79f9ff1e3c4ba18451e6d5837a2a6429351bf0", 
+      "size": 568085
+    }, 
+    "throat_inventory": {
+      "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-107ec79a5cda\\v03_throat_inventory.json", 
+      "sha256": "25e64bbc136dab6ce397f162eb640161b17c1604d57274bbdfb54320cdb17611", 
+      "size": 1141685
+    }
+  }, 
+  "formal_006_completion": false, 
+  "formal_convex_hull_contract": "NOT_RUN", 
+  "full_variant_campaign": "NOT_RUN_1_OF_9_ONLY", 
+  "geometry": {
+    "actual_membrane_area_porosity_pct": 8.114445310611391, 
+    "all_cells_have_throats": true, 
+    "boolean_volume_delta_mm3": 0.059625782549346695, 
+    "candidate_target_minus_actual_porosity_pct": 1.8855546893886093, 
+    "candidate_target_porosity_pct": 10.0, 
+    "cell_count": 12, 
+    "configuration_id": "M-3x4-7.0", 
+    "continuous_before_save": {
+      "bbox_max_mm": [
+        10.875025, 
+        20.750000000000004, 
+        2.8
+      ], 
+      "bbox_min_mm": [
+        -10.875000000000002, 
+        -17.750025, 
+        1.2675
+      ], 
+      "face_count": 1078, 
+      "is_closed": true, 
+      "is_manifold": true, 
+      "name": "AJM006_V03_FLUID_CONTINUOUS", 
+      "piece_count": 1, 
+      "volume_mm3": 451.84528470226621
+    }, 
+    "continuous_route_ok": true, 
+    "expected_overlap_volume_mm3": 0.047712938426394985, 
+    "expected_union_volume_mm3": 451.78565891971687, 
+    "expected_xy_contract": {
+      "expected_count": 972, 
+      "minimum_center_spacing_mm": 0.70062399999999947, 
+      "pass": true, 
+      "required_minimum_center_spacing_mm": 0.28999999999999998, 
+      "step_xy_tolerance_mm": 0.02, 
+      "unique_count_rounded_9dp": 972
+    }, 
+    "group_counts": {
+      "FLUID_CONTINUOUS": 1, 
+      "HEAT_WALL": 1, 
+      "INLET": 4, 
+      "MEMBRANE_BOTTOM": 12, 
+      "MEMBRANE_TOP": 12, 
+      "ORIFICE_THROAT_WALL": 972, 
+      "OUTLET": 1
+    }, 
+    "group_required": {
+      "FLUID_CONTINUOUS": 1, 
+      "HEAT_WALL": 1, 
+      "INLET": 4, 
+      "MEMBRANE_BOTTOM": 12, 
+      "MEMBRANE_TOP": 12, 
+      "ORIFICE_THROAT_WALL": 972, 
+      "OUTLET": 1
+    }, 
+    "group_semantics_ok": true, 
+    "native_analytic_volume_delta_mm3": 0.06646585962670315, 
+    "native_reopen_summary": {
+      "body_count": 1, 
+      "body_fingerprint": {
+        "bbox_max_mm": [
+          10.875025, 
+          20.750000000000004, 
+          2.8
+        ], 
+        "bbox_min_mm": [
+          -10.875000000000002, 
+          -17.750025, 
+          1.2675
+        ], 
+        "face_count": 1078, 
+        "is_closed": true, 
+        "is_manifold": true, 
+        "name": "AJM006_V03_FLUID_CONTINUOUS", 
+        "piece_count": 1, 
+        "volume_mm3": 451.84528470226621
+      }, 
+      "group_counts": {
+        "FLUID_CONTINUOUS": 1, 
+        "HEAT_WALL": 1, 
+        "INLET": 4, 
+        "MEMBRANE_BOTTOM": 12, 
+        "MEMBRANE_TOP": 12, 
+        "ORIFICE_THROAT_WALL": 972, 
+        "OUTLET": 1
+      }, 
+      "open_success": true
+    }, 
+    "native_route_ok": true, 
+    "native_route_volume_tolerance_mm3": 0.080000000000000002, 
+    "native_throat_inventory": {
+      "accepted_area_model_counts": {
+        "CONSTRUCTION_0P102_MM": 972, 
+        "EFFECTIVE_0P100_MM": 0, 
+        "STEP_KERNEL_OTHER_AREA": 0
+      }, 
+      "area_tolerance_mm2": 0.001, 
+      "candidate_face_count": 972, 
+      "expected_center_z_mm": 1.5675, 
+      "expected_construction_lateral_area_mm2": 0.080110612666539627, 
+      "expected_construction_length_mm": 0.10199999999999987, 
+      "expected_diameter_mm": 0.25, 
+      "expected_effective_lateral_area_mm2": 0.078539816339744717, 
+      "expected_length_mm": 0.099999999999999867, 
+      "expected_radius_mm": 0.125, 
+      "expected_z_max_mm": 1.6175, 
+      "expected_z_min_mm": 1.5175, 
+      "geometry_tolerance_mm": 0.002, 
+      "observed_candidate_area_range_mm2": [
+        0.080110434685554163, 
+        0.080110434685562656
+      ], 
+      "observed_candidate_center_z_range_mm": [
+        1.5675000000000001, 
+        1.5675000000000001
+      ], 
+      "observed_candidate_edge_count_histogram": {
+        "2": 972
+      }, 
+      "pass": true, 
+      "xy_inventory": {
+        "actual_count": 972, 
+        "expected_count": 972, 
+        "matched_count": 972, 
+        "max_xy_delta_mm": 1.7763568394002505e-15, 
+        "missing_count": 0, 
+        "one_to_one_complete": true, 
+        "tolerance_mm": 0.002, 
+        "unexpected_count": 0
+      }
+    }, 
+    "numerical_overlap_mm": 0.001, 
+    "orifice_count": 972, 
+    "orifice_diameter_mm": 0.25, 
+    "preferred_porosity_guard_pct": [
+      8.0, 
+      12.0
+    ], 
+    "premerge_downstream": {
+      "bbox_max_mm": [
+        10.875000000000002, 
+        20.750000000000004, 
+        1.5175000000000003
+      ], 
+      "bbox_min_mm": [
+        -10.875000000000002, 
+        -14.5, 
+        1.2675
+      ], 
+      "face_count": 6, 
+      "is_closed": true, 
+      "is_manifold": true, 
+      "name": "AJM006_V03_FLUID_DOWNSTREAM_PREMERGE", 
+      "piece_count": 1, 
+      "volume_mm3": 191.67187500000006
+    }, 
+    "premerge_upstream": {
+      "bbox_max_mm": [
+        10.875025, 
+        14.5, 
+        2.8
+      ], 
+      "bbox_min_mm": [
+        -10.875000000000002, 
+        -17.750025, 
+        1.5165000000000002
+      ], 
+      "face_count": 2044, 
+      "is_closed": true, 
+      "is_manifold": true, 
+      "name": "AJM006_V03_FLUID_UPSTREAM_PREMERGE", 
+      "piece_count": 1, 
+      "volume_mm3": 260.16149685814321
+    }, 
+    "route_analytic_volume_mm3": 451.77881884263951, 
+    "source_variant_id": "M-3x4-7.0__R50_BALANCED", 
+    "step_analytic_volume_delta_mm3": 0.013309538456894643, 
+    "step_boundary_counts": {
+      "HEAT_WALL": 1, 
+      "INLET": 4, 
+      "MEMBRANE_BOTTOM": 12, 
+      "MEMBRANE_TOP": 12, 
+      "ORIFICE_THROAT_WALL": 972, 
+      "OUTLET": 1
+    }, 
+    "step_reimport_summary": {
+      "body_count": 1, 
+      "body_fingerprint": {
+        "bbox_max_mm": [
+          10.89, 
+          20.75, 
+          2.8000249999999998
+        ], 
+        "bbox_min_mm": [
+          -10.875, 
+          -17.750025, 
+          1.2675
+        ], 
+        "face_count": 1078, 
+        "is_closed": true, 
+        "is_manifold": true, 
+        "name": "\u5b9e\u4f53", 
+        "piece_count": 1, 
+        "volume_mm3": 451.7921283810964
+      }, 
+      "boundary_counts": {
+        "HEAT_WALL": 1, 
+        "INLET": 4, 
+        "MEMBRANE_BOTTOM": 12, 
+        "MEMBRANE_TOP": 12, 
+        "ORIFICE_THROAT_WALL": 972, 
+        "OUTLET": 1
+      }, 
+      "comparison_deltas": {
+        "max_bbox_delta_mm": 0.014974999999999739, 
+        "max_volume_delta_mm3": 0.053156321169808507
+      }, 
+      "comparison_tolerances": {
+        "bbox_tolerance_mm": 0.02, 
+        "comparison_basis": "INDEPENDENT_ROUTE_ANALYTIC", 
+        "face_count_required": false, 
+        "names_required": false, 
+        "native_to_step_volume_delta_diagnostic_only": true, 
+        "route_analytic_volume_tolerance_mm3": 0.029999999999999999, 
+        "throat_xy_tolerance_mm": 0.02, 
+        "volume_absolute_tolerance_mm3": 0.080000000000000002, 
+        "volume_relative_tolerance": 1.0000000000000001e-05
+      }, 
+      "open_success": true
+    }, 
+    "step_route_ok": true, 
+    "step_route_volume_tolerance_mm3": 0.029999999999999999, 
+    "step_throat_inventory": {
+      "accepted_area_model_counts": {
+        "CONSTRUCTION_0P102_MM": 972, 
+        "EFFECTIVE_0P100_MM": 0, 
+        "STEP_KERNEL_OTHER_AREA": 0
+      }, 
+      "area_tolerance_mm2": 0.001, 
+      "candidate_face_count": 972, 
+      "expected_center_z_mm": 1.5675, 
+      "expected_construction_lateral_area_mm2": 0.080110612666539627, 
+      "expected_construction_length_mm": 0.10199999999999987, 
+      "expected_diameter_mm": 0.25, 
+      "expected_effective_lateral_area_mm2": 0.078539816339744717, 
+      "expected_length_mm": 0.099999999999999867, 
+      "expected_radius_mm": 0.125, 
+      "expected_z_max_mm": 1.6175, 
+      "expected_z_min_mm": 1.5175, 
+      "geometry_tolerance_mm": 0.0050000000000000001, 
+      "observed_candidate_area_range_mm2": [
+        0.080110447633573764, 
+        0.080110447633582924
+      ], 
+      "observed_candidate_center_z_range_mm": [
+        1.5669105835159156, 
+        1.5674999999999981
+      ], 
+      "observed_candidate_edge_count_histogram": {
+        "4": 972
+      }, 
+      "pass": true, 
+      "xy_inventory": {
+        "actual_count": 972, 
+        "expected_count": 972, 
+        "matched_count": 972, 
+        "max_xy_delta_mm": 0.00043321649998961931, 
+        "missing_count": 0, 
+        "one_to_one_complete": true, 
+        "tolerance_mm": 0.02, 
+        "unexpected_count": 0
+      }
+    }, 
+    "throat_counts_by_cell": {
+      "1": 81, 
+      "2": 81, 
+      "3": 81, 
+      "4": 81, 
+      "5": 81, 
+      "6": 81, 
+      "7": 81, 
+      "8": 81, 
+      "9": 81, 
+      "10": 81, 
+      "11": 81, 
+      "12": 81
+    }, 
+    "throat_inventory_before_save": {
+      "accepted_area_model_counts": {
+        "CONSTRUCTION_0P102_MM": 972, 
+        "EFFECTIVE_0P100_MM": 0, 
+        "STEP_KERNEL_OTHER_AREA": 0
+      }, 
+      "area_tolerance_mm2": 0.001, 
+      "candidate_face_count": 972, 
+      "expected_center_z_mm": 1.5675, 
+      "expected_construction_lateral_area_mm2": 0.080110612666539627, 
+      "expected_construction_length_mm": 0.10199999999999987, 
+      "expected_diameter_mm": 0.25, 
+      "expected_effective_lateral_area_mm2": 0.078539816339744717, 
+      "expected_length_mm": 0.099999999999999867, 
+      "expected_radius_mm": 0.125, 
+      "expected_z_max_mm": 1.6175, 
+      "expected_z_min_mm": 1.5175, 
+      "geometry_tolerance_mm": 0.002, 
+      "observed_candidate_area_range_mm2": [
+        0.080110434685554163, 
+        0.080110434685562656
+      ], 
+      "observed_candidate_center_z_range_mm": [
+        1.5675000000000001, 
+        1.5675000000000001
+      ], 
+      "observed_candidate_edge_count_histogram": {
+        "2": 972
+      }, 
+      "pass": true, 
+      "xy_inventory": {
+        "actual_count": 972, 
+        "expected_count": 972, 
+        "matched_count": 972, 
+        "max_xy_delta_mm": 1.7763568394002505e-15, 
+        "missing_count": 0, 
+        "one_to_one_complete": true, 
+        "tolerance_mm": 0.002, 
+        "unexpected_count": 0
+      }
+    }, 
+    "throat_length_evidence_class": "C", 
+    "throat_length_mm": 0.099999999999999867, 
+    "throat_length_range_mm": [
+      0.050000000000000003, 
+      0.20000000000000001
+    ]
+  }, 
+  "geometry_representation": "SINGLE_CONTINUOUS_FLUID_BODY_WITH_972_EXPLICIT_FINITE_THROATS", 
+  "identity": {
+    "case_id": "AJM006-V03-CONTINUOUS", 
+    "dependency_manifest_sha256": "61736e840f8d3e4087d1acc70c42c3fb115788ae4283fb83dab35b0c43ed58f7", 
+    "git_head": "9352bd14de81ae048a7c68f2e0a4af456a24b7dc", 
+    "profile_contract_sha256": "fa231e60e7ad739adea0d363b5781d92f0ab9e2dc6fdb0bea11f351f2f87cc57", 
+    "profile_id": "ajm006-spaceclaim-v03-continuous-throat-pilot-v1", 
+    "script_sha256": "be0f4787aff784734137a463482dcfc7c14dde23da565928c055ed305f1aeacb"
+  }, 
+  "license_arguments_added": false, 
+  "mesh": "NOT_RUN", 
+  "native_named_selection_transfer": "NOT_PROVEN", 
+  "native_parameterization": "NOT_PROVEN", 
+  "p1_p6_gates": "NOT_RUN", 
+  "p1_stage_gate": "NOT_RUN", 
+  "physics": "NOT_RUN", 
+  "pilot_result": "PASS_PRELIMINARY_V03_FINITE_THROAT_GEOMETRY", 
+  "probe": "v03_continuous_fluid_producer", 
+  "pyfluent": "NOT_RUN", 
+  "schema_version": 1, 
+  "script_api": "V261", 
+  "status": "PASS_PARTIAL_CAD_CAPABILITY", 
+  "task": "AJM006_V03_CONTINUOUS_FLUID_FULL_PRODUCT_PILOT", 
+  "top_plenum_planform": "PRELIMINARY_CELL_FOOTPRINT_BLOCK_WITH_VENT_RISER_UNION", 
+  "trusted_production_profile_binding": "NOT_RUN_PRELIMINARY_PROFILE", 
+  "visibility": "NOT_USER_OBSERVED", 
+  "workbench": "NOT_RUN"
+}

@@ -61,6 +61,8 @@ def test_launch_is_v261_mesh_only_and_single_process() -> None:
         "start_timeout=60",
         "ui_mode=UIMode.NO_GUI_OR_GRAPHICS",
         "cleanup_on_exit=True",
+        "start_watchdog=False",
+        "start_transcript=True",
         "fluent_path=str(FLUENT_EXE)",
         "session.watertight()",
     ):
@@ -120,6 +122,7 @@ def test_prelaunch_trace_and_predecessor_identity_are_pinned() -> None:
         'r"D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261\\fluent\\ntbin\\win64\\fluent.exe"',
         '"PINNED_FLUENT_EXECUTABLE_NOT_FOUND"',
         '"pinned_fluent_executable_verified"',
+        "session.exit(wait=False)",
         "faulthandler.dump_traceback_later(",
         "45, repeat=True, file=launch_stack, exit=False",
         "faulthandler.cancel_dump_traceback_later()",

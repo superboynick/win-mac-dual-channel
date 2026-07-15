@@ -368,6 +368,7 @@ for environment_key, expected_value in {
     "AIRJET_PROFILE_CONTRACT_SHA256": "profile_contract_sha256",
     "PROCESSOR_ARCHITECTURE": '"AMD64"',
     "REMOTING_SERVER_ADDRESS": '"127.0.0.1"',
+    "USERNAME": '"admin"',
 }.items():
     values = keyed_dict_values(functions["sanitized_environment"], environment_key)
     if len(values) != 1 or not same_expression(values[0], expected_value):

@@ -470,6 +470,8 @@ try:
                 start_timeout=60,
                 ui_mode=UIMode.NO_GUI_OR_GRAPHICS,
                 cleanup_on_exit=True,
+                start_watchdog=False,
+                start_transcript=True,
                 cwd=str(JOB_DIR),
                 fluent_path=str(FLUENT_EXE),
             )
@@ -817,7 +819,7 @@ finally:
             except Exception:
                 pass
         try:
-            session.exit()
+            session.exit(wait=False)
         except Exception:
             pass
     if predecessor_snapshot_before is not None:

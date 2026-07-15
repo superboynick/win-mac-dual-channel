@@ -1,0 +1,10 @@
+{"checkpoint": "predecessor_validation_started", "details": {}, "utc": "2026-07-15T19:25:47.139727+00:00"}
+{"checkpoint": "predecessor_validation_completed", "details": {"predecessor_job_id": "AJM006-V03-CONTINUOUS-107ec79a5cda"}, "utc": "2026-07-15T19:25:47.185254+00:00"}
+{"checkpoint": "step_copy_started", "details": {"source_size": 16619010}, "utc": "2026-07-15T19:25:47.186254+00:00"}
+{"checkpoint": "step_copy_completed", "details": {"staged_size": 16619010}, "utc": "2026-07-15T19:25:47.192254+00:00"}
+{"checkpoint": "source_step_hash_started", "details": {}, "utc": "2026-07-15T19:25:47.192254+00:00"}
+{"checkpoint": "source_step_hash_completed", "details": {"sha256": "8c4f1fa60da50c2af0bf1c08b521d73fd3b7238e3dca93d249610b3e68f5f171"}, "utc": "2026-07-15T19:25:47.201253+00:00"}
+{"checkpoint": "staged_step_hash_started", "details": {}, "utc": "2026-07-15T19:25:47.201253+00:00"}
+{"checkpoint": "staged_step_hash_completed", "details": {"sha256": "8c4f1fa60da50c2af0bf1c08b521d73fd3b7238e3dca93d249610b3e68f5f171"}, "utc": "2026-07-15T19:25:47.210257+00:00"}
+{"checkpoint": "boundary_role_points_completed", "details": {"inlet_count": 4, "outlet_count": 1, "throat_count": 972}, "utc": "2026-07-15T19:25:47.210257+00:00"}
+{"checkpoint": "fluent_launch_started", "details": {}, "utc": "2026-07-15T19:25:47.211259+00:00"}
