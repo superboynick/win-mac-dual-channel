@@ -1419,6 +1419,23 @@
 - Gate/论文影响：NONE；P1--P6、mesh、physics、route assessment 均 `NOT_RUN`。
 - 状态：CLOSED_BY_SIGNED_SCRIPT_FIX_PENDING_WINDOWS_RETRY
 
+## REAL-20260715-060：v261 Parasolid 导出断言失败
+- UTC：2026-07-15
+- Stage/task：AJM-006 V02 Parasolid route discovery
+- Machine/operator：Windows ANSYS Student 2026 R1 / Codex
+- run/job/profile：`AJM006-V02-PRELIMINARY-b3fb40cb13cb` / `ajm006-spaceclaim-v02-parasolid-converter-v1`
+- 期望：原生重开通过后导出 `product.x_t` 并进入重开比较。
+- 实际观察：`source_native_open=true`、`source_native_exact=true`，但 `parasolid_export=false`；未启动 observer。
+- 原始错误短摘：`PARASOLID_EXPORT_ASSERTION_FAILED`。
+- 原始日志路径 + SHA-256：Windows `D:\AirJet_P1\AJM-P1-CAD-006\V02_PARASOLID_TOPOLOGY_RUN_SUMMARY.json`（保留原始 job 目录）。
+- 假设与最小区分实验：v261 API 文档要求 `ExportOptions.Create()` 并显式设置 `Parasolid.Version`；仅替换导出调用，不改变几何或前置链。
+- 结果：待签名修补后重试。
+- 根因及置信度：导出 API 选项不足，置信度中高；尚非几何路线结论。
+- 采取/拒绝的 workaround：采用官方 v261 `ExportOptions` 路径；不绕过断言、不改用未审 API。
+- 对 Gate/论文主张的影响：P1--P6、mesh、physics、route assessment 继续 `NOT_RUN`。
+- 下一步：Windows 拉取新签名 commit，重跑同一 runner 并保留 raw evidence。
+- 状态：OPEN_PENDING_SIGNED_RETRY
+
 ## 新条目模板
 
 ```text

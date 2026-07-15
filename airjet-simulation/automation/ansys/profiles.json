@@ -311,7 +311,7 @@
       "profile_id": "ajm006-spaceclaim-v02-parasolid-converter-v1",
       "engine": "spaceclaim",
       "script": "006/v02_parasolid_converter.py",
-      "sha256": "9bd5a21eaaba8cf1d253b7c93fbd4da50828b23b0207046eca76acb441f4fe46",
+      "sha256": "c8a450b3b4648457f90df3553e25e75447cc683b162c7afa63eaaaf528bd588f",
       "timeout_seconds": 3600,
       "output_root_id": "p1_cad_006",
       "reports": [

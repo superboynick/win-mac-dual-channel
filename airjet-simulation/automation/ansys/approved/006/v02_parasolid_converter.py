@@ -11,6 +11,7 @@ import traceback
 
 from System import Array, Object, Type
 from System.IO import File
+from SpaceClaim.Api.V261 import ExportOptions, ParasolidVersion
 
 
 job_dir = os.environ["AIRJET_JOB_DIR"]
@@ -375,13 +376,19 @@ try:
     if not source_native_open or not source_native_exact:
         raise Exception("SOURCE_NATIVE_REOPEN_MISMATCH")
 
-    exported = DocumentSave.Execute(parasolid_path)
+    export_options = ExportOptions.Create()
+    export_options.Parasolid.Version = ParasolidVersion.V23
+    exported = DocumentSave.Execute(parasolid_path, export_options)
     parasolid_export_ok = (
         bool(exported.Success)
         and os.path.isfile(parasolid_path)
         and os.path.getsize(parasolid_path) > 0
     )
     result["assertions"]["parasolid_export"] = parasolid_export_ok
+    result["parasolid_export_options"] = {
+        "api_version": "V261",
+        "parasolid_version": "V23",
+    }
     if not parasolid_export_ok:
         raise Exception("PARASOLID_EXPORT_ASSERTION_FAILED")
 

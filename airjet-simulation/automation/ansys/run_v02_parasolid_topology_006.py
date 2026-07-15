@@ -44,7 +44,7 @@ PRODUCER_PROFILE_ID = producer_runner.PROFILE_ID
 PRODUCER_SCRIPT_SHA256 = producer_runner.PROFILE_SCRIPT_SHA256
 CONVERTER_PROFILE_ID = "ajm006-spaceclaim-v02-parasolid-converter-v1"
 CONVERTER_SCRIPT_SHA256 = (
-    "9bd5a21eaaba8cf1d253b7c93fbd4da50828b23b0207046eca76acb441f4fe46"
+    "c8a450b3b4648457f90df3553e25e75447cc683b162c7afa63eaaaf528bd588f"
 )
 OBSERVER_PROFILE_ID = (
     "ajm006-workbench-v02-parasolid-topology-observer-v1"
