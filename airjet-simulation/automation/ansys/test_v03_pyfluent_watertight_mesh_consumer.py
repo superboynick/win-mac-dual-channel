@@ -91,8 +91,13 @@ def test_exact_byte_predecessor_and_role_reconstruction() -> None:
         "convert_zone_name_strings_to_ids(",
         "THROAT_CENTER_SET_NOT_972_UNIQUE",
         "RECONSTRUCTED_BOUNDARY_ZONE_ROLE_CONFLICT",
+        "raw_zone_ids = meshing_utilities.get_face_zones(",
+        "zone_ids = list(raw_zone_ids)",
+        '"boundary_zone_queries_completed"',
     ):
         assert required in SOURCE
+    assert "type(zone_ids) is not list" not in SOURCE
+    assert "type(zone_ids[0]) is not int" not in SOURCE
 
 
 def test_official_v261_watertight_calls_are_pinned() -> None:

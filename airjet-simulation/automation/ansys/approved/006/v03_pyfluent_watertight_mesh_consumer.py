@@ -285,18 +285,30 @@ def throat_points(inventory: dict[str, Any]) -> list[list[float]]:
 
 
 def one_face_zone(meshing_utilities: Any, point: list[float]) -> int:
-    zone_ids = meshing_utilities.get_face_zones(
+    raw_zone_ids = meshing_utilities.get_face_zones(
         xyz_coordinates=[float(value) for value in point]
     )
+    try:
+        zone_ids = list(raw_zone_ids)
+    except TypeError as exc:
+        raise RuntimeError(
+            "POINT_FACE_ZONE_RESULT_NOT_ITERABLE:{}:{}".format(
+                point, type(raw_zone_ids).__name__
+            )
+        ) from exc
     if (
-        type(zone_ids) is not list
-        or len(zone_ids) != 1
-        or type(zone_ids[0]) is not int
+        len(zone_ids) != 1
+        or isinstance(zone_ids[0], bool)
+        or not isinstance(zone_ids[0], int)
     ):
         raise RuntimeError(
-            "POINT_FACE_ZONE_NOT_UNIQUE:{}:{}".format(point, zone_ids)
+            "POINT_FACE_ZONE_NOT_UNIQUE:{}:{}:{}".format(
+                point,
+                zone_ids,
+                [type(value).__name__ for value in zone_ids],
+            )
         )
-    return zone_ids[0]
+    return int(zone_ids[0])
 
 
 def zone_names(meshing_utilities: Any, zone_ids: list[int]) -> list[str]:
@@ -306,14 +318,15 @@ def zone_names(meshing_utilities: Any, zone_ids: list[int]) -> list[str]:
         )
     )
     if (
-        type(names) is not list
-        or len(names) != len(zone_ids)
+        len(names) != len(zone_ids)
         or len(set(names)) != len(names)
-        or any(type(name) is not str or not name for name in names)
+        or any(not isinstance(name, str) or not name for name in names)
     ):
         raise RuntimeError("ZONE_ID_TO_NAME_CONVERSION_FAILED")
-    back = meshing_utilities.convert_zone_name_strings_to_ids(
-        zone_name_list=names
+    back = list(
+        meshing_utilities.convert_zone_name_strings_to_ids(
+            zone_name_list=names
+        )
     )
     if back != zone_ids:
         raise RuntimeError("ZONE_NAME_ID_ROUND_TRIP_FAILED")
@@ -492,6 +505,13 @@ try:
     throat_zone_hits = [
         one_face_zone(utilities, point) for point in throat_query_points
     ]
+    trace_checkpoint(
+        "boundary_zone_queries_completed",
+        inlet_zone_hits=inlet_zone_ids,
+        outlet_zone_hits=outlet_zone_ids,
+        throat_hit_count=len(throat_zone_hits),
+        throat_unique_zone_ids=sorted(set(throat_zone_hits)),
+    )
     inlet_zone_ids = sorted(set(inlet_zone_ids))
     outlet_zone_ids = sorted(set(outlet_zone_ids))
     throat_zone_ids = sorted(set(throat_zone_hits))
