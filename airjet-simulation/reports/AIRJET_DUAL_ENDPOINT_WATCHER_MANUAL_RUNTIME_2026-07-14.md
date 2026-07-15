@@ -1,7 +1,7 @@
 # AirJet 双端 watcher 手动常驻启用记录
 
 日期：2026-07-14
-状态：`WINDOWS_MANUAL_RUNTIME_VERIFIED / MAC_DEPLOYMENT_PENDING / NO_AUTOSTART`
+状态：`WINDOWS_MANUAL_RUNTIME_VERIFIED / MAC_CORE_80_PASS / MAC_DEPLOYMENT_PENDING / NO_AUTOSTART`
 
 ## 1. 本轮授权与边界
 
@@ -73,11 +73,26 @@ AIRJET_WATCHER_PROCESSES=1
 Windows 默认周期断言。真实目标任务和可见 Codex wake 仍未执行，因此不改变下方
 `WINDOWS_VISIBLE_WAKE=NOT_RUN`。
 
-## 4. Mac 待完成验证
+## 4. Mac 原生矩阵与待完成部署
 
 Windows 上对三份 Mac shell 源码执行语法检查通过。Mac 80 项隔离矩阵不能用 Windows
 Git Bash 代替原生 macOS 结果：Git Bash 运行在首个仓库 fixture 因平台差异失败，
-没有把它写成 Mac 测试 PASS。Mac 在 fast-forward 到本提交后必须原生运行：
+没有把它写成 Mac 测试 PASS。
+
+2026-07-14 在原生 macOS、当前任务准备工作树上重新运行矩阵，结果为：
+
+```text
+CORE_CASES_PASS=80
+EXPECTED_PASS_COUNT=80
+TARGET_ENVELOPE_GATE=BEHAVIOR_TESTED
+RUNTIME_TEST_MODE_GUARD=BEHAVIOR_TESTED
+STATE_ROOT_REPO_BOUNDARY=BEHAVIOR_TESTED
+REPORT_ROOT_BOUNDARY=BEHAVIOR_TESTED
+VISIBLE_WAKE_TEST=SKIPPED_BY_DESIGN
+OVERALL=PASS_CORE_RUNTIME_ENABLED_MANUAL
+```
+
+对应命令为：
 
 ```sh
 sh tools/airjet-git-watcher/tests/test-watch-airjet-git.sh
@@ -85,7 +100,8 @@ sh install-skills.sh
 python3 codex-skills/airjet-product-reconstruction/scripts/audit_project.py .
 ```
 
-全部通过后，从可见 Terminal 手动启动，不调用 installer：
+Mac 真实部署和可见唤醒仍未执行；如需部署，应从可见 Terminal 手动启动且不调用
+登录启动 installer：
 
 ```sh
 sh tools/airjet-git-watcher/mac/manage-airjet-watcher.sh start --poll-seconds 10
@@ -99,7 +115,7 @@ Git 外 trust 哈希正确。登录启动项必须保持不存在。
 
 ## 6. 尚未宣称的结果
 
-- `MAC_CORE_80=NOT_RUN_ON_MAC_AFTER_ENABLE`
+- `MAC_CORE_80=PASS_CORE_RUNTIME_ENABLED_MANUAL`
 - `MAC_VISIBLE_WAKE=NOT_RUN`
 - `WINDOWS_VISIBLE_WAKE=NOT_RUN`
 - `AUTOMATIC_RECIPROCAL_RELAY=NOT_IMPLEMENTED`
