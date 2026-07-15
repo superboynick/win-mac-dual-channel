@@ -115,12 +115,24 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "surface.cfd_surface_mesh_controls.max_size = 0.5",
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=False)",
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=True)",
+        "workflow.update_boundaries.boundary_zone_list",
+        "workflow.update_boundaries.boundary_zone_type_list",
+        "workflow.update_boundaries.old_boundary_zone_list",
+        "workflow.update_boundaries.old_boundary_zone_type_list",
+        '"boundary_zone_types_updated"',
         "workflow.update_regions()",
         "workflow.create_volume_mesh_wtm",
         'volume_mesh.volume_fill = "poly-hexcore"',
         "volume_mesh.volume_fill_controls.hex_max_cell_length = 0.5",
     ):
         assert required in SOURCE
+    for forbidden in (
+        "workflow.update_boundaries.boundary_label_list",
+        "workflow.update_boundaries.boundary_label_type_list",
+        "workflow.update_boundaries.old_boundary_label_list",
+        "workflow.update_boundaries.old_boundary_label_type_list",
+    ):
+        assert forbidden not in SOURCE
 
 
 def test_prelaunch_trace_and_predecessor_identity_are_pinned() -> None:

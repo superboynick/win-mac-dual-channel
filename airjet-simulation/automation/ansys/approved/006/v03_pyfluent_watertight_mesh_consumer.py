@@ -564,27 +564,39 @@ try:
     workflow.describe_geometry.update_child_tasks(setup_type_changed=True)
     workflow.describe_geometry()
 
-    workflow.update_boundaries.boundary_label_list = (
+    workflow.update_boundaries.boundary_zone_list = (
         inlet_zone_names + outlet_zone_names
     )
-    workflow.update_boundaries.boundary_label_type_list = (
+    workflow.update_boundaries.boundary_zone_type_list = (
         ["velocity-inlet"] * len(inlet_zone_names) + ["pressure-outlet"]
     )
-    workflow.update_boundaries.old_boundary_label_list = (
+    workflow.update_boundaries.old_boundary_zone_list = (
         inlet_zone_names + outlet_zone_names
     )
-    workflow.update_boundaries.old_boundary_label_type_list = (
+    workflow.update_boundaries.old_boundary_zone_type_list = (
         ["wall"] * (len(inlet_zone_names) + len(outlet_zone_names))
     )
     workflow.update_boundaries()
+    observed_boundary_types = dict(
+        (zone_id, utilities.get_zone_type(zone_id=zone_id))
+        for zone_id in inlet_zone_ids + outlet_zone_ids
+    )
+    trace_checkpoint(
+        "boundary_zone_types_updated",
+        observed_types=observed_boundary_types,
+    )
     if any(
-        utilities.get_zone_type(zone_id=zone_id) != "velocity-inlet"
+        observed_boundary_types[zone_id] != "velocity-inlet"
         for zone_id in inlet_zone_ids
     ) or any(
-        utilities.get_zone_type(zone_id=zone_id) != "pressure-outlet"
+        observed_boundary_types[zone_id] != "pressure-outlet"
         for zone_id in outlet_zone_ids
     ):
-        raise RuntimeError("BOUNDARY_ZONE_TYPES_NOT_4_VELOCITY_1_PRESSURE")
+        raise RuntimeError(
+            "BOUNDARY_ZONE_TYPES_NOT_4_VELOCITY_1_PRESSURE:{}".format(
+                observed_boundary_types
+            )
+        )
 
     workflow.update_regions()
     volume_mesh = workflow.create_volume_mesh_wtm
