@@ -275,6 +275,17 @@ async def run_profile(
         )
     elif profile_id == WB_PROFILE:
         boundaries = report.get("canonical_claim_boundaries", {})
+        channel = report.get("script_channel_diagnostic", {})
+        channel_states = {
+            (True, True): "INLINE_PASS_FILE_PASS",
+            (True, False): "INLINE_PASS_FILE_FAIL",
+            (False, True): "INLINE_FAIL_FILE_PASS",
+            (False, False): "INLINE_FAIL_FILE_FAIL",
+        }
+        channel_key = (
+            channel.get("inline_control_pass_at_checkpoint"),
+            channel.get("file_entry_exact_at_freeze"),
+        )
         scope_ok = (
             isinstance(report, dict)
             and report.get("diagnostic_only") is True
@@ -291,6 +302,11 @@ async def run_profile(
                 "p1_cad_toolchain_readiness",
             }
             and all(value is False for value in boundaries.values())
+            and isinstance(channel_key[0], bool)
+            and isinstance(channel_key[1], bool)
+            and channel_key in channel_states
+            and channel.get("classification") == channel_states[channel_key]
+            and isinstance(channel.get("inline_delayed_or_uncertain"), bool)
         )
     capability_pass = (
         phase == "PROCESS_EXITED_0"
@@ -347,6 +363,7 @@ async def run_suite() -> int:
         "visibility": "NOT_USER_OBSERVED",
         "license_arguments_added": False,
         "connected_spaceclaim_diagnostic": "NOT_RUN",
+        "script_channel_classification": "NOT_EVALUATED",
         "mcp_package_version": None,
         "protocol_version": None,
         "server_name": None,
@@ -418,6 +435,13 @@ async def run_suite() -> int:
                             sc_run["final_state"]["job_id"],
                         )
                         result["runs"].append(wb_run)
+                        wb_report = wb_run.get("declared_report")
+                        if isinstance(wb_report, dict):
+                            channel = wb_report.get("script_channel_diagnostic")
+                            if isinstance(channel, dict):
+                                result["script_channel_classification"] = channel.get(
+                                    "classification", "NOT_EVALUATED"
+                                )
                         result["connected_spaceclaim_diagnostic"] = (
                             "PASS" if wb_run["capability_pass"] else "FAIL"
                         )

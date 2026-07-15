@@ -174,6 +174,7 @@ for invariant in (
     "EXTERNAL_NATIVE_ATTACH_AND_NATIVE_PARAMETERIZATION_NOT_PROVEN",
     "canonical_claim_boundaries",
     "connected_spaceclaim_entry.sentinel",
+    "script_channel_classification",
     "artifact_manifest",
     "p1_p6_gates",
 ):
@@ -280,6 +281,7 @@ for invariant in (
     '"WORKBENCH_MANAGED_CONNECTED_SPACECLAIM_DOCUMENT"',
     "source_properties.GeometryFilePath",
     "source_geometry.Edit(Interactive=False, IsSpaceClaimGeometry=True)",
+    'source_geometry.SendCommand(Command=inline_command, Language="Python")',
     "source_geometry.RunScript(ScriptFile=build_script_path)",
     "source_geometry.Exit()",
     '"connected_editor_cleanup"',
@@ -290,13 +292,28 @@ for invariant in (
     '"topology_shape_source"',
     '"connected_editor_post_runscript_probe"',
     '"connected_editor_post_exit_probe"',
+    '"connected_editor_send_command_control"',
+    '"connected_editor_post_send_command_probe"',
+    '"post_send_command_artifact_probe"',
     '"post_runscript_artifact_probe"',
     '"post_exit_artifact_probe"',
     '"failure_artifact_probe"',
     'item["probe_error"] = str(item_probe_error)',
     '"connected_spaceclaim_entry.sentinel"',
-    '"FAIL_CONNECTED_EDITOR_ENTRY_SENTINEL_MISSING"',
+    '"script_channel_diagnostic"',
+    '"inline_control_pass_at_checkpoint"',
+    '"file_entry_exact_at_freeze"',
+    '"INLINE_PASS_FILE_PASS"',
+    '"INLINE_PASS_FILE_FAIL"',
+    '"INLINE_FAIL_FILE_PASS"',
+    '"INLINE_FAIL_FILE_FAIL"',
     '"FAIL_CONNECTED_EDITOR_STARTED_REPORT_MISSING"',
+    '"FAIL_FILE_RUNSCRIPT_ENTRY_MISSING_INLINE_CONTROL_PASS"',
+    '"FAIL_INLINE_AND_FILE_ENTRY_SENTINELS_MISSING"',
+    '"FAIL_FILE_ENTRY_SENTINEL_INVALID_OR_PARTIAL"',
+    '"FAIL_FILE_RUNSCRIPT_ENTRY_MISSING_INLINE_CONTROL_DELAYED_OR_UNCERTAIN"',
+    '"connected_spaceclaim_inline.sentinel"',
+    "AJM005_CONNECTED_INLINE_ENTERED_V2",
     "workbench_message_snapshot()",
     '"__AJM005_JOB_DIR_LITERAL__"',
     '"__AJM005_BUILD_REPORT_LITERAL__"',
@@ -373,6 +390,38 @@ try:
                 "connected SpaceClaim route references forbidden API root: "
                 + forbidden_root
             )
+    outer_parent_by_node = {}
+    for parent in ast.walk(connected_tree):
+        for child in ast.iter_child_nodes(parent):
+            outer_parent_by_node[child] = parent
+    send_command_calls = [
+        node
+        for node in ast.walk(connected_tree)
+        if isinstance(node, ast.Call)
+        and dotted_call_name(node.func) == "source_geometry.SendCommand"
+    ]
+    run_script_calls = [
+        node
+        for node in ast.walk(connected_tree)
+        if isinstance(node, ast.Call)
+        and dotted_call_name(node.func) == "source_geometry.RunScript"
+    ]
+    if len(send_command_calls) != 1 or len(run_script_calls) != 1:
+        fail("connected inline/file diagnostic call cardinality changed")
+    send_statement = outer_parent_by_node.get(send_command_calls[0])
+    run_statement = outer_parent_by_node.get(run_script_calls[0])
+    send_body = outer_parent_by_node.get(send_statement)
+    run_body = outer_parent_by_node.get(run_statement)
+    if not (
+        isinstance(send_statement, ast.Expr)
+        and isinstance(run_statement, ast.Expr)
+        and isinstance(send_body, ast.Try)
+        and send_body is run_body
+        and send_statement in send_body.body
+        and run_statement in send_body.body
+        and send_body.body.index(send_statement) < send_body.body.index(run_statement)
+    ):
+        fail("connected inline and file calls must execute in order in one try body")
     embedded_assignments = [
         node
         for node in connected_tree.body
@@ -591,7 +640,10 @@ try:
             )
     for embedded_invariant in (
         'entry_sentinel_path = r"__AJM005_ENTRY_SENTINEL_LITERAL__"',
-        'entry_handle.write("AJM005_CONNECTED_CHILD_ENTERED_V2\\n")',
+        'entry_handle = open(entry_sentinel_path, "wb")',
+        'entry_handle.write(b"AJM005_CONNECTED_CHILD_ENTERED_V2\\n")',
+        "finally:",
+        "entry_handle.close()",
         'observed_job_dir = os.environ.get("AIRJET_JOB_DIR")',
         '"matches_literal_job_dir"',
         '"literal_paths_injected"',
@@ -602,7 +654,7 @@ try:
                 "connected child lacks observability invariant: "
                 + embedded_invariant
             )
-    if embedded_source.index("with open(entry_sentinel_path") > embedded_source.index(
+    if embedded_source.index('entry_handle = open(entry_sentinel_path, "wb")') > embedded_source.index(
         "import json"
     ):
         fail("connected child entry sentinel must precede imports")

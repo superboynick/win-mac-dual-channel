@@ -13,6 +13,11 @@ build_report_path = os.path.join(job_dir, "connected_spaceclaim_build.json")
 entry_sentinel_path = os.path.join(
     job_dir, "connected_spaceclaim_entry.sentinel"
 )
+inline_sentinel_path = os.path.join(
+    job_dir, "connected_spaceclaim_inline.sentinel"
+)
+inline_sentinel_payload = b"AJM005_CONNECTED_INLINE_ENTERED_V2\n"
+entry_sentinel_payload = b"AJM005_CONNECTED_CHILD_ENTERED_V2\n"
 inspection_path = os.path.join(job_dir, "workbench_connected_inspection.json")
 project_path = os.path.join(job_dir, "workbench_connected_spaceclaim_t1.wbpj")
 build_script_path = os.path.join(
@@ -57,6 +62,8 @@ result = {
         "predecessor_control_identity": "NOT_REACHED",
         "empty_geometry_system": "NOT_REACHED",
         "connected_editor_edit": "NOT_REACHED",
+        "connected_editor_send_command_control": "NOT_REACHED",
+        "connected_editor_post_send_command_probe": "NOT_REACHED",
         "connected_editor_run_script": "NOT_REACHED",
         "connected_editor_post_runscript_probe": "NOT_REACHED",
         "connected_editor_exit_save": "NOT_REACHED",
@@ -70,6 +77,22 @@ result = {
         "mechanical_inspection": "NOT_REACHED",
         "project_save": "NOT_REACHED",
         "predecessor_control_recheck": "NOT_REACHED",
+    },
+    "script_channel_diagnostic": {
+        "inline_expected_size": len(inline_sentinel_payload),
+        "inline_expected_sha256": hashlib.sha256(
+            inline_sentinel_payload
+        ).hexdigest(),
+        "entry_expected_size": len(entry_sentinel_payload),
+        "entry_expected_sha256": hashlib.sha256(
+            entry_sentinel_payload
+        ).hexdigest(),
+        "inline_control_pass_at_checkpoint": None,
+        "inline_exact_at_freeze": None,
+        "inline_delayed_or_uncertain": None,
+        "file_entry_exact_at_freeze": None,
+        "classification": "NOT_EVALUATED",
+        "freeze_probe": None,
     },
 }
 
@@ -93,6 +116,7 @@ def sha256_file(path):
 def artifact_probe():
     probe = {"observed_epoch_seconds": time.time()}
     for name, path in (
+        ("inline_sentinel", inline_sentinel_path),
         ("entry_sentinel", entry_sentinel_path),
         ("build_report", build_report_path),
     ):
@@ -112,6 +136,46 @@ def artifact_probe():
             item["probe_error"] = str(item_probe_error)
         probe[name] = item
     return probe
+
+
+def artifact_exact_match(item, expected_size, expected_sha256):
+    return (
+        isinstance(item, dict)
+        and item.get("exists") is True
+        and item.get("size") == expected_size
+        and item.get("sha256") == expected_sha256
+        and "probe_error" not in item
+    )
+
+
+def freeze_script_channel_diagnostic(probe, freeze_probe):
+    diagnostic = result["script_channel_diagnostic"]
+    inline_checkpoint = diagnostic["inline_control_pass_at_checkpoint"]
+    inline_exact_at_freeze = artifact_exact_match(
+        probe.get("inline_sentinel"),
+        diagnostic["inline_expected_size"],
+        diagnostic["inline_expected_sha256"],
+    )
+    file_entry_exact_at_freeze = artifact_exact_match(
+        probe.get("entry_sentinel"),
+        diagnostic["entry_expected_size"],
+        diagnostic["entry_expected_sha256"],
+    )
+    diagnostic["inline_exact_at_freeze"] = inline_exact_at_freeze
+    diagnostic["inline_delayed_or_uncertain"] = (
+        inline_checkpoint is False and inline_exact_at_freeze
+    )
+    diagnostic["file_entry_exact_at_freeze"] = file_entry_exact_at_freeze
+    diagnostic["freeze_probe"] = freeze_probe
+    if inline_checkpoint is None:
+        diagnostic["classification"] = "CHECKPOINT_NOT_REACHED"
+        return
+    diagnostic["classification"] = {
+        (True, True): "INLINE_PASS_FILE_PASS",
+        (True, False): "INLINE_PASS_FILE_FAIL",
+        (False, True): "INLINE_FAIL_FILE_PASS",
+        (False, False): "INLINE_FAIL_FILE_FAIL",
+    }[(inline_checkpoint, file_entry_exact_at_freeze)]
 
 
 def workbench_message_snapshot():
@@ -156,8 +220,11 @@ result = {
 
 try:
     stage = "ENTRY_SENTINEL_WRITE"
-    with open(entry_sentinel_path, "w") as entry_handle:
-        entry_handle.write("AJM005_CONNECTED_CHILD_ENTERED_V2\n")
+    entry_handle = open(entry_sentinel_path, "wb")
+    try:
+        entry_handle.write(b"AJM005_CONNECTED_CHILD_ENTERED_V2\n")
+    finally:
+        entry_handle.close()
     result["entry_sentinel_written"] = True
     result["stage"] = stage
 
@@ -466,6 +533,42 @@ try:
     result["execution_reach"]["connected_editor_edit"] = "RETURNED"
     connected_editor_open = True
 
+    inline_command = (
+        "inline_path = %r\n"
+        "inline_payload = %r\n"
+        "inline_handle = open(inline_path, 'wb')\n"
+        "try:\n"
+        "    inline_handle.write(inline_payload)\n"
+        "finally:\n"
+        "    inline_handle.close()\n"
+    ) % (inline_sentinel_path, inline_sentinel_payload)
+    result["inline_command"] = {
+        "language": "Python",
+        "command_sha256": hashlib.sha256(inline_command.encode("utf-8")).hexdigest(),
+        "target_path": inline_sentinel_path,
+    }
+    result["execution_reach"][
+        "connected_editor_send_command_control"
+    ] = "CALLED"
+    source_geometry.SendCommand(Command=inline_command, Language="Python")
+    result["execution_reach"][
+        "connected_editor_send_command_control"
+    ] = "RETURNED"
+    result["execution_reach"][
+        "connected_editor_post_send_command_probe"
+    ] = "CALLED"
+    result["post_send_command_artifact_probe"] = artifact_probe()
+    result["script_channel_diagnostic"][
+        "inline_control_pass_at_checkpoint"
+    ] = artifact_exact_match(
+        result["post_send_command_artifact_probe"].get("inline_sentinel"),
+        len(inline_sentinel_payload),
+        hashlib.sha256(inline_sentinel_payload).hexdigest(),
+    )
+    result["execution_reach"][
+        "connected_editor_post_send_command_probe"
+    ] = "RETURNED"
+
     result["execution_reach"]["connected_editor_run_script"] = "CALLED"
     source_geometry.RunScript(ScriptFile=build_script_path)
     result["execution_reach"]["connected_editor_run_script"] = "RETURNED"
@@ -485,13 +588,25 @@ try:
 
     result["execution_reach"]["connected_editor_post_exit_probe"] = "CALLED"
     result["post_exit_artifact_probe"] = artifact_probe()
+    freeze_script_channel_diagnostic(
+        result["post_exit_artifact_probe"], "POST_EXIT"
+    )
     result["execution_reach"]["connected_editor_post_exit_probe"] = "RETURNED"
 
     result["execution_reach"]["connected_build_contract"] = "CALLED"
     if not os.path.isfile(build_report_path):
-        if os.path.isfile(entry_sentinel_path):
+        channel_diagnostic = result["script_channel_diagnostic"]
+        if channel_diagnostic["file_entry_exact_at_freeze"] is True:
             raise Exception("FAIL_CONNECTED_EDITOR_STARTED_REPORT_MISSING")
-        raise Exception("FAIL_CONNECTED_EDITOR_ENTRY_SENTINEL_MISSING")
+        if os.path.isfile(entry_sentinel_path):
+            raise Exception("FAIL_FILE_ENTRY_SENTINEL_INVALID_OR_PARTIAL")
+        if channel_diagnostic["inline_control_pass_at_checkpoint"] is True:
+            raise Exception("FAIL_FILE_RUNSCRIPT_ENTRY_MISSING_INLINE_CONTROL_PASS")
+        if channel_diagnostic["inline_delayed_or_uncertain"] is True:
+            raise Exception(
+                "FAIL_FILE_RUNSCRIPT_ENTRY_MISSING_INLINE_CONTROL_DELAYED_OR_UNCERTAIN"
+            )
+        raise Exception("FAIL_INLINE_AND_FILE_ENTRY_SENTINELS_MISSING")
     with open(build_report_path, "r") as build_handle:
         build_report = json.load(build_handle)
     build_assertions = build_report.get("assertions", {})
@@ -503,6 +618,9 @@ try:
         and build_report.get("external_file_save") is False
         and build_report.get("literal_paths_injected") is True
         and build_report.get("entry_sentinel_written") is True
+        and result["script_channel_diagnostic"][
+            "file_entry_exact_at_freeze"
+        ] is True
         and build_report.get("final_root_body_count") == 1
         and build_report.get("named_selection_counts")
         == {"INLET": 1, "OUTLET": 1, "WALLS": 11}
@@ -635,6 +753,12 @@ with open(inspection_path, "w") as handle:
             "sha256": sha256_file(project_path),
         },
     }
+    if os.path.isfile(inline_sentinel_path):
+        result["files"]["inline_sentinel"] = {
+            "path": inline_sentinel_path,
+            "size": os.path.getsize(inline_sentinel_path),
+            "sha256": sha256_file(inline_sentinel_path),
+        }
     if all(result["assertions"].values()):
         result["status"] = "PASS_CONNECTED_SPACECLAIM_TRANSFER_DIAGNOSTIC"
         result["engineering_capability"] = (
@@ -654,6 +778,10 @@ except Exception as error:
             result["cleanup_error"] = str(cleanup_error)
     try:
         result["failure_artifact_probe"] = artifact_probe()
+        if result["script_channel_diagnostic"]["classification"] == "NOT_EVALUATED":
+            freeze_script_channel_diagnostic(
+                result["failure_artifact_probe"], "FAILURE"
+            )
     except Exception as artifact_probe_error:
         result["failure_artifact_probe_error"] = str(artifact_probe_error)
     result["error_type"] = type(error).__name__
