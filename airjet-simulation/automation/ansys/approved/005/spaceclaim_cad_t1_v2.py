@@ -89,7 +89,7 @@ dependency_manifest_path = verify_dependency_bundle(
 
 
 base_sha256 = sha256_file(base_path)
-if base_sha256 != "4fdaf2f1f5ae2063f79b99adc8ac6ae91a147032c1386fc4119b5abd4ceff17e":
+if base_sha256 != "c157623a5377cf0107066812476c133814184ad195b3b90fc34962b0fb641f84":
     raise Exception("AJM005_V2_BASE_PRODUCER_HASH_MISMATCH")
 
 base_globals = globals().copy()
