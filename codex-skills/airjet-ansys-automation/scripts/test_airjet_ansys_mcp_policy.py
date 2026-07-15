@@ -1847,7 +1847,9 @@ for invariant in (
     "predecessor-manifest.json",
     "expected_predecessor_tree_names",
     "staging_workspace_exact",
-    "DocumentSave.Execute(parasolid_path)",
+    "ExportOptions.Create()",
+    "ParasolidVersion.V23",
+    "DocumentSave.Execute(parasolid_path, export_options)",
     "DocumentOpen.Execute(parasolid_path)",
     "parasolid_body_envelope_and_face_count_preserved",
     '"source_native_mutated": False',
@@ -1859,6 +1861,8 @@ for invariant in (
 ):
     if invariant not in v02_parasolid_converter_source:
         fail("V02 Parasolid converter lacks invariant: " + invariant)
+if "DocumentSave.Execute(parasolid_path)" in v02_parasolid_converter_source:
+    fail("V02 Parasolid converter restored deprecated implicit export options")
 if 'os.environ["AIRJET_REPO_ROOT"]' in v02_parasolid_converter_source:
     fail("V02 Parasolid converter reads mutable repository dependencies")
 
