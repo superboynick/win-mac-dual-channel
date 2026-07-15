@@ -121,7 +121,12 @@ VALID_TOPOLOGY_PAIRS = {
     ("MIXED_OR_OTHER", "UNRESOLVED_MIXED"),
 }
 CONVERTER_ONLY = False
+SUITE_TASK = "AJM006_V02_PARASOLID_TOPOLOGY_OBSERVER_SUITE"
 SUITE_PASS_STATUS = "PASS_PRELIMINARY_PARASOLID_TOPOLOGY_OBSERVER"
+SUITE_FAIL_STATUS = "FAIL_PRELIMINARY_PARASOLID_TOPOLOGY_OBSERVER"
+STDERR_PREFIX = "V02_PARASOLID_TOPOLOGY_MCP_STDERR"
+CLIENT_NAME = "airjet-ajm006-v02-parasolid-topology-harness"
+VISIBILITY = "NOT_USER_OBSERVED"
 
 
 def utc_now() -> str:
@@ -605,15 +610,14 @@ async def run_suite() -> int:
         + uuid4().hex[:8]
     )
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
-    stderr_path = OUTPUT_ROOT / (
-        "V02_PARASOLID_TOPOLOGY_MCP_STDERR_{}.log".format(stamp)
-    )
+    stderr_path = OUTPUT_ROOT / ("{}_{}.log".format(STDERR_PREFIX, stamp))
     result: dict[str, Any] = {
-        "task": "AJM006_V02_PARASOLID_TOPOLOGY_OBSERVER_SUITE",
+        "task": SUITE_TASK,
         "case_id": CASE_ID,
         "started_at": utc_now(),
         "ended_at": None,
-        "final_status": "FAIL_PRELIMINARY_PARASOLID_TOPOLOGY_OBSERVER",
+        "final_status": SUITE_FAIL_STATUS,
+        "visibility": VISIBILITY,
         "preflight": None,
         "inventory": None,
         "producer": None,
@@ -655,7 +659,7 @@ async def run_suite() -> int:
                     *streams,
                     read_timeout_seconds=timedelta(seconds=120),
                     client_info=types.Implementation(
-                        name="airjet-ajm006-v02-parasolid-topology-harness",
+                        name=CLIENT_NAME,
                         version="1.0.0",
                     ),
                 ) as session:

@@ -565,6 +565,29 @@ def test_split_step_wrapper_is_converter_only_and_fail_closed():
     ).read_text(encoding="utf-8")
     assert "ajm006-spaceclaim-v02-split-step-converter-v1" in wrapper
     assert "base.CONVERTER_ONLY = True" in wrapper
+    spec = importlib.util.spec_from_file_location(
+        "airjet_v02_split_step_test_wrapper",
+        root / "run_v02_split_step_converter_006.py",
+    )
+    assert spec is not None and spec.loader is not None
+    split_runner = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(split_runner)
+    assert split_runner.base.SUITE_TASK == (
+        "AJM006_V02_SPLIT_STEP_CONVERTER_SUITE"
+    )
+    assert split_runner.base.SUITE_PASS_STATUS == (
+        "PASS_PRELIMINARY_SPLIT_STEP_CONVERTER"
+    )
+    assert split_runner.base.SUITE_FAIL_STATUS == (
+        "FAIL_PRELIMINARY_SPLIT_STEP_CONVERTER"
+    )
+    assert split_runner.base.STDERR_PREFIX == (
+        "V02_SPLIT_STEP_CONVERTER_MCP_STDERR"
+    )
+    assert split_runner.base.CLIENT_NAME == (
+        "airjet-ajm006-v02-split-step-converter-harness"
+    )
+    assert split_runner.base.VISIBILITY == "NOT_USER_OBSERVED"
     assert "upstream.step" in wrapper and "downstream.step" in wrapper
     assert "SPLIT_STEP_SOURCE_BODY_NAMES_MISMATCH" in converter
     assert "Delete.Execute(Selection.Create(" in converter
