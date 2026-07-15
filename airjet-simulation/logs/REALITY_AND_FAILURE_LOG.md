@@ -1477,6 +1477,23 @@
 - 下一步：固定 repeatability + 无物理 mesh conformality 诊断；split STEP 仅作 fallback。
 - 状态：OPEN_NATIVE_ATTACH_REPRODUCIBILITY
 
+## REAL-20260715-064：固定输入 mesh suite 在 observer #1 attach 前置失败
+- UTC：2026-07-15T16:40:39Z--16:45:18Z
+- Stage/task：AJM-006 V02 native fixed-input repeatability + no-physics mesh diagnostic
+- Machine/operator：Windows ANSYS Student 2026 R1 / Mac Codex via SSH MCP
+- run/job/profile：producer `AJM006-V02-PRELIMINARY-e49fc7c9d832`；observer #1 `AJM006-V02-PRELIMINARY-0b85dbba60a5`；observer #2 `NOT_SUBMITTED`
+- 期望：两个 observer 复用同一 producer/native SHA，分别证明 attach、972 shared topology 与 0.5 mm 共节点网格可重复。
+- 实际观察：producer `PROCESS_EXITED_0 / PASS_PARTIAL_CAD_CAPABILITY`；native SHA `eb1c0d9e...09f6`。observer staging SHA 相等、未 Edit，但 `Model.Refresh()` 报“无法附加几何结构”。
+- 原始错误短摘：`geometry_import=CALLED`；`mechanical_inventory/topology/mesh/project=NOT_REACHED`。
+- 原始日志路径 + SHA-256：`D:\AirJet_P1\AJM-P1-CAD-006\V02_NATIVE_MESH_CONFORMALITY_RUN_SUMMARY.json`，SHA256 `82c173b23a017fbbf3bd087255a925dd89fe9d5bfa2f0962b080e25a3a2d7394`；raw job 目录保留。
+- 结果：runner `FAIL_PRELIMINARY_NATIVE_MESH_CONFORMALITY`；observer #2 按 fail-closed 未提交，split STEP 未自动运行，相关进程结束后为 0。
+- 根因及置信度：当前 native save→Workbench attach 不可重复，置信度高；具体 native 序列化差异尚未定位。三轮 native 大小/SHA 均不同，历史为一 PASS/两 FAIL。
+- 采取/拒绝的 workaround：未重试、未改 0.5 mm、未删孔/cell、未把 attach FAIL 写成 mesh FAIL。
+- 对 Gate/论文主张的影响：没有新增 mesh、shared-node、physics、formal 006 或 P1 证据；P1--P6 继续 `NOT_RUN`。
+- 下一步：以独立签名任务运行已冻结的 split STEP converter；converter PASS 仍需后续同模型 observer/mesh。
+- 关联 decision/annotation/run：AJM-P1-MESH-001；本轮 producer/observer 两条 run-index。
+- 状态：CLOSED_NATIVE_ATTACH_ROUTE_UNRELIABLE_SPLIT_FALLBACK_NEXT
+
 ## 新条目模板
 
 ```text

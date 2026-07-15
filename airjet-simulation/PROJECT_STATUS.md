@@ -128,7 +128,7 @@
 - V02 preliminary producer 已在 Windows 完成三次签名实跑并于 commit `64b57303...` PASS：主候选 `M-3x4-7.0__R50_BALANCED` 的 3×4/12-cell、972-hole、upstream/downstream 两个流体区均真实建立；两个 body 为 single-piece/closed/manifold，4/1 inlet/outlet、12/12 membrane、972/972 orifice faces 与 1 heat wall 全部闭合。十项断言和六个外部产物 size/SHA 与 MCP manifest 一致，runner 为 `PASS_PRELIMINARY_PRODUCER`。实际代理孔隙率为 `8.114445310611391%`；10% 仍是未锁定 proxy。STEP shape round-trip 最大 bbox/volume delta 为 `0.014975 mm` / `0.003996774 mm^3`，在记录的 STEP-only 容差内。
 - V02 topology observer 已在 commit `9699df565d5b93bfe8bf8354834af7fc5f79624c` 完成修正版实跑：同一 MCP 会话的 producer `...-13950bddaec8` 与 observer `...-2fb76257a827` 均 exit 0，suite 为 `PASS_PRELIMINARY_TOPOLOGY_OBSERVER`。Mechanical 中 upstream 为 body 4288/100 faces，downstream 为 body 7231/978 faces；downstream 接口保留 972 个与预期 XY 完整对应的孔印记和大面 7158，upstream 对应孔口候选为 0、972 个预期位置全缺失，shared ID/coincident pair/cross-body duplicate 均为 0。精确分类为 `MIXED_OR_OTHER / UPSTREAM_ORIFICE_GEOMETRY_LOST_DOWNSTREAM_972_IMPRINTS_RETAINED`。这说明观测流程 PASS，却否决当前 STEP→Workbench/Mechanical 两区连通路线；没有 mesh、shared-node 或 conformality 证据，不能宣称 semantic、正式 006 或 P1 PASS。
 - V02 Parasolid x_t 诊断路线已关闭：native reopen 通过，但隐式与显式 v261 export options 均未生成 `product.x_t`；observer 按设计未启动。该失败不改变整机几何结论，且不再重试。
-- V02 native 0.5 mm 无物理 Mechanical 共节点诊断已完成 17-profile 静态合同、专用 runner、正负向 validator 与 Windows 指令；Windows 实跑仍为 `NOT_RUN`。即使单轮 PASS，也不自动关闭既有一 PASS/一 attach FAIL 的重复性问题，更不升级 formal 006 或 P1。
+- V02 native 0.5 mm 无物理 Mechanical 共节点诊断已实跑：producer PASS，但 observer #1 在 hash-equal staging 的 `Model.Refresh()` attach 失败，Mechanical/mesh 未到达，observer #2 未提交。native 路线累计一 PASS/两 attach FAIL，三个 producer native SHA 均不同；当前启用 split STEP fallback，formal 006、P1--P6、physics 仍 `NOT_RUN`。
 - V02 native `.scdocx` observer 已在签名 tip `0fa89686820c737f7dc98ce94dea27252e4d8b86` 实跑 PASS：producer `...-a768ecd0008e` 与 observer `...-0600a08e2a83` 均 exit 0，Mechanical 枚举 downstream/upstream 为 316/978 faces 与 1950/2044 faces；两侧各 972 个 XY 候选全部配对，972 对均为同 actual face ID 且具有双 body membership，分类为 `972_SHARED_SINGLE_FACE / SHARED_ID_MEMBERSHIP_CONFIRMED`。native predecessor/staging 哈希前后一致且未 Edit；未运行 mesh，故只把该路线列为下一次无物理 mesh 诊断候选，不声称 shared nodes、conformal mesh、正式 006 或 P1 PASS。
 - 005 alternate-route v2 于 `2026-07-15T10:04:43Z--10:06:02Z` 在 commit
   `9a88b7ad26d5d5c9f35d8a5f956df7038cfca0fd` 首次同轮端到端 PASS：SpaceClaim producer 与
@@ -144,7 +144,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | V02 producer 已 PASS；combined STEP 单侧丢失，Parasolid export 关闭；native observer 一轮确认 972 shared single-face membership、另一轮在 Refresh attach 失败，故路线候选成立但重复性未闭合；split STEP fallback 已静态注册；正式九变体未开始，P1 BLOCKED | 对 hash-bound native 做无物理 repeatability/mesh conformality 诊断，证明 attach 可重复及 shared nodes；若继续失败再运行 split STEP fallback。P1–P6 仍 `NOT_RUN`。 |
+| P1 整机 CAD | V02 producer 已 PASS；combined STEP 单侧丢失，Parasolid export 关闭；native observer 一轮确认 972 shared single-face membership、两轮在 Refresh attach 失败，固定输入 mesh suite 未到达 Mechanical/mesh；split STEP fallback 已静态注册；正式九变体未开始，P1 BLOCKED | 运行 split STEP converter 并逐侧回读；通过后仍须同一 solver 模型重组、接口/网格 observer。P1–P6 仍 `NOT_RUN`。 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -170,7 +170,7 @@
    solver-side reconstruction 补名；Mechanical/Fluent 可删除 T1 能力检查并入 alternate-route
    confirmation 与后续 pilot 的受审 profiles。run #19--#22 的完整因果链仍见
    `learning/T1_CAD_TRANSFER_WORKBOOK.md` 与 `logs/REALITY_AND_FAILURE_LOG.md`，没有被 run #22 覆盖。
-2. V02 STEP observer 已确认单侧接口丢失，Parasolid export 已关闭。native observer 一轮 PASS 并确认 972 shared single-face membership，另一轮在 Workbench Refresh attach 失败；两轮 producer native 字节哈希不同，故当前先做固定 repeatability 与无物理 mesh conformality 诊断。只有 attach/mesh 证据闭合后才注册正式 profiles；若继续不稳定，再运行已静态冻结的 split STEP fallback。不得靠放宽阈值“找回”不存在的面。接口表示关闭后才执行
+2. V02 STEP observer 已确认单侧接口丢失，Parasolid export 已关闭。native observer 一轮 PASS 并确认 972 shared single-face membership，随后两轮在 Workbench Refresh attach 失败；三个 producer native 字节哈希均不同。固定输入 mesh suite 未到达 Mechanical/mesh，故当前运行已冻结的 split STEP fallback。converter 只能证明逐侧表示保持，后续仍需同一 solver 模型重组与接口/网格 observer。不得靠放宽阈值“找回”不存在的面。接口表示关闭后才执行
    `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：同一母版生成 4 个整机配置、
    6 个交付/残差变体和主配置 3 个有独立 ID/Gate 的单因素派生变体。006 最多写
    `PENDING_PEER_REVIEW`，不能由生成模型的同一会话自评 P1 PASS。

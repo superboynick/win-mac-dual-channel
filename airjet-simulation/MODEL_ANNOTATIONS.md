@@ -229,7 +229,7 @@ mesh/shared nodes/P1 PASS。
 ## AJM-P1-GEO-006：V02 native staging Workbench observer
 
 日期：2026-07-15
-状态：一轮 PASS、一轮 attach FAIL；972 shared membership 已观测但重复性未闭合；mesh/P1 未运行
+状态：一轮 PASS、两轮 attach FAIL；972 shared membership 已观测但 native attach 不可重复；mesh/P1 未运行
 
 **目的**：直接观察 producer 的 `product_two_zone.scdocx` 在 Workbench/Mechanical 的实际 body/face
 拓扑，区分 STEP translator 的单侧损失与 native attach 本身的能力边界。
@@ -268,7 +268,7 @@ formal 006、P1--P6、mesh、physics 继续 `NOT_RUN`。
 ## AJM-P1-MESH-001：V02 native preliminary 共节点诊断合同
 
 日期：2026-07-15
-状态：17-profile 静态包与 fail-closed validator 已完成；Windows `NOT_RUN`
+状态：Windows 已实跑；observer #1 attach FAIL，Mechanical/mesh 未到达，observer #2 未提交
 
 **对象**：只对 hash-bound V02 two-zone native 的 job-local 副本生成一次 `0.5 mm` Mechanical
 粗网格；两个 observer 必须复用同一个 producer job/native SHA。完整 12-cell/972-hole 几何
@@ -281,8 +281,18 @@ formal 006、P1--P6、mesh、physics 继续 `NOT_RUN`。
 
 **声明边界**：未来单次 PASS 也只表示该次 preliminary Mechanical 网格的共享节点 ID 证据；
 不等于 Fluent/CFD 接口、网格质量/独立性、物理结果、正式 006 或 P1。既有 native attach
-一 PASS/一 FAIL 的重复性仍单独保持 `UNRESOLVED`。失败不得静默改变 0.5 mm、删孔、删 cell
+一 PASS/两 FAIL 的重复性已判为当前路线不可重复。失败不得静默改变 0.5 mm、删孔、删 cell
 或自动切换 split fallback。
 
 **入口**：`automation/ansys/run_v02_native_mesh_conformality_006.py`、
 `windows-prompts/AJM_WIN_V02_NATIVE_MESH_CONFORMALITY_006.md`。
+
+**实测结果**：commit `057b4c49000497060d19b47a487b72dfad45f034` 的 producer
+`AJM006-V02-PRELIMINARY-e49fc7c9d832` PASS，并生成 native SHA
+`eb1c0d9ee5422efb7d45b9e95739602be6c5da8987c5124dc76e03fb936f09f6`。observer #1
+`AJM006-V02-PRELIMINARY-0b85dbba60a5` 的 staging SHA 相等且未 Edit，但 `Model.Refresh()`
+无法附加几何结构；Mechanical inventory、topology、mesh、project 均未到达。observer #2 按规则
+未提交，结束后 ANSYS 进程为 0。历史三轮为一 PASS/两 FAIL，三个 producer native SHA 均不同。
+
+**决定**：当前 native attach 路线不足以支撑可重复仿真。下一任务启用已签名的 split STEP
+fallback；本轮不是 mesh failure，共节点、physics、formal 006、P1--P6 继续 `NOT_RUN`。

@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "CONDENSED_RUNTIME_FAILURE_EVIDENCE",
+  "task": "AJM006_V02_NATIVE_MESH_CONFORMALITY_SUITE",
+  "git_head": "057b4c49000497060d19b47a487b72dfad45f034",
+  "runner_final_status": "FAIL_PRELIMINARY_NATIVE_MESH_CONFORMALITY",
+  "runner_summary": {
+    "external_path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\V02_NATIVE_MESH_CONFORMALITY_RUN_SUMMARY.json",
+    "size": 48609,
+    "sha256": "82c173b23a017fbbf3bd087255a925dd89fe9d5bfa2f0962b080e25a3a2d7394"
+  },
+  "producer": {
+    "job_id": "AJM006-V02-PRELIMINARY-e49fc7c9d832",
+    "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
+    "script_sha256": "e575c045ddc329175a9fad8e091adc44f299b0d86e741e098279d0fba9790a48",
+    "profile_contract_sha256": "fcf6e5328aab0384a9fe9cee6008fa7e5334d869b6296fb72fe7662bfe66c82e",
+    "profile_dependency_manifest_sha256": "7294b57b63ac4af1258eda326857fa75ab596f02497a3d8b827e44a17d95c4e2",
+    "started_at_utc": "2026-07-15T16:40:39.478104+00:00",
+    "ended_at_utc": "2026-07-15T16:42:33.242927+00:00",
+    "terminal_phase": "PROCESS_EXITED_0",
+    "exit_code": 0,
+    "report_status": "PASS_PARTIAL_CAD_CAPABILITY",
+    "job_json": {
+      "size": 5177,
+      "sha256": "b9604b13fae8bd2b1eec35d52031f82adf9f7439f17522b62e2a293157386dcb"
+    },
+    "report": {
+      "size": 5583,
+      "sha256": "1684a60bb605b87eecf067ca9ce44c1a4432a5a4381f47e25956f80d2d48e1b1"
+    },
+    "native": {
+      "relative_path": "product_two_zone.scdocx",
+      "size": 12336061,
+      "sha256": "eb1c0d9ee5422efb7d45b9e95739602be6c5da8987c5124dc76e03fb936f09f6"
+    },
+    "stdout_sha256": "8ecf46832fe79601d32de0e6c313815bcde5ff042401e1e9c074d22a46087ed1",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "observer_1": {
+    "job_id": "AJM006-V02-PRELIMINARY-0b85dbba60a5",
+    "profile_id": "ajm006-workbench-v02-native-mesh-conformality-observer-v1",
+    "script_sha256": "3df9bef91be72337e3f1b24a567b2125482d2c17e21b0e9a7be5a74029d6fcb0",
+    "profile_contract_sha256": "434d46b92e5f70b03385d111c6f89b39510f1272daa9be80616eeec518215098",
+    "started_at_utc": "2026-07-15T16:42:35.728818+00:00",
+    "ended_at_utc": "2026-07-15T16:45:18.129127+00:00",
+    "terminal_phase": "FAILED_PROCESS",
+    "exit_code": 2,
+    "report_status": "FAIL_PRELIMINARY_OBSERVER",
+    "job_json": {
+      "size": 1720,
+      "sha256": "232d7abe137e8032673857dfb1fa5085044f86297a27b9cccb92b7b22edc2af5"
+    },
+    "report": {
+      "size": 3731,
+      "sha256": "df051f7a3da61cc0e033686242dbbaf211462d7e9cb03ffc1a0a1759b02c056a"
+    },
+    "source_native_sha256": "eb1c0d9ee5422efb7d45b9e95739602be6c5da8987c5124dc76e03fb936f09f6",
+    "staging_copy_sha256": "eb1c0d9ee5422efb7d45b9e95739602be6c5da8987c5124dc76e03fb936f09f6",
+    "staging_hash_equal": true,
+    "edit_called": false,
+    "error_type": "Exception",
+    "error": "无法附加到几何结构文件 product_two_zone.scdocx；无法附加几何结构。",
+    "execution_reach": {
+      "predecessor_identity": "PASS",
+      "geometry_import": "CALLED",
+      "mechanical_inventory": "NOT_REACHED",
+      "topology_classification": "NOT_REACHED",
+      "mesh_generation": "NOT_REACHED",
+      "project_save": "NOT_REACHED"
+    },
+    "topology_result": "NOT_EVALUATED",
+    "mesh": "NOT_REACHED",
+    "physics": "NOT_RUN",
+    "visibility": "NOT_USER_OBSERVED",
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "observer_2": "NOT_SUBMITTED_AFTER_OBSERVER_1_FAIL",
+  "repeatability": "NOT_EVALUATED_SECOND_OBSERVER_NOT_SUBMITTED",
+  "native_attach_history": {
+    "pass_count": 1,
+    "fail_count": 2,
+    "all_three_producer_native_sha256_different": true,
+    "pass_native": {
+      "size": 12343829,
+      "sha256": "5a0e0cc48c01d7989a3436c3079ea15b7d547fb234797002e900973b703f3887"
+    },
+    "first_fail_native": {
+      "size": 12336027,
+      "sha256": "c765e5a501d01a5bb2e3dcb58f5b48cc359083c6462ec285bf6fd3fd77092b3b"
+    },
+    "second_fail_native": {
+      "size": 12336061,
+      "sha256": "eb1c0d9ee5422efb7d45b9e95739602be6c5da8987c5124dc76e03fb936f09f6"
+    }
+  },
+  "ansys_process_count_after": 0,
+  "split_step_execution": "NOT_RUN",
+  "formal_006_completion": false,
+  "p1_stage_gate": "NOT_RUN",
+  "p1_p6_gates": "NOT_RUN",
+  "claim_boundary": "NATIVE_ATTACH_FAILED_BEFORE_MECHANICAL_AND_MESH;_NOT_A_MESH_FAILURE_OR_PHYSICS_RESULT",
+  "next_decision": "ACTIVATE_SIGNED_SPLIT_STEP_FALLBACK_AS_SEPARATE_TASK"
+}
