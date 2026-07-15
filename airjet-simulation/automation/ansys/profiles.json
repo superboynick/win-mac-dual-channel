@@ -501,7 +501,7 @@
       "profile_id": "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
       "engine": "pyfluent",
       "script": "006/v03_pyfluent_watertight_mesh_consumer.py",
-      "sha256": "08560bcf14a2efcea0a8720b32b5f1bac79ac204c0826502ad59788e87b5ede3",
+      "sha256": "6213c8ec36615e1b1eeb4c24f0046cff88be1bb028502ff672d7f65c9abbe3b1",
       "timeout_seconds": 7200,
       "output_root_id": "p1_cad_006",
       "reports": [

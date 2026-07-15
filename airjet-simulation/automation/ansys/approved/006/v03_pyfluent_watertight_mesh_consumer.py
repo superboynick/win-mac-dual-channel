@@ -35,6 +35,9 @@ SOURCE_CHAIN_PATH = JOB_DIR / "v03_pyfluent_source_chain.json"
 TRANSCRIPT_PATH = JOB_DIR / "v03_pyfluent_transcript.txt"
 PRELAUNCH_TRACE_PATH = JOB_DIR / "v03_pyfluent_prelaunch_trace.jsonl"
 LAUNCH_STACK_PATH = JOB_DIR / "v03_pyfluent_launch_stack.txt"
+FLUENT_EXE = Path(
+    r"D:\ansys\ANSYS Inc\ANSYS Student\v261\fluent\ntbin\win64\fluent.exe"
+)
 STAGING_DIR = JOB_DIR / "input" / "staging"
 STAGED_STEP_PATH = STAGING_DIR / "product_continuous_fluid.step"
 
@@ -440,10 +443,16 @@ try:
         raise RuntimeError("BOUNDARY_POINT_COUNTS_NOT_4_INLET_1_OUTLET")
 
     pin_verified_windows_platform_for_pyfluent()
+    if not FLUENT_EXE.is_file():
+        raise RuntimeError("PINNED_FLUENT_EXECUTABLE_NOT_FOUND")
     trace_checkpoint(
         "pyfluent_windows_platform_pinned",
         os_name=os.name,
         processor_architecture=os.environ.get("PROCESSOR_ARCHITECTURE"),
+    )
+    trace_checkpoint(
+        "pinned_fluent_executable_verified",
+        executable_name=FLUENT_EXE.name,
     )
     trace_checkpoint("fluent_launch_started", start_timeout_seconds=60)
     with LAUNCH_STACK_PATH.open("w", encoding="utf-8") as launch_stack:
@@ -462,6 +471,7 @@ try:
                 ui_mode=UIMode.NO_GUI_OR_GRAPHICS,
                 cleanup_on_exit=True,
                 cwd=str(JOB_DIR),
+                fluent_path=str(FLUENT_EXE),
             )
         finally:
             faulthandler.cancel_dump_traceback_later()

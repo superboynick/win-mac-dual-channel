@@ -138,6 +138,23 @@
   `.wbpj` 均有哈希证据。closeout 为 `PASS_START_P1 / START_006_ALTERNATE_ROUTE_ONLY`；这只解除 006
   alternate-route 的工具链前置阻塞，P1 Stage 仍 `NOT_RUN`，native 三项仍 `NOT_PROVEN`。证据见
   `logs/evidence/AJM005_T1_ALTERNATE_ROUTE_SUITE_20260715T100443733301Z_d1743e81/`。
+- V03 单一连续流体体 preliminary geometry pilot 已在 Windows 真机通过。签名 commit
+  `bda21f6e6a55c4c0bc7e42a3a9aca6c6ab784a42` 的 producer job
+  `AJM006-V03-CONTINUOUS-0f01f7829e5c` 为 17/17 assertions 全真；build、native reopen 与
+  STEP reopen 均识别 972/972 个有限孔喉，并保持一个 single-piece/closed/manifold fluid body、
+  4 inlet/1 outlet、冻结 XY 身份、独立解析体积和文件哈希合同。冻结 predecessor manifest SHA-256
+  为 `19cf163f4d56a804b9082c9185ad62fae83fecaf404721c4dde4c641d5dc3168`。这只证明当前
+  证据约束候选的几何和 STEP handoff；972、0.25 mm 孔径与 0.10 mm 喉长均不是 Mini 量产实测值，
+  也不等于正式 006 或 P1 PASS。
+- PyFluent Stage 2 尚未形成 mesh。首次真实启动暴露最小环境缺少 `PROCESSOR_ARCHITECTURE`；
+  后续固定 `AMD64`、loopback remoting 和逐步 checkpoint。commit `3e950c31c6978cab100d8b84f57e75205e5015d8`
+  的真机 stack dump 又把启动前挂起精确定位到 Python 3.12 `platform.system()` 的 Windows WMI 查询，
+  当时尚未构造 Fluent 命令。签名修复 `21bdeec7cc116ce2ddad4d89e42f30fe45712da7` 只在已验证
+  `os.name=nt` 且 `PROCESSOR_ARCHITECTURE=AMD64` 时固定 PyFluent 的 Windows 平台判断。真机 stack
+  已证明这越过第一个 WMI 调用，但自动查找 Fluent 路径又在 `fluent_version._get_fluent_exe_path()`
+  内触发同一 WMI；下一提交改为传入已核验存在且 Authenticode `Valid` 的官方 Student v261
+  `fluent.exe` 绝对路径，不能提前写成 mesh PASS。当前准确状态仍是 V03 geometry preliminary PASS、watertight
+  import/mesh `NOT_RUN`、Git 凝练运行证据待归档、P1--P6 `NOT_RUN`。
 - 006 后的 007 独立复核已定义：先核验真实 005 副本、精确 006 commit 合同 bundle、9 个 variant 的 producer/observer 身份、独立 artifact-manifest、STEP/sidecar/binding/observation、solver actual IDs、机器检查/252 行 evidence 和完整目录 SHA256，再实际调用 production validator；computed missing/unexpected/dangling/orphan/coverage/assignment 结果必须逐字段闭合。finalize 复用同一硬校验并要求 252/252 hard Gate PASS。transfer limitation 不可接受。当前没有 006 产物，所以 007 也未运行。
 
 ## 2. 尚未完成，不能声称完成
@@ -145,7 +162,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | V02 producer 已 PASS；combined STEP 单侧丢失，split STEP downstream 972 imprint 被愈合，Parasolid export 关闭；native observer 一轮确认 972 shared membership、两轮 attach 失败；正式九变体未开始，P1 BLOCKED | 先做 V03 单一连续流体体 pilot：显式 0.10 mm C 类孔喉、972 throat、STEP round-trip、PyFluent watertight import。pilot 关闭后才注册正式 006 profiles；P1–P6 仍 `NOT_RUN`。 |
+| P1 整机 CAD | V03 单一连续流体体 preliminary geometry 已 PASS：build/native/STEP 均为 1 个 continuous fluid body 与 972/972 个有限孔喉；正式九变体未开始，P1 仍 BLOCKED | 完成同一冻结 predecessor 的 PyFluent watertight import、surface/volume mesh、单 fluid cell zone、972 throat occupancy、质量/Student 限额和 `.msh.h5` 哈希证据；当前 mesh=`NOT_RUN`。随后才可注册并运行正式 006；P1–P6 仍 `NOT_RUN`。 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -171,13 +188,14 @@
    solver-side reconstruction 补名；Mechanical/Fluent 可删除 T1 能力检查并入 alternate-route
    confirmation 与后续 pilot 的受审 profiles。run #19--#22 的完整因果链仍见
    `learning/T1_CAD_TRANSFER_WORKBOOK.md` 与 `logs/REALITY_AND_FAILURE_LOG.md`，没有被 run #22 覆盖。
-2. V02 STEP observer 已确认 combined STEP 单侧接口丢失；split STEP 实跑又确认 downstream 的 972
-   个零厚度 imprint 被 translator 愈合为一个平面，故两条 STEP 表示都不能靠放宽 face-count 阈值
-   继续。native attach 一 PASS/两 FAIL、Parasolid export 关闭均保留为路线证据，但不是 P1 Gate
-   字面前置。下一最小改变是 V03：在厚度预算中显式分配 C016=0.10 mm 孔喉层，把
-   upstream→972 throat→downstream Boolean 为一个 single-piece continuous fluid body；先关闭 native/
-   STEP reopen 的 1 body、closed/manifold、972 throat XY/直径/长度、4 inlet/1 outlet 和全流路，再
-   直接做固定 PyFluent watertight import/mesh smoke。该 pilot 通过后才执行
+2. V03 geometry pilot 已关闭 V02 的零厚度接口表示问题：C016=0.10 mm 的 C 类候选孔喉把
+   upstream、972 throats 与 downstream 合并为一个 single-piece continuous fluid body，build/native/
+   STEP 的 17 项几何合同已在真机通过。当前唯一允许的下一工程动作，是在同一 MCP session、同一
+   case 与同一冻结 predecessor 下继续受限 PyFluent consumer；用 prelaunch trace、stack dump、
+   stdout/stderr 与 terminal state 区分 launcher、STEP import 和网格阶段。只有 hash-bound consumer
+   report、有效 `.msh.h5`、mesh inventory、单 fluid cell zone、972 throat occupancy、mesh integrity
+   与 Student 限额全部闭合，才能写 `PASS_PRELIMINARY_MESH_CAPABILITY`。启动成功或单次 health
+   不能替代 mesh PASS。该 pilot 通过后才执行
    `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：同一母版生成 4 个整机配置、
    6 个交付/残差变体和主配置 3 个有独立 ID/Gate 的单因素派生变体。006 最多写
    `PENDING_PEER_REVIEW`，不能由生成模型的同一会话自评 P1 PASS。
