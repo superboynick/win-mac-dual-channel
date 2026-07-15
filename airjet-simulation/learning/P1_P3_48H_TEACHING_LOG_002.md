@@ -71,3 +71,82 @@ P1-P6 Gate passed at START. Do not describe a future P2/P3 baseline as measured 
 
 Later entries must retain these classes and use the fixed sequence: input → model/equation →
 numerical checks → output → uncertainty → available/prohibited wording.
+
+## Phase A — archive run #22 and defer the connected route
+
+### Input
+
+- Signed-run commit `1a9696c3930a42cd8a30aafe7093b8acafd6dd59`.
+- Suite `AJM005_T1_CONNECTED_SC_SUITE_20260715T021529059815Z_aa1180f6`, case
+  `a5c-eedabacc1fc6`.
+- SpaceClaim producer `a5c-eedabacc1fc6-f70b77c399ca` and connected Workbench consumer
+  `a5c-eedabacc1fc6-027f5de8b724`.
+- Fixed 34-byte child-entry sentinel and fail-closed file-channel state machine.
+
+### Model or equation
+
+This phase did not solve a product equation. It tested an observable software state machine:
+
+```text
+Workbench Edit
+  -> direct RunScript call
+  -> entry/build probe
+  -> Exit
+  -> second probe
+  -> failure-pre/failure-post probes when the build contract is not terminal
+```
+
+`RunScript=RETURNED` and `entry=ABSENT` are separate observations. Their conjunction does not imply
+that the child geometry build ran and failed. Likewise, a suite-level diagnostic failure does not
+mean the downstream transfer was executed.
+
+### Numerical and software checks
+
+- Producer: 21.451068 s, exit 0, 8/8 assertions true, `PASS_PARTIAL_CAD_CAPABILITY`.
+- Consumer: 136.554323 s, exit 2, root error
+  `FAIL_RUNSCRIPT_RETURNED_ENTRY_AND_BUILD_ABSENT`.
+- Exact classification: `RUNSCRIPT_RETURNED_ENTRY_ABSENT`.
+- Entry and build were absent at post-RunScript, post-Exit, failure-pre, and failure-post; both probe
+  error lists were empty.
+- Share, save-data, Refresh, Mechanical, mesh, and project save were `NOT_REACHED`.
+- All producer 20/20 and consumer 19/19 artifact-manifest entries were rehashed and matched.
+- The Git-external ZIP contains 22 selected payloads plus `SHA256SUMS.csv`; its SHA-256 is
+  `62b058ef4125704ef4d74624d23b5cc0093315ab29bc613cd0e55cf5d92b7a96`.
+- After the final evidence edits, the staged `suite-summary.json` SHA-256 was recomputed as
+  `fe1abf7c7bce798ba43ba581ecf9e1d5289475a6f1b9863abb8f99cf45f6f3db` and matched the
+  evidence-manifest row exactly.
+
+### Output
+
+- Condensed Git evidence in
+  `logs/evidence/AJM005_T1_CONNECTED_SC_SUITE_20260715T021529059815Z_aa1180f6/`.
+- Two run-index rows and reality item `REAL-20260715-050`.
+- Route state `DEFERRED_CURRENT_HOST_ROUTE`; no further connected marker probes in this sprint.
+- Next-route requirement: signed SpaceClaim authoring followed by hash-bound STEP and semantic
+  sidecar reconstruction.
+
+### Uncertainty and limitations
+
+- No immediate outer-process observation was captured when the suite ended. A delayed archive-time
+  check found zero related processes, but it cannot prove immediate cleanup.
+- A same-host/session runtime positive control that deliberately writes both entry and build files was
+  `NOT_RUN`. Synthetic validator-state tests do not replace that runtime control, so absence is not a
+  loader or session root-cause result.
+- The absent entry is bounded to this run and these checkpoints. It does not prove that `.py` is
+  unsupported or that the child can never run.
+- External native attach, native parameterization, and native Named Selection transfer remain
+  `NOT_PROVEN`.
+- The fixture is disposable toolchain evidence, not a full-product model.
+
+### Available for writing
+
+The methods record may state that the direct RunScript call returned but the fixed child entry and
+build report were not observed in this run, with exact classification
+`RUNSCRIPT_RETURNED_ENTRY_ABSENT`. It may state that this evidence motivated deferring the current
+connected route and adopting a hash-bound STEP plus semantic-sidecar route for further testing.
+
+### Prohibited wording
+
+Do not state that the child build executed and failed, that Python script files are unsupported,
+that connected transfer failed or passed, or that Mechanical/mesh/project work was reached. Do not
+upgrade P1 readiness or any P1-P6 engineering Gate from this diagnostic.

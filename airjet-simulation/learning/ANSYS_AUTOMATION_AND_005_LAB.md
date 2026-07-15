@@ -737,7 +737,7 @@ handoff wrapper 中 `$Head:` 会被解析为 drive-qualified variable；应写 `
 命令前发生，不能拿来解释签名或 ANSYS 失败。这个小坑和前一轮 stderr/console wrapping 一样，说明
 外层验证器必须先通过自己的语法与 machine-readable 合同。
 
-## 27. 第二十二次实验的实现合同：RunScript-only（尚未实跑）
+## 27. 第二十二次实验的实现合同：RunScript-only（历史 pre-run 设计；实跑见 27.8）
 
 ### 27.1 为什么移除 source-editor SendCommand
 
@@ -863,3 +863,37 @@ P1 stage gate = NOT_RUN
 
 只有签名提交、Windows clean sync、installed-skill hash 和 static policy 全部通过后，才允许启动新
 case/job。实跑后按 report 填唯一分类；不能把实现完成、静态 PASS 或 reviewer PASS 写成 ANSYS 结果。
+
+### 27.8 签名实跑结果与路线决策
+
+run #22 已在 commit `1a9696c3930a42cd8a30aafe7093b8acafd6dd59` 上真实执行：
+
+| field | observed value |
+|---|---|
+| suite | `AJM005_T1_CONNECTED_SC_SUITE_20260715T021529059815Z_aa1180f6` |
+| case | `a5c-eedabacc1fc6` |
+| producer | `a5c-eedabacc1fc6-f70b77c399ca`; 8/8 assertions true; `PASS_PARTIAL_CAD_CAPABILITY` |
+| consumer | `a5c-eedabacc1fc6-027f5de8b724`; exit 2; `FAIL_CONNECTED_SPACECLAIM_DIAGNOSTIC` |
+| RunScript outcome | `RETURNED` |
+| entry sentinel | post-RunScript / post-Exit / failure-pre / failure-post 全部 absent |
+| build report | freeze/capture absent；probe-error 列表为空 |
+| classification | `RUNSCRIPT_RETURNED_ENTRY_ABSENT` |
+| root error | `FAIL_RUNSCRIPT_RETURNED_ENTRY_AND_BUILD_ABSENT` |
+| downstream reach | share/save-data/Refresh/Mechanical/mesh/project 全部 `NOT_REACHED` |
+| visibility | `NOT_USER_OBSERVED` |
+| P1 Gate | `NOT_RUN`；toolchain readiness `BLOCKED` |
+
+这组证据把“RunScript call 是否返回”从未知变为 `RETURNED`，但没有观察到 child 第一条 fixed-byte 写入。
+absence 只属于本轮四个检查点；它不能证明 child 永远不会执行，也不能证明 `.py` 格式不受支持。build
+report 同样 absent，因此不能把 suite 名中的 transfer diagnostic FAIL 简写成“connected transfer 已执行并
+失败”。
+
+producer/consumer 的 20/19 个 manifest 项全部逐文件复算通过；suite/raw evidence hashes 记录于
+`logs/evidence/AJM005_T1_CONNECTED_SC_SUITE_20260715T021529059815Z_aa1180f6/`。suite 结束瞬间没有
+即时外层进程记录；归档时延迟检查为 0 个相关进程，只能作为延迟观察。
+
+现实决策是停止在当前 host 追加 connected marker 探针，将路线标为
+`DEFERRED_CURRENT_HOST_ROUTE`。后续使用签名 SpaceClaim 脚本进行参数化 authoring，再用 STEP 与
+hash-bound semantic sidecar 在 Mechanical/Fluent 侧重建语义。这个 fallback 解决的是可执行交付路线，
+不把 external native attach、native parameterization 或 native Named Selection transfer 从
+`NOT_PROVEN` 升级，也不使 P1 Gate 通过。

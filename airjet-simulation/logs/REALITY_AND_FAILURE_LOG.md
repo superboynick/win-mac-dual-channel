@@ -1226,6 +1226,43 @@
   审查了待运行的 fail-closed instrumentation”，不能支持任何 AirJet 产品几何或物理结果。
 - 状态：IMPLEMENTED_PENDING_SIGNED_WINDOWS_RUN
 
+## REAL-20260715-050：RunScript 返回但 child entry/build 未被观测，connected route 冻结
+
+- UTC：2026-07-15T02:15:29.059815Z--2026-07-15T02:18:11.986778Z
+- Stage/task：005 T1 / 第二十二次、`Interactive=True + RunScript-only` connected diagnostic。
+- Machine/operator：`LAPTOP-LCCLM2HI`；发起 operator 未写入 raw suite，登记为 `NOT_RECORDED`。
+- run/jobs：`AJM005_T1_CONNECTED_SC_SUITE_20260715T021529059815Z_aa1180f6`；case
+  `a5c-eedabacc1fc6`；SC `a5c-eedabacc1fc6-f70b77c399ca`；WB
+  `a5c-eedabacc1fc6-027f5de8b724`；运行 commit
+  `1a9696c3930a42cd8a30aafe7093b8acafd6dd59`。
+- producer：21.451068 秒、exit 0，八项 assertions 全 true，report SHA-256
+  `df5f3e8ecd929fd14c3cbf46673844bc4a29e15b5d8fbb60f581b566f6de2466`；状态只允许写
+  `PASS_PARTIAL_CAD_CAPABILITY` / `PASS_PARTIAL_CAD_ONLY`。
+- consumer 直接观察：empty Geometry、Edit、direct `.py RunScript`、post-RunScript probe、Exit、
+  post-Exit probe 均 RETURNED；source-editor SendCommand 按设计 `SKIPPED_BY_EXPERIMENT`。固定 entry
+  sentinel 与 build report 在 post-RunScript、post-Exit、failure-pre、failure-post 四处均 absent，
+  entry/build probe-error 列表为空；connected build contract 为 `CALLED`。
+- 原始错误：`FAIL_RUNSCRIPT_RETURNED_ENTRY_AND_BUILD_ABSENT`；精确分类
+  `RUNSCRIPT_RETURNED_ENTRY_ABSENT`。share、`GetGeometryFileAndSaveData`、Refresh、Mechanical、mesh、
+  project save 全部 `NOT_REACHED`。
+- 证据：suite JSON 68024 bytes / SHA-256
+  `5069fc1a6681cf54f38ac4c8a0793f09cabc3ed9935cd422c57424539e08cadb`；MCP stderr 7173 bytes /
+  `68339ac677f1ee0df258714b411a5fd476eee233a17bcb16a8840f72caa73683`；producer/consumer
+  manifest 20/20 与 19/19 文件逐项重算一致。Git 外 ZIP 87014 bytes、22 payload 加内部
+  `SHA256SUMS.csv`，SHA-256 `62b058ef4125704ef4d74624d23b5cc0093315ab29bc613cd0e55cf5d92b7a96`。
+- 进程观察限制：suite 结束瞬间没有外层即时记录；归档时
+  `2026-07-15T05:21:32.3964021Z` 的延迟 allowlist 检查为 0 个 ANSYS 进程，不能倒推即时 cleanup。
+- 结论边界：最强结论只是 direct RunScript call 已到达并返回，但本轮没有观察到 child entry/build。
+  不能写 build 已执行后失败、`.py` 不受支持、connected transfer 已失败/通过、GUI 已被用户观察或
+  P1 已通过。
+- workaround 决策：当前 connected external-geometry route 标为
+  `DEFERRED_CURRENT_HOST_ROUTE`；本冲刺不再追加 connected 探针。迁移到签名 SpaceClaim 脚本建模和
+  hash-bound STEP + semantic sidecar 的 solver-side reconstruction route，不把它冒充 native transfer。
+- Gate/论文影响：`P1_CAD_TOOLCHAIN_READINESS=BLOCKED`；external native attach、native
+  parameterization、native Named Selection transfer 均 `NOT_PROVEN`；P1--P6 `NOT_RUN`；visibility
+  `NOT_USER_OBSERVED`。
+- 状态：PRESERVED_AND_ROUTE_DEFERRED
+
 ## 新条目模板
 
 ```text

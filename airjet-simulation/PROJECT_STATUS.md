@@ -1,6 +1,6 @@
 # AirJet Mini 整机数字复原：当前状态
 
-更新时间：2026-07-14
+更新时间：2026-07-15
 状态口径：**P0 公开证据冻结 v1 已通过；P1–P6 CAD/物理仿真阶段尚未通过。**
 
 ## 1. 已完成
@@ -106,13 +106,15 @@
   post-call probe 与 RunScript 未到达，cleanup Exit 返回。由此只关闭“改一个 Interactive 参数就足以
   修复”这一窄命题，不能声称真实 GUI/session 已被用户观察或所有 session 因素已排除。下一轮保持
   True，移除前置 SendCommand，让 `.py` RunScript 成为唯一 scripting action。
-  run #22 的 `Interactive=True + RunScript-only` 诊断合同现已实现但尚未在 Windows 实跑：source
-  Geometry editor 的 `SendCommand` 和 inline marker 明确记为 `SKIPPED_BY_EXPERIMENT`，`.py`
-  `RunScript` 是 Edit 后第一个且唯一的 editor scripting action。journal 已加入 exact entry sentinel、
-  正常 freeze，以及仅对仍需 connected-build 失败诊断且 build contract 尚未返回的异常路径执行的
-  cleanup 前后 probe/freeze/capture；runner 交叉校验 call reach、entry timing、freeze/capture 与 build
-  state；AST policy 还锁定 direct call 并阻断已审 mutation 集中的 alias/reflection 绕过。以上只是
-  实现和静态审查事实，不是 run/job/report/artifact 或 ANSYS runtime 结果。
+  run #22 随后在 commit `1a9696c...` 实跑：producer 的八项断言全真，状态为
+  `PASS_PARTIAL_CAD_CAPABILITY`；connected Workbench 的 Edit、direct `.py RunScript` 和 Exit 均返回，
+  但 post-RunScript、post-Exit、failure-pre 与 failure-post 四个检查点都没有观察到 34-byte entry
+  sentinel 或 build report，且 probe-error 列表为空。connected build contract 到 `CALLED` 后以
+  `FAIL_RUNSCRIPT_RETURNED_ENTRY_AND_BUILD_ABSENT` fail closed，精确分类
+  `RUNSCRIPT_RETURNED_ENTRY_ABSENT`；share/save-data/Refresh/Mechanical/mesh/project 全部
+  `NOT_REACHED`。最强结论仅为“调用返回但 child entry/build 未被观测”，不能写成 build 已执行后失败、
+  `.py` 不受支持或 connected transfer 已失败。该 connected route 已冻结为
+  `DEFERRED_CURRENT_HOST_ROUTE`，本冲刺不再追加 connected 探针。
 - 已新增学习入口、ANSYS/005 实验手册、现实失败日志、run index 和论文方法—证据映射；
   后续每次运行会同步保留小型脱敏机器证据和 Git 外大产物哈希。
 - Gen1 两张官方产品透视图已分别做 homography、10,000 次像素误差 Monte Carlo 和跨视图差比较；四个画出 vent 只作为 `I` 类顶盖候选，不用于推断 cell 数。
@@ -130,7 +132,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP semantic reconstruction diagnostic PASS；145-character writable native `.scdocx` 仍 attach FAIL；connected RunScript entry 未观测，SendCommand 在 False/True 两种 Edit 参数下均于 checkpoint 前空引用，transfer 未到达；run #22 RunScript-only 实现已审查、Windows runtime `NOT_RUN`；native Named Selection transfer/native driving parameter NOT_PROVEN；P1 BLOCKED） | hash-bound STEP+sidecar 已在可删除 fixture 上唯一重建 1/1/11 边界，四项负向检查、1063/513 粗网格和 project save 通过；这是 solver-side reconstruction。native 短路径与 hash-equal writable-staging 两轮均在 Model.Refresh direct FAIL；connected run #19 的 batch RunScript 返回但 marker absent，run #20/#21 的 SendCommand 在 Interactive False/True 下均未返回且 RunScript 未调用；run #22 不得预填 `RETURNED`/`EXCEPTION`、entry present/absent 或 build PASS/FAIL；实跑后仍须建立 native parameter 合同并完成 Mechanical/Fluent T1，才可判断 005 是否允许进入 006 |
+| P1 整机 CAD | 输入合同完成，正式 CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；旧 STEP semantic reconstruction diagnostic PASS；145-character writable native `.scdocx` 仍 attach FAIL；connected run #22 的 direct RunScript 返回但 entry/build 未观测，精确分类 `RUNSCRIPT_RETURNED_ENTRY_ABSENT`；connected route=`DEFERRED_CURRENT_HOST_ROUTE`；native Named Selection transfer/native driving parameter NOT_PROVEN；P1 BLOCKED） | 旧 hash-bound STEP+sidecar 已在可删除 fixture 上唯一重建 1/1/11 边界，四项负向检查、1063/513 粗网格和 project save 通过；这是 solver-side reconstruction。run #22 的 share/save-data/Refresh/Mechanical/mesh/project 全部未到达，不能写成 connected transfer FAIL。下一步须冻结更强的逐实体 STEP+sidecar route contract，并在合同冻结后运行组合 confirmation；随后才允许完整 12-cell P1 pilot。P1 Stage 仍 `NOT_RUN`，P1–P6 均未通过 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -141,24 +143,19 @@
 
 ## 3. 下一步执行顺序
 
-1. 以已通过的 T0、SpaceClaim partial CAD 和 STEP semantic reconstruction diagnostic 为边界，在
-   Windows 继续 005 T1。native 短路径和 writable-staging 已在同一点失败；connected editor 首轮
-   尚未生成内层 build report，所以 transfer 未到达；literal-path/import 前 sentinel 复测也在
-   RunScript 后、Exit 后和 failure catch 三处 absent。inline 对照又确认 batch Edit 返回后，
-   `SendCommand` 在 post-call checkpoint 前直接空引用，故本轮 `.py` RunScript 未调用。literal
-   `Interactive=True` 单参数复测又得到相同外部失败签名，所以只关闭“改该参数即可修复”的窄命题。
-   run #22 已按上述边界实现：保持 True、child fixture、absolute path、binary entry marker、
-   predecessor、timeout、cleanup、transfer/Mechanical assertions 和 Gate 边界不变，移除/跳过
-   source-editor SendCommand 与 inline marker，让 `.py` RunScript 成为 Edit 后第一个且唯一 scripting
-   action，并使用 file-only 分类。下一动作是签名提交、Windows clean fast-forward、skill 重装与精确
-   hash/policy preflight 后首次实跑，再按真实 report 写唯一分类；不得在执行前预填结果。官方虽支持
-   `.scscript`，但未证明与 `.py` 的合法序列化可逐字节
-   等价，因此不先做简单 suffix 改名。不得在
-   native profile 中用 solver-side reconstruction 补名。connected route 可观测且通过后，仍要回到
-   external native transfer，并另建原生 parameter
-   object/update/reopen 合同，
-   再分别做 Mechanical 与 Fluent 可删除 T1 小模型。所有输入使用精确冻结 SHA；所有运行写
-   `VISIBILITY=NOT_USER_OBSERVED`；这些完成前不启动 006。
+1. 归档 run #22 后冻结当前 connected route：`RunScript` 已返回，但四个检查点都未观察到 child
+   entry/build；该事实不足以判定 build 或 transfer 成败。48 小时冲刺内不再追加 marker-only 或新的
+   connected 探针。主路线迁移为签名 SpaceClaim 脚本建模 → native save/reopen 检查 → STEP export →
+   hash-bound semantic sidecar → Mechanical/Fluent 侧语义重建。先冻结逐实体 unique key、owner、cell/local
+   coordinates、cardinality、adjacency 与全链 hashes 的合同；相关 profile/script/runner/schema/判定字节
+   变化后必须补一次组合 producer + semantic reconstruction confirmation。外部 native attach、native
+   parameterization 与 native Named Selection transfer 均保持 `NOT_PROVEN`，005 closeout 也不能写成
+   P1 Stage PASS。
+   旧行动项的处置也已显式冻结：简单 `.py`→`.scscript` suffix 实验因没有合法序列化逐字节等价证据而
+   不再执行；native 短路径/writable-staging/connected 历史证据继续保留，但不在 native profile 中用
+   solver-side reconstruction 补名；Mechanical/Fluent 可删除 T1 能力检查并入 alternate-route
+   confirmation 与后续 pilot 的受审 profiles。run #19--#22 的完整因果链仍见
+   `learning/T1_CAD_TRANSFER_WORKBOOK.md` 与 `logs/REALITY_AND_FAILURE_LOG.md`，没有被 run #22 覆盖。
 2. 只有 005 的 P1 CAD 必要字段全部通过后，才执行
    `windows-prompts/AJM_WIN_P1_FULL_PRODUCT_CAD_BUILD_006.md`：同一母版生成 4 个整机配置、
    6 个交付/残差变体和主配置 3 个有独立 ID/Gate 的单因素派生变体。006 最多写
