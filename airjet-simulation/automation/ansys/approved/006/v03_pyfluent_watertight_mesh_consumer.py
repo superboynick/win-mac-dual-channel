@@ -581,7 +581,7 @@ try:
 
     workflow.describe_geometry.update_child_tasks(setup_type_changed=False)
     workflow.describe_geometry.setup_type = (
-        "The geometry consists of only fluid regions with no voids"
+        "The geometry consists of both fluid and solid regions and/or voids"
     )
     workflow.describe_geometry.update_child_tasks(setup_type_changed=True)
     workflow.describe_geometry()
@@ -620,6 +620,13 @@ try:
             )
         )
 
+    create_regions_pre_state = workflow.create_regions.arguments()
+    trace_checkpoint(
+        "create_regions_pre_execute_state",
+        python_type=type(create_regions_pre_state).__name__,
+        state=json_safe_trace_value(create_regions_pre_state),
+    )
+    workflow.create_regions()
     update_regions_pre_state = workflow.update_regions.arguments()
     trace_checkpoint(
         "update_regions_pre_execute_state",

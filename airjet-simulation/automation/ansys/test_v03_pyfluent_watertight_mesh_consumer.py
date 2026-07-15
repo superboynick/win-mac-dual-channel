@@ -120,11 +120,15 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "surface.cfd_surface_mesh_controls.max_size = SURFACE_MAX_SIZE_MM",
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=False)",
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=True)",
+        '"The geometry consists of both fluid and solid regions and/or voids"',
         "workflow.update_boundaries.boundary_zone_list",
         "workflow.update_boundaries.boundary_zone_type_list",
         "workflow.update_boundaries.old_boundary_zone_list",
         "workflow.update_boundaries.old_boundary_zone_type_list",
         '"boundary_zone_types_updated"',
+        "workflow.create_regions.arguments()",
+        '"create_regions_pre_execute_state"',
+        "workflow.create_regions()",
         "workflow.update_regions.arguments()",
         '"update_regions_pre_execute_state"',
         "state=json_safe_trace_value(update_regions_pre_state)",
@@ -145,11 +149,25 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
 
 def test_update_regions_probe_is_observation_only_and_ordered() -> None:
     boundary_guard = SOURCE.index("BOUNDARY_ZONE_TYPES_NOT_4_VELOCITY_1_PRESSURE")
+    create_state_read = SOURCE.index("workflow.create_regions.arguments()")
+    create_state_trace = SOURCE.index('"create_regions_pre_execute_state"')
+    create_execute = SOURCE.index("workflow.create_regions()", create_state_read + 1)
     state_read = SOURCE.index("workflow.update_regions.arguments()")
     state_trace = SOURCE.index('"update_regions_pre_execute_state"')
     region_execute = SOURCE.index("workflow.update_regions()", state_read + 1)
     volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
-    assert boundary_guard < state_read < state_trace < region_execute < volume_mesh
+    assert (
+        boundary_guard
+        < create_state_read
+        < create_state_trace
+        < create_execute
+        < state_read
+        < state_trace
+        < region_execute
+        < volume_mesh
+    )
+    assert SOURCE.count("workflow.create_regions.arguments()") == 1
+    assert SOURCE.count("workflow.create_regions()") == 1
     assert SOURCE.count("workflow.update_regions.arguments()") == 1
     assert SOURCE.count("workflow.update_regions()") == 1
     observation_window = SOURCE[state_read:region_execute]
