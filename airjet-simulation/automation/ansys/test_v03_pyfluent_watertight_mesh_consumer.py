@@ -111,6 +111,25 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         assert required in SOURCE
 
 
+def test_prelaunch_trace_and_predecessor_identity_are_pinned() -> None:
+    for required in (
+        'PRELAUNCH_TRACE_PATH = JOB_DIR / "v03_pyfluent_prelaunch_trace.jsonl"',
+        'trace_checkpoint("predecessor_validation_started")',
+        '"predecessor_validation_completed"',
+        'trace_checkpoint("step_copy_started"',
+        'trace_checkpoint("step_copy_completed"',
+        'trace_checkpoint("source_step_hash_started")',
+        'trace_checkpoint("source_step_hash_completed"',
+        'trace_checkpoint("staged_step_hash_started")',
+        'trace_checkpoint("staged_step_hash_completed"',
+        '"boundary_role_points_completed"',
+        'trace_checkpoint("fluent_launch_started")',
+        'trace_checkpoint("fluent_launch_completed")',
+        'result["identity"]["predecessor_job_id"] = manifest.get(',
+    ):
+        assert required in SOURCE
+
+
 def test_volume_mesh_and_student_guards_precede_write() -> None:
     for required in (
         "utilities.mesh_exists() is not True",

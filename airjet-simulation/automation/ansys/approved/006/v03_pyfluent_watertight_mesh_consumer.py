@@ -8,6 +8,7 @@ iterations.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import hashlib
 import json
 import math
@@ -31,6 +32,7 @@ INVENTORY_PATH = JOB_DIR / "v03_pyfluent_mesh_inventory.json"
 VERIFICATION_PATH = JOB_DIR / "v03_predecessor_verification.json"
 SOURCE_CHAIN_PATH = JOB_DIR / "v03_pyfluent_source_chain.json"
 TRANSCRIPT_PATH = JOB_DIR / "v03_pyfluent_transcript.txt"
+PRELAUNCH_TRACE_PATH = JOB_DIR / "v03_pyfluent_prelaunch_trace.jsonl"
 STAGING_DIR = JOB_DIR / "input" / "staging"
 STAGED_STEP_PATH = STAGING_DIR / "product_continuous_fluid.step"
 
@@ -115,6 +117,17 @@ def write_json(path: Path, value: dict[str, Any]) -> None:
     path.write_text(
         json.dumps(value, indent=2, sort_keys=True), encoding="utf-8"
     )
+
+
+def trace_checkpoint(name: str, **details: Any) -> None:
+    """Persist the last completed prelaunch operation for hang diagnosis."""
+    payload = {
+        "checkpoint": name,
+        "utc": datetime.now(timezone.utc).isoformat(),
+        "details": details,
+    }
+    with PRELAUNCH_TRACE_PATH.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload, sort_keys=True) + "\n")
 
 
 def snapshot_tree(root: Path) -> dict[str, dict[str, Any]]:
@@ -367,14 +380,28 @@ session = None
 transcript_started = False
 predecessor_snapshot_before: Optional[dict[str, dict[str, Any]]] = None
 try:
+    trace_checkpoint("predecessor_validation_started")
     manifest, producer, inventory, predecessor_snapshot_before = validate_predecessor()
+    result["identity"]["predecessor_job_id"] = manifest.get(
+        "predecessor_job_id"
+    )
     result["assertions"]["predecessor_identity"] = True
+    trace_checkpoint(
+        "predecessor_validation_completed",
+        predecessor_job_id=manifest.get("predecessor_job_id"),
+    )
 
     STAGING_DIR.mkdir(parents=True, exist_ok=False)
     source_step = PREDECESSOR_DIR / "product_continuous_fluid.step"
+    trace_checkpoint("step_copy_started", source_size=source_step.stat().st_size)
     shutil.copyfile(source_step, STAGED_STEP_PATH)
+    trace_checkpoint("step_copy_completed", staged_size=STAGED_STEP_PATH.stat().st_size)
+    trace_checkpoint("source_step_hash_started")
     step_hash = sha256_file(source_step)
+    trace_checkpoint("source_step_hash_completed", sha256=step_hash)
+    trace_checkpoint("staged_step_hash_started")
     staged_hash_before = sha256_file(STAGED_STEP_PATH)
+    trace_checkpoint("staged_step_hash_completed", sha256=staged_hash_before)
     if (
         staged_hash_before != step_hash
         or STAGED_STEP_PATH.stat().st_size != source_step.stat().st_size
@@ -385,9 +412,16 @@ try:
     inlet_points = role_points(inventory, "INLET")
     outlet_points = role_points(inventory, "OUTLET")
     throat_query_points = throat_points(inventory)
+    trace_checkpoint(
+        "boundary_role_points_completed",
+        inlet_count=len(inlet_points),
+        outlet_count=len(outlet_points),
+        throat_count=len(throat_query_points),
+    )
     if len(inlet_points) != 4 or len(outlet_points) != 1:
         raise RuntimeError("BOUNDARY_POINT_COUNTS_NOT_4_INLET_1_OUTLET")
 
+    trace_checkpoint("fluent_launch_started")
     session = pyfluent.launch_fluent(
         product_version=FluentVersion.v261,
         mode=FluentMode.MESHING,
@@ -398,6 +432,7 @@ try:
         cleanup_on_exit=True,
         cwd=str(JOB_DIR),
     )
+    trace_checkpoint("fluent_launch_completed")
     result["assertions"]["fluent_v261_meshing_health"] = True
     workflow = session.watertight()
     workflow.import_geometry.file_name = str(STAGED_STEP_PATH)
