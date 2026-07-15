@@ -80,9 +80,9 @@ ASSERTION_NAMES = (
     "throat_roles_reconstructed_972",
     "throat_local_sizing_contract",
     "surface_mesh",
-    "single_fluid_region",
+    "flow_cell_zone_inventory",
     "volume_mesh",
-    "one_fluid_cell_zone",
+    "connected_fluid_cell_zone_graph",
     "throat_center_occupancy_972",
     "mesh_integrity",
     "student_limit_guard",
@@ -90,6 +90,7 @@ ASSERTION_NAMES = (
     "claim_boundaries",
 )
 STUDENT_ENTITY_LIMIT = 1_000_000
+MAX_EXPECTED_FLOW_CELL_ZONES = 12
 THROAT_COUNT = 972
 THROAT_RADIUS_MM = 0.125
 THROAT_Z_MID_MM = 1.5675
@@ -332,15 +333,15 @@ def one_face_zone(meshing_utilities: Any, point: list[float]) -> int:
     return int(zone_ids[0])
 
 
-def cell_zones_at_point(
+def cell_zone_query(
     meshing_utilities: Any, point: list[float]
-) -> list[int]:
-    """Normalize a cell-zone query while preserving a no-hit as an empty list."""
+) -> dict[str, Any]:
+    """Normalize a point query without erasing Fluent's raw ``None`` signal."""
     raw_zone_ids = meshing_utilities.get_cell_zones(
         xyz_coordinates=[float(value) for value in point]
     )
     if raw_zone_ids is None:
-        return []
+        return {"raw_none": True, "zone_ids": []}
     try:
         zone_ids = list(raw_zone_ids)
     except TypeError as exc:
@@ -350,7 +351,77 @@ def cell_zones_at_point(
         for value in zone_ids
     ):
         raise RuntimeError("CELL_ZONE_QUERY_RETURN_NOT_INTEGER_IDS")
-    return [int(value) for value in zone_ids]
+    return {
+        "raw_none": False,
+        "zone_ids": [int(value) for value in zone_ids],
+    }
+
+
+def adjacent_cell_zone_ids(
+    meshing_utilities: Any, face_zone_id: int
+) -> list[int]:
+    raw_adjacent = meshing_utilities.get_adjacent_cell_zones_for_given_face_zones(
+        face_zone_id_list=[face_zone_id]
+    )
+    if raw_adjacent is None:
+        raise RuntimeError("ADJACENT_CELL_ZONE_QUERY_RETURNED_NONE")
+    try:
+        adjacent = list(raw_adjacent)
+    except TypeError as exc:
+        raise RuntimeError("ADJACENT_CELL_ZONE_QUERY_NOT_ITERABLE") from exc
+    if any(
+        isinstance(value, bool) or not isinstance(value, int)
+        for value in adjacent
+    ):
+        raise RuntimeError("ADJACENT_CELL_ZONE_QUERY_NOT_INTEGER_IDS")
+    return sorted(set(int(value) for value in adjacent))
+
+
+def build_cell_zone_graph(
+    meshing_utilities: Any,
+    cell_zone_ids: list[int],
+    interior_face_zone_ids: list[int],
+) -> tuple[list[dict[str, Any]], list[int]]:
+    """Build a fail-closed cell-zone graph from interior face adjacency."""
+    allowed = set(cell_zone_ids)
+    adjacency = {zone_id: set() for zone_id in cell_zone_ids}
+    face_records: list[dict[str, Any]] = []
+    for face_zone_id in interior_face_zone_ids:
+        adjacent = adjacent_cell_zone_ids(meshing_utilities, face_zone_id)
+        face_count = meshing_utilities.get_face_zone_count(
+            face_zone_id_list=[face_zone_id]
+        )
+        if type(face_count) is not int or face_count <= 0:
+            raise RuntimeError("INTERIOR_FACE_ZONE_COUNT_NOT_POSITIVE")
+        if any(zone_id not in allowed for zone_id in adjacent):
+            raise RuntimeError("INTERIOR_FACE_REFERENCES_UNKNOWN_CELL_ZONE")
+        if len(adjacent) > 2:
+            raise RuntimeError("INTERIOR_FACE_HAS_MORE_THAN_TWO_CELL_ZONES")
+        if len(adjacent) == 2:
+            left, right = adjacent
+            adjacency[left].add(right)
+            adjacency[right].add(left)
+        face_records.append(
+            {
+                "face_zone_id": face_zone_id,
+                "raw_none": False,
+                "adjacent_cell_zone_ids": adjacent,
+                "face_count": face_count,
+                "zone_type": meshing_utilities.get_zone_type(
+                    zone_id=face_zone_id
+                ),
+            }
+        )
+
+    reached: set[int] = set()
+    pending = [cell_zone_ids[0]] if cell_zone_ids else []
+    while pending:
+        zone_id = pending.pop()
+        if zone_id in reached:
+            continue
+        reached.add(zone_id)
+        pending.extend(sorted(adjacency[zone_id] - reached))
+    return face_records, sorted(reached)
 
 
 def zone_names(meshing_utilities: Any, zone_ids: list[int]) -> list[str]:
@@ -445,8 +516,10 @@ result: dict[str, Any] = {
         "surface_max_size_mm": SURFACE_MAX_SIZE_MM,
         "throat_local_size_mm": THROAT_LOCAL_SIZE_MM,
         "volume_max_size_mm": VOLUME_MAX_SIZE_MM,
-        "resolution_class": "STUDENT_COARSE_TOPOLOGY_DIAGNOSTIC_C1",
+        "resolution_class": "STUDENT_COARSE_CONNECTED_ZONE_DIAGNOSTIC_C3",
         "cad_one_zone_per": "face",
+        "wall_to_internal": True,
+        "max_expected_flow_cell_zones": MAX_EXPECTED_FLOW_CELL_ZONES,
         "student_cell_limit": STUDENT_ENTITY_LIMIT,
         "student_node_limit": STUDENT_ENTITY_LIMIT,
     },
@@ -602,9 +675,16 @@ try:
 
     workflow.describe_geometry.update_child_tasks(setup_type_changed=False)
     workflow.describe_geometry.setup_type = (
-        "The geometry consists of both fluid and solid regions and/or voids"
+        "The geometry consists of only fluid regions with no voids"
     )
     workflow.describe_geometry.update_child_tasks(setup_type_changed=True)
+    workflow.describe_geometry.wall_to_internal = True
+    describe_geometry_pre_state = workflow.describe_geometry.arguments()
+    trace_checkpoint(
+        "describe_geometry_pre_execute_state",
+        python_type=type(describe_geometry_pre_state).__name__,
+        state=json_safe_trace_value(describe_geometry_pre_state),
+    )
     workflow.describe_geometry()
 
     workflow.update_boundaries.boundary_zone_list = (
@@ -641,13 +721,6 @@ try:
             )
         )
 
-    create_regions_pre_state = workflow.create_regions.arguments()
-    trace_checkpoint(
-        "create_regions_pre_execute_state",
-        python_type=type(create_regions_pre_state).__name__,
-        state=json_safe_trace_value(create_regions_pre_state),
-    )
-    workflow.create_regions()
     update_regions_pre_state = workflow.update_regions.arguments()
     trace_checkpoint(
         "update_regions_pre_execute_state",
@@ -665,42 +738,89 @@ try:
         raise RuntimeError("MESH_EXISTS_POSTCONDITION_FALSE")
     cell_zone_raw = list(utilities.get_cell_zones(filter="*"))
     if (
-        len(cell_zone_raw) != 1
-        or isinstance(cell_zone_raw[0], bool)
-        or not isinstance(cell_zone_raw[0], int)
+        not 1 <= len(cell_zone_raw) <= MAX_EXPECTED_FLOW_CELL_ZONES
+        or any(
+            isinstance(value, bool) or not isinstance(value, int)
+            for value in cell_zone_raw
+        )
+        or len(set(cell_zone_raw)) != len(cell_zone_raw)
     ):
-        raise RuntimeError(f"CELL_ZONE_COUNT_NOT_ONE:{cell_zone_raw}")
-    cell_zone_ids = list(cell_zone_raw)
-    if utilities.get_zone_type(zone_id=cell_zone_ids[0]) != "fluid":
-        raise RuntimeError("ONLY_CELL_ZONE_IS_NOT_FLUID")
+        raise RuntimeError(f"FLOW_CELL_ZONE_INVENTORY_INVALID:{cell_zone_raw}")
+    cell_zone_ids = sorted(int(value) for value in cell_zone_raw)
+    cell_zone_types = {
+        zone_id: utilities.get_zone_type(zone_id=zone_id)
+        for zone_id in cell_zone_ids
+    }
+    if any(value != "fluid" for value in cell_zone_types.values()):
+        raise RuntimeError(f"NON_FLUID_CELL_ZONE_PRESENT:{cell_zone_types}")
     cell_count_api = utilities.get_cell_zone_count(
         cell_zone_id_list=cell_zone_ids
     )
     cell_volume = utilities.get_cell_zone_volume(
         cell_zone_id_list=cell_zone_ids
     )
+    cell_counts_by_zone = {
+        str(zone_id): utilities.get_cell_zone_count(
+            cell_zone_id_list=[zone_id]
+        )
+        for zone_id in cell_zone_ids
+    }
+    cell_volumes_by_zone = {
+        str(zone_id): utilities.get_cell_zone_volume(
+            cell_zone_id_list=[zone_id]
+        )
+        for zone_id in cell_zone_ids
+    }
     if (
         type(cell_count_api) is not int
         or cell_count_api <= 0
         or not isinstance(cell_volume, (int, float))
         or not math.isfinite(float(cell_volume))
         or float(cell_volume) <= 0.0
+        or any(
+            type(value) is not int or value <= 0
+            for value in cell_counts_by_zone.values()
+        )
+        or sum(cell_counts_by_zone.values()) != cell_count_api
+        or any(
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) <= 0.0
+            for value in cell_volumes_by_zone.values()
+        )
+        or not math.isclose(
+            sum(float(value) for value in cell_volumes_by_zone.values()),
+            float(cell_volume),
+            rel_tol=1.0e-9,
+            abs_tol=1.0e-9,
+        )
     ):
-        raise RuntimeError(f"CELL_ZONE_COUNT_NOT_ONE:{cell_zone_ids}")
-    result["assertions"]["single_fluid_region"] = True
-    result["assertions"]["one_fluid_cell_zone"] = True
+        raise RuntimeError(f"FLOW_CELL_ZONE_MEASURE_INVALID:{cell_zone_ids}")
+    result["assertions"]["flow_cell_zone_inventory"] = True
+
+    interior_face_zone_ids = sorted(
+        int(value)
+        for value in utilities.get_interior_face_zones_for_given_cell_zones(
+            cell_zone_id_list=cell_zone_ids
+        )
+    )
+    if len(set(interior_face_zone_ids)) != len(interior_face_zone_ids):
+        raise RuntimeError("INTERIOR_FACE_ZONE_IDS_NOT_UNIQUE")
+    interior_face_records, reached_cell_zone_ids = build_cell_zone_graph(
+        utilities, cell_zone_ids, interior_face_zone_ids
+    )
 
     throat_axis_points = [
         [point[0] - THROAT_RADIUS_MM, point[1], point[2]]
         for point in throat_query_points
     ]
-    occupancy = [
-        cell_zones_at_point(utilities, point) for point in throat_axis_points
-    ]
+    occupancy = [cell_zone_query(utilities, point) for point in throat_axis_points]
     occupancy_misses = [
         index
-        for index, values in enumerate(occupancy)
-        if values != [cell_zone_ids[0]]
+        for index, record in enumerate(occupancy)
+        if len(record["zone_ids"]) != 1
+        or record["zone_ids"][0] not in set(cell_zone_ids)
     ]
     trace_checkpoint(
         "throat_center_occupancy_observed",
@@ -708,39 +828,103 @@ try:
         hit_count=len(occupancy) - len(occupancy_misses),
         miss_count=len(occupancy_misses),
         first_miss_indices=occupancy_misses[:100],
-        distinct_results=sorted({str(values) for values in occupancy}),
+        raw_none_count=sum(record["raw_none"] for record in occupancy),
+        distinct_results=sorted(
+            {str(record["zone_ids"]) for record in occupancy}
+        ),
     )
-    if any(values != [cell_zone_ids[0]] for values in occupancy):
-        raise RuntimeError(
-            "THROAT_CENTER_OCCUPANCY_NOT_SINGLE_COMMON_CELL_ZONE:"
-            f"HITS={len(occupancy) - len(occupancy_misses)}:"
-            f"MISSES={len(occupancy_misses)}:"
-            f"FIRST={occupancy_misses[:100]}"
-        )
     upstream_anchor_hits = [
-        cell_zones_at_point(
+        cell_zone_query(
             utilities,
             [point[0], point[1], point[2] - 0.01],
         )
         for point in inlet_points
     ]
     downstream_anchor_hits = [
-        cell_zones_at_point(
+        cell_zone_query(
             utilities,
             [point[0], point[1] - 0.01, point[2]],
         )
         for point in outlet_points
     ]
-    if any(
-        values != [cell_zone_ids[0]]
-        for values in upstream_anchor_hits + downstream_anchor_hits
-    ):
-        raise RuntimeError("UPSTREAM_DOWNSTREAM_ANCHORS_NOT_COMMON_CELL_ZONE")
-    result["assertions"]["throat_center_occupancy_972"] = True
+    anchor_records = upstream_anchor_hits + downstream_anchor_hits
+    anchor_zone_ids = sorted(
+        {
+            record["zone_ids"][0]
+            for record in anchor_records
+            if len(record["zone_ids"]) == 1
+        }
+    )
+    anchor_occupancy_ok = all(
+        len(record["zone_ids"]) == 1
+        and record["zone_ids"][0] in set(cell_zone_ids)
+        for record in anchor_records
+    )
 
     all_face_zone_ids = [
         int(value) for value in utilities.get_face_zones(filter="*")
     ]
+    baffle_raw = utilities.get_baffles_for_face_zones(
+        face_zone_id_list=all_face_zone_ids
+    )
+    if baffle_raw is None:
+        raise RuntimeError("BAFFLE_QUERY_RETURNED_NONE")
+    baffle_values = list(baffle_raw)
+    if any(
+        isinstance(value, bool) or not isinstance(value, int)
+        for value in baffle_values
+    ):
+        raise RuntimeError("BAFFLE_ZONE_IDS_NOT_INTEGER")
+    baffle_zone_ids = sorted(int(value) for value in baffle_values)
+    if len(set(baffle_zone_ids)) != len(baffle_zone_ids):
+        raise RuntimeError("BAFFLE_ZONE_IDS_NOT_UNIQUE")
+    embedded_baffle_raw = utilities.get_embedded_baffles()
+    if embedded_baffle_raw is None:
+        raise RuntimeError("EMBEDDED_BAFFLE_QUERY_RETURNED_NONE")
+    embedded_baffle_values = list(embedded_baffle_raw)
+    if (
+        any(
+            isinstance(value, bool) or not isinstance(value, int)
+            for value in embedded_baffle_values
+        )
+    ):
+        raise RuntimeError("EMBEDDED_BAFFLE_ZONE_IDS_INVALID")
+    embedded_baffle_zone_ids = sorted(
+        int(value) for value in embedded_baffle_values
+    )
+    if len(set(embedded_baffle_zone_ids)) != len(embedded_baffle_zone_ids):
+        raise RuntimeError("EMBEDDED_BAFFLE_ZONE_IDS_NOT_UNIQUE")
+    boundary_face_adjacency = {
+        str(face_zone_id): adjacent_cell_zone_ids(utilities, face_zone_id)
+        for face_zone_id in inlet_zone_ids + outlet_zone_ids
+    }
+    boundary_adjacency_ok = all(
+        len(adjacent) == 1 and adjacent[0] in set(cell_zone_ids)
+        for adjacent in boundary_face_adjacency.values()
+    )
+    graph_connected = reached_cell_zone_ids == cell_zone_ids
+    if (
+        graph_connected
+        and anchor_occupancy_ok
+        and boundary_adjacency_ok
+        and not baffle_zone_ids
+        and not embedded_baffle_zone_ids
+    ):
+        result["assertions"]["connected_fluid_cell_zone_graph"] = True
+    if not occupancy_misses:
+        result["assertions"]["throat_center_occupancy_972"] = True
+    trace_checkpoint(
+        "connected_zone_graph_observed",
+        cell_zone_ids=cell_zone_ids,
+        interior_face_zone_ids=interior_face_zone_ids,
+        reached_cell_zone_ids=reached_cell_zone_ids,
+        graph_connected=graph_connected,
+        inlet_outlet_boundary_adjacency=boundary_face_adjacency,
+        anchor_zone_ids=anchor_zone_ids,
+        anchor_occupancy_ok=anchor_occupancy_ok,
+        baffle_zone_ids=baffle_zone_ids,
+        embedded_baffle_zone_ids=embedded_baffle_zone_ids,
+    )
     free_faces = int(
         utilities.get_free_faces_count(face_zone_id_list=all_face_zone_ids)
     )
@@ -815,13 +999,11 @@ try:
     )
     result["assertions"]["student_limit_guard"] = True
 
-    if MESH_PATH.exists():
-        raise RuntimeError("MESH_OUTPUT_ALREADY_EXISTS")
-    session.tui.file.write_mesh(str(MESH_PATH))
-    if not MESH_PATH.is_file() or MESH_PATH.stat().st_size <= 0:
-        raise RuntimeError("MESH_FILE_NOT_WRITTEN")
-    result["assertions"]["mesh_write_hash"] = True
-
+    occupancy_zone_counts: dict[str, int] = {}
+    for record in occupancy:
+        if len(record["zone_ids"]) == 1:
+            key = str(record["zone_ids"][0])
+            occupancy_zone_counts[key] = occupancy_zone_counts.get(key, 0) + 1
     inventory_report = {
         "schema_version": 1,
         "step_sha256": step_hash,
@@ -831,11 +1013,32 @@ try:
         "inlet_zone_names": inlet_zone_names,
         "outlet_zone_ids": outlet_zone_ids,
         "outlet_zone_names": outlet_zone_names,
+        "boundary_face_adjacency": boundary_face_adjacency,
+        "boundary_adjacency_ok": boundary_adjacency_ok,
+        "anchor_zone_ids": anchor_zone_ids,
+        "anchor_occupancy_ok": anchor_occupancy_ok,
         "throat_query_count": len(throat_query_points),
         "throat_zone_hit_count": len(throat_zone_hits),
         "throat_zone_ids": throat_zone_ids,
         "throat_zone_names": throat_zone_names,
+        "throat_occupancy_hit_count": len(occupancy) - len(occupancy_misses),
+        "throat_occupancy_miss_count": len(occupancy_misses),
+        "throat_occupancy_raw_none_count": sum(
+            record["raw_none"] for record in occupancy
+        ),
+        "throat_occupancy_first_miss_indices": occupancy_misses[:100],
+        "throat_occupancy_zone_counts": occupancy_zone_counts,
         "cell_zone_ids": cell_zone_ids,
+        "cell_zone_types": {str(key): value for key, value in cell_zone_types.items()},
+        "cell_counts_by_zone": cell_counts_by_zone,
+        "cell_volumes_by_zone": cell_volumes_by_zone,
+        "cell_zone_graph_contract": "DUAL_SIDED_INTERIOR_FACE_ADJACENCY_V1",
+        "interior_face_zone_ids": interior_face_zone_ids,
+        "interior_face_records": interior_face_records,
+        "reached_cell_zone_ids": reached_cell_zone_ids,
+        "graph_connected": graph_connected,
+        "baffle_zone_ids": baffle_zone_ids,
+        "embedded_baffle_zone_ids": embedded_baffle_zone_ids,
         "cell_count": cell_count,
         "face_count": face_count,
         "node_count": node_count,
@@ -845,8 +1048,31 @@ try:
         "multi_face_count": multi_faces,
         "orthogonal_quality_limits": quality_values,
         "min_orthogonal_quality": min_orthogonal_quality,
-        "mesh_file": file_record(MESH_PATH),
     }
+    write_json(INVENTORY_PATH, inventory_report)
+
+    if not result["assertions"]["connected_fluid_cell_zone_graph"]:
+        raise RuntimeError(
+            "CONNECTED_FLUID_CELL_ZONE_GRAPH_NOT_PROVEN:"
+            f"ZONES={cell_zone_ids}:REACHED={reached_cell_zone_ids}:"
+            f"BAFFLES={baffle_zone_ids}:EMBEDDED={embedded_baffle_zone_ids}:"
+            f"BOUNDARY_ADJACENCY={boundary_adjacency_ok}:"
+            f"ANCHORS={anchor_occupancy_ok}"
+        )
+    if not result["assertions"]["throat_center_occupancy_972"]:
+        raise RuntimeError(
+            "THROAT_CENTER_OCCUPANCY_NOT_EXACT_GRAPH_NODE:"
+            f"HITS={len(occupancy) - len(occupancy_misses)}:"
+            f"MISSES={len(occupancy_misses)}:FIRST={occupancy_misses[:100]}"
+        )
+
+    if MESH_PATH.exists():
+        raise RuntimeError("MESH_OUTPUT_ALREADY_EXISTS")
+    session.tui.file.write_mesh(str(MESH_PATH))
+    if not MESH_PATH.is_file() or MESH_PATH.stat().st_size <= 0:
+        raise RuntimeError("MESH_FILE_NOT_WRITTEN")
+    result["assertions"]["mesh_write_hash"] = True
+    inventory_report["mesh_file"] = file_record(MESH_PATH)
     write_json(INVENTORY_PATH, inventory_report)
 
     predecessor_snapshot_after = snapshot_tree(PREDECESSOR_DIR)
@@ -909,11 +1135,35 @@ try:
         raise RuntimeError("V03_PYFLUENT_ASSERTION_FAILED")
     result["status"] = "PASS_PRELIMINARY_MESH_CAPABILITY"
     result["engineering_capability"] = "PASS_PRELIMINARY_MESH_CAPABILITY"
-    result["mesh_result"] = "PASS_V03_SINGLE_REGION_972_THROAT_VOLUME_MESH"
+    result["mesh_result"] = (
+        "PASS_V03_CONNECTED_ZONE_GRAPH_972_THROAT_VOLUME_MESH"
+    )
     result["mesh_evidence"] = {
         "cell_count": cell_count,
         "node_count": node_count,
         "cell_zone_count": len(cell_zone_ids),
+        "cell_zone_ids": cell_zone_ids,
+        "cell_zone_types": {
+            str(key): value for key, value in cell_zone_types.items()
+        },
+        "cell_counts_by_zone": cell_counts_by_zone,
+        "cell_volumes_by_zone": cell_volumes_by_zone,
+        "cell_zone_graph_connected": graph_connected,
+        "interior_face_zone_count": len(interior_face_zone_ids),
+        "interior_face_records": interior_face_records,
+        "reached_cell_zone_ids": reached_cell_zone_ids,
+        "boundary_face_adjacency": boundary_face_adjacency,
+        "boundary_adjacency_ok": boundary_adjacency_ok,
+        "anchor_zone_ids": anchor_zone_ids,
+        "anchor_occupancy_ok": anchor_occupancy_ok,
+        "baffle_zone_count": len(baffle_zone_ids),
+        "embedded_baffle_zone_count": len(embedded_baffle_zone_ids),
+        "throat_occupancy_hit_count": len(occupancy) - len(occupancy_misses),
+        "throat_occupancy_miss_count": len(occupancy_misses),
+        "throat_occupancy_raw_none_count": sum(
+            record["raw_none"] for record in occupancy
+        ),
+        "throat_occupancy_zone_counts": occupancy_zone_counts,
         "throat_query_count": len(throat_query_points),
         "throat_zone_count": len(throat_zone_ids),
         "free_face_count": free_faces,

@@ -66,7 +66,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
         "probe": "v03_pyfluent_watertight_mesh_consumer",
         "status": "PASS_PRELIMINARY_MESH_CAPABILITY",
         "engineering_capability": "PASS_PRELIMINARY_MESH_CAPABILITY",
-        "mesh_result": "PASS_V03_SINGLE_REGION_972_THROAT_VOLUME_MESH",
+        "mesh_result": "PASS_V03_CONNECTED_ZONE_GRAPH_972_THROAT_VOLUME_MESH",
         "claim_scope": "V03_PRELIMINARY_PYFLUENT_MESH_PILOT_ONLY",
         "formal_006_completion": False,
         "p1_stage_gate": "NOT_RUN",
@@ -104,15 +104,52 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "surface_max_size_mm": 0.75,
             "throat_local_size_mm": 0.075,
             "volume_max_size_mm": 0.75,
-            "resolution_class": "STUDENT_COARSE_TOPOLOGY_DIAGNOSTIC_C1",
+            "resolution_class": "STUDENT_COARSE_CONNECTED_ZONE_DIAGNOSTIC_C3",
             "cad_one_zone_per": "face",
+            "wall_to_internal": True,
+            "max_expected_flow_cell_zones": 12,
             "student_cell_limit": 1_000_000,
             "student_node_limit": 1_000_000,
         },
         "mesh_evidence": {
             "cell_count": 500_000,
             "node_count": 600_000,
-            "cell_zone_count": 1,
+            "cell_zone_count": 3,
+            "cell_zone_ids": [1, 2, 3],
+            "cell_zone_types": {"1": "fluid", "2": "fluid", "3": "fluid"},
+            "cell_counts_by_zone": {"1": 160_000, "2": 170_000, "3": 170_000},
+            "cell_volumes_by_zone": {"1": 1.0, "2": 2.0, "3": 3.0},
+            "cell_zone_graph_connected": True,
+            "interior_face_zone_count": 2,
+            "interior_face_records": [
+                {
+                    "face_zone_id": 10,
+                    "raw_none": False,
+                    "adjacent_cell_zone_ids": [1, 2],
+                    "face_count": 20,
+                    "zone_type": "interior",
+                },
+                {
+                    "face_zone_id": 11,
+                    "raw_none": False,
+                    "adjacent_cell_zone_ids": [2, 3],
+                    "face_count": 30,
+                    "zone_type": "interior",
+                },
+            ],
+            "reached_cell_zone_ids": [1, 2, 3],
+            "boundary_face_adjacency": {
+                "100": [1], "101": [1], "102": [2], "103": [2], "104": [3]
+            },
+            "boundary_adjacency_ok": True,
+            "anchor_zone_ids": [1, 3],
+            "anchor_occupancy_ok": True,
+            "baffle_zone_count": 0,
+            "embedded_baffle_zone_count": 0,
+            "throat_occupancy_hit_count": 972,
+            "throat_occupancy_miss_count": 0,
+            "throat_occupancy_raw_none_count": 0,
+            "throat_occupancy_zone_counts": {"1": 486, "2": 486},
             "throat_query_count": 972,
             "throat_zone_count": 972,
             "free_face_count": 0,
@@ -146,7 +183,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
 
 def test_consumer_report_accepts_exact_contract() -> None:
     assert runner.CONSUMER_SCRIPT_SHA256 == (
-        "66ea0032618c295bc93eddbc979540c00b8aa77bf9c287932f9b6197f1905d37"
+        "f88deecdc99f43e2ff125d28f43f883ef8c645f682346ada5898f4c28f0557df"
     )
     report, state, manifest = valid_report_state_manifest()
     assert runner.validate_consumer_report(manifest, state, HEAD) == report
@@ -182,6 +219,21 @@ def test_consumer_report_rejects_student_and_quality_overclaim() -> None:
             "node_count", 1_000_001
         ),
         "MESH_EVIDENCE",
+    )
+
+
+def test_consumer_report_rejects_disconnected_or_fake_throat_graph() -> None:
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"][
+            "interior_face_records"
+        ][1].__setitem__("adjacent_cell_zone_ids", [3]),
+        "GRAPH_DISCONNECTED",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
+            "throat_occupancy_hit_count", 971
+        ),
+        "TOPOLOGY_INVALID",
     )
     rejects(
         lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(

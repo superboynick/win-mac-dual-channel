@@ -329,7 +329,18 @@ def validate_route(route: dict[str, Any], repo: Path) -> dict[str, Any]:
         if not close(observed_components.get(name), expected):
             fail("V03_ROUTE_ANALYTIC_COMPONENT_" + name.upper())
     analytic_volume = sum(expected_components.values())
-    overlap = 972.0 * math.pi * 0.125 * 0.125 * 0.001
+    numerical_overlap = geometry.get("numerical_overlap_mm")
+    if (
+        not close(numerical_overlap, 0.02)
+        or not close(geometry.get("vent_riser_overlap_mm"), 0.001)
+        or geometry.get("numerical_overlap_role")
+        != "C2_BOOLEAN_ROBUSTNESS_DIAGNOSTIC_AT_THROAT_END_INTERFACES"
+        or geometry.get("numerical_overlap_product_fact") is not False
+        or geometry.get("vent_riser_overlap_role")
+        != "UNCHANGED_C1_BOOLEAN_ROBUSTNESS_CONTROL"
+    ):
+        fail("V03_ROUTE_NUMERICAL_OVERLAP_BOUNDARY")
+    overlap = 972.0 * math.pi * 0.125 * 0.125 * numerical_overlap
     upstream = analytic_volume - expected_components["downstream_manifold"] + overlap
     if (
         not close(geometry.get("analytic_volume_mm3"), analytic_volume)

@@ -120,15 +120,15 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "surface.cfd_surface_mesh_controls.max_size = SURFACE_MAX_SIZE_MM",
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=False)",
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=True)",
-        '"The geometry consists of both fluid and solid regions and/or voids"',
+        '"The geometry consists of only fluid regions with no voids"',
+        "workflow.describe_geometry.wall_to_internal = True",
+        "workflow.describe_geometry.arguments()",
+        '"describe_geometry_pre_execute_state"',
         "workflow.update_boundaries.boundary_zone_list",
         "workflow.update_boundaries.boundary_zone_type_list",
         "workflow.update_boundaries.old_boundary_zone_list",
         "workflow.update_boundaries.old_boundary_zone_type_list",
         '"boundary_zone_types_updated"',
-        "workflow.create_regions.arguments()",
-        '"create_regions_pre_execute_state"',
-        "workflow.create_regions()",
         "workflow.update_regions.arguments()",
         '"update_regions_pre_execute_state"',
         "state=json_safe_trace_value(update_regions_pre_state)",
@@ -149,25 +149,18 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
 
 def test_update_regions_probe_is_observation_only_and_ordered() -> None:
     boundary_guard = SOURCE.index("BOUNDARY_ZONE_TYPES_NOT_4_VELOCITY_1_PRESSURE")
-    create_state_read = SOURCE.index("workflow.create_regions.arguments()")
-    create_state_trace = SOURCE.index('"create_regions_pre_execute_state"')
-    create_execute = SOURCE.index("workflow.create_regions()", create_state_read + 1)
     state_read = SOURCE.index("workflow.update_regions.arguments()")
     state_trace = SOURCE.index('"update_regions_pre_execute_state"')
     region_execute = SOURCE.index("workflow.update_regions()", state_read + 1)
     volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
     assert (
         boundary_guard
-        < create_state_read
-        < create_state_trace
-        < create_execute
         < state_read
         < state_trace
         < region_execute
         < volume_mesh
     )
-    assert SOURCE.count("workflow.create_regions.arguments()") == 1
-    assert SOURCE.count("workflow.create_regions()") == 1
+    assert "workflow.create_regions" not in SOURCE
     assert SOURCE.count("workflow.update_regions.arguments()") == 1
     assert SOURCE.count("workflow.update_regions()") == 1
     observation_window = SOURCE[state_read:region_execute]
@@ -246,9 +239,14 @@ def test_volume_mesh_and_student_guards_precede_write() -> None:
         "STUDENT_LIMIT_UNPROVEN_OR_EXCEEDED",
         "session.tui.file.write_mesh(str(MESH_PATH))",
         'cell_zone_raw = list(utilities.get_cell_zones(filter="*"))',
-        "cell_zones_at_point(utilities, point)",
+        "cell_zone_query(utilities, point)",
         '"throat_center_occupancy_observed"',
-        '"THROAT_CENTER_OCCUPANCY_NOT_SINGLE_COMMON_CELL_ZONE:"',
+        '"THROAT_CENTER_OCCUPANCY_NOT_EXACT_GRAPH_NODE:"',
+        "get_interior_face_zones_for_given_cell_zones(",
+        "get_adjacent_cell_zones_for_given_face_zones(",
+        "get_baffles_for_face_zones(",
+        "get_embedded_baffles()",
+        '"CONNECTED_FLUID_CELL_ZONE_GRAPH_NOT_PROVEN:"',
         "quality_limits = list(",
     ):
         assert required in SOURCE
@@ -262,15 +260,57 @@ def test_volume_mesh_and_student_guards_precede_write() -> None:
 def test_cell_zone_point_query_preserves_no_hit() -> None:
     for required in (
         "if raw_zone_ids is None:",
-        "return []",
+        'return {"raw_none": True, "zone_ids": []}',
         '"CELL_ZONE_QUERY_RETURN_NOT_ITERABLE"',
         '"CELL_ZONE_QUERY_RETURN_NOT_INTEGER_IDS"',
         "first_miss_indices=occupancy_misses[:100]",
     ):
         assert required in SOURCE
     assert SOURCE.index('"throat_center_occupancy_observed"') < SOURCE.index(
-        '"THROAT_CENTER_OCCUPANCY_NOT_SINGLE_COMMON_CELL_ZONE:'
+        '"THROAT_CENTER_OCCUPANCY_NOT_EXACT_GRAPH_NODE:'
     )
+
+
+def test_cell_zone_graph_uses_per_face_dual_adjacency() -> None:
+    nodes = [
+        node for node in TREE.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name in {"adjacent_cell_zone_ids", "build_cell_zone_graph"}
+    ]
+    namespace = {"Any": object}
+    module = ast.Module(body=nodes, type_ignores=[])
+    exec(
+        compile(ast.fix_missing_locations(module), str(SOURCE_PATH), "exec"),
+        namespace,
+    )
+
+    class Utilities:
+        adjacent = {10: [1, 2], 11: [2, 3]}
+
+        def get_adjacent_cell_zones_for_given_face_zones(self, face_zone_id_list):
+            return self.adjacent[face_zone_id_list[0]]
+
+        def get_face_zone_count(self, face_zone_id_list):
+            return 7
+
+        def get_zone_type(self, zone_id):
+            return "interior"
+
+    records, reached = namespace["build_cell_zone_graph"](
+        Utilities(), [1, 2, 3], [10, 11]
+    )
+    assert reached == [1, 2, 3]
+    assert [record["adjacent_cell_zone_ids"] for record in records] == [
+        [1, 2], [2, 3]
+    ]
+    bad = Utilities()
+    bad.adjacent = {10: [1, 4]}
+    try:
+        namespace["build_cell_zone_graph"](bad, [1, 2, 3], [10])
+    except RuntimeError as exc:
+        assert "UNKNOWN_CELL_ZONE" in str(exc)
+    else:
+        raise AssertionError("unknown graph node accepted")
 
 
 def test_claim_ceiling_is_explicit() -> None:

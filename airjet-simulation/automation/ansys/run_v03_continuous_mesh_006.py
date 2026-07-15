@@ -26,7 +26,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "66ea0032618c295bc93eddbc979540c00b8aa77bf9c287932f9b6197f1905d37"
+CONSUMER_SCRIPT_SHA256 = "f88deecdc99f43e2ff125d28f43f883ef8c645f682346ada5898f4c28f0557df"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -41,9 +41,9 @@ CONSUMER_ASSERTIONS = {
     "throat_roles_reconstructed_972",
     "throat_local_sizing_contract",
     "surface_mesh",
-    "single_fluid_region",
+    "flow_cell_zone_inventory",
     "volume_mesh",
-    "one_fluid_cell_zone",
+    "connected_fluid_cell_zone_graph",
     "throat_center_occupancy_972",
     "mesh_integrity",
     "student_limit_guard",
@@ -182,6 +182,175 @@ def positive_int(value: Any, upper: Optional[int] = None) -> bool:
     )
 
 
+def validate_connected_mesh_evidence(evidence: Any) -> None:
+    expected_keys = {
+        "cell_count",
+        "node_count",
+        "cell_zone_count",
+        "cell_zone_ids",
+        "cell_zone_types",
+        "cell_counts_by_zone",
+        "cell_volumes_by_zone",
+        "cell_zone_graph_connected",
+        "interior_face_zone_count",
+        "interior_face_records",
+        "reached_cell_zone_ids",
+        "boundary_face_adjacency",
+        "boundary_adjacency_ok",
+        "anchor_zone_ids",
+        "anchor_occupancy_ok",
+        "baffle_zone_count",
+        "embedded_baffle_zone_count",
+        "throat_occupancy_hit_count",
+        "throat_occupancy_miss_count",
+        "throat_occupancy_raw_none_count",
+        "throat_occupancy_zone_counts",
+        "throat_query_count",
+        "throat_zone_count",
+        "free_face_count",
+        "multi_face_count",
+        "min_orthogonal_quality",
+        "mesh_file",
+    }
+    if not isinstance(evidence, dict) or set(evidence) != expected_keys:
+        raise RuntimeError("CONSUMER_MESH_EVIDENCE_SCHEMA_INVALID")
+    if (
+        not positive_int(evidence.get("cell_count"), 1_000_000)
+        or not positive_int(evidence.get("node_count"), 1_000_000)
+        or not positive_int(evidence.get("cell_zone_count"), 12)
+    ):
+        raise RuntimeError("CONSUMER_MESH_EVIDENCE_ENTITY_COUNT_INVALID")
+
+    zone_ids = evidence.get("cell_zone_ids")
+    if (
+        not isinstance(zone_ids, list)
+        or len(zone_ids) != evidence["cell_zone_count"]
+        or any(not positive_int(value) for value in zone_ids)
+        or zone_ids != sorted(set(zone_ids))
+    ):
+        raise RuntimeError("CONSUMER_MESH_EVIDENCE_ZONE_IDS_INVALID")
+    zone_set = set(zone_ids)
+    zone_keys = {str(value) for value in zone_ids}
+    zone_types = evidence.get("cell_zone_types")
+    counts = evidence.get("cell_counts_by_zone")
+    volumes = evidence.get("cell_volumes_by_zone")
+    if (
+        not isinstance(zone_types, dict)
+        or set(zone_types) != zone_keys
+        or any(value != "fluid" for value in zone_types.values())
+        or not isinstance(counts, dict)
+        or set(counts) != zone_keys
+        or any(not positive_int(value) for value in counts.values())
+        or sum(counts.values()) != evidence["cell_count"]
+        or not isinstance(volumes, dict)
+        or set(volumes) != zone_keys
+        or any(
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) <= 0.0
+            for value in volumes.values()
+        )
+    ):
+        raise RuntimeError("CONSUMER_MESH_EVIDENCE_PER_ZONE_INVALID")
+
+    records = evidence.get("interior_face_records")
+    if (
+        not isinstance(records, list)
+        or type(evidence.get("interior_face_zone_count")) is not int
+        or evidence["interior_face_zone_count"] < 0
+        or len(records) != evidence["interior_face_zone_count"]
+    ):
+        raise RuntimeError("CONSUMER_MESH_EVIDENCE_INTERIOR_SCHEMA_INVALID")
+    graph = {zone_id: set() for zone_id in zone_ids}
+    face_ids: set[int] = set()
+    for record in records:
+        if not isinstance(record, dict) or set(record) != {
+            "face_zone_id",
+            "raw_none",
+            "adjacent_cell_zone_ids",
+            "face_count",
+            "zone_type",
+        }:
+            raise RuntimeError("CONSUMER_MESH_EVIDENCE_EDGE_SCHEMA_INVALID")
+        face_id = record.get("face_zone_id")
+        adjacent = record.get("adjacent_cell_zone_ids")
+        if (
+            not positive_int(face_id)
+            or face_id in face_ids
+            or record.get("raw_none") is not False
+            or not positive_int(record.get("face_count"))
+            or record.get("zone_type") not in {"interior", "internal"}
+            or not isinstance(adjacent, list)
+            or len(adjacent) not in {1, 2}
+            or adjacent != sorted(set(adjacent))
+            or any(value not in zone_set for value in adjacent)
+        ):
+            raise RuntimeError("CONSUMER_MESH_EVIDENCE_EDGE_INVALID")
+        face_ids.add(face_id)
+        if len(adjacent) == 2:
+            left, right = adjacent
+            graph[left].add(right)
+            graph[right].add(left)
+    reached: set[int] = set()
+    pending = [zone_ids[0]]
+    while pending:
+        zone_id = pending.pop()
+        if zone_id in reached:
+            continue
+        reached.add(zone_id)
+        pending.extend(graph[zone_id] - reached)
+    if (
+        evidence.get("cell_zone_graph_connected") is not True
+        or evidence.get("reached_cell_zone_ids") != sorted(reached)
+        or reached != zone_set
+    ):
+        raise RuntimeError("CONSUMER_MESH_EVIDENCE_GRAPH_DISCONNECTED")
+
+    boundary = evidence.get("boundary_face_adjacency")
+    anchors = evidence.get("anchor_zone_ids")
+    if (
+        evidence.get("boundary_adjacency_ok") is not True
+        or not isinstance(boundary, dict)
+        or len(boundary) != 5
+        or any(
+            not isinstance(value, list)
+            or len(value) != 1
+            or value[0] not in zone_set
+            for value in boundary.values()
+        )
+        or evidence.get("anchor_occupancy_ok") is not True
+        or not isinstance(anchors, list)
+        or not anchors
+        or anchors != sorted(set(anchors))
+        or any(value not in zone_set for value in anchors)
+    ):
+        raise RuntimeError("CONSUMER_MESH_EVIDENCE_BOUNDARY_GRAPH_INVALID")
+
+    ownership = evidence.get("throat_occupancy_zone_counts")
+    if (
+        evidence.get("baffle_zone_count") != 0
+        or evidence.get("embedded_baffle_zone_count") != 0
+        or evidence.get("throat_query_count") != 972
+        or evidence.get("throat_occupancy_hit_count") != 972
+        or evidence.get("throat_occupancy_miss_count") != 0
+        or evidence.get("throat_occupancy_raw_none_count") != 0
+        or not isinstance(ownership, dict)
+        or not ownership
+        or any(key not in zone_keys for key in ownership)
+        or any(not positive_int(value) for value in ownership.values())
+        or sum(ownership.values()) != 972
+        or not positive_int(evidence.get("throat_zone_count"), 972)
+        or evidence.get("free_face_count") != 0
+        or evidence.get("multi_face_count") != 0
+        or isinstance(evidence.get("min_orthogonal_quality"), bool)
+        or not isinstance(evidence.get("min_orthogonal_quality"), (int, float))
+        or not math.isfinite(float(evidence["min_orthogonal_quality"]))
+        or not 0.0 < float(evidence["min_orthogonal_quality"]) <= 1.0
+    ):
+        raise RuntimeError("CONSUMER_MESH_EVIDENCE_TOPOLOGY_INVALID")
+
+
 def validate_consumer_report(
     manifest: dict[str, Any], state: dict[str, Any], expected_head: str
 ) -> dict[str, Any]:
@@ -200,7 +369,7 @@ def validate_consumer_report(
         or report.get("engineering_capability")
         != "PASS_PRELIMINARY_MESH_CAPABILITY"
         or report.get("mesh_result")
-        != "PASS_V03_SINGLE_REGION_972_THROAT_VOLUME_MESH"
+        != "PASS_V03_CONNECTED_ZONE_GRAPH_972_THROAT_VOLUME_MESH"
         or report.get("claim_scope")
         != "V03_PRELIMINARY_PYFLUENT_MESH_PILOT_ONLY"
     ):
@@ -257,28 +426,16 @@ def validate_consumer_report(
         "surface_max_size_mm": 0.75,
         "throat_local_size_mm": 0.075,
         "volume_max_size_mm": 0.75,
-        "resolution_class": "STUDENT_COARSE_TOPOLOGY_DIAGNOSTIC_C1",
+        "resolution_class": "STUDENT_COARSE_CONNECTED_ZONE_DIAGNOSTIC_C3",
         "cad_one_zone_per": "face",
+        "wall_to_internal": True,
+        "max_expected_flow_cell_zones": 12,
         "student_cell_limit": 1_000_000,
         "student_node_limit": 1_000_000,
     }:
         raise RuntimeError("CONSUMER_MESH_CONTRACT_MISMATCH")
     evidence = report.get("mesh_evidence")
-    if (
-        not isinstance(evidence, dict)
-        or not positive_int(evidence.get("cell_count"), 1_000_000)
-        or not positive_int(evidence.get("node_count"), 1_000_000)
-        or evidence.get("cell_zone_count") != 1
-        or evidence.get("throat_query_count") != 972
-        or not positive_int(evidence.get("throat_zone_count"), 972)
-        or evidence.get("free_face_count") != 0
-        or evidence.get("multi_face_count") != 0
-        or not isinstance(evidence.get("min_orthogonal_quality"), (int, float))
-        or isinstance(evidence.get("min_orthogonal_quality"), bool)
-        or not math.isfinite(float(evidence["min_orthogonal_quality"]))
-        or not 0.0 < float(evidence["min_orthogonal_quality"]) <= 1.0
-    ):
-        raise RuntimeError("CONSUMER_MESH_EVIDENCE_INVALID")
+    validate_connected_mesh_evidence(evidence)
     reported_artifacts = report.get("artifacts")
     if not isinstance(reported_artifacts, dict) or set(reported_artifacts) != CONSUMER_ARTIFACTS:
         raise RuntimeError("CONSUMER_ARTIFACT_SET_MISMATCH")
