@@ -1906,6 +1906,8 @@ for invariant in (
 ):
     if invariant not in v02_parasolid_converter_source:
         fail("V02 Parasolid converter lacks invariant: " + invariant)
+if "DocumentSave.Execute(parasolid_path)" in v02_parasolid_converter_source:
+    fail("V02 Parasolid converter restored deprecated implicit export options")
 if 'os.environ["AIRJET_REPO_ROOT"]' in v02_parasolid_converter_source:
     fail("V02 Parasolid converter reads mutable repository dependencies")
 
