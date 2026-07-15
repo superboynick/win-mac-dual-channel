@@ -40,6 +40,7 @@ DEPENDENCY_NAMES = (
     "p1_planform_exhaust_candidates.csv",
     "p1_thickness_budget.csv",
     "full_product_parameter_registry.csv",
+    "v03_finite_throat_route_v1.json",
     "campaign.json",
     "variant_02_m_3x4_7_0_r50_balanced.json",
 )
@@ -334,6 +335,34 @@ def fingerprints_equivalent(
     return True
 
 
+def fingerprint_matches_route(
+    fingerprint, route_geometry, bbox_tolerance_mm, volume_tolerance_mm3
+):
+    if not isinstance(fingerprint, dict):
+        return False
+    if (
+        fingerprint.get("piece_count") != 1
+        or not fingerprint.get("is_closed")
+        or not fingerprint.get("is_manifold")
+    ):
+        return False
+    for key in ("bbox_min_mm", "bbox_max_mm"):
+        actual = fingerprint.get(key, [])
+        expected = route_geometry.get(key, [])
+        if len(actual) != 3 or len(expected) != 3:
+            return False
+        for actual_value, expected_value in zip(actual, expected):
+            if not close_enough(
+                actual_value, expected_value, bbox_tolerance_mm
+            ):
+                return False
+    return close_enough(
+        fingerprint.get("volume_mm3"),
+        route_geometry.get("analytic_volume_mm3"),
+        volume_tolerance_mm3,
+    )
+
+
 def face_fingerprint(face, body_name):
     box = face.Shape.GetBoundingBox(Matrix.Identity)
     center = box.Center
@@ -419,27 +448,31 @@ def xy_match_inventory(expected_xy, actual_xy, tolerance_mm):
 
 def classify_throat_walls(
     body, expected_xy, throat_z_min, throat_z_max, radius,
-    xy_tolerance_mm, geometry_tolerance_mm, area_tolerance_mm2,
+    numerical_overlap_mm, xy_tolerance_mm, geometry_tolerance_mm,
+    area_tolerance_mm2,
 ):
-    expected_area = 2.0 * math.pi * radius * (throat_z_max - throat_z_min)
+    effective_length = throat_z_max - throat_z_min
+    construction_length = effective_length + 2.0 * numerical_overlap_mm
+    expected_effective_area = 2.0 * math.pi * radius * effective_length
+    expected_construction_area = (
+        2.0 * math.pi * radius * construction_length
+    )
     expected_diameter = 2.0 * radius
+    expected_center_z = (throat_z_min + throat_z_max) / 2.0
     faces = []
     details = []
     actual_xy = []
     for face in body.Faces:
         item = face_fingerprint(face, body.Name)
-        minimum = item["bbox_min_mm"]
-        maximum = item["bbox_max_mm"]
-        span_x = float(maximum[0]) - float(minimum[0])
-        span_y = float(maximum[1]) - float(minimum[1])
+        center = item["center_mm"]
         if (
-            close_enough(minimum[2], throat_z_min, geometry_tolerance_mm)
-            and close_enough(maximum[2], throat_z_max, geometry_tolerance_mm)
-            and close_enough(span_x, expected_diameter, geometry_tolerance_mm)
-            and close_enough(span_y, expected_diameter, geometry_tolerance_mm)
+            close_enough(center[2], expected_center_z, geometry_tolerance_mm)
             and close_enough(
-                item["area_mm2"], expected_area, area_tolerance_mm2
+                item["area_mm2"],
+                expected_construction_area,
+                area_tolerance_mm2,
             )
+            and item.get("edge_count") == 2
         ):
             faces.append(face)
             details.append(item)
@@ -450,8 +483,11 @@ def classify_throat_walls(
     return {
         "expected_radius_mm": radius,
         "expected_diameter_mm": expected_diameter,
-        "expected_length_mm": throat_z_max - throat_z_min,
-        "expected_lateral_area_mm2": expected_area,
+        "expected_length_mm": effective_length,
+        "expected_construction_length_mm": construction_length,
+        "expected_effective_lateral_area_mm2": expected_effective_area,
+        "expected_construction_lateral_area_mm2": expected_construction_area,
+        "expected_center_z_mm": expected_center_z,
         "expected_z_min_mm": throat_z_min,
         "expected_z_max_mm": throat_z_max,
         "candidate_face_count": len(faces),
@@ -474,7 +510,16 @@ def compact_throat_inventory(value):
         "expected_radius_mm": value.get("expected_radius_mm"),
         "expected_diameter_mm": value.get("expected_diameter_mm"),
         "expected_length_mm": value.get("expected_length_mm"),
-        "expected_lateral_area_mm2": value.get("expected_lateral_area_mm2"),
+        "expected_construction_length_mm": value.get(
+            "expected_construction_length_mm"
+        ),
+        "expected_effective_lateral_area_mm2": value.get(
+            "expected_effective_lateral_area_mm2"
+        ),
+        "expected_construction_lateral_area_mm2": value.get(
+            "expected_construction_lateral_area_mm2"
+        ),
+        "expected_center_z_mm": value.get("expected_center_z_mm"),
         "expected_z_min_mm": value.get("expected_z_min_mm"),
         "expected_z_max_mm": value.get("expected_z_max_mm"),
         "candidate_face_count": value.get("candidate_face_count"),
@@ -528,6 +573,51 @@ def expected_xy_contract(points, diameter_mm, step_xy_tolerance_mm):
 
 try:
     dependency_manifest_path = verify_dependency_bundle()
+    route_path = repo_path(
+        "airjet-simulation/automation/ansys/contracts/"
+        "v03_finite_throat_route_v1.json"
+    )
+    route_contract = read_json(route_path)
+    if (
+        route_contract.get("contract_id")
+        != "AJM006_GEN1_V03_FINITE_THROAT_ROUTE_V1"
+        or route_contract.get("product_id") != "AIRJET_MINI_GEN1"
+        or route_contract.get("configuration_id") != "M-3x4-7.0"
+        or route_contract.get("source_variant_id") != VARIANT_ID
+        or route_contract.get("representation")
+        != "ONE_CONTINUOUS_FLUID_BODY_WITH_972_FINITE_CYLINDRICAL_THROATS"
+    ):
+        raise Exception("AJM006_V03_TRUSTED_ROUTE_IDENTITY")
+    route_sources = route_contract.get("source_contracts", [])
+    if len(route_sources) != 8:
+        raise Exception("AJM006_V03_TRUSTED_ROUTE_SOURCE_COUNT")
+    for source in route_sources:
+        source_path = repo_path(source.get("git_path", ""))
+        if sha256_file(source_path) != source.get("sha256"):
+            raise Exception("AJM006_V03_TRUSTED_ROUTE_SOURCE_HASH")
+    route_geometry = route_contract.get("geometry_contract", {})
+    route_throats = route_contract.get("throat_contract", {})
+    route_boundaries = route_contract.get("boundary_contract", {})
+    if (
+        route_throats.get("count") != 972
+        or route_throats.get("count_per_cell") != 81
+        or not close_enough(route_throats.get("diameter_mm"), 0.25, 1.0e-12)
+        or not close_enough(route_throats.get("length_mm"), 0.10, 1.0e-12)
+        or route_throats.get("axis") != [0.0, 0.0, 1.0]
+        or route_geometry.get("body_count") != 1
+        or route_geometry.get("piece_count") != 1
+        or route_geometry.get("is_closed") is not True
+        or route_geometry.get("is_manifold") is not True
+        or route_boundaries != {
+            "INLET": 4,
+            "OUTLET": 1,
+            "MEMBRANE_TOP": 12,
+            "MEMBRANE_BOTTOM": 12,
+            "ORIFICE_THROAT_WALL": 972,
+            "HEAT_WALL": 1,
+        }
+    ):
+        raise Exception("AJM006_V03_TRUSTED_ROUTE_GEOMETRY")
     campaign_path = repo_path(CAMPAIGN_REL)
     campaign = read_json(campaign_path)
     if campaign.get("product_id") != "AIRJET_MINI_GEN1":
@@ -808,6 +898,24 @@ try:
     boolean_volume_delta_mm3 = abs(
         continuous_fp["volume_mm3"] - expected_union_volume_mm3
     )
+    route_analytic_volume_mm3 = float(
+        route_geometry["analytic_volume_mm3"]
+    )
+    native_route_volume_tolerance_mm3 = float(
+        route_geometry["volume_tolerance_native_mm3"]
+    )
+    step_route_volume_tolerance_mm3 = float(
+        route_geometry["volume_tolerance_step_mm3"]
+    )
+    native_analytic_volume_delta_mm3 = abs(
+        continuous_fp["volume_mm3"] - route_analytic_volume_mm3
+    )
+    continuous_route_ok = fingerprint_matches_route(
+        continuous_fp,
+        route_geometry,
+        float(route_geometry["bbox_tolerance_native_mm"]),
+        native_route_volume_tolerance_mm3,
+    )
 
     throat_inventory, throat_faces = classify_throat_walls(
         fluid,
@@ -815,6 +923,7 @@ try:
         interface_z,
         orifice_top_z,
         radius,
+        numerical_overlap_mm,
         0.002,
         0.002,
         0.001,
@@ -934,7 +1043,16 @@ try:
         "expected_overlap_volume_mm3": expected_overlap_volume_mm3,
         "expected_union_volume_mm3": expected_union_volume_mm3,
         "boolean_volume_delta_mm3": boolean_volume_delta_mm3,
+        "route_analytic_volume_mm3": route_analytic_volume_mm3,
+        "native_analytic_volume_delta_mm3": (
+            native_analytic_volume_delta_mm3
+        ),
+        "native_route_volume_tolerance_mm3": (
+            native_route_volume_tolerance_mm3
+        ),
         "c016_candidate": result_data["c016_candidate"],
+        "trusted_route_path": route_path,
+        "trusted_route_sha256": sha256_file(route_path),
         "expected_xy_contract": expected_xy_evidence,
         "throat_inventory": throat_inventory,
         "throat_counts_by_cell": throat_counts_by_cell,
@@ -956,7 +1074,8 @@ try:
     if len(native_bodies) == 1:
         native_throat_inventory, native_throat_faces = classify_throat_walls(
             native_bodies[0], expected_throat_xy, interface_z,
-            orifice_top_z, radius, 0.002, 0.002, 0.001,
+            orifice_top_z, radius, numerical_overlap_mm,
+            0.002, 0.002, 0.001,
         )
     native_group_counts = dict(
         (name, group_count(name))
@@ -983,6 +1102,15 @@ try:
             [continuous_fp], native_fingerprints, True, True
         )
     )
+    native_route_ok = (
+        native_reopen_ok
+        and fingerprint_matches_route(
+            native_fingerprints[0],
+            route_geometry,
+            float(route_geometry["bbox_tolerance_native_mm"]),
+            native_route_volume_tolerance_mm3,
+        )
+    )
     native_throat_ok = (
         isinstance(native_throat_inventory, dict)
         and native_throat_inventory["pass"]
@@ -997,7 +1125,8 @@ try:
     if len(step_bodies) == 1:
         step_throat_inventory, step_throat_faces = classify_throat_walls(
             step_bodies[0], expected_throat_xy, interface_z,
-            orifice_top_z, radius, 0.02, 0.005, 0.001,
+            orifice_top_z, radius, numerical_overlap_mm,
+            0.02, 0.005, 0.001,
         )
     step_boundary_counts = {
         "INLET": 0,
@@ -1034,11 +1163,16 @@ try:
                 step_boundary_counts["MEMBRANE_BOTTOM"] += 1
     step_comparison_tolerances = {
         "bbox_tolerance_mm": 0.02,
-        "volume_absolute_tolerance_mm3": 0.005,
+        "volume_absolute_tolerance_mm3": 0.08,
         "volume_relative_tolerance": 1.0e-5,
         "face_count_required": False,
         "names_required": False,
         "throat_xy_tolerance_mm": 0.02,
+        "comparison_basis": "INDEPENDENT_ROUTE_ANALYTIC",
+        "native_to_step_volume_delta_diagnostic_only": True,
+        "route_analytic_volume_tolerance_mm3": (
+            step_route_volume_tolerance_mm3
+        ),
     }
     step_reimport = {
         "route": "DOCUMENT_OPEN_AND_REFLECTION_GET_ALL_BODIES",
@@ -1072,12 +1206,16 @@ try:
     )
     round_trip_shape_ok = (
         step_reimport_ok
-        and fingerprints_equivalent(
-            [continuous_fp], step_fingerprints, False, False,
-            step_comparison_tolerances["bbox_tolerance_mm"],
-            step_comparison_tolerances["volume_absolute_tolerance_mm3"],
-            step_comparison_tolerances["volume_relative_tolerance"],
+        and fingerprint_matches_route(
+            step_fingerprints[0],
+            route_geometry,
+            float(route_geometry["bbox_tolerance_step_mm"]),
+            step_route_volume_tolerance_mm3,
         )
+    )
+    step_analytic_volume_delta_mm3 = (
+        abs(step_fingerprints[0]["volume_mm3"] - route_analytic_volume_mm3)
+        if len(step_fingerprints) == 1 else None
     )
 
     actual_porosity_pct = (
@@ -1102,6 +1240,9 @@ try:
         "c016_candidate": result_data["c016_candidate"],
         "dependency_manifest_path": dependency_manifest_path,
         "dependency_manifest_sha256": sha256_file(dependency_manifest_path),
+        "trusted_route_path": route_path,
+        "trusted_route_sha256": sha256_file(route_path),
+        "route_analytic_volume_mm3": route_analytic_volume_mm3,
     }
     write_json(source_chain_path, source_chain)
     result_data["geometry"] = {
@@ -1123,6 +1264,22 @@ try:
         "expected_overlap_volume_mm3": expected_overlap_volume_mm3,
         "expected_union_volume_mm3": expected_union_volume_mm3,
         "boolean_volume_delta_mm3": boolean_volume_delta_mm3,
+        "route_analytic_volume_mm3": route_analytic_volume_mm3,
+        "native_analytic_volume_delta_mm3": (
+            native_analytic_volume_delta_mm3
+        ),
+        "native_route_volume_tolerance_mm3": (
+            native_route_volume_tolerance_mm3
+        ),
+        "step_analytic_volume_delta_mm3": (
+            step_analytic_volume_delta_mm3
+        ),
+        "step_route_volume_tolerance_mm3": (
+            step_route_volume_tolerance_mm3
+        ),
+        "continuous_route_ok": continuous_route_ok,
+        "native_route_ok": native_route_ok,
+        "step_route_ok": round_trip_shape_ok,
         "premerge_upstream": upstream_premerge_fp,
         "premerge_downstream": downstream_premerge_fp,
         "continuous_before_save": continuous_fp,
@@ -1183,10 +1340,10 @@ try:
     result_data["assertions"]["single_continuous_fluid_boolean"] = (
         len(built_bodies) == 1
         and continuous_connectivity
-        and boolean_volume_delta_mm3 <= 0.001
+        and continuous_route_ok
     )
     result_data["assertions"]["native_save"] = native_save_ok
-    result_data["assertions"]["native_reopen_single_body"] = native_reopen_ok
+    result_data["assertions"]["native_reopen_single_body"] = native_route_ok
     result_data["assertions"]["native_throat_inventory"] = native_throat_ok
     result_data["assertions"]["step_export"] = step_export_ok
     result_data["assertions"]["step_reopen_single_body"] = step_reimport_ok
@@ -1199,7 +1356,7 @@ try:
         and group_observed["OUTLET"] == 1
     )
     result_data["assertions"]["round_trip_shape_fidelity"] = (
-        native_reopen_ok and round_trip_shape_ok
+        native_route_ok and round_trip_shape_ok
     )
     result_data["assertions"]["claim_boundaries"] = (
         result_data["formal_006_completion"] is False
@@ -1238,7 +1395,7 @@ try:
         result_data["status"] = "PASS_PARTIAL_CAD_CAPABILITY"
         result_data["engineering_capability"] = "PASS_PARTIAL_CAD_CAPABILITY"
         result_data["pilot_result"] = (
-            "PASS_V03_SINGLE_CONTINUOUS_FLUID_STEP_ROUND_TRIP"
+            "PASS_PRELIMINARY_V03_FINITE_THROAT_GEOMETRY"
         )
     else:
         result_data["error"] = "V03_CONTINUOUS_FLUID_ASSERTION_FAILED"

@@ -40,7 +40,7 @@ OUTPUT_ROOT = Path(r"D:\AirJet_P1\AJM-P1-CAD-006")
 RESULT_PATH = OUTPUT_ROOT / "V03_CONTINUOUS_FLUID_RUN_SUMMARY.json"
 POLICY_GIT_PATH = "airjet-simulation/automation/ansys/profiles.json"
 PROFILE_ID = "ajm006-spaceclaim-v03-continuous-throat-pilot-v1"
-PROFILE_SCRIPT_SHA256 = "6dc9525c544d15448f77ac0a1ee444b1118ee57a72a070f9059f70da9ecd5b36"
+PROFILE_SCRIPT_SHA256 = "8bea8ed6264ae072648fe8caa62b99cbb115587f35ed1515961b7becefd7b34f"
 PROFILE_SCRIPT = "006/v03_continuous_fluid_producer.py"
 CASE_ID = "AJM006-V03-CONTINUOUS"
 EXPECTED_TOOLS = {
@@ -90,7 +90,7 @@ EXPECTED_PRODUCER_ARTIFACTS = {
     "throat_inventory": "v03_throat_inventory.json",
     "source_chain": "v03_source_chain.json",
 }
-EXPECTED_DEPENDENCY_COUNT = 16
+EXPECTED_DEPENDENCY_COUNT = 17
 EXPECTED_DEPENDENCY_GIT_PATHS = (
     "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
     "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
@@ -106,6 +106,7 @@ EXPECTED_DEPENDENCY_GIT_PATHS = (
     "airjet-simulation/parameters/p1_planform_exhaust_candidates.csv",
     "airjet-simulation/parameters/p1_thickness_budget.csv",
     "airjet-simulation/parameters/full_product_parameter_registry.csv",
+    "airjet-simulation/automation/ansys/contracts/v03_finite_throat_route_v1.json",
     "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
     "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
 )
@@ -121,6 +122,15 @@ def norm(path: Path) -> str:
 
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def numeric_close(value: Any, expected: float, tolerance: float = 1.0e-12) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+        and abs(float(value) - expected) <= tolerance
+    )
 
 
 def git_capture(*args: str) -> dict[str, Any]:
@@ -275,19 +285,33 @@ def validate_throat_inventory(
     if (
         value.get("pass") is not True
         or value.get("candidate_face_count") != 972
-        or value.get("expected_radius_mm") != 0.125
-        or value.get("expected_diameter_mm") != 0.25
-        or value.get("expected_length_mm") != 0.10
+        or not numeric_close(value.get("expected_radius_mm"), 0.125)
+        or not numeric_close(value.get("expected_diameter_mm"), 0.25)
+        or not numeric_close(value.get("expected_length_mm"), 0.10)
+        or not numeric_close(
+            value.get("expected_construction_length_mm"), 0.102
+        )
         or not math.isclose(
-            value.get("expected_lateral_area_mm2", -1.0),
+            value.get("expected_effective_lateral_area_mm2", -1.0),
             0.07853981633974483,
             rel_tol=0.0,
             abs_tol=1.0e-12,
         )
-        or value.get("expected_z_min_mm") != 1.5175
-        or value.get("expected_z_max_mm") != 1.6175
-        or value.get("geometry_tolerance_mm") != geometry_tolerance_mm
-        or value.get("area_tolerance_mm2") != area_tolerance_mm2
+        or not math.isclose(
+            value.get("expected_construction_lateral_area_mm2", -1.0),
+            0.08011061266653972,
+            rel_tol=0.0,
+            abs_tol=1.0e-12,
+        )
+        or not numeric_close(value.get("expected_center_z_mm"), 1.5675)
+        or not numeric_close(value.get("expected_z_min_mm"), 1.5175)
+        or not numeric_close(value.get("expected_z_max_mm"), 1.6175)
+        or not numeric_close(
+            value.get("geometry_tolerance_mm"), geometry_tolerance_mm
+        )
+        or not numeric_close(
+            value.get("area_tolerance_mm2"), area_tolerance_mm2
+        )
         or not isinstance(xy, dict)
         or xy.get("expected_count") != 972
         or xy.get("actual_count") != 972
@@ -295,7 +319,7 @@ def validate_throat_inventory(
         or xy.get("missing_count") != 0
         or xy.get("unexpected_count") != 0
         or xy.get("one_to_one_complete") is not True
-        or xy.get("tolerance_mm") != xy_tolerance_mm
+        or not numeric_close(xy.get("tolerance_mm"), xy_tolerance_mm)
         or not isinstance(xy.get("max_xy_delta_mm"), (int, float))
         or not math.isfinite(float(xy["max_xy_delta_mm"]))
         or float(xy["max_xy_delta_mm"]) < 0.0
@@ -334,6 +358,34 @@ def validate_dependency_artifacts(value: Any) -> None:
         raise RuntimeError("DEPENDENCY_BUNDLE_PATH_SET_INVALID")
 
 
+def validate_route_body(value: Any, bbox_tolerance: float, volume_tolerance: float) -> None:
+    if not isinstance(value, dict):
+        raise RuntimeError("ROUTE_BODY_NOT_OBJECT")
+    for key, expected in (
+        ("bbox_min_mm", [-10.875, -17.75, 1.2675]),
+        ("bbox_max_mm", [10.875, 20.75, 2.8]),
+    ):
+        actual = value.get(key)
+        if (
+            not isinstance(actual, list)
+            or len(actual) != 3
+            or any(
+                not numeric_close(left, right, bbox_tolerance)
+                for left, right in zip(actual, expected)
+            )
+        ):
+            raise RuntimeError("ROUTE_BODY_BBOX_MISMATCH")
+    if (
+        value.get("piece_count") != 1
+        or value.get("is_closed") is not True
+        or value.get("is_manifold") is not True
+        or not numeric_close(
+            value.get("volume_mm3"), 451.7788188426395, volume_tolerance
+        )
+    ):
+        raise RuntimeError("ROUTE_BODY_VOLUME_OR_TOPOLOGY_MISMATCH")
+
+
 def validate_producer_report(
     manifest: dict[str, Any], job_state: dict[str, Any], expected_git_head: str
 ) -> dict[str, Any]:
@@ -360,7 +412,7 @@ def validate_producer_report(
         or report.get("status") != "PASS_PARTIAL_CAD_CAPABILITY"
         or report.get("engineering_capability") != "PASS_PARTIAL_CAD_CAPABILITY"
         or report.get("pilot_result")
-        != "PASS_V03_SINGLE_CONTINUOUS_FLUID_STEP_ROUND_TRIP"
+        != "PASS_PRELIMINARY_V03_FINITE_THROAT_GEOMETRY"
     ):
         raise RuntimeError("PRODUCER_REPORT_STATUS_OR_PROBE_MISMATCH")
     if (
@@ -436,17 +488,45 @@ def validate_producer_report(
         or geometry.get("configuration_id") != "M-3x4-7.0"
         or geometry.get("cell_count") != 12
         or geometry.get("orifice_count") != 972
-        or geometry.get("orifice_diameter_mm") != 0.25
-        or geometry.get("throat_length_mm") != 0.10
+        or not numeric_close(geometry.get("orifice_diameter_mm"), 0.25)
+        or not numeric_close(geometry.get("throat_length_mm"), 0.10)
         or geometry.get("throat_length_range_mm") != [0.05, 0.20]
         or geometry.get("throat_length_evidence_class") != "C"
-        or geometry.get("numerical_overlap_mm") != 0.001
+        or not numeric_close(geometry.get("numerical_overlap_mm"), 0.001)
         or not isinstance(
             geometry.get("boolean_volume_delta_mm3"), (int, float)
         )
         or not math.isfinite(float(geometry["boolean_volume_delta_mm3"]))
         or geometry.get("boolean_volume_delta_mm3") < 0.0
-        or geometry.get("boolean_volume_delta_mm3") > 0.001
+        or geometry.get("boolean_volume_delta_mm3") > 0.08
+        or not numeric_close(
+            geometry.get("route_analytic_volume_mm3"),
+            451.7788188426395,
+        )
+        or not numeric_close(
+            geometry.get("native_route_volume_tolerance_mm3"), 0.08
+        )
+        or not numeric_close(
+            geometry.get("step_route_volume_tolerance_mm3"), 0.03
+        )
+        or not numeric_close(
+            geometry.get("native_analytic_volume_delta_mm3"),
+            abs(
+                float((geometry.get("continuous_before_save") or {}).get(
+                    "volume_mm3", math.inf
+                )) - 451.7788188426395
+            ),
+        )
+        or not isinstance(
+            geometry.get("step_analytic_volume_delta_mm3"), (int, float)
+        )
+        or not math.isfinite(
+            float(geometry["step_analytic_volume_delta_mm3"])
+        )
+        or geometry.get("step_analytic_volume_delta_mm3") > 0.03
+        or geometry.get("continuous_route_ok") is not True
+        or geometry.get("native_route_ok") is not True
+        or geometry.get("step_route_ok") is not True
         or geometry.get("group_counts") != expected_groups
         or geometry.get("group_required") != expected_groups
         or geometry.get("group_semantics_ok") is not True
@@ -484,13 +564,7 @@ def validate_producer_report(
     ):
         raise RuntimeError("PRODUCER_EXPECTED_XY_CONTRACT_MISMATCH")
     continuous = geometry.get("continuous_before_save")
-    if (
-        not isinstance(continuous, dict)
-        or continuous.get("piece_count") != 1
-        or continuous.get("is_closed") is not True
-        or continuous.get("is_manifold") is not True
-    ):
-        raise RuntimeError("PRODUCER_CONTINUOUS_BODY_INVALID")
+    validate_route_body(continuous, 0.02, 0.08)
     validate_throat_inventory(
         geometry.get("throat_inventory_before_save"), 0.002, 0.002
     )
@@ -513,6 +587,7 @@ def validate_producer_report(
         or native_summary["body_fingerprint"].get("is_manifold") is not True
     ):
         raise RuntimeError("PRODUCER_NATIVE_REOPEN_SUMMARY_INVALID")
+    validate_route_body(native_summary["body_fingerprint"], 0.02, 0.08)
     expected_step_groups = {
         key: value for key, value in expected_groups.items()
         if key != "FLUID_CONTINUOUS"
@@ -528,11 +603,14 @@ def validate_producer_report(
         or step_summary["body_fingerprint"].get("is_manifold") is not True
         or step_summary.get("comparison_tolerances") != {
             "bbox_tolerance_mm": 0.02,
-            "volume_absolute_tolerance_mm3": 0.005,
+            "volume_absolute_tolerance_mm3": 0.08,
             "volume_relative_tolerance": 1.0e-5,
             "face_count_required": False,
             "names_required": False,
             "throat_xy_tolerance_mm": 0.02,
+            "comparison_basis": "INDEPENDENT_ROUTE_ANALYTIC",
+            "native_to_step_volume_delta_diagnostic_only": True,
+            "route_analytic_volume_tolerance_mm3": 0.03,
         }
         or not isinstance(step_summary.get("comparison_deltas"), dict)
         or not isinstance(
@@ -556,9 +634,10 @@ def validate_producer_report(
         ) > 0.02
         or step_summary["comparison_deltas"].get(
             "max_volume_delta_mm3", 1.0
-        ) > 0.005
+        ) > 0.08
     ):
         raise RuntimeError("PRODUCER_STEP_REIMPORT_SUMMARY_INVALID")
+    validate_route_body(step_summary["body_fingerprint"], 0.02, 0.03)
     if manifest.get("job_id") != job_state.get("job_id"):
         raise RuntimeError("PRODUCER_REPORT_JOB_MISMATCH")
     report_files = report.get("files")

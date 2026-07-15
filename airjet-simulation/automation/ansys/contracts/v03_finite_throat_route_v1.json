@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "contract_id": "AJM006_GEN1_V03_FINITE_THROAT_ROUTE_V1",
+  "scope": "FULL_PRODUCT_PRELIMINARY_PILOT_ONLY",
+  "product_id": "AIRJET_MINI_GEN1",
+  "configuration_id": "M-3x4-7.0",
+  "source_variant_id": "M-3x4-7.0__R50_BALANCED",
+  "representation": "ONE_CONTINUOUS_FLUID_BODY_WITH_972_FINITE_CYLINDRICAL_THROATS",
+  "source_contracts": [
+    {
+      "git_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
+      "sha256": "17253b5ad35ecea541b9357e942eca6175a689517948f8b56cae254ebcc5b03a"
+    },
+    {
+      "git_path": "airjet-simulation/parameters/full_product_parameter_registry.csv",
+      "sha256": "b1c9d0a4e7ac2a655afc5c449d1b8867f6273af3ebac4cfcbec0be5c50e3425c"
+    },
+    {
+      "git_path": "airjet-simulation/parameters/p1_cad_parameter_map.csv",
+      "sha256": "88d95dafc2ccaf063d14123da959b2e454b3dfa56b6c5a6d1a11b991b64ad9d3"
+    },
+    {
+      "git_path": "airjet-simulation/parameters/p1_layout_configuration_matrix.csv",
+      "sha256": "70ff15d1fd4b6bb78973ad47c488dcb12aed797dcbed07a86c189c6952a879e1"
+    },
+    {
+      "git_path": "airjet-simulation/parameters/p1_thickness_budget.csv",
+      "sha256": "7635ca5962a5d2f300c55553d6ed979fa59c35c448e8af3cdcfa2cb13f441976"
+    },
+    {
+      "git_path": "airjet-simulation/parameters/p1_vent_geometry_candidates.csv",
+      "sha256": "54cc8b657d38453ba27b8ccb6c6863f085679b2fa61f0b5bd6528d1033c62f9f"
+    },
+    {
+      "git_path": "airjet-simulation/parameters/p1_planform_exhaust_candidates.csv",
+      "sha256": "de560f672da729477a1bde727aec6e6fb20e2a684d31874ffa032b5c642a81db"
+    },
+    {
+      "git_path": "airjet-simulation/parameters/p1_model_form_variants.csv",
+      "sha256": "012e8031258aa1d1b4e4f274b76e09fdb83e930ce29eac737d82db25a5bb67da"
+    }
+  ],
+  "candidate_parameters": {
+    "P007": {
+      "value_mm": 0.25,
+      "role": "THROAT_DIAMETER",
+      "evidence_class": "P",
+      "product_fact": false
+    },
+    "C016": {
+      "value_mm": 0.1,
+      "range_mm": [
+        0.05,
+        0.2
+      ],
+      "role": "THROAT_LENGTH",
+      "evidence_class": "C",
+      "status": "cad_placeholder",
+      "product_fact": false,
+      "uncertainty_scan": "REQUIRED_LATER_NOT_RUN"
+    }
+  },
+  "throat_contract": {
+    "count": 972,
+    "cell_count": 12,
+    "count_per_cell": 81,
+    "lattice_per_cell": [
+      9,
+      9
+    ],
+    "axis": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "radius_mm": 0.125,
+    "diameter_mm": 0.25,
+    "z_min_mm": 1.5175,
+    "z_max_mm": 1.6175,
+    "length_mm": 0.1,
+    "local_axis_values_mm": [
+      -2.802496,
+      -2.101872,
+      -1.401248,
+      -0.700624,
+      0.0,
+      0.700624,
+      1.401248,
+      2.101872,
+      2.802496
+    ],
+    "global_x_range_mm": [
+      -10.052496,
+      10.052496
+    ],
+    "global_y_range_mm": [
+      -13.677496,
+      13.677496
+    ],
+    "minimum_center_spacing_mm": 0.700624,
+    "assignment_canonicalization": "UTF8_JSON_SORT_KEYS_COMPACT_ASCII_GLOBAL_XY_ROUND_9DP_SEMANTIC_KEY_ORDER",
+    "assignment_sha256": "5ab93083b8a9a7f72445230b650d5e88c2f02b90915304f28f1660c272b4e5c5"
+  },
+  "geometry_contract": {
+    "body_count": 1,
+    "piece_count": 1,
+    "is_closed": true,
+    "is_manifold": true,
+    "bbox_min_mm": [
+      -10.875,
+      -17.75,
+      1.2675
+    ],
+    "bbox_max_mm": [
+      10.875,
+      20.75,
+      2.8
+    ],
+    "bbox_tolerance_native_mm": 0.02,
+    "bbox_tolerance_step_mm": 0.02,
+    "analytic_volume_mm3": 451.7788188426395,
+    "volume_tolerance_native_mm3": 0.08,
+    "volume_tolerance_step_mm3": 0.03,
+    "premerge_upstream_analytic_volume_mm3": 260.1546567810659,
+    "premerge_downstream_analytic_volume_mm3": 191.671875,
+    "numerical_overlap_mm": 0.001,
+    "numerical_overlap_volume_mm3": 0.047712938426394985,
+    "analytic_volume_components_mm3": {
+      "downstream_manifold": 191.671875,
+      "finite_throat_core": 4.771293842639498,
+      "bottom_chambers": 23.52,
+      "cell_rings_below_plenum": 13.46625,
+      "shared_plenum": 157.6875,
+      "vent_risers_above_plenum": 60.65085,
+      "lower_riser_outside_plenum_apron": 0.01105
+    }
+  },
+  "boundary_contract": {
+    "INLET": 4,
+    "OUTLET": 1,
+    "MEMBRANE_TOP": 12,
+    "MEMBRANE_BOTTOM": 12,
+    "ORIFICE_THROAT_WALL": 972,
+    "HEAT_WALL": 1
+  },
+  "connectivity_contract": {
+    "fluid_region_count": 1,
+    "all_12_cells_reach_single_outlet": true,
+    "missing": [],
+    "unexpected": [],
+    "duplicate": [],
+    "orphan": [],
+    "dangling": [],
+    "assignment_solution_count": 1
+  },
+  "producer_contract": {
+    "profile_id": "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
+    "probe": "v03_continuous_fluid_producer",
+    "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
+    "step_artifact": "product_continuous_fluid.step"
+  },
+  "future_consumer_contract": {
+    "profile_id": "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
+    "engine": "pyfluent",
+    "fluent_version": "v261",
+    "mode": "MESHING",
+    "processor_count": 1,
+    "physics": "NOT_RUN"
+  },
+  "claim_boundaries": {
+    "exact_product_geometry": "NOT_CLAIMED",
+    "formal_006_completion": false,
+    "p1_stage_gate": "NOT_RUN",
+    "p1_mesh_gate": "NOT_RUN",
+    "p1_p6_gates": "NOT_RUN",
+    "physics": "NOT_RUN",
+    "mesh_independence": "NOT_RUN",
+    "visibility": "NOT_USER_OBSERVED"
+  }
+}

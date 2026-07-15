@@ -135,6 +135,7 @@ PROFILE_DEPENDENCY_GIT_PATHS = {
         "airjet-simulation/parameters/p1_planform_exhaust_candidates.csv",
         "airjet-simulation/parameters/p1_thickness_budget.csv",
         "airjet-simulation/parameters/full_product_parameter_registry.csv",
+        "airjet-simulation/automation/ansys/contracts/v03_finite_throat_route_v1.json",
         "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
         "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
     ),

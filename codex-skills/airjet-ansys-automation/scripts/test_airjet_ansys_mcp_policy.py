@@ -313,6 +313,7 @@ expected_dependency_git_paths = {
         "airjet-simulation/parameters/p1_planform_exhaust_candidates.csv",
         "airjet-simulation/parameters/p1_thickness_budget.csv",
         "airjet-simulation/parameters/full_product_parameter_registry.csv",
+        "airjet-simulation/automation/ansys/contracts/v03_finite_throat_route_v1.json",
         "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
         "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
     ),
@@ -1801,7 +1802,7 @@ v03_assignments = {
 }
 if len(v03_assignments.get("assertion_names", ())) != 17:
     fail("V03 assertion contract count changed")
-if len(v03_assignments.get("DEPENDENCY_NAMES", ())) != 16:
+if len(v03_assignments.get("DEPENDENCY_NAMES", ())) != 17:
     fail("V03 dependency contract count changed")
 for invariant in (
     'os.environ["AIRJET_PROFILE_DEPENDENCY_DIR"]',
@@ -1811,7 +1812,9 @@ for invariant in (
     '"product_fact": False',
     '"ORIFICE_THROAT_WALL": 972',
     'len(built_bodies) != 1',
-    'boolean_volume_delta_mm3 <= 0.001',
+    '"volume_tolerance_native_mm3"',
+    'continuous_route_ok = fingerprint_matches_route(',
+    'native_analytic_volume_delta_mm3',
     'set(throat_counts_by_cell.values()) == set([81])',
     '"mesh": "NOT_RUN"',
     '"physics": "NOT_RUN"',
@@ -1855,7 +1858,7 @@ if (
     or "PLACEHOLDER" in str(v03_runner_literals.get("PROFILE_SCRIPT_SHA256"))
     or len(v03_runner_literals.get("EXPECTED_REPORT_ASSERTIONS", ())) != 17
     or len(v03_runner_literals.get("EXPECTED_PRODUCER_ARTIFACTS", {})) != 7
-    or v03_runner_literals.get("EXPECTED_DEPENDENCY_COUNT") != 16
+    or v03_runner_literals.get("EXPECTED_DEPENDENCY_COUNT") != 17
 ):
     fail("V03 runner/profile binding changed")
 for path in (V03_CONTINUOUS_RUNNER, V03_CONTINUOUS_RUNNER_TEST):
