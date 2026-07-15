@@ -120,8 +120,9 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "surface.cfd_surface_mesh_controls.max_size = SURFACE_MAX_SIZE_MM",
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=False)",
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=True)",
-        '"The geometry consists of only fluid regions with no voids"',
-        "workflow.describe_geometry.wall_to_internal = True",
+        '"The geometry consists of both fluid and solid regions and/or voids"',
+        "workflow.describe_geometry.capping_required = False",
+        "workflow.describe_geometry.wall_to_internal = False",
         "workflow.describe_geometry.arguments()",
         '"describe_geometry_pre_execute_state"',
         "workflow.update_boundaries.boundary_zone_list",
@@ -129,6 +130,10 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.update_boundaries.old_boundary_zone_list",
         "workflow.update_boundaries.old_boundary_zone_type_list",
         '"boundary_zone_types_updated"',
+        "workflow.create_regions.number_of_flow_volumes = 1",
+        "workflow.create_regions.arguments()",
+        '"create_regions_pre_execute_state"',
+        "workflow.create_regions()",
         "workflow.update_regions.arguments()",
         '"update_regions_pre_execute_state"',
         "state=json_safe_trace_value(update_regions_pre_state)",
@@ -149,18 +154,25 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
 
 def test_update_regions_probe_is_observation_only_and_ordered() -> None:
     boundary_guard = SOURCE.index("BOUNDARY_ZONE_TYPES_NOT_4_VELOCITY_1_PRESSURE")
+    create_state = SOURCE.index("workflow.create_regions.arguments()")
+    create_trace = SOURCE.index('"create_regions_pre_execute_state"')
+    create_execute = SOURCE.index("workflow.create_regions()", create_state + 1)
     state_read = SOURCE.index("workflow.update_regions.arguments()")
     state_trace = SOURCE.index('"update_regions_pre_execute_state"')
     region_execute = SOURCE.index("workflow.update_regions()", state_read + 1)
     volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
     assert (
         boundary_guard
+        < create_state
+        < create_trace
+        < create_execute
         < state_read
         < state_trace
         < region_execute
         < volume_mesh
     )
-    assert "workflow.create_regions" not in SOURCE
+    assert SOURCE.count("workflow.create_regions.arguments()") == 1
+    assert SOURCE.count("workflow.create_regions()") == 1
     assert SOURCE.count("workflow.update_regions.arguments()") == 1
     assert SOURCE.count("workflow.update_regions()") == 1
     observation_window = SOURCE[state_read:region_execute]
@@ -241,7 +253,7 @@ def test_volume_mesh_and_student_guards_precede_write() -> None:
         'cell_zone_raw = list(utilities.get_cell_zones(filter="*"))',
         "cell_zone_query(utilities, throat_axis_points[index])",
         '"throat_center_occupancy_observed"',
-        '"THROAT_CENTER_OCCUPANCY_NOT_EXACT_GRAPH_NODE:"',
+        '"TARGET_FLOW_VOLUME_NOT_MESHED:"',
         "get_interior_face_zones_for_given_cell_zones(",
         "get_adjacent_cell_zones_for_given_face_zones(",
         "get_baffles_for_face_zones(",
@@ -267,7 +279,7 @@ def test_cell_zone_point_query_preserves_no_hit() -> None:
     ):
         assert required in SOURCE
     assert SOURCE.index('"throat_center_occupancy_observed"') < SOURCE.index(
-        '"THROAT_CENTER_OCCUPANCY_NOT_EXACT_GRAPH_NODE:'
+        '"TARGET_FLOW_VOLUME_NOT_MESHED:'
     )
 
 

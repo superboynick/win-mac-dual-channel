@@ -26,7 +26,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "d636a68eea57cbccf4bc3711c4f13dde6c8ea1eb84fec92f8f818abc4d25833e"
+CONSUMER_SCRIPT_SHA256 = "751fb2aff63c3798ff89ffb49de232ecd7a4b0e32471aaaba4731be37930d264"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -44,7 +44,7 @@ CONSUMER_ASSERTIONS = {
     "flow_cell_zone_inventory",
     "volume_mesh",
     "connected_fluid_cell_zone_graph",
-    "throat_center_occupancy_972",
+    "target_flow_volume_matches_predecessor",
     "mesh_integrity",
     "student_limit_guard",
     "mesh_write_hash",
@@ -426,10 +426,11 @@ def validate_consumer_report(
         "surface_max_size_mm": 0.75,
         "throat_local_size_mm": 0.075,
         "volume_max_size_mm": 0.75,
-        "resolution_class": "STUDENT_COARSE_CONNECTED_ZONE_DIAGNOSTIC_C3",
+        "resolution_class": "STUDENT_COARSE_MAIN_FLOW_REGION_C5",
         "cad_one_zone_per": "face",
-        "wall_to_internal": True,
-        "max_expected_flow_cell_zones": 12,
+        "wall_to_internal": False,
+        "max_expected_flow_cell_zones": 1,
+        "target_flow_volume_mesh_tolerance_mm3": 1.0,
         "student_cell_limit": 1_000_000,
         "student_node_limit": 1_000_000,
     }:

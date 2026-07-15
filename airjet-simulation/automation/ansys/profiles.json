@@ -489,7 +489,7 @@
       "profile_id": "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
       "engine": "spaceclaim",
       "script": "006/v03_continuous_fluid_producer.py",
-      "sha256": "413e2963007ea63047e34820a5e0888d4c8153303ebb8d67cc5995528bdeaf2b",
+      "sha256": "76d49ee372f71e993caadda2cb61d511a46b980e8db440c0b9017dd8b63772fb",
       "timeout_seconds": 7200,
       "output_root_id": "p1_cad_006",
       "reports": [
@@ -501,7 +501,7 @@
       "profile_id": "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
       "engine": "pyfluent",
       "script": "006/v03_pyfluent_watertight_mesh_consumer.py",
-      "sha256": "d636a68eea57cbccf4bc3711c4f13dde6c8ea1eb84fec92f8f818abc4d25833e",
+      "sha256": "751fb2aff63c3798ff89ffb49de232ecd7a4b0e32471aaaba4731be37930d264",
       "timeout_seconds": 7200,
       "output_root_id": "p1_cad_006",
       "reports": [

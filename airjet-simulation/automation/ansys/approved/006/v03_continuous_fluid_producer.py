@@ -752,6 +752,31 @@ try:
     radius = float(layout["orifice_diameter_candidate_mm"]) / 2.0
     numerical_overlap_mm = 0.02
     vent_riser_overlap_mm = 0.001
+    perimeter_boolean_overlap_mm = 0.02
+    perimeter_boolean_overlap_raw_mm3 = (
+        cell_count
+        * (
+            (membrane + 2.0 * perimeter_boolean_overlap_mm) ** 2
+            - membrane ** 2
+        )
+        * (bottom_z_max - bottom_z_min)
+    )
+    if (
+        not close_enough(
+            route_geometry.get("perimeter_boolean_overlap_mm"),
+            perimeter_boolean_overlap_mm,
+            1.0e-12,
+        )
+        or not close_enough(
+            route_geometry.get("perimeter_boolean_overlap_raw_mm3"),
+            perimeter_boolean_overlap_raw_mm3,
+            1.0e-12,
+        )
+        or route_geometry.get("perimeter_boolean_overlap_role")
+        != "C5_BOOLEAN_ROBUSTNESS_DIAGNOSTIC_BOTTOM_TO_RING_INTERFACE"
+        or route_geometry.get("perimeter_boolean_overlap_product_fact") is not False
+    ):
+        raise Exception("AJM006_V03_PERIMETER_BOOLEAN_OVERLAP_CONTRACT")
     throat_length_mm = orifice_top_z - interface_z
     c016_budget = thickness["ORIFICE_PLATE"]
     impingement_budget = thickness["IMPINGEMENT_CHANNEL"]
@@ -875,8 +900,12 @@ try:
         cy = float(origin[1])
         pieces = [
             create_block(
-                cx - half_membrane, cy - half_membrane, bottom_z_min,
-                cx + half_membrane, cy + half_membrane, bottom_z_max,
+                cx - half_membrane - perimeter_boolean_overlap_mm,
+                cy - half_membrane - perimeter_boolean_overlap_mm,
+                bottom_z_min,
+                cx + half_membrane + perimeter_boolean_overlap_mm,
+                cy + half_membrane + perimeter_boolean_overlap_mm,
+                bottom_z_max,
                 "AJM006_V03_BOTTOM_%03d" % cell_index,
             ),
             create_block(
@@ -1095,6 +1124,11 @@ try:
         ],
         "continuous_body_fingerprint": continuous_fp,
         "expected_overlap_volume_mm3": expected_overlap_volume_mm3,
+        "perimeter_boolean_overlap_mm": perimeter_boolean_overlap_mm,
+        "perimeter_boolean_overlap_raw_mm3": (
+            perimeter_boolean_overlap_raw_mm3
+        ),
+        "perimeter_boolean_overlap_union_volume_delta_mm3": 0.0,
         "expected_union_volume_mm3": expected_union_volume_mm3,
         "boolean_volume_delta_mm3": boolean_volume_delta_mm3,
         "route_analytic_volume_mm3": route_analytic_volume_mm3,
@@ -1326,6 +1360,11 @@ try:
         "preferred_porosity_guard_pct": [8.0, 12.0],
         "numerical_overlap_mm": numerical_overlap_mm,
         "vent_riser_overlap_mm": vent_riser_overlap_mm,
+        "perimeter_boolean_overlap_mm": perimeter_boolean_overlap_mm,
+        "perimeter_boolean_overlap_raw_mm3": (
+            perimeter_boolean_overlap_raw_mm3
+        ),
+        "perimeter_boolean_overlap_union_volume_delta_mm3": 0.0,
         "expected_overlap_volume_mm3": expected_overlap_volume_mm3,
         "expected_union_volume_mm3": expected_union_volume_mm3,
         "boolean_volume_delta_mm3": boolean_volume_delta_mm3,

@@ -83,14 +83,14 @@ ASSERTION_NAMES = (
     "flow_cell_zone_inventory",
     "volume_mesh",
     "connected_fluid_cell_zone_graph",
-    "throat_center_occupancy_972",
+    "target_flow_volume_matches_predecessor",
     "mesh_integrity",
     "student_limit_guard",
     "mesh_write_hash",
     "claim_boundaries",
 )
 STUDENT_ENTITY_LIMIT = 1_000_000
-MAX_EXPECTED_FLOW_CELL_ZONES = 12
+MAX_EXPECTED_FLOW_CELL_ZONES = 1
 THROAT_COUNT = 972
 THROAT_RADIUS_MM = 0.125
 THROAT_Z_MID_MM = 1.5675
@@ -98,6 +98,8 @@ SURFACE_MIN_SIZE_MM = 0.05
 SURFACE_MAX_SIZE_MM = 0.75
 THROAT_LOCAL_SIZE_MM = 0.075
 VOLUME_MAX_SIZE_MM = 0.75
+TARGET_FLOW_VOLUME_MESH_TOLERANCE_MM3 = 1.0
+ACTUATOR_GAP_CENTER_Z_MM = 1.795
 
 
 def sha256_file(path: Path) -> str:
@@ -399,20 +401,35 @@ def parse_external_baffle_inventory(transcript: str) -> dict[str, Any]:
         r"(?im)^\s*external baffles\s+([0-9]+)\s+\(([^)]*)\)\s*$",
         transcript,
     )
-    if len(matches) != 1:
+    warning_counts = [
+        int(value)
+        for value in re.findall(
+            r"(?im)Warning:\s*([0-9]+)\s+external baffles identified",
+            transcript,
+        )
+    ]
+    if not matches:
         return {
-            "resolved": False,
-            "count": None,
+            "resolved": not warning_counts,
+            "count": 0 if not warning_counts else warning_counts[-1],
             "zone_ids": [],
-            "match_count": len(matches),
+            "match_count": 0,
+            "warning_counts": warning_counts,
+            "interpretation": (
+                "NO_EXTERNAL_BAFFLE_ROW_OR_WARNING_OBSERVED"
+                if not warning_counts
+                else "WARNING_WITHOUT_COMPLETE_TABLE"
+            ),
         }
-    count = int(matches[0][0])
-    zone_ids = [int(value) for value in re.findall(r"[0-9]+", matches[0][1])]
+    count = int(matches[-1][0])
+    zone_ids = [int(value) for value in re.findall(r"[0-9]+", matches[-1][1])]
     return {
         "resolved": len(zone_ids) == count,
         "count": count,
         "zone_ids": zone_ids,
-        "match_count": 1,
+        "match_count": len(matches),
+        "warning_counts": warning_counts,
+        "interpretation": "LAST_COMPLETE_EXTERNAL_BAFFLE_TABLE",
     }
 
 
@@ -555,10 +572,13 @@ result: dict[str, Any] = {
         "surface_max_size_mm": SURFACE_MAX_SIZE_MM,
         "throat_local_size_mm": THROAT_LOCAL_SIZE_MM,
         "volume_max_size_mm": VOLUME_MAX_SIZE_MM,
-        "resolution_class": "STUDENT_COARSE_CONNECTED_ZONE_DIAGNOSTIC_C3",
+        "resolution_class": "STUDENT_COARSE_MAIN_FLOW_REGION_C5",
         "cad_one_zone_per": "face",
-        "wall_to_internal": True,
+        "wall_to_internal": False,
         "max_expected_flow_cell_zones": MAX_EXPECTED_FLOW_CELL_ZONES,
+        "target_flow_volume_mesh_tolerance_mm3": (
+            TARGET_FLOW_VOLUME_MESH_TOLERANCE_MM3
+        ),
         "student_cell_limit": STUDENT_ENTITY_LIMIT,
         "student_node_limit": STUDENT_ENTITY_LIMIT,
     },
@@ -602,11 +622,38 @@ try:
     inlet_points = role_points(inventory, "INLET")
     outlet_points = role_points(inventory, "OUTLET")
     throat_query_points = throat_points(inventory)
+    step_reimport_summary = (
+        (producer.get("geometry") or {}).get("step_reimport_summary") or {}
+    )
+    step_body_fingerprint = step_reimport_summary.get("body_fingerprint") or {}
+    expected_target_flow_volume_mm3 = step_body_fingerprint.get("volume_mm3")
+    if (
+        isinstance(expected_target_flow_volume_mm3, bool)
+        or not isinstance(expected_target_flow_volume_mm3, (int, float))
+        or not math.isfinite(float(expected_target_flow_volume_mm3))
+        or float(expected_target_flow_volume_mm3) <= 0.0
+    ):
+        raise RuntimeError("PREDECESSOR_STEP_FLOW_VOLUME_INVALID")
+    expected_target_flow_volume_mm3 = float(expected_target_flow_volume_mm3)
+    actuator_gap_center_points = []
+    for cell_index in range(12):
+        cell_throats = throat_query_points[cell_index * 81 : (cell_index + 1) * 81]
+        if len(cell_throats) != 81:
+            raise RuntimeError("ACTUATOR_GAP_CENTER_SOURCE_NOT_12_BY_81")
+        actuator_gap_center_points.append(
+            [
+                sum(point[0] - THROAT_RADIUS_MM for point in cell_throats) / 81.0,
+                sum(point[1] for point in cell_throats) / 81.0,
+                ACTUATOR_GAP_CENTER_Z_MM,
+            ]
+        )
     trace_checkpoint(
         "boundary_role_points_completed",
         inlet_count=len(inlet_points),
         outlet_count=len(outlet_points),
         throat_count=len(throat_query_points),
+        expected_target_flow_volume_mm3=expected_target_flow_volume_mm3,
+        actuator_gap_center_points=actuator_gap_center_points,
     )
     if len(inlet_points) != 4 or len(outlet_points) != 1:
         raise RuntimeError("BOUNDARY_POINT_COUNTS_NOT_4_INLET_1_OUTLET")
@@ -714,10 +761,13 @@ try:
 
     workflow.describe_geometry.update_child_tasks(setup_type_changed=False)
     workflow.describe_geometry.setup_type = (
-        "The geometry consists of only fluid regions with no voids"
+        "The geometry consists of both fluid and solid regions and/or voids"
     )
     workflow.describe_geometry.update_child_tasks(setup_type_changed=True)
-    workflow.describe_geometry.wall_to_internal = True
+    workflow.describe_geometry.capping_required = False
+    workflow.describe_geometry.wall_to_internal = False
+    workflow.describe_geometry.invoke_share_topology = "No"
+    workflow.describe_geometry.multizone = False
     describe_geometry_pre_state = workflow.describe_geometry.arguments()
     trace_checkpoint(
         "describe_geometry_pre_execute_state",
@@ -760,6 +810,14 @@ try:
             )
         )
 
+    workflow.create_regions.number_of_flow_volumes = 1
+    create_regions_pre_state = workflow.create_regions.arguments()
+    trace_checkpoint(
+        "create_regions_pre_execute_state",
+        python_type=type(create_regions_pre_state).__name__,
+        state=json_safe_trace_value(create_regions_pre_state),
+    )
+    workflow.create_regions()
     update_regions_pre_state = workflow.update_regions.arguments()
     trace_checkpoint(
         "update_regions_pre_execute_state",
@@ -837,15 +895,34 @@ try:
     ):
         raise RuntimeError(f"FLOW_CELL_ZONE_MEASURE_INVALID:{cell_zone_ids}")
     result["assertions"]["flow_cell_zone_inventory"] = True
-
-    interior_face_zone_ids = sorted(
-        int(value)
-        for value in utilities.get_interior_face_zones_for_given_cell_zones(
-            cell_zone_id_list=cell_zone_ids
-        )
+    target_flow_volume_delta_mm3 = abs(
+        float(cell_volume) - expected_target_flow_volume_mm3
     )
-    if len(set(interior_face_zone_ids)) != len(interior_face_zone_ids):
-        raise RuntimeError("INTERIOR_FACE_ZONE_IDS_NOT_UNIQUE")
+    target_flow_volume_matches_predecessor = (
+        target_flow_volume_delta_mm3
+        <= TARGET_FLOW_VOLUME_MESH_TOLERANCE_MM3
+    )
+    result["assertions"]["target_flow_volume_matches_predecessor"] = (
+        target_flow_volume_matches_predecessor
+    )
+    trace_checkpoint(
+        "target_flow_volume_observed",
+        expected_step_flow_volume_mm3=expected_target_flow_volume_mm3,
+        meshed_cell_volume_mm3=float(cell_volume),
+        absolute_delta_mm3=target_flow_volume_delta_mm3,
+        tolerance_mm3=TARGET_FLOW_VOLUME_MESH_TOLERANCE_MM3,
+        matches=target_flow_volume_matches_predecessor,
+    )
+
+    interior_face_observation = optional_int_sequence(
+        utilities.get_interior_face_zones_for_given_cell_zones(
+            cell_zone_id_list=cell_zone_ids
+        ),
+        "INTERIOR_FACE_ZONE",
+    )
+    if interior_face_observation["raw_none"]:
+        raise RuntimeError("INTERIOR_FACE_ZONE_QUERY_RETURNED_NONE")
+    interior_face_zone_ids = interior_face_observation["values"]
     interior_face_records, reached_cell_zone_ids = build_cell_zone_graph(
         utilities, cell_zone_ids, interior_face_zone_ids
     )
@@ -905,6 +982,18 @@ try:
         }
         for index in representative_indices
     ]
+    actuator_gap_center_controls = [
+        cell_zone_query(utilities, point)
+        for point in actuator_gap_center_points
+    ]
+    actuator_gap_exclusion_evaluable = anchor_occupancy_ok
+    actuator_gap_zones_excluded = (
+        actuator_gap_exclusion_evaluable
+        and all(
+            not record["raw_none"] and not record["zone_ids"]
+            for record in actuator_gap_center_controls
+        )
+    )
     trace_checkpoint(
         "cell_zone_point_query_controls_observed",
         upstream_anchor_hits=upstream_anchor_hits,
@@ -912,6 +1001,10 @@ try:
         anchor_zone_ids=anchor_zone_ids,
         anchor_occupancy_ok=anchor_occupancy_ok,
         representative_throat_controls=representative_throat_controls,
+        actuator_gap_center_points=actuator_gap_center_points,
+        actuator_gap_center_controls=actuator_gap_center_controls,
+        actuator_gap_exclusion_evaluable=actuator_gap_exclusion_evaluable,
+        actuator_gap_zones_excluded=actuator_gap_zones_excluded,
     )
 
     occupancy_indices = (
@@ -960,30 +1053,42 @@ try:
     )
     embedded_baffle_zone_ids = embedded_baffle_observation["values"]
 
-    post_volume_inlet_zone_ids = list(
-        utilities.convert_zone_name_strings_to_ids(
-            zone_name_list=inlet_zone_names
-        )
+    all_face_name_by_id = {
+        face_zone_id: utilities.get_zone_name(zone_id=face_zone_id)
+        for face_zone_id in all_face_zone_ids
+    }
+    post_volume_inlet_observation = optional_int_sequence(
+        utilities.get_zones(type_name="velocity-inlet"),
+        "POST_VOLUME_INLET",
     )
-    post_volume_outlet_zone_ids = list(
-        utilities.convert_zone_name_strings_to_ids(
-            zone_name_list=outlet_zone_names
-        )
+    post_volume_outlet_observation = optional_int_sequence(
+        utilities.get_zones(type_name="pressure-outlet"),
+        "POST_VOLUME_OUTLET",
     )
-    post_volume_throat_zone_ids = list(
-        utilities.convert_zone_name_strings_to_ids(
-            zone_name_list=throat_zone_names
-        )
+    post_volume_inlet_zone_ids = post_volume_inlet_observation["values"]
+    post_volume_outlet_zone_ids = post_volume_outlet_observation["values"]
+    post_volume_throat_zone_ids = sorted(
+        face_zone_id
+        for face_zone_id, name in all_face_name_by_id.items()
+        if name in set(throat_zone_names)
     )
-    if any(
-        isinstance(value, bool) or not isinstance(value, int)
-        for value in (
-            post_volume_inlet_zone_ids
-            + post_volume_outlet_zone_ids
-            + post_volume_throat_zone_ids
-        )
-    ):
-        raise RuntimeError("POST_VOLUME_FACE_ZONE_RESOLUTION_NOT_INTEGER")
+    post_volume_role_resolution_ok = (
+        not post_volume_inlet_observation["raw_none"]
+        and not post_volume_outlet_observation["raw_none"]
+        and len(post_volume_inlet_zone_ids) == 4
+        and len(post_volume_outlet_zone_ids) == 1
+        and not set(post_volume_inlet_zone_ids) & set(post_volume_outlet_zone_ids)
+        and bool(post_volume_throat_zone_ids)
+    )
+    trace_checkpoint(
+        "post_volume_role_resolution_observed",
+        inlet_observation=post_volume_inlet_observation,
+        outlet_observation=post_volume_outlet_observation,
+        throat_zone_names=throat_zone_names,
+        throat_zone_ids=post_volume_throat_zone_ids,
+        all_face_name_by_id=all_face_name_by_id,
+        resolution_ok=post_volume_role_resolution_ok,
+    )
     boundary_face_adjacency = {
         str(face_zone_id): adjacent_cell_zone_ids(utilities, face_zone_id)
         for face_zone_id in (
@@ -1027,7 +1132,7 @@ try:
 
     launch_transcripts = sorted(JOB_DIR.glob("fluent-*.trn"))
     launch_transcript_text = (
-        launch_transcripts[-1].read_text(encoding="utf-8", errors="strict")
+        launch_transcripts[-1].read_text(encoding="utf-8", errors="replace")
         if launch_transcripts else ""
     )
     external_baffle_inventory = parse_external_baffle_inventory(
@@ -1036,27 +1141,36 @@ try:
     boundary_adjacency_ok = all(
         len(adjacent) == 1 and adjacent[0] in set(cell_zone_ids)
         for adjacent in boundary_face_adjacency.values()
+    ) and len(boundary_face_adjacency) == 5
+    throat_face_adjacency_ok = bool(throat_face_adjacency) and all(
+        not observation["raw_none"]
+        and observation["values"] == cell_zone_ids
+        for observation in throat_face_adjacency.values()
+    )
+    unresolved_all_face_adjacency = [
+        record
+        for record in all_face_adjacency_records
+        if record["raw_none"]
+    ]
+    external_baffle_clear = (
+        external_baffle_inventory["resolved"]
+        and external_baffle_inventory["count"] == 0
+        and not external_baffle_inventory["zone_ids"]
     )
     graph_connected = reached_cell_zone_ids == cell_zone_ids
     if (
         graph_connected
-        and anchor_occupancy_ok
+        and target_flow_volume_matches_predecessor
+        and post_volume_role_resolution_ok
         and boundary_adjacency_ok
-        and not baffle_observation["raw_none"]
+        and throat_face_adjacency_ok
         and not baffle_zone_ids
-        and not embedded_baffle_observation["raw_none"]
         and not embedded_baffle_zone_ids
-        and external_baffle_inventory == {
-            "resolved": True,
-            "count": 0,
-            "zone_ids": [],
-            "match_count": 1,
-        }
+        and external_baffle_clear
+        and not unresolved_all_face_adjacency
         and not two_fluid_non_interior
     ):
         result["assertions"]["connected_fluid_cell_zone_graph"] = True
-    if len(occupancy) == THROAT_COUNT and not occupancy_misses:
-        result["assertions"]["throat_center_occupancy_972"] = True
     trace_checkpoint(
         "connected_zone_graph_observed",
         cell_zone_ids=cell_zone_ids,
@@ -1068,6 +1182,7 @@ try:
         post_volume_outlet_zone_ids=post_volume_outlet_zone_ids,
         post_volume_throat_zone_ids=post_volume_throat_zone_ids,
         throat_face_adjacency=throat_face_adjacency,
+        throat_face_adjacency_ok=throat_face_adjacency_ok,
         anchor_zone_ids=anchor_zone_ids,
         anchor_occupancy_ok=anchor_occupancy_ok,
         baffle_observation=baffle_observation,
@@ -1076,6 +1191,7 @@ try:
         embedded_baffle_zone_ids=embedded_baffle_zone_ids,
         external_baffle_inventory=external_baffle_inventory,
         all_face_adjacency_records=all_face_adjacency_records,
+        unresolved_all_face_adjacency=unresolved_all_face_adjacency,
         two_fluid_non_interior=two_fluid_non_interior,
     )
     free_faces = int(
@@ -1171,11 +1287,17 @@ try:
         "post_volume_inlet_zone_ids": post_volume_inlet_zone_ids,
         "post_volume_outlet_zone_ids": post_volume_outlet_zone_ids,
         "post_volume_throat_zone_ids": post_volume_throat_zone_ids,
+        "post_volume_role_resolution_ok": post_volume_role_resolution_ok,
         "throat_face_adjacency": throat_face_adjacency,
+        "throat_face_adjacency_ok": throat_face_adjacency_ok,
         "anchor_zone_ids": anchor_zone_ids,
         "anchor_occupancy_ok": anchor_occupancy_ok,
         "anchor_query_records": anchor_records,
         "representative_throat_controls": representative_throat_controls,
+        "actuator_gap_center_points": actuator_gap_center_points,
+        "actuator_gap_center_controls": actuator_gap_center_controls,
+        "actuator_gap_exclusion_evaluable": actuator_gap_exclusion_evaluable,
+        "actuator_gap_zones_excluded": actuator_gap_zones_excluded,
         "throat_query_count": len(throat_query_points),
         "throat_occupancy_executed_query_count": len(occupancy),
         "throat_occupancy_query_scope": (
@@ -1195,6 +1317,15 @@ try:
         "cell_zone_types": {str(key): value for key, value in cell_zone_types.items()},
         "cell_counts_by_zone": cell_counts_by_zone,
         "cell_volumes_by_zone": cell_volumes_by_zone,
+        "expected_step_flow_volume_mm3": expected_target_flow_volume_mm3,
+        "meshed_cell_volume_mm3": float(cell_volume),
+        "target_flow_volume_delta_mm3": target_flow_volume_delta_mm3,
+        "target_flow_volume_tolerance_mm3": (
+            TARGET_FLOW_VOLUME_MESH_TOLERANCE_MM3
+        ),
+        "target_flow_volume_matches_predecessor": (
+            target_flow_volume_matches_predecessor
+        ),
         "cell_zone_graph_contract": "DUAL_SIDED_INTERIOR_FACE_ADJACENCY_V1",
         "interior_face_zone_ids": interior_face_zone_ids,
         "interior_face_records": interior_face_records,
@@ -1206,6 +1337,7 @@ try:
         "embedded_baffle_zone_ids": embedded_baffle_zone_ids,
         "external_baffle_inventory": external_baffle_inventory,
         "all_face_adjacency_records": all_face_adjacency_records,
+        "unresolved_all_face_adjacency": unresolved_all_face_adjacency,
         "two_fluid_non_interior": two_fluid_non_interior,
         "cell_count": cell_count,
         "face_count": face_count,
@@ -1219,19 +1351,22 @@ try:
     }
     write_json(INVENTORY_PATH, inventory_report)
 
+    if not result["assertions"]["target_flow_volume_matches_predecessor"]:
+        raise RuntimeError(
+            "TARGET_FLOW_VOLUME_NOT_MESHED:"
+            f"EXPECTED={expected_target_flow_volume_mm3}:"
+            f"ACTUAL={float(cell_volume)}:"
+            f"DELTA={target_flow_volume_delta_mm3}"
+        )
     if not result["assertions"]["connected_fluid_cell_zone_graph"]:
         raise RuntimeError(
             "CONNECTED_FLUID_CELL_ZONE_GRAPH_NOT_PROVEN:"
             f"ZONES={cell_zone_ids}:REACHED={reached_cell_zone_ids}:"
             f"BAFFLES={baffle_zone_ids}:EMBEDDED={embedded_baffle_zone_ids}:"
             f"BOUNDARY_ADJACENCY={boundary_adjacency_ok}:"
-            f"ANCHORS={anchor_occupancy_ok}"
-        )
-    if not result["assertions"]["throat_center_occupancy_972"]:
-        raise RuntimeError(
-            "THROAT_CENTER_OCCUPANCY_NOT_EXACT_GRAPH_NODE:"
-            f"HITS={len(occupancy) - len(occupancy_misses)}:"
-            f"MISSES={len(occupancy_misses)}:FIRST={occupancy_misses[:100]}"
+            f"THROAT_ADJACENCY={throat_face_adjacency_ok}:"
+            f"POST_ROLES={post_volume_role_resolution_ok}:"
+            f"EXTERNAL_BAFFLE_CLEAR={external_baffle_clear}"
         )
 
     if MESH_PATH.exists():

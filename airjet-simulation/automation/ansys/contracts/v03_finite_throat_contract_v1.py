@@ -333,11 +333,22 @@ def validate_route(route: dict[str, Any], repo: Path) -> dict[str, Any]:
     if (
         not close(numerical_overlap, 0.02)
         or not close(geometry.get("vent_riser_overlap_mm"), 0.001)
+        or not close(geometry.get("perimeter_boolean_overlap_mm"), 0.02)
+        or not close(
+            geometry.get("perimeter_boolean_overlap_raw_mm3"), 0.269568
+        )
+        or not close(
+            geometry.get("perimeter_boolean_overlap_union_volume_delta_mm3"),
+            0.0,
+        )
         or geometry.get("numerical_overlap_role")
         != "C2_BOOLEAN_ROBUSTNESS_DIAGNOSTIC_AT_THROAT_END_INTERFACES"
         or geometry.get("numerical_overlap_product_fact") is not False
         or geometry.get("vent_riser_overlap_role")
         != "UNCHANGED_C1_BOOLEAN_ROBUSTNESS_CONTROL"
+        or geometry.get("perimeter_boolean_overlap_role")
+        != "C5_BOOLEAN_ROBUSTNESS_DIAGNOSTIC_BOTTOM_TO_RING_INTERFACE"
+        or geometry.get("perimeter_boolean_overlap_product_fact") is not False
     ):
         fail("V03_ROUTE_NUMERICAL_OVERLAP_BOUNDARY")
     overlap = 972.0 * math.pi * 0.125 * 0.125 * numerical_overlap

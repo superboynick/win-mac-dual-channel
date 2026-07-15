@@ -104,10 +104,11 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "surface_max_size_mm": 0.75,
             "throat_local_size_mm": 0.075,
             "volume_max_size_mm": 0.75,
-            "resolution_class": "STUDENT_COARSE_CONNECTED_ZONE_DIAGNOSTIC_C3",
+            "resolution_class": "STUDENT_COARSE_MAIN_FLOW_REGION_C5",
             "cad_one_zone_per": "face",
-            "wall_to_internal": True,
-            "max_expected_flow_cell_zones": 12,
+            "wall_to_internal": False,
+            "max_expected_flow_cell_zones": 1,
+            "target_flow_volume_mesh_tolerance_mm3": 1.0,
             "student_cell_limit": 1_000_000,
             "student_node_limit": 1_000_000,
         },
@@ -183,7 +184,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
 
 def test_consumer_report_accepts_exact_contract() -> None:
     assert runner.CONSUMER_SCRIPT_SHA256 == (
-        "d636a68eea57cbccf4bc3711c4f13dde6c8ea1eb84fec92f8f818abc4d25833e"
+        "751fb2aff63c3798ff89ffb49de232ecd7a4b0e32471aaaba4731be37930d264"
     )
     report, state, manifest = valid_report_state_manifest()
     assert runner.validate_consumer_report(manifest, state, HEAD) == report
