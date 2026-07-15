@@ -13,10 +13,6 @@ build_report_path = os.path.join(job_dir, "connected_spaceclaim_build.json")
 entry_sentinel_path = os.path.join(
     job_dir, "connected_spaceclaim_entry.sentinel"
 )
-inline_sentinel_path = os.path.join(
-    job_dir, "connected_spaceclaim_inline.sentinel"
-)
-inline_sentinel_payload = b"AJM005_CONNECTED_INLINE_ENTERED_V2\n"
 entry_sentinel_payload = b"AJM005_CONNECTED_CHILD_ENTERED_V2\n"
 inspection_path = os.path.join(job_dir, "workbench_connected_inspection.json")
 project_path = os.path.join(job_dir, "workbench_connected_spaceclaim_t1.wbpj")
@@ -62,8 +58,8 @@ result = {
         "predecessor_control_identity": "NOT_REACHED",
         "empty_geometry_system": "NOT_REACHED",
         "connected_editor_edit": "NOT_REACHED",
-        "connected_editor_send_command_control": "NOT_REACHED",
-        "connected_editor_post_send_command_probe": "NOT_REACHED",
+        "connected_editor_send_command_control": "SKIPPED_BY_EXPERIMENT",
+        "connected_editor_post_send_command_probe": "SKIPPED_BY_EXPERIMENT",
         "connected_editor_run_script": "NOT_REACHED",
         "connected_editor_post_runscript_probe": "NOT_REACHED",
         "connected_editor_exit_save": "NOT_REACHED",
@@ -79,18 +75,30 @@ result = {
         "predecessor_control_recheck": "NOT_REACHED",
     },
     "script_channel_diagnostic": {
-        "inline_expected_size": len(inline_sentinel_payload),
-        "inline_expected_sha256": hashlib.sha256(
-            inline_sentinel_payload
-        ).hexdigest(),
+        "schema_version": 2,
+        "mode": "INTERACTIVE_TRUE_RUNSCRIPT_ONLY",
+        "send_command_control": "SKIPPED_BY_EXPERIMENT",
         "entry_expected_size": len(entry_sentinel_payload),
         "entry_expected_sha256": hashlib.sha256(
             entry_sentinel_payload
         ).hexdigest(),
-        "inline_control_pass_at_checkpoint": None,
-        "inline_exact_at_freeze": None,
-        "inline_delayed_or_uncertain": None,
-        "file_entry_exact_at_freeze": None,
+        "runscript_call_outcome": "NOT_REACHED",
+        "entry_exact_at_call_checkpoint": None,
+        "entry_exact_post_exit": None,
+        "entry_exact_failure_pre_cleanup": None,
+        "entry_exact_failure_post_cleanup": None,
+        "entry_exact_at_freeze": None,
+        "entry_first_observed_at": None,
+        "entry_invalid_or_partial_at": [],
+        "entry_probe_errors_at": [],
+        "build_report_probe_errors_at": [],
+        "entry_delayed_or_later_observed": False,
+        "entry_lost_after_checkpoint": False,
+        "build_report_exists_at_freeze": None,
+        "build_report_exists_at_capture": None,
+        "build_report_capture_state": "NOT_ATTEMPTED",
+        "build_report_capture_context": None,
+        "build_report_state": "NOT_REACHED",
         "classification": "NOT_EVALUATED",
         "freeze_probe": None,
     },
@@ -116,7 +124,6 @@ def sha256_file(path):
 def artifact_probe():
     probe = {"observed_epoch_seconds": time.time()}
     for name, path in (
-        ("inline_sentinel", inline_sentinel_path),
         ("entry_sentinel", entry_sentinel_path),
         ("build_report", build_report_path),
     ):
@@ -148,34 +155,140 @@ def artifact_exact_match(item, expected_size, expected_sha256):
     )
 
 
-def freeze_script_channel_diagnostic(probe, freeze_probe):
+def record_entry_checkpoint(probe, checkpoint):
     diagnostic = result["script_channel_diagnostic"]
-    inline_checkpoint = diagnostic["inline_control_pass_at_checkpoint"]
-    inline_exact_at_freeze = artifact_exact_match(
-        probe.get("inline_sentinel"),
-        diagnostic["inline_expected_size"],
-        diagnostic["inline_expected_sha256"],
-    )
-    file_entry_exact_at_freeze = artifact_exact_match(
+    checkpoint_fields = {
+        "POST_RUNSCRIPT": "entry_exact_at_call_checkpoint",
+        "POST_EXIT": "entry_exact_post_exit",
+        "FAILURE_PRE_CLEANUP": "entry_exact_failure_pre_cleanup",
+        "FAILURE_POST_CLEANUP": "entry_exact_failure_post_cleanup",
+    }
+    field = checkpoint_fields[checkpoint]
+    item = probe.get("entry_sentinel")
+    exact = artifact_exact_match(
         probe.get("entry_sentinel"),
         diagnostic["entry_expected_size"],
         diagnostic["entry_expected_sha256"],
     )
-    diagnostic["inline_exact_at_freeze"] = inline_exact_at_freeze
-    diagnostic["inline_delayed_or_uncertain"] = (
-        inline_checkpoint is False and inline_exact_at_freeze
-    )
-    diagnostic["file_entry_exact_at_freeze"] = file_entry_exact_at_freeze
+    diagnostic[field] = exact
+    if isinstance(item, dict) and "probe_error" in item:
+        if checkpoint not in diagnostic["entry_probe_errors_at"]:
+            diagnostic["entry_probe_errors_at"].append(checkpoint)
+    elif isinstance(item, dict) and item.get("exists") is True and not exact:
+        if checkpoint not in diagnostic["entry_invalid_or_partial_at"]:
+            diagnostic["entry_invalid_or_partial_at"].append(checkpoint)
+    if exact and diagnostic["entry_first_observed_at"] is None:
+        diagnostic["entry_first_observed_at"] = checkpoint
+    return exact
+
+
+def freeze_script_channel_diagnostic(probe, freeze_probe):
+    diagnostic = result["script_channel_diagnostic"]
+    checkpoint_field = {
+        "POST_EXIT": "entry_exact_post_exit",
+        "FAILURE_PRE_CLEANUP": "entry_exact_failure_pre_cleanup",
+        "FAILURE_POST_CLEANUP": "entry_exact_failure_post_cleanup",
+    }[freeze_probe]
+    if diagnostic[checkpoint_field] is None:
+        record_entry_checkpoint(probe, freeze_probe)
+    exact_at_freeze = diagnostic[checkpoint_field]
+    diagnostic["entry_exact_at_freeze"] = exact_at_freeze
     diagnostic["freeze_probe"] = freeze_probe
-    if inline_checkpoint is None:
-        diagnostic["classification"] = "CHECKPOINT_NOT_REACHED"
+    if diagnostic["runscript_call_outcome"] == "EXCEPTION":
+        diagnostic["entry_delayed_or_later_observed"] = (
+            diagnostic["entry_delayed_or_later_observed"]
+            or (
+                diagnostic["entry_exact_failure_pre_cleanup"] is False
+                and diagnostic["entry_exact_failure_post_cleanup"] is True
+            )
+        )
+    else:
+        diagnostic["entry_delayed_or_later_observed"] = (
+            diagnostic["entry_delayed_or_later_observed"]
+            or (
+                diagnostic["entry_exact_at_call_checkpoint"] is False
+                and exact_at_freeze is True
+            )
+        )
+    if diagnostic["entry_exact_at_call_checkpoint"] is True and any(
+        value is False
+        for value in (
+            diagnostic["entry_exact_post_exit"],
+            diagnostic["entry_exact_failure_pre_cleanup"],
+            diagnostic["entry_exact_failure_post_cleanup"],
+        )
+    ):
+        diagnostic["entry_lost_after_checkpoint"] = True
+    build_item = probe.get("build_report")
+    if isinstance(build_item, dict) and "probe_error" in build_item:
+        if freeze_probe not in diagnostic["build_report_probe_errors_at"]:
+            diagnostic["build_report_probe_errors_at"].append(freeze_probe)
+    build_exists = (
+        build_item.get("exists")
+        if isinstance(build_item, dict)
+        and isinstance(build_item.get("exists"), bool)
+        else None
+    )
+    diagnostic["build_report_exists_at_freeze"] = build_exists
+
+    terminal_build_states = {
+        "INVALID_OR_UNREADABLE",
+        "REPORTED_BUILD_FAIL",
+        "CONTRACT_FAIL",
+        "CONTRACT_PASS",
+        "PRESENT_ENTRY_CONTRACT_FAIL",
+    }
+    if diagnostic["build_report_state"] not in terminal_build_states:
+        if diagnostic["build_report_probe_errors_at"]:
+            diagnostic["build_report_state"] = "PROBE_INDETERMINATE"
+        elif build_exists is True:
+            diagnostic["build_report_state"] = "PRESENT_NOT_VALIDATED"
+        elif exact_at_freeze is True:
+            diagnostic["build_report_state"] = "ENTRY_EXACT_BUILD_REPORT_ABSENT"
+        elif build_exists is False:
+            diagnostic["build_report_state"] = "ABSENT"
+
+    if diagnostic["build_report_state"] in terminal_build_states:
         return
-    diagnostic["classification"] = {
-        (True, True): "INLINE_PASS_FILE_PASS",
-        (True, False): "INLINE_PASS_FILE_FAIL",
-        (False, True): "INLINE_FAIL_FILE_PASS",
-        (False, False): "INLINE_FAIL_FILE_FAIL",
-    }[(inline_checkpoint, file_entry_exact_at_freeze)]
+    outcome = diagnostic["runscript_call_outcome"]
+    if outcome == "NOT_REACHED":
+        diagnostic["classification"] = "RUNSCRIPT_NOT_REACHED"
+        return
+    if (
+        diagnostic["entry_probe_errors_at"]
+        or diagnostic["build_report_probe_errors_at"]
+    ):
+        diagnostic["classification"] = "PROBE_INDETERMINATE"
+        return
+    if diagnostic["entry_invalid_or_partial_at"]:
+        diagnostic["classification"] = "ENTRY_SENTINEL_INVALID_OR_PARTIAL"
+        return
+    if outcome == "EXCEPTION":
+        if diagnostic["entry_exact_failure_pre_cleanup"] is True:
+            diagnostic["classification"] = "RUNSCRIPT_CALL_EXCEPTION_ENTRY_EXACT"
+        elif diagnostic["entry_exact_failure_post_cleanup"] is True:
+            diagnostic["classification"] = (
+                "RUNSCRIPT_CALL_EXCEPTION_ENTRY_DELAYED_OR_CLEANUP_OBSERVED"
+            )
+        else:
+            diagnostic["classification"] = "RUNSCRIPT_CALL_EXCEPTION_ENTRY_ABSENT"
+    elif outcome == "RETURNED":
+        if diagnostic["entry_lost_after_checkpoint"]:
+            diagnostic["classification"] = "ENTRY_LOST_AFTER_CHECKPOINT"
+        elif diagnostic["entry_delayed_or_later_observed"]:
+            diagnostic["classification"] = "ENTRY_DELAYED_OR_POST_EXIT_OBSERVED"
+        elif exact_at_freeze is True:
+            diagnostic["classification"] = "RUNSCRIPT_RETURNED_ENTRY_EXACT"
+        else:
+            diagnostic["classification"] = "RUNSCRIPT_RETURNED_ENTRY_ABSENT"
+        if (
+            exact_at_freeze is True
+            and build_exists is False
+            and not diagnostic["entry_delayed_or_later_observed"]
+        ):
+            diagnostic["classification"] = "ENTRY_EXACT_BUILD_REPORT_ABSENT"
+    else:
+        diagnostic["classification"] = "PROBE_INDETERMINATE"
 
 
 def workbench_message_snapshot():
@@ -192,6 +305,56 @@ def workbench_message_snapshot():
     except Exception as snapshot_error:
         snapshot["error"] = str(snapshot_error)
     return snapshot
+
+
+def capture_build_report_for_diagnostics(context):
+    diagnostic = result["script_channel_diagnostic"]
+    diagnostic["build_report_capture_context"] = context
+    if diagnostic["build_report_probe_errors_at"]:
+        diagnostic["build_report_capture_state"] = "SKIPPED_PRIOR_PROBE_ERROR"
+        return
+    try:
+        report_exists = os.path.isfile(build_report_path)
+    except Exception as exists_error:
+        diagnostic["build_report_probe_errors_at"].append("BUILD_CAPTURE")
+        diagnostic["build_report_state"] = "PROBE_INDETERMINATE"
+        diagnostic["build_report_exists_at_capture"] = None
+        diagnostic["build_report_capture_state"] = "EXISTS_PROBE_ERROR"
+        if diagnostic["runscript_call_outcome"] != "NOT_REACHED":
+            diagnostic["classification"] = "PROBE_INDETERMINATE"
+        result["connected_build_capture_error"] = {
+            "context": context,
+            "error_type": type(exists_error).__name__,
+            "error": str(exists_error),
+        }
+        return
+    diagnostic["build_report_exists_at_capture"] = report_exists
+    if not report_exists:
+        diagnostic["build_report_capture_state"] = "ABSENT"
+        return
+    try:
+        with open(build_report_path, "r") as build_handle:
+            captured = json.load(build_handle)
+        if not isinstance(captured, dict):
+            raise Exception("CONNECTED_BUILD_REPORT_NOT_OBJECT")
+    except Exception as capture_error:
+        diagnostic["build_report_state"] = "INVALID_OR_UNREADABLE"
+        diagnostic["build_report_capture_state"] = (
+            "PRESENT_INVALID_OR_UNREADABLE"
+        )
+        result["connected_build_parse_error"] = {
+            "context": context,
+            "error_type": type(capture_error).__name__,
+            "error": str(capture_error),
+        }
+        return
+    result["connected_build"] = captured
+    result["connected_build_capture_context"] = context
+    diagnostic["build_report_capture_state"] = "PRESENT_VALID_OBJECT"
+    if captured.get("status") == "FAIL_CONNECTED_EDITOR_BUILD":
+        diagnostic["build_report_state"] = "REPORTED_BUILD_FAIL"
+    else:
+        diagnostic["build_report_state"] = "PRESENT_NOT_VALIDATED"
 
 
 connected_spaceclaim_script = r'''# AJM-005 connected-document fixture build; disposable model only.
@@ -533,50 +696,35 @@ try:
     result["execution_reach"]["connected_editor_edit"] = "RETURNED"
     connected_editor_open = True
 
-    inline_command = (
-        "inline_path = %r\n"
-        "inline_payload = %r\n"
-        "inline_handle = open(inline_path, 'wb')\n"
-        "try:\n"
-        "    inline_handle.write(inline_payload)\n"
-        "finally:\n"
-        "    inline_handle.close()\n"
-    ) % (inline_sentinel_path, inline_sentinel_payload)
-    result["inline_command"] = {
-        "language": "Python",
-        "command_sha256": hashlib.sha256(inline_command.encode("utf-8")).hexdigest(),
-        "target_path": inline_sentinel_path,
-    }
-    result["execution_reach"][
-        "connected_editor_send_command_control"
-    ] = "CALLED"
-    source_geometry.SendCommand(Command=inline_command, Language="Python")
-    result["execution_reach"][
-        "connected_editor_send_command_control"
-    ] = "RETURNED"
-    result["execution_reach"][
-        "connected_editor_post_send_command_probe"
-    ] = "CALLED"
-    result["post_send_command_artifact_probe"] = artifact_probe()
-    result["script_channel_diagnostic"][
-        "inline_control_pass_at_checkpoint"
-    ] = artifact_exact_match(
-        result["post_send_command_artifact_probe"].get("inline_sentinel"),
-        len(inline_sentinel_payload),
-        hashlib.sha256(inline_sentinel_payload).hexdigest(),
-    )
-    result["execution_reach"][
-        "connected_editor_post_send_command_probe"
-    ] = "RETURNED"
-
     result["execution_reach"]["connected_editor_run_script"] = "CALLED"
+    result["script_channel_diagnostic"]["runscript_call_outcome"] = "CALLED"
     source_geometry.RunScript(ScriptFile=build_script_path)
     result["execution_reach"]["connected_editor_run_script"] = "RETURNED"
+    result["script_channel_diagnostic"]["runscript_call_outcome"] = "RETURNED"
 
     result["execution_reach"][
         "connected_editor_post_runscript_probe"
     ] = "CALLED"
     result["post_runscript_artifact_probe"] = artifact_probe()
+    immediate_entry_exact = record_entry_checkpoint(
+        result["post_runscript_artifact_probe"], "POST_RUNSCRIPT"
+    )
+    if result["script_channel_diagnostic"]["entry_probe_errors_at"]:
+        result["script_channel_diagnostic"]["classification"] = (
+            "PROBE_INDETERMINATE"
+        )
+    elif result["script_channel_diagnostic"]["entry_invalid_or_partial_at"]:
+        result["script_channel_diagnostic"]["classification"] = (
+            "ENTRY_SENTINEL_INVALID_OR_PARTIAL"
+        )
+    elif immediate_entry_exact:
+        result["script_channel_diagnostic"]["classification"] = (
+            "RUNSCRIPT_RETURNED_ENTRY_EXACT"
+        )
+    else:
+        result["script_channel_diagnostic"]["classification"] = (
+            "RUNSCRIPT_RETURNED_ENTRY_ABSENT"
+        )
     result["execution_reach"][
         "connected_editor_post_runscript_probe"
     ] = "RETURNED"
@@ -588,28 +736,64 @@ try:
 
     result["execution_reach"]["connected_editor_post_exit_probe"] = "CALLED"
     result["post_exit_artifact_probe"] = artifact_probe()
+    record_entry_checkpoint(result["post_exit_artifact_probe"], "POST_EXIT")
     freeze_script_channel_diagnostic(
         result["post_exit_artifact_probe"], "POST_EXIT"
     )
     result["execution_reach"]["connected_editor_post_exit_probe"] = "RETURNED"
 
     result["execution_reach"]["connected_build_contract"] = "CALLED"
+    channel_diagnostic = result["script_channel_diagnostic"]
+    if channel_diagnostic["build_report_probe_errors_at"]:
+        channel_diagnostic["build_report_state"] = "PROBE_INDETERMINATE"
+        channel_diagnostic["classification"] = "PROBE_INDETERMINATE"
+        raise Exception("FAIL_BUILD_REPORT_PROBE_INDETERMINATE")
     if not os.path.isfile(build_report_path):
-        channel_diagnostic = result["script_channel_diagnostic"]
-        if channel_diagnostic["file_entry_exact_at_freeze"] is True:
+        if channel_diagnostic["entry_exact_at_freeze"] is True:
+            channel_diagnostic["build_report_state"] = (
+                "ENTRY_EXACT_BUILD_REPORT_ABSENT"
+            )
+            if channel_diagnostic["classification"] != (
+                "ENTRY_DELAYED_OR_POST_EXIT_OBSERVED"
+            ):
+                channel_diagnostic["classification"] = (
+                    "ENTRY_EXACT_BUILD_REPORT_ABSENT"
+                )
             raise Exception("FAIL_CONNECTED_EDITOR_STARTED_REPORT_MISSING")
         if os.path.isfile(entry_sentinel_path):
             raise Exception("FAIL_FILE_ENTRY_SENTINEL_INVALID_OR_PARTIAL")
-        if channel_diagnostic["inline_control_pass_at_checkpoint"] is True:
-            raise Exception("FAIL_FILE_RUNSCRIPT_ENTRY_MISSING_INLINE_CONTROL_PASS")
-        if channel_diagnostic["inline_delayed_or_uncertain"] is True:
-            raise Exception(
-                "FAIL_FILE_RUNSCRIPT_ENTRY_MISSING_INLINE_CONTROL_DELAYED_OR_UNCERTAIN"
-            )
-        raise Exception("FAIL_INLINE_AND_FILE_ENTRY_SENTINELS_MISSING")
-    with open(build_report_path, "r") as build_handle:
-        build_report = json.load(build_handle)
+        channel_diagnostic["build_report_state"] = "ABSENT"
+        raise Exception("FAIL_RUNSCRIPT_RETURNED_ENTRY_AND_BUILD_ABSENT")
+    if (
+        channel_diagnostic["entry_exact_at_call_checkpoint"] is not True
+        or channel_diagnostic["entry_exact_post_exit"] is not True
+        or channel_diagnostic["entry_probe_errors_at"]
+        or channel_diagnostic["entry_invalid_or_partial_at"]
+    ):
+        channel_diagnostic["build_report_state"] = "PRESENT_ENTRY_CONTRACT_FAIL"
+        if channel_diagnostic["classification"] not in {
+            "PROBE_INDETERMINATE",
+            "ENTRY_SENTINEL_INVALID_OR_PARTIAL",
+            "ENTRY_DELAYED_OR_POST_EXIT_OBSERVED",
+            "ENTRY_LOST_AFTER_CHECKPOINT",
+        }:
+            channel_diagnostic["classification"] = "BUILD_CONTRACT_FAIL"
+        raise Exception("FAIL_BUILD_REPORT_WITHOUT_IMMEDIATE_EXACT_ENTRY")
+    try:
+        with open(build_report_path, "r") as build_handle:
+            build_report = json.load(build_handle)
+        if not isinstance(build_report, dict):
+            raise Exception("CONNECTED_BUILD_REPORT_NOT_OBJECT")
+    except Exception:
+        channel_diagnostic["build_report_state"] = "INVALID_OR_UNREADABLE"
+        channel_diagnostic["classification"] = "BUILD_REPORT_INVALID"
+        raise
+    result["connected_build"] = build_report
     build_assertions = build_report.get("assertions", {})
+    if build_report.get("status") != "PASS_CONNECTED_EDITOR_BUILD":
+        channel_diagnostic["build_report_state"] = "REPORTED_BUILD_FAIL"
+        channel_diagnostic["classification"] = "BUILD_CONTRACT_FAIL"
+        raise Exception("FAIL_CONNECTED_EDITOR_REPORTED_BUILD")
     connected_editor_build_ok = (
         build_report.get("status") == "PASS_CONNECTED_EDITOR_BUILD"
         and build_report.get("document_route")
@@ -618,9 +802,10 @@ try:
         and build_report.get("external_file_save") is False
         and build_report.get("literal_paths_injected") is True
         and build_report.get("entry_sentinel_written") is True
-        and result["script_channel_diagnostic"][
-            "file_entry_exact_at_freeze"
-        ] is True
+        and channel_diagnostic["runscript_call_outcome"] == "RETURNED"
+        and channel_diagnostic["entry_exact_at_call_checkpoint"] is True
+        and channel_diagnostic["entry_exact_post_exit"] is True
+        and channel_diagnostic["entry_exact_at_freeze"] is True
         and build_report.get("final_root_body_count") == 1
         and build_report.get("named_selection_counts")
         == {"INLET": 1, "OUTLET": 1, "WALLS": 11}
@@ -628,10 +813,13 @@ try:
         == {"empty_document", "boolean_merge", "fluid_fingerprint", "named_groups"}
         and all(build_assertions.get(name) is True for name in build_assertions)
     )
-    result["connected_build"] = build_report
     result["assertions"]["connected_editor_build"] = connected_editor_build_ok
     if not connected_editor_build_ok:
+        channel_diagnostic["build_report_state"] = "CONTRACT_FAIL"
+        channel_diagnostic["classification"] = "BUILD_CONTRACT_FAIL"
         raise Exception("FAIL_CONNECTED_EDITOR_BUILD_CONTRACT")
+    channel_diagnostic["build_report_state"] = "CONTRACT_PASS"
+    channel_diagnostic["classification"] = "BUILD_CONTRACT_PASS"
     result["execution_reach"]["connected_build_contract"] = "RETURNED"
 
     source_component = source_system.GetComponent(Name="Geometry")
@@ -753,12 +941,6 @@ with open(inspection_path, "w") as handle:
             "sha256": sha256_file(project_path),
         },
     }
-    if os.path.isfile(inline_sentinel_path):
-        result["files"]["inline_sentinel"] = {
-            "path": inline_sentinel_path,
-            "size": os.path.getsize(inline_sentinel_path),
-            "sha256": sha256_file(inline_sentinel_path),
-        }
     if all(result["assertions"].values()):
         result["status"] = "PASS_CONNECTED_SPACECLAIM_TRANSFER_DIAGNOSTIC"
         result["engineering_capability"] = (
@@ -767,6 +949,34 @@ with open(inspection_path, "w") as handle:
     else:
         result["error"] = "CONNECTED_SPACECLAIM_DIAGNOSTIC_ASSERTION_FAILED"
 except Exception as error:
+    if result["script_channel_diagnostic"]["runscript_call_outcome"] == "CALLED":
+        result["script_channel_diagnostic"]["runscript_call_outcome"] = (
+            "EXCEPTION"
+        )
+    result["error_type"] = type(error).__name__
+    result["error"] = str(error)
+    result["traceback"] = traceback.format_exc()
+    diagnose_failed_connected_build = (
+        result["execution_reach"]["connected_build_contract"] != "RETURNED"
+        and result["script_channel_diagnostic"]["build_report_state"]
+        not in {
+            "INVALID_OR_UNREADABLE",
+            "REPORTED_BUILD_FAIL",
+            "CONTRACT_FAIL",
+            "PRESENT_ENTRY_CONTRACT_FAIL",
+        }
+    )
+    if diagnose_failed_connected_build:
+        try:
+            result["failure_pre_cleanup_artifact_probe"] = artifact_probe()
+            record_entry_checkpoint(
+                result["failure_pre_cleanup_artifact_probe"],
+                "FAILURE_PRE_CLEANUP",
+            )
+        except Exception as artifact_probe_error:
+            result["failure_pre_cleanup_artifact_probe_error"] = str(
+                artifact_probe_error
+            )
     if connected_editor_open and source_geometry is not None:
         result["execution_reach"]["connected_editor_cleanup"] = "CALLED"
         try:
@@ -776,17 +986,22 @@ except Exception as error:
         except Exception as cleanup_error:
             result["execution_reach"]["connected_editor_cleanup"] = "FAILED"
             result["cleanup_error"] = str(cleanup_error)
-    try:
-        result["failure_artifact_probe"] = artifact_probe()
-        if result["script_channel_diagnostic"]["classification"] == "NOT_EVALUATED":
-            freeze_script_channel_diagnostic(
-                result["failure_artifact_probe"], "FAILURE"
+    if diagnose_failed_connected_build:
+        try:
+            result["failure_post_cleanup_artifact_probe"] = artifact_probe()
+            record_entry_checkpoint(
+                result["failure_post_cleanup_artifact_probe"],
+                "FAILURE_POST_CLEANUP",
             )
-    except Exception as artifact_probe_error:
-        result["failure_artifact_probe_error"] = str(artifact_probe_error)
-    result["error_type"] = type(error).__name__
-    result["error"] = str(error)
-    result["traceback"] = traceback.format_exc()
+            freeze_script_channel_diagnostic(
+                result["failure_post_cleanup_artifact_probe"],
+                "FAILURE_POST_CLEANUP",
+            )
+            capture_build_report_for_diagnostics("FAILURE_POST_CLEANUP")
+        except Exception as artifact_probe_error:
+            result["failure_post_cleanup_artifact_probe_error"] = str(
+                artifact_probe_error
+            )
     result["workbench_messages_at_failure"] = workbench_message_snapshot()
 
 try:

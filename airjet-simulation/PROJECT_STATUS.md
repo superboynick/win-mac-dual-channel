@@ -106,6 +106,13 @@
   post-call probe 与 RunScript 未到达，cleanup Exit 返回。由此只关闭“改一个 Interactive 参数就足以
   修复”这一窄命题，不能声称真实 GUI/session 已被用户观察或所有 session 因素已排除。下一轮保持
   True，移除前置 SendCommand，让 `.py` RunScript 成为唯一 scripting action。
+  run #22 的 `Interactive=True + RunScript-only` 诊断合同现已实现但尚未在 Windows 实跑：source
+  Geometry editor 的 `SendCommand` 和 inline marker 明确记为 `SKIPPED_BY_EXPERIMENT`，`.py`
+  `RunScript` 是 Edit 后第一个且唯一的 editor scripting action。journal 已加入 exact entry sentinel、
+  正常 freeze，以及仅对仍需 connected-build 失败诊断且 build contract 尚未返回的异常路径执行的
+  cleanup 前后 probe/freeze/capture；runner 交叉校验 call reach、entry timing、freeze/capture 与 build
+  state；AST policy 还锁定 direct call 并阻断已审 mutation 集中的 alias/reflection 绕过。以上只是
+  实现和静态审查事实，不是 run/job/report/artifact 或 ANSYS runtime 结果。
 - 已新增学习入口、ANSYS/005 实验手册、现实失败日志、run index 和论文方法—证据映射；
   后续每次运行会同步保留小型脱敏机器证据和 Git 外大产物哈希。
 - Gen1 两张官方产品透视图已分别做 homography、10,000 次像素误差 Monte Carlo 和跨视图差比较；四个画出 vent 只作为 `I` 类顶盖候选，不用于推断 cell 数。
@@ -123,7 +130,7 @@
 | 阶段 | 当前状态 | 缺失的实际产物 |
 |---|---|---|
 | P0 证据冻结 | **PASS v1** | 若得到新 D 类资料、实物/CT 或发现证据冲突，需建立 v2；当前内部未知量不会被伪装成已解决 |
-| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP semantic reconstruction diagnostic PASS；145-character writable native `.scdocx` 仍 attach FAIL；connected RunScript entry 未观测，SendCommand 在 False/True 两种 Edit 参数下均于 checkpoint 前空引用，transfer 未到达；native Named Selection transfer/native driving parameter NOT_PROVEN；P1 BLOCKED） | hash-bound STEP+sidecar 已在可删除 fixture 上唯一重建 1/1/11 边界，四项负向检查、1063/513 粗网格和 project save 通过；这是 solver-side reconstruction。native 短路径与 hash-equal writable-staging 两轮均在 Model.Refresh direct FAIL；connected run #19 的 batch RunScript 返回但 marker absent，run #20/#21 的 SendCommand 在 Interactive False/True 下均未返回且 RunScript 未调用；下一轮为 Interactive=True RunScript-only，之后仍要建立 native parameter 合同并完成 Mechanical/Fluent T1，才可判断 005 是否允许进入 006 |
+| P1 整机 CAD | 输入合同完成，CAD 未开始（005 T0 控制集 PASS；T1 SpaceClaim partial CAD 可复现 PASS；STEP semantic reconstruction diagnostic PASS；145-character writable native `.scdocx` 仍 attach FAIL；connected RunScript entry 未观测，SendCommand 在 False/True 两种 Edit 参数下均于 checkpoint 前空引用，transfer 未到达；run #22 RunScript-only 实现已审查、Windows runtime `NOT_RUN`；native Named Selection transfer/native driving parameter NOT_PROVEN；P1 BLOCKED） | hash-bound STEP+sidecar 已在可删除 fixture 上唯一重建 1/1/11 边界，四项负向检查、1063/513 粗网格和 project save 通过；这是 solver-side reconstruction。native 短路径与 hash-equal writable-staging 两轮均在 Model.Refresh direct FAIL；connected run #19 的 batch RunScript 返回但 marker absent，run #20/#21 的 SendCommand 在 Interactive False/True 下均未返回且 RunScript 未调用；run #22 不得预填 `RETURNED`/`EXCEPTION`、entry present/absent 或 build PASS/FAIL；实跑后仍须建立 native parameter 合同并完成 Mechanical/Fluent T1，才可判断 005 是否允许进入 006 |
 | P2 执行片结构 | 未开始 | 材料栈候选、模态、谐响应、位移场、功耗闭合 |
 | P3 单 cell 动态 CFD | 未开始 | 网格/时间步独立性、周期稳定、质量守恒、降阶传递关系 |
 | P4 整机气动 | 未开始 | 全部 cell/孔板/歧管/出口模型、压力能力扫描、相位对比 |
@@ -140,9 +147,11 @@
    RunScript 后、Exit 后和 failure catch 三处 absent。inline 对照又确认 batch Edit 返回后，
    `SendCommand` 在 post-call checkpoint 前直接空引用，故本轮 `.py` RunScript 未调用。literal
    `Interactive=True` 单参数复测又得到相同外部失败签名，所以只关闭“改该参数即可修复”的窄命题。
-   下一次保持 True、child fixture、absolute path、binary entry marker、predecessor、timeout、cleanup、
-   transfer/Mechanical assertions 和 Gate 边界不变，移除/跳过 SendCommand 与 inline marker，让 `.py`
-   RunScript 成为 Edit 后第一个且唯一 scripting action，并使用 file-only 分类。官方虽支持
+   run #22 已按上述边界实现：保持 True、child fixture、absolute path、binary entry marker、
+   predecessor、timeout、cleanup、transfer/Mechanical assertions 和 Gate 边界不变，移除/跳过
+   source-editor SendCommand 与 inline marker，让 `.py` RunScript 成为 Edit 后第一个且唯一 scripting
+   action，并使用 file-only 分类。下一动作是签名提交、Windows clean fast-forward、skill 重装与精确
+   hash/policy preflight 后首次实跑，再按真实 report 写唯一分类；不得在执行前预填结果。官方虽支持
    `.scscript`，但未证明与 `.py` 的合法序列化可逐字节
    等价，因此不先做简单 suffix 改名。不得在
    native profile 中用 solver-side reconstruction 补名。connected route 可观测且通过后，仍要回到

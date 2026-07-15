@@ -1178,6 +1178,54 @@
 - Gate 影响：NONE；仅是 preflight wrapper 语法错误。
 - 状态：CLOSED_BRACED_VARIABLE_INTERPOLATION
 
+## REAL-20260715-049：Run #22 RunScript-only 合同已实现，runtime 仍是 NOT_RUN
+
+- UTC：2026-07-15T01:00:00Z 起；本条记录 pre-run implementation/review，不是 ANSYS run 时间。
+- Stage/task：005 T1 / run #22 `Interactive=True + RunScript-only` pre-run implementation。
+- 触发：run #20/#21 的 source Geometry `SendCommand` 都在 post-call checkpoint 前抛
+  NullReference，目标 `.py RunScript` 两轮均未调用。为直接回答 file route 问题，本轮把该前置 action
+  和 inline marker 明确记为 `SKIPPED_BY_EXPERIMENT`；这不等于它们执行后 FAIL，也不证明
+  `SendCommand` 在所有 Workbench/SpaceClaim 场景都不可用。
+- 实现：outer journal 保持 `Edit(Interactive=True)`，随后只 direct call
+  `source_geometry.RunScript(ScriptFile=build_script_path)`；固定 34-byte binary entry sentinel 以 exact
+  size/SHA 判定。正常路径在 `POST_EXIT` freeze；仅当异常仍需 connected-build 失败诊断且 build
+  contract 尚未返回时，才记录 cleanup 前后 checkpoint、在 `FAILURE_POST_CLEANUP` freeze，并随后
+  best-effort capture/parse build JSON。runner 用 schema v2 对
+  call outcome、execution reach、entry first-observed/delayed/lost、probe error、freeze/capture 与 build
+  state 做跨字段校验；policy 用 AST 锁 owner/cardinality/keyword/order/cleanup，并保留唯一
+  `model_container.SendCommand` 给后段 Mechanical inspection。
+- 审查中发现并修复的验证器现实问题 1：freeze 后文件可能才出现，也可能在 capture 前消失。第一版
+  validator 把“freeze 时分类”和“capture 时 build state”当成同一原子时刻，因而会拒绝 writer 实际可达
+  的 late valid/FAIL/invalid JSON 以及 freeze-present/capture-gone。修正后两组证据正交：capture 不会
+  倒写成 immediate entry，聚合存在性也不再抹去时序。
+- 审查中发现并修复的验证器现实问题 2：`build_report_probe_errors_at` 是历史累计列表，
+  `build_report_exists_at_freeze` 却只属于最终 freeze checkpoint。把“历史某次有错”误当“当前 freeze
+  有错”会拒绝 `POST_EXIT` 出错但 cleanup 后恢复并明确 absent 的合法路径。现按
+  `freeze_probe in build_report_probe_errors_at` 区分当前错误与历史错误，并各有正/反 mutation。
+- 审查中发现并修复的静态策略问题：只禁 direct `getattr(source_geometry, ...)` 不足以阻止 alias、
+  `__builtins__["get"+"attr"]` 或 IronPython/.NET `GetType→GetMethod→Invoke`。现锁定
+  `source_system.GetContainer(ComponentName="Geometry")` 唯一且直接赋给 `source_geometry`，同时禁止
+  refetch、method rebinding、subscript dispatch 与上述 reflection surface。静态形状锁仍不是 runtime
+  sandbox，也不证明 Windows host 已执行脚本。
+- pre-run checks：journal/runner/policy-test SHA-256 分别为 `160b0b4590b1...d28539b`、
+  `a6a7a2b13f53...fb2adce`、`74acb8d8f74c...d900903`；profile 绑定 journal SHA。Python 3 compile、
+  IronPython 2 grammar、static policy（8 profiles/5 tools）、project audit（106 required/7 manuals/28 CSV）
+  与 diff-check 均 PASS，并由两个只读 reviewer 重放关键状态矩阵。以上不是 capability PASS。
+- 已知非阻塞限制：freeze 与 capture 不是原子快照；历史 probe error 后当前实现 fail closed、跳过 capture，
+  可能损失后来已恢复可读的 child JSON；normal contract/capture error 的部分顶层诊断字段还可进一步做
+  双向内容约束。真实 profile script 已由精确 SHA 锁定，capability PASS 另要求 build contract、工程
+  assertions 和 artifacts 全通过，所以这些限制不允许制造 PASS，但必须保留在方法局限中。
+- 当前实际观察：`run_id=NONE`、`job_id=NONE`、declared report/artifact manifest/raw ZIP=`NONE`、Windows
+  runtime=`NOT_RUN`。不能写 RunScript 返回或抛错、entry 出现或缺失、`.py` loader 可用或不可用、
+  connected build/transfer/mesh/project 通过、GUI 可见或 P1 通过。
+- 下一步：签名 commit/push → Windows `pull --ff-only` 精确同步 → 重装 skill 并核对 installed hashes →
+  Windows static policy/preflight → 新 case/job 实跑 → 原始结果与解释分别归档。无论本诊断结果为何，
+  external `.scdocx` attach、native Named Selection transfer、native parameterization 和 P1 Gate 都仍需
+  独立关闭。
+- Gate/论文影响：NONE；`P1_CAD_TOOLCHAIN_READINESS=BLOCKED`，P1--P6 `NOT_RUN`；这条只能支持“实现并
+  审查了待运行的 fail-closed instrumentation”，不能支持任何 AirJet 产品几何或物理结果。
+- 状态：IMPLEMENTED_PENDING_SIGNED_WINDOWS_RUN
+
 ## 新条目模板
 
 ```text

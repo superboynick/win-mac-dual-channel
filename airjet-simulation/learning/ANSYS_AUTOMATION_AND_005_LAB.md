@@ -736,3 +736,130 @@ Mechanical、mesh 和 project 仍各有硬断言。三个时点都 absent 也只
 handoff wrapper 中 `$Head:` 会被解析为 drive-qualified variable；应写 `${Head}:`。parser error 在 Git
 命令前发生，不能拿来解释签名或 ANSYS 失败。这个小坑和前一轮 stderr/console wrapping 一样，说明
 外层验证器必须先通过自己的语法与 machine-readable 合同。
+
+## 27. 第二十二次实验的实现合同：RunScript-only（尚未实跑）
+
+### 27.1 为什么移除 source-editor SendCommand
+
+run #20/#21 已经证明：在当前 connected Geometry route 中，`SendCommand` 会在 post-call checkpoint
+前阻断后面的目标 action。run #22 移除它，是为了让 `.py RunScript` 第一次成为 Edit 后可到达的直接
+scripting action，不是宣称 `SendCommand` 普遍不可用。代码因此写
+`SKIPPED_BY_EXPERIMENT`，而不是 `NOT_REACHED` 或 FAIL。该轮也不是与 run #19 的 byte-identical A/B：
+instrumentation、分类 schema 和每轮注入的 absolute path 都不同。
+
+这里的 RunScript-only 只限定 source Geometry editor。若前半段合同通过，journal 后半段仍精确允许
+一个 `model_container.SendCommand` 执行 Mechanical inspection；所以不能写“整个 journal 没有
+SendCommand”。
+
+### 27.2 file-only 状态机怎样避免把未执行写成失败
+
+状态机分别保存 `runscript_call_outcome`、entry timing、build-report state 和最终 classification。当前
+受审分类集合是：
+
+```text
+RUNSCRIPT_NOT_REACHED
+RUNSCRIPT_CALL_EXCEPTION_ENTRY_ABSENT
+RUNSCRIPT_CALL_EXCEPTION_ENTRY_EXACT
+RUNSCRIPT_CALL_EXCEPTION_ENTRY_DELAYED_OR_CLEANUP_OBSERVED
+RUNSCRIPT_RETURNED_ENTRY_ABSENT
+RUNSCRIPT_RETURNED_ENTRY_EXACT
+ENTRY_DELAYED_OR_POST_EXIT_OBSERVED
+ENTRY_LOST_AFTER_CHECKPOINT
+ENTRY_SENTINEL_INVALID_OR_PARTIAL
+ENTRY_EXACT_BUILD_REPORT_ABSENT
+PROBE_INDETERMINATE
+BUILD_REPORT_INVALID
+BUILD_CONTRACT_FAIL
+BUILD_CONTRACT_PASS
+```
+
+总体 suite FAIL 不能覆盖这个细分类。例如 direct call 抛异常、call 返回但 entry 缺失、entry 到 cleanup
+后才出现、entry 曾出现后丢失、build JSON 不可解析，是不同的可观测事实，下一轮实验也不同。
+
+### 27.3 exact entry sentinel 只证明到达第一条写入
+
+child 的第一条可观测输出是固定二进制：
+
+```text
+payload = AJM005_CONNECTED_CHILD_ENTERED_V2\n
+size = 34 bytes
+sha256 = 3ee230fb69349453cf2f7f5275879c40423a3462e6d78baadb97237f415cecd7
+```
+
+只有 size 和 SHA 同时 exact 且无 probe error 才算 entry exact。文件存在但 bytes 不符属于
+`ENTRY_SENTINEL_INVALID_OR_PARTIAL`；读取异常属于 `PROBE_INDETERMINATE`。即使 entry exact，也只证明
+child 到达最前面的 builtin write，不证明 import、几何构造、1 body/13 faces、1/1/11 groups、transfer、
+Mechanical、mesh、project 或 P1。
+
+### 27.4 freeze 与 capture 为什么必须正交
+
+`freeze` 固定分类所依据时点：正常路径用 `POST_EXIT`；仅对仍需 connected-build 失败诊断且 build
+contract 尚未返回的异常路径，才先做 cleanup 前后 entry probe，再在 `FAILURE_POST_CLEANUP` freeze。
+若 build state 已是 terminal 或 build contract 已返回，异常处理不会重复这组诊断。`capture` 是该类
+failure freeze 后对 build JSON 的 best-effort 追取与解析。两者
+分开不是消灭 TOCTOU，而是让 TOCTOU 可见：文件可能在两次读取之间出现、消失、写到一半或变得可读。
+
+审查第一版协议时就出现了一个典型验证器 bug：它会拒绝“freeze 时 absent、capture 时出现 valid/FAIL/
+invalid JSON”，也会拒绝“freeze 已见文件、capture 前文件消失”。修复原则不是把后读结果倒写成
+immediate 证据，而是让 freeze classification 与 capture state 正交。另一个 bug 来自历史累计错误：
+`build_report_probe_errors_at` 可以同时含旧 `POST_EXIT` 错误，而 existence 字段只属于最终 freeze；当前
+是否出错必须检查 `freeze_probe` 是否也在错误列表中。
+
+因此现有报告最多支持“某 checkpoint 观察到什么，稍后 capture 又观察到什么”。它不支持“两个字段
+来自同一原子文件快照”，论文局限中必须保留这句话。
+
+### 27.5 reachable-state validator 做了什么、没做什么
+
+runner 不是只检查枚举拼写。它交叉约束：
+
+- outcome 与 `execution_reach`；
+- 四个 entry checkpoint、first-observed、delayed/lost；
+- 当前与历史 probe error；
+- normal/failure freeze、capture attempt、build existence/state；
+- classification 与顶层 captured object/status 的基本一致性。
+
+policy test 从 runner AST 抽取同一个 pure validator，重放 writer 可达的 late arrival/disappearance/error
+状态，并用 contradiction mutation 确认 fail closed。这比只检查 JSON schema 强，但不是形式化证明。
+当前 capability PASS 还必须同时满足：
+
+```text
+diagnostic_contract_ok = true
+classification = BUILD_CONTRACT_PASS
+build_report_state = CONTRACT_PASS
+全部工程 assertions = true
+全部声明 artifacts 通过 size/SHA/manifest 校验
+```
+
+已知限制是 capture error 字典内部字段和 normal contract 的部分顶层副本仍可进一步做双向约束；精确
+profile SHA 与工程 assertions 防止它们制造当前 PASS，但这仍应作为验证器改进项记录。
+
+### 27.6 为什么 AST 审查不能只搜索字符串
+
+字符串搜索能看到 `.RunScript`，却挡不住先把对象或方法赋给 alias，再通过 `getattr`、subscript、
+`operator.attrgetter`、`__builtins__` 或 IronPython/.NET reflection 调用。当前 policy 因而锁定：
+
+- `source_system.GetContainer(ComponentName="Geometry")` 恰好一次并直接赋给 `source_geometry`；
+- source editor 恰好 1 次 direct Edit、1 次 direct RunScript、2 次 direct/no-args Exit、0 次
+  `source_geometry.SendCommand`；
+- literal keywords 与 `Edit → RunScript → normal Exit → Mechanical SendCommand` 顺序；
+- cleanup Exit 的 guard/ancestor；
+- 禁止 source alias、method rebinding、computed dispatch、`__getattribute__`、`__builtins__` 和
+  `GetType→GetMethod→Invoke` 等反射表面。
+
+这只是对已签名 source 的静态形状约束，不是 Windows host 的 runtime sandbox，也不是运行证据。
+
+### 27.7 实跑前结果栏必须保持空
+
+```text
+run_id = NONE
+job_id = NONE
+runscript_call_outcome = NOT_RUN
+entry classification = NOT_RUN
+build state = NOT_RUN
+artifact manifest = NONE
+visibility = NOT_USER_OBSERVED
+P1 stage gate = NOT_RUN
+```
+
+只有签名提交、Windows clean sync、installed-skill hash 和 static policy 全部通过后，才允许启动新
+case/job。实跑后按 report 填唯一分类；不能把实现完成、静态 PASS 或 reviewer PASS 写成 ANSYS 结果。

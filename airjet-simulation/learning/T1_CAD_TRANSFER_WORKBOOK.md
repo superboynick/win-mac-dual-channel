@@ -1,9 +1,10 @@
 # 005 T1 CAD→Workbench 学习工作簿
 
 更新时间：2026-07-15
-当前状态：**已连续保留到第二十次签名实跑；SpaceClaim partial CAD 与 STEP+sidecar solver-side
-reconstruction diagnostic 已分别 PASS，但 external native attach、connected editor scripting、native
-Named Selection transfer 和 native parameterization 尚未闭合，P1 readiness 继续 BLOCKED。**
+当前状态：**已连续保留到第二十一次签名实跑；第二十二次只完成 RunScript-only 实现与静态审查，
+尚未签名 Windows 实跑。SpaceClaim partial CAD 与 STEP+sidecar solver-side reconstruction diagnostic
+已分别 PASS，但 external native attach、connected editor scripting、native Named Selection transfer 和
+native parameterization 尚未闭合，P1 readiness 继续 BLOCKED。**
 
 这份工作簿随实作同步更新。它记录的不只是最后命令，还包括为什么这样建、哪些 API 只在
 本机 v261 证据中出现、第一次尝试可能在哪里失败，以及一次结果最多能支持论文中的哪句话。
@@ -995,3 +996,88 @@ literal True，且 Edit、SendCommand、RunScript 是同一 `Try.body` 的 direc
 returned entry absent、delayed/exit-triggered、entry exact但build missing、build contract pass/fail。
 历史 run #19 可说明 batch RunScript 曾返回但 marker absent，但它的 instrumentation 版本不同，不能
 与新轮写成 byte-identical Interactive 因果 A/B。
+
+## 30. 第二十二次实验设计：file-only reachability（实现完成，尚未实跑）
+
+### 30.1 本轮问题和唯一目标 action
+
+本轮不再让已知会在 checkpoint 前空引用的 source-editor `SendCommand` 挡住目标。它保持
+`Interactive=True`，把 inline control 明确标为 `SKIPPED_BY_EXPERIMENT`，只问三个可观测问题：
+
+1. direct `.py RunScript` 是未到达、call 内抛异常，还是返回？
+2. 固定 entry sentinel 第一次在哪个 checkpoint exact；是否延迟出现或后来丢失？
+3. build report 在 freeze 时和稍后 capture 时分别是什么状态？
+
+这不是与历史 run 的整组 byte-identical 单变量实验。case-specific absolute paths、注入路径后的 child
+bytes、schema 和 instrumentation 都会变化；可比较的是受审 action/reach 合同，不是全部输入 SHA。
+
+### 30.2 实际控制流
+
+```text
+empty Geometry + Edit(Interactive=True)
+-> source_geometry.RunScript(ScriptFile=build_script_path)
+-> immediate exact entry/build probe
+-> source_geometry.Exit()
+-> POST_EXIT freeze
+
+或 direct call/后续步骤异常，且仍需 connected-build 失败诊断、build contract 尚未返回
+-> FAILURE_PRE_CLEANUP probe
+-> guarded cleanup Exit()
+-> FAILURE_POST_CLEANUP freeze
+-> best-effort build-report capture/parse
+```
+
+normal 和 failure freeze 是分类时点；capture 是稍后的诊断证据。若文件在两者之间出现或消失，两个
+字段应同时保留，而不是让后者重写前者。它们不是原子 snapshot。若 build state 已 terminal 或 build
+contract 已返回，异常处理不会重复执行这组 failure probe/freeze/capture。
+
+### 30.3 判读层级
+
+```text
+entry exact
+!= build JSON valid
+!= build contract PASS
+!= geometry share / Refresh PASS
+!= Named Selection / mesh / project PASS
+!= external native attach / native parameterization PASS
+!= P1 PASS
+```
+
+即使 classification 最终是 `BUILD_CONTRACT_PASS`，suite 仍要验证所有工程 assertions、声明 artifacts、
+predecessor identity 和 manifest；connected fixture 也不能替代 external `.scdocx` route。
+
+### 30.4 为什么需要可达状态和 AST mutation
+
+只检查字段取值会接受不可能组合，例如 `RunScript=EXCEPTION` 却写 build contract RETURNED、failure
+capture 已执行却 freeze 仍是 normal checkpoint，或当前 probe 自报错误又确定文件 absent。pure validator
+用 writer 的控制流限制这些组合，并以 late arrival、disappearance、历史错误恢复等正向样本防止过严。
+
+只搜索 `SendCommand` 字符串也不够：对象 alias、method rebinding、computed `getattr`、字典下标和 .NET
+reflection 都可能绕开 direct-call 数量。AST policy 同时限制 owner、cardinality、argument、order、alias、
+refetch 与 reflection；但它仍只是静态审查，不是 runtime sandbox。
+
+### 30.5 待实跑结果表
+
+| field | pre-run value |
+|---|---|
+| signed commit | `PENDING` |
+| Windows exact HEAD | `NOT_SYNCED` |
+| case / suite / job IDs | `NONE` |
+| RunScript outcome | `NOT_RUN` |
+| entry first observed | `NOT_RUN` |
+| freeze / capture build state | `NOT_RUN` |
+| engineering assertions/artifacts | `NOT_RUN` |
+| visibility | `NOT_USER_OBSERVED` |
+| P1 Gate | `NOT_RUN` |
+
+实跑前不得把任何一格改为 RETURNED、EXCEPTION、present、absent、PASS 或 FAIL。签名 commit、Windows
+clean fast-forward、skill 安装 hash、static policy 和 preflight 都通过后，才创建新的 case/job，并用
+真实 report、manifest、raw evidence 和解释文件填写。
+
+### 30.6 自检题
+
+1. 为什么 `SKIPPED_BY_EXPERIMENT` 与 `NOT_REACHED` 是两个不同事实？
+2. 为什么 capture 到 late FAIL JSON 不能倒写成“post-RunScript 已有 build report”？
+3. 为什么历史 `POST_EXIT` probe error 不等于最终 `FAILURE_POST_CLEANUP` 也出错？
+4. 为什么本轮仍保留一个 Mechanical `model_container.SendCommand`？
+5. 为什么即使 connected route 全通过，也不能把 external native attach 或 P1 写成 PASS？

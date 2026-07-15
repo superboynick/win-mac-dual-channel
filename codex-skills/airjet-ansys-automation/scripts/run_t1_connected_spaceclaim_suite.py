@@ -178,6 +178,548 @@ def report_path_matches(declared: object, artifact: str) -> bool:
     )
 
 
+FILE_DIAGNOSTIC_FIELDS = {
+    "schema_version",
+    "mode",
+    "send_command_control",
+    "entry_expected_size",
+    "entry_expected_sha256",
+    "runscript_call_outcome",
+    "entry_exact_at_call_checkpoint",
+    "entry_exact_post_exit",
+    "entry_exact_failure_pre_cleanup",
+    "entry_exact_failure_post_cleanup",
+    "entry_exact_at_freeze",
+    "entry_first_observed_at",
+    "entry_invalid_or_partial_at",
+    "entry_probe_errors_at",
+    "build_report_probe_errors_at",
+    "entry_delayed_or_later_observed",
+    "entry_lost_after_checkpoint",
+    "build_report_exists_at_freeze",
+    "build_report_exists_at_capture",
+    "build_report_capture_state",
+    "build_report_capture_context",
+    "build_report_state",
+    "classification",
+    "freeze_probe",
+}
+FILE_CHECKPOINTS = {
+    "POST_RUNSCRIPT",
+    "POST_EXIT",
+    "FAILURE_PRE_CLEANUP",
+    "FAILURE_POST_CLEANUP",
+}
+BUILD_PROBE_CHECKPOINTS = {
+    "POST_EXIT",
+    "FAILURE_POST_CLEANUP",
+    "BUILD_CAPTURE",
+}
+BUILD_CAPTURE_STATES = {
+    "NOT_ATTEMPTED",
+    "SKIPPED_PRIOR_PROBE_ERROR",
+    "ABSENT",
+    "PRESENT_VALID_OBJECT",
+    "PRESENT_INVALID_OR_UNREADABLE",
+    "EXISTS_PROBE_ERROR",
+}
+FILE_CLASSIFICATIONS = {
+    "RUNSCRIPT_NOT_REACHED",
+    "RUNSCRIPT_CALL_EXCEPTION_ENTRY_ABSENT",
+    "RUNSCRIPT_CALL_EXCEPTION_ENTRY_EXACT",
+    "RUNSCRIPT_CALL_EXCEPTION_ENTRY_DELAYED_OR_CLEANUP_OBSERVED",
+    "RUNSCRIPT_RETURNED_ENTRY_ABSENT",
+    "RUNSCRIPT_RETURNED_ENTRY_EXACT",
+    "ENTRY_DELAYED_OR_POST_EXIT_OBSERVED",
+    "ENTRY_LOST_AFTER_CHECKPOINT",
+    "ENTRY_SENTINEL_INVALID_OR_PARTIAL",
+    "ENTRY_EXACT_BUILD_REPORT_ABSENT",
+    "PROBE_INDETERMINATE",
+    "BUILD_REPORT_INVALID",
+    "BUILD_CONTRACT_FAIL",
+    "BUILD_CONTRACT_PASS",
+}
+FILE_BUILD_STATES = {
+    "ABSENT",
+    "ENTRY_EXACT_BUILD_REPORT_ABSENT",
+    "PRESENT_NOT_VALIDATED",
+    "PRESENT_ENTRY_CONTRACT_FAIL",
+    "INVALID_OR_UNREADABLE",
+    "REPORTED_BUILD_FAIL",
+    "CONTRACT_FAIL",
+    "CONTRACT_PASS",
+    "PROBE_INDETERMINATE",
+}
+
+
+def file_runscript_diagnostic_contract_ok(report: object) -> bool:
+    if not isinstance(report, dict):
+        return False
+    diagnostic = report.get("script_channel_diagnostic")
+    reach = report.get("execution_reach")
+    if not isinstance(diagnostic, dict) or set(diagnostic) != FILE_DIAGNOSTIC_FIELDS:
+        return False
+    if not isinstance(reach, dict):
+        return False
+    if (
+        diagnostic.get("schema_version") != 2
+        or diagnostic.get("mode") != "INTERACTIVE_TRUE_RUNSCRIPT_ONLY"
+        or diagnostic.get("send_command_control") != "SKIPPED_BY_EXPERIMENT"
+        or reach.get("connected_editor_send_command_control")
+        != "SKIPPED_BY_EXPERIMENT"
+        or reach.get("connected_editor_post_send_command_probe")
+        != "SKIPPED_BY_EXPERIMENT"
+        or diagnostic.get("entry_expected_size") != 34
+        or diagnostic.get("entry_expected_sha256")
+        != "3ee230fb69349453cf2f7f5275879c40423a3462e6d78baadb97237f415cecd7"
+    ):
+        return False
+    outcome = diagnostic.get("runscript_call_outcome")
+    classification = diagnostic.get("classification")
+    build_state = diagnostic.get("build_report_state")
+    if outcome not in {"NOT_REACHED", "EXCEPTION", "RETURNED"}:
+        return False
+    if classification not in FILE_CLASSIFICATIONS or build_state not in FILE_BUILD_STATES:
+        return False
+    checkpoint_fields = {
+        "POST_RUNSCRIPT": "entry_exact_at_call_checkpoint",
+        "POST_EXIT": "entry_exact_post_exit",
+        "FAILURE_PRE_CLEANUP": "entry_exact_failure_pre_cleanup",
+        "FAILURE_POST_CLEANUP": "entry_exact_failure_post_cleanup",
+    }
+    checkpoint_values = {
+        checkpoint: diagnostic.get(field)
+        for checkpoint, field in checkpoint_fields.items()
+    }
+    if any(
+        value is not None and not isinstance(value, bool)
+        for value in checkpoint_values.values()
+    ):
+        return False
+    if not isinstance(diagnostic.get("entry_exact_at_freeze"), bool):
+        return False
+    if not isinstance(diagnostic.get("entry_delayed_or_later_observed"), bool):
+        return False
+    if not isinstance(diagnostic.get("entry_lost_after_checkpoint"), bool):
+        return False
+    for key in ("entry_invalid_or_partial_at", "entry_probe_errors_at"):
+        values = diagnostic.get(key)
+        if (
+            not isinstance(values, list)
+            or len(values) != len(set(values))
+            or any(value not in FILE_CHECKPOINTS for value in values)
+        ):
+            return False
+    build_probe_errors = diagnostic.get("build_report_probe_errors_at")
+    if (
+        not isinstance(build_probe_errors, list)
+        or len(build_probe_errors) != len(set(build_probe_errors))
+        or any(value not in BUILD_PROBE_CHECKPOINTS for value in build_probe_errors)
+    ):
+        return False
+    build_exists_value = diagnostic.get("build_report_exists_at_freeze")
+    freeze_build_probe_errors = [
+        value for value in build_probe_errors if value != "BUILD_CAPTURE"
+    ]
+    if build_exists_value is not None and not isinstance(build_exists_value, bool):
+        return False
+    capture_exists = diagnostic.get("build_report_exists_at_capture")
+    capture_state = diagnostic.get("build_report_capture_state")
+    capture_context = diagnostic.get("build_report_capture_context")
+    if capture_state not in BUILD_CAPTURE_STATES:
+        return False
+    capture_contracts = {
+        "NOT_ATTEMPTED": (None, None),
+        "SKIPPED_PRIOR_PROBE_ERROR": (None, "FAILURE_POST_CLEANUP"),
+        "ABSENT": (False, "FAILURE_POST_CLEANUP"),
+        "PRESENT_VALID_OBJECT": (True, "FAILURE_POST_CLEANUP"),
+        "PRESENT_INVALID_OR_UNREADABLE": (True, "FAILURE_POST_CLEANUP"),
+        "EXISTS_PROBE_ERROR": (None, "FAILURE_POST_CLEANUP"),
+    }
+    if (capture_exists, capture_context) != capture_contracts[capture_state]:
+        return False
+    if capture_state == "SKIPPED_PRIOR_PROBE_ERROR" and not freeze_build_probe_errors:
+        return False
+    if (capture_state == "EXISTS_PROBE_ERROR") != (
+        "BUILD_CAPTURE" in build_probe_errors
+    ):
+        return False
+    if capture_state == "PRESENT_VALID_OBJECT" and not (
+        isinstance(report.get("connected_build"), dict)
+        and report.get("connected_build_capture_context")
+        == "FAILURE_POST_CLEANUP"
+    ):
+        return False
+    if capture_state == "PRESENT_INVALID_OR_UNREADABLE" and not isinstance(
+        report.get("connected_build_parse_error"), dict
+    ):
+        return False
+    if capture_state == "EXISTS_PROBE_ERROR" and not isinstance(
+        report.get("connected_build_capture_error"), dict
+    ):
+        return False
+    expected_run_reach = {
+        "NOT_REACHED": "NOT_REACHED",
+        "EXCEPTION": "CALLED",
+        "RETURNED": "RETURNED",
+    }[outcome]
+    if reach.get("connected_editor_run_script") != expected_run_reach:
+        return False
+    build_contract_reach = reach.get("connected_build_contract")
+    if outcome in {"NOT_REACHED", "EXCEPTION"} and build_contract_reach != "NOT_REACHED":
+        return False
+    if outcome == "RETURNED" and build_contract_reach not in {
+        "NOT_REACHED",
+        "CALLED",
+        "RETURNED",
+    }:
+        return False
+    first_observed = diagnostic.get("entry_first_observed_at")
+    exact_checkpoints = [
+        checkpoint
+        for checkpoint in (
+            "POST_RUNSCRIPT",
+            "POST_EXIT",
+            "FAILURE_PRE_CLEANUP",
+            "FAILURE_POST_CLEANUP",
+        )
+        if checkpoint_values[checkpoint] is True
+    ]
+    if first_observed != (exact_checkpoints[0] if exact_checkpoints else None):
+        return False
+    invalid_checkpoints = set(diagnostic.get("entry_invalid_or_partial_at"))
+    entry_probe_errors = set(diagnostic.get("entry_probe_errors_at"))
+    if invalid_checkpoints & entry_probe_errors:
+        return False
+    if any(
+        checkpoint_values[checkpoint] is not False
+        for checkpoint in invalid_checkpoints | entry_probe_errors
+    ):
+        return False
+    freeze_probe = diagnostic.get("freeze_probe")
+    if freeze_probe not in {"POST_EXIT", "FAILURE_POST_CLEANUP"}:
+        return False
+    current_freeze_probe_error = freeze_probe in freeze_build_probe_errors
+    if current_freeze_probe_error:
+        if build_exists_value is False:
+            return False
+    elif not isinstance(build_exists_value, bool):
+        return False
+    if checkpoint_values[freeze_probe] != diagnostic.get("entry_exact_at_freeze"):
+        return False
+    if outcome == "NOT_REACHED" and not (
+        checkpoint_values["POST_RUNSCRIPT"] is None
+        and checkpoint_values["POST_EXIT"] is None
+        and isinstance(checkpoint_values["FAILURE_PRE_CLEANUP"], bool)
+        and isinstance(checkpoint_values["FAILURE_POST_CLEANUP"], bool)
+        and freeze_probe == "FAILURE_POST_CLEANUP"
+    ):
+        return False
+    if outcome == "EXCEPTION" and not (
+        checkpoint_values["POST_RUNSCRIPT"] is None
+        and checkpoint_values["POST_EXIT"] is None
+        and isinstance(checkpoint_values["FAILURE_PRE_CLEANUP"], bool)
+        and isinstance(checkpoint_values["FAILURE_POST_CLEANUP"], bool)
+        and freeze_probe == "FAILURE_POST_CLEANUP"
+    ):
+        return False
+    if outcome == "RETURNED" and not isinstance(
+        checkpoint_values["POST_RUNSCRIPT"], bool
+    ):
+        return False
+    if freeze_probe == "POST_EXIT" and not (
+        outcome == "RETURNED"
+        and isinstance(checkpoint_values["POST_EXIT"], bool)
+        and checkpoint_values["FAILURE_PRE_CLEANUP"] is None
+        and checkpoint_values["FAILURE_POST_CLEANUP"] is None
+    ):
+        return False
+    if freeze_probe == "POST_EXIT" and capture_state != "NOT_ATTEMPTED":
+        return False
+    if freeze_probe == "FAILURE_POST_CLEANUP" and capture_state == "NOT_ATTEMPTED":
+        return False
+    if freeze_build_probe_errors:
+        if capture_state != "SKIPPED_PRIOR_PROBE_ERROR":
+            return False
+    elif capture_state == "SKIPPED_PRIOR_PROBE_ERROR":
+        return False
+    if capture_state != "NOT_ATTEMPTED" and build_contract_reach == "RETURNED":
+        return False
+    delayed = False
+    if outcome == "RETURNED":
+        delayed = (
+            checkpoint_values["POST_RUNSCRIPT"] is False
+            and any(
+                checkpoint_values[checkpoint] is True
+                for checkpoint in (
+                    "POST_EXIT",
+                    "FAILURE_PRE_CLEANUP",
+                    "FAILURE_POST_CLEANUP",
+                )
+            )
+        )
+    elif outcome == "EXCEPTION":
+        delayed = (
+            checkpoint_values["FAILURE_PRE_CLEANUP"] is False
+            and checkpoint_values["FAILURE_POST_CLEANUP"] is True
+        )
+    if diagnostic.get("entry_delayed_or_later_observed") is not delayed:
+        return False
+    lost = (
+        checkpoint_values["POST_RUNSCRIPT"] is True
+        and any(
+            checkpoint_values[checkpoint] is False
+            for checkpoint in (
+                "POST_EXIT",
+                "FAILURE_PRE_CLEANUP",
+                "FAILURE_POST_CLEANUP",
+            )
+        )
+    )
+    if diagnostic.get("entry_lost_after_checkpoint") is not lost:
+        return False
+    invalid = bool(diagnostic.get("entry_invalid_or_partial_at"))
+    indeterminate = bool(entry_probe_errors or build_probe_errors)
+    exact_freeze = diagnostic.get("entry_exact_at_freeze") is True
+    build_exists = (
+        diagnostic.get("build_report_exists_at_freeze") is True
+        or capture_exists is True
+    )
+    if outcome != "NOT_REACHED":
+        if indeterminate and classification != "PROBE_INDETERMINATE":
+            return False
+        if not indeterminate and classification == "PROBE_INDETERMINATE":
+            return False
+        if not indeterminate and invalid and classification != "ENTRY_SENTINEL_INVALID_OR_PARTIAL":
+            return False
+        if not indeterminate and not invalid and classification == "ENTRY_SENTINEL_INVALID_OR_PARTIAL":
+            return False
+    allowed_by_outcome = {
+        "NOT_REACHED": {"RUNSCRIPT_NOT_REACHED"},
+        "EXCEPTION": {
+            "RUNSCRIPT_CALL_EXCEPTION_ENTRY_ABSENT",
+            "RUNSCRIPT_CALL_EXCEPTION_ENTRY_EXACT",
+            "RUNSCRIPT_CALL_EXCEPTION_ENTRY_DELAYED_OR_CLEANUP_OBSERVED",
+            "ENTRY_SENTINEL_INVALID_OR_PARTIAL",
+            "PROBE_INDETERMINATE",
+        },
+        "RETURNED": {
+            "RUNSCRIPT_RETURNED_ENTRY_ABSENT",
+            "RUNSCRIPT_RETURNED_ENTRY_EXACT",
+            "ENTRY_DELAYED_OR_POST_EXIT_OBSERVED",
+            "ENTRY_LOST_AFTER_CHECKPOINT",
+            "ENTRY_SENTINEL_INVALID_OR_PARTIAL",
+            "ENTRY_EXACT_BUILD_REPORT_ABSENT",
+            "PROBE_INDETERMINATE",
+            "BUILD_REPORT_INVALID",
+            "BUILD_CONTRACT_FAIL",
+            "BUILD_CONTRACT_PASS",
+        },
+    }
+    if classification not in allowed_by_outcome[outcome]:
+        return False
+    if classification == "RUNSCRIPT_CALL_EXCEPTION_ENTRY_EXACT" and not (
+        checkpoint_values["FAILURE_PRE_CLEANUP"] is True and not delayed
+    ):
+        return False
+    if (
+        classification
+        == "RUNSCRIPT_CALL_EXCEPTION_ENTRY_DELAYED_OR_CLEANUP_OBSERVED"
+        and not delayed
+    ):
+        return False
+    if classification == "RUNSCRIPT_CALL_EXCEPTION_ENTRY_ABSENT" and not (
+        checkpoint_values["FAILURE_PRE_CLEANUP"] is False
+        and checkpoint_values["FAILURE_POST_CLEANUP"] is False
+        and not invalid
+        and not indeterminate
+    ):
+        return False
+    if classification == "RUNSCRIPT_RETURNED_ENTRY_ABSENT" and not (
+        not exact_checkpoints
+        and not invalid
+        and not indeterminate
+        and build_exists_value is False
+    ):
+        return False
+    if classification == "RUNSCRIPT_RETURNED_ENTRY_EXACT" and not (
+        exact_freeze
+        and not delayed
+        and not lost
+        and not invalid
+        and not indeterminate
+        and build_exists_value is True
+    ):
+        return False
+    if classification == "ENTRY_DELAYED_OR_POST_EXIT_OBSERVED" and not delayed:
+        return False
+    if classification == "ENTRY_LOST_AFTER_CHECKPOINT" and not lost:
+        return False
+    if classification == "ENTRY_SENTINEL_INVALID_OR_PARTIAL" and not invalid:
+        return False
+    if classification == "PROBE_INDETERMINATE" and not indeterminate:
+        return False
+    if classification == "ENTRY_EXACT_BUILD_REPORT_ABSENT" and not (
+        exact_freeze
+        and build_exists_value is False
+        and not delayed
+    ):
+        return False
+    if classification == "BUILD_REPORT_INVALID" and not (
+        build_exists and build_state == "INVALID_OR_UNREADABLE"
+    ):
+        return False
+    if classification == "BUILD_CONTRACT_FAIL" and build_state not in {
+        "PRESENT_ENTRY_CONTRACT_FAIL",
+        "REPORTED_BUILD_FAIL",
+        "CONTRACT_FAIL",
+    }:
+        return False
+    present_states = {
+        "PRESENT_NOT_VALIDATED",
+        "PRESENT_ENTRY_CONTRACT_FAIL",
+        "INVALID_OR_UNREADABLE",
+        "REPORTED_BUILD_FAIL",
+        "CONTRACT_FAIL",
+        "CONTRACT_PASS",
+    }
+    if build_state == "ABSENT" and build_exists:
+        return False
+    if build_state == "PROBE_INDETERMINATE" and not build_probe_errors:
+        return False
+    if build_probe_errors and build_state != "PROBE_INDETERMINATE":
+        return False
+    if build_state == "ENTRY_EXACT_BUILD_REPORT_ABSENT" and not (
+        build_exists_value is False and exact_freeze
+    ):
+        return False
+    if build_state in present_states and not build_exists:
+        return False
+    if build_state in {
+        "PRESENT_ENTRY_CONTRACT_FAIL",
+        "CONTRACT_FAIL",
+        "CONTRACT_PASS",
+    } and outcome != "RETURNED":
+        return False
+    if build_state == "PRESENT_ENTRY_CONTRACT_FAIL" and classification not in {
+        "BUILD_CONTRACT_FAIL",
+        "ENTRY_DELAYED_OR_POST_EXIT_OBSERVED",
+        "ENTRY_LOST_AFTER_CHECKPOINT",
+        "ENTRY_SENTINEL_INVALID_OR_PARTIAL",
+        "PROBE_INDETERMINATE",
+    }:
+        return False
+    if build_state == "INVALID_OR_UNREADABLE" and outcome == "RETURNED" and classification != "BUILD_REPORT_INVALID":
+        if capture_state == "NOT_ATTEMPTED":
+            return False
+    if build_state in {"REPORTED_BUILD_FAIL", "CONTRACT_FAIL"} and outcome == "RETURNED" and classification != "BUILD_CONTRACT_FAIL":
+        if capture_state == "NOT_ATTEMPTED":
+            return False
+    if build_state in {"ABSENT", "ENTRY_EXACT_BUILD_REPORT_ABSENT"} and (
+        capture_state != "ABSENT" or freeze_probe != "FAILURE_POST_CLEANUP"
+    ):
+        return False
+    if build_state == "PRESENT_NOT_VALIDATED" and not (
+        freeze_probe == "FAILURE_POST_CLEANUP"
+        and (
+            capture_state == "PRESENT_VALID_OBJECT"
+            or (
+                capture_state == "ABSENT"
+                and build_exists_value is True
+            )
+        )
+    ):
+        return False
+    if build_state == "PRESENT_ENTRY_CONTRACT_FAIL" and not (
+        outcome == "RETURNED"
+        and freeze_probe == "POST_EXIT"
+        and capture_state == "NOT_ATTEMPTED"
+        and build_exists_value is True
+        and build_contract_reach == "CALLED"
+        and (
+            checkpoint_values["POST_RUNSCRIPT"] is not True
+            or checkpoint_values["POST_EXIT"] is not True
+            or bool(entry_probe_errors)
+            or invalid
+        )
+    ):
+        return False
+    normal_parsed_states = {
+        "INVALID_OR_UNREADABLE",
+        "REPORTED_BUILD_FAIL",
+        "CONTRACT_FAIL",
+        "CONTRACT_PASS",
+    }
+    if build_state in normal_parsed_states and capture_state == "NOT_ATTEMPTED":
+        if not (
+            outcome == "RETURNED"
+            and freeze_probe == "POST_EXIT"
+            and build_exists_value is True
+            and checkpoint_values["POST_RUNSCRIPT"] is True
+            and checkpoint_values["POST_EXIT"] is True
+            and exact_freeze
+            and not delayed
+            and not lost
+            and not invalid
+            and not indeterminate
+            and build_contract_reach
+            == ("RETURNED" if build_state == "CONTRACT_PASS" else "CALLED")
+        ):
+            return False
+    if build_state == "INVALID_OR_UNREADABLE" and capture_state not in {
+        "NOT_ATTEMPTED",
+        "PRESENT_INVALID_OR_UNREADABLE",
+    }:
+        return False
+    if build_state == "REPORTED_BUILD_FAIL" and capture_state not in {
+        "NOT_ATTEMPTED",
+        "PRESENT_VALID_OBJECT",
+    }:
+        return False
+    if build_state == "REPORTED_BUILD_FAIL" and (
+        not isinstance(report.get("connected_build"), dict)
+        or report["connected_build"].get("status")
+        != "FAIL_CONNECTED_EDITOR_BUILD"
+    ):
+        return False
+    if (
+        build_state == "PRESENT_NOT_VALIDATED"
+        and capture_state == "PRESENT_VALID_OBJECT"
+        and report["connected_build"].get("status")
+        == "FAIL_CONNECTED_EDITOR_BUILD"
+    ):
+        return False
+    if build_state in {"CONTRACT_FAIL", "CONTRACT_PASS"} and (
+        capture_state != "NOT_ATTEMPTED"
+    ):
+        return False
+    if build_state == "PROBE_INDETERMINATE" and capture_state not in {
+        "SKIPPED_PRIOR_PROBE_ERROR",
+        "EXISTS_PROBE_ERROR",
+    }:
+        return False
+    if (classification == "BUILD_CONTRACT_PASS") != (build_state == "CONTRACT_PASS"):
+        return False
+    if classification == "BUILD_CONTRACT_PASS" and not (
+        outcome == "RETURNED"
+        and checkpoint_values["POST_RUNSCRIPT"] is True
+        and checkpoint_values["POST_EXIT"] is True
+        and checkpoint_values["FAILURE_PRE_CLEANUP"] is None
+        and checkpoint_values["FAILURE_POST_CLEANUP"] is None
+        and freeze_probe == "POST_EXIT"
+        and exact_freeze
+        and build_exists
+        and not delayed
+        and not lost
+        and not invalid
+        and not indeterminate
+        and reach.get("connected_editor_run_script") == "RETURNED"
+        and reach.get("connected_build_contract") == "RETURNED"
+    ):
+        return False
+    return True
+
+
 async def run_profile(
     session: ClientSession,
     profile_id: str,
@@ -267,6 +809,7 @@ async def run_profile(
                 break
 
     scope_ok = True
+    diagnostic_contract_ok = True
     if profile_id == SC_PROFILE:
         scope_ok = (
             isinstance(report, dict)
@@ -274,18 +817,17 @@ async def run_profile(
             and report.get("p1_cad_hard_gate") == "BLOCKED_NATIVE_PARAMETERIZATION"
         )
     elif profile_id == WB_PROFILE:
-        boundaries = report.get("canonical_claim_boundaries", {})
-        channel = report.get("script_channel_diagnostic", {})
-        channel_states = {
-            (True, True): "INLINE_PASS_FILE_PASS",
-            (True, False): "INLINE_PASS_FILE_FAIL",
-            (False, True): "INLINE_FAIL_FILE_PASS",
-            (False, False): "INLINE_FAIL_FILE_FAIL",
-        }
-        channel_key = (
-            channel.get("inline_control_pass_at_checkpoint"),
-            channel.get("file_entry_exact_at_freeze"),
+        boundaries = (
+            report.get("canonical_claim_boundaries", {})
+            if isinstance(report, dict)
+            else {}
         )
+        channel = (
+            report.get("script_channel_diagnostic", {})
+            if isinstance(report, dict)
+            else {}
+        )
+        diagnostic_contract_ok = file_runscript_diagnostic_contract_ok(report)
         scope_ok = (
             isinstance(report, dict)
             and report.get("diagnostic_only") is True
@@ -302,11 +844,9 @@ async def run_profile(
                 "p1_cad_toolchain_readiness",
             }
             and all(value is False for value in boundaries.values())
-            and isinstance(channel_key[0], bool)
-            and isinstance(channel_key[1], bool)
-            and channel_key in channel_states
-            and channel.get("classification") == channel_states[channel_key]
-            and isinstance(channel.get("inline_delayed_or_uncertain"), bool)
+            and diagnostic_contract_ok
+            and channel.get("classification") == "BUILD_CONTRACT_PASS"
+            and channel.get("build_report_state") == "CONTRACT_PASS"
         )
     capability_pass = (
         phase == "PROCESS_EXITED_0"
@@ -332,6 +872,7 @@ async def run_profile(
         "declared_report_sha256": report_entry.get("sha256") if report_entry else None,
         "declared_report": report,
         "capability_pass": capability_pass,
+        "diagnostic_contract_ok": diagnostic_contract_ok,
         "p1_stage_gate": "NOT_RUN",
     }
 
@@ -436,11 +977,15 @@ async def run_suite() -> int:
                         )
                         result["runs"].append(wb_run)
                         wb_report = wb_run.get("declared_report")
-                        if isinstance(wb_report, dict):
+                        if wb_run.get("diagnostic_contract_ok") is not True:
+                            result["script_channel_classification"] = (
+                                "INVALID_DIAGNOSTIC_CONTRACT"
+                            )
+                        elif isinstance(wb_report, dict):
                             channel = wb_report.get("script_channel_diagnostic")
                             if isinstance(channel, dict):
-                                result["script_channel_classification"] = channel.get(
-                                    "classification", "NOT_EVALUATED"
+                                result["script_channel_classification"] = (
+                                    channel.get("classification", "NOT_EVALUATED")
                                 )
                         result["connected_spaceclaim_diagnostic"] = (
                             "PASS" if wb_run["capability_pass"] else "FAIL"
