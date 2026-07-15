@@ -278,6 +278,13 @@ def test_embedded_mechanical_script_formats_and_compiles():
     compile(rendered, "embedded-mechanical-observer", "exec")
 
 
+def test_runner_uses_isolated_mode_safe_sibling_import():
+    source = Path(runner.__file__).read_text(encoding="utf-8")
+    assert "spec_from_file_location" in source
+    assert "PRODUCER_RUNNER_PATH" in source
+    assert "import run_v02_preliminary_006" not in source
+
+
 def main():
     tests = [
         test_preflight_passes,
@@ -288,6 +295,7 @@ def main():
         test_validate_observer_rejects_p1_overclaim,
         test_validate_observer_rejects_hash_mismatch,
         test_embedded_mechanical_script_formats_and_compiles,
+        test_runner_uses_isolated_mode_safe_sibling_import,
     ]
     for test in tests:
         test()

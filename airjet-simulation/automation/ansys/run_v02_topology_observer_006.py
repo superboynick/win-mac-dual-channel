@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import suppress
 from datetime import datetime, timedelta, timezone
+import importlib.util
 import json
 import os
 from pathlib import Path, PureWindowsPath
@@ -20,7 +21,17 @@ from importlib.metadata import version
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
 
-import run_v02_preliminary_006 as producer_runner
+
+PRODUCER_RUNNER_PATH = Path(__file__).resolve().with_name(
+    "run_v02_preliminary_006.py"
+)
+_producer_spec = importlib.util.spec_from_file_location(
+    "airjet_v02_preliminary_runner", PRODUCER_RUNNER_PATH
+)
+if _producer_spec is None or _producer_spec.loader is None:
+    raise RuntimeError("BLOCKED_PRODUCER_RUNNER_IMPORT_SPEC")
+producer_runner = importlib.util.module_from_spec(_producer_spec)
+_producer_spec.loader.exec_module(producer_runner)
 
 
 EXPECTED_PYTHON = producer_runner.EXPECTED_PYTHON
