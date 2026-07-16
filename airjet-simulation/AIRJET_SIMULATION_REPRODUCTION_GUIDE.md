@@ -131,12 +131,12 @@ airjet-simulation/
 
 | 指标 | 值 |
 |---|---|
-| 体单元数 | 35,108 |
+| 体单元数 | 39,062（0.15mm overlap） |
 | 面网格面数 | 334,190 (total), 425,584 (包括 dead zones) |
 | 流体区域数 | 1 fluid + 11 voids |
-| min Orthogonal Quality | 0.565 ~ 0.57 |
+| min Orthogonal Quality | 0.49 ~ 0.57 |
 | 外部 baffle | 1 (zone 323, 预期) |
-| 网格文件大小 | ~8.1 MB (.msh.h5) |
+| 网格文件大小 | ~8.1-9.0 MB (.msh.h5) |
 
 ---
 
