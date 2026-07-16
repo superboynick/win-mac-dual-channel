@@ -440,6 +440,7 @@ def validate_semantic_zone_mapping(
     indices = []
     zone_ids = []
     zone_roles: dict[int, str] = {}
+    zone_role_sources: dict[int, dict[str, list[int]]] = {}
     zone_name_by_id: dict[int, str] = {}
     zone_id_by_name: dict[str, int] = {}
     role_zone_ids = {role: [] for role in BOUNDARY_ROLE_ORDER}
@@ -462,9 +463,8 @@ def validate_semantic_zone_mapping(
             raise RuntimeError(f"{stage}_SEMANTIC_MAPPING_VALUE_INVALID")
         indices.append(index)
         zone_ids.append(zone_id)
-        existing_role = zone_roles.get(zone_id)
-        if existing_role is not None and existing_role != role:
-            raise RuntimeError(f"{stage}_SEMANTIC_ZONE_CROSSES_ROLES")
+        role_sources = zone_role_sources.setdefault(zone_id, {})
+        role_sources.setdefault(role, []).append(index)
         existing_name = zone_name_by_id.get(zone_id)
         if existing_name is not None and existing_name != zone_name:
             raise RuntimeError(f"{stage}_SEMANTIC_ZONE_ID_NAME_CONFLICT")
@@ -478,6 +478,22 @@ def validate_semantic_zone_mapping(
         if zone_id not in role_zone_ids[role]:
             role_zone_ids[role].append(zone_id)
             role_zone_names[role].append(zone_name)
+    cross_role_zones = [
+        {
+            "zone_id": zone_id,
+            "zone_name": zone_name_by_id[zone_id],
+            "roles": {
+                role: source_indices
+                for role, source_indices in sorted(role_sources.items())
+            },
+        }
+        for zone_id, role_sources in sorted(zone_role_sources.items())
+        if len(role_sources) > 1
+    ]
+    if cross_role_zones:
+        raise RuntimeError(
+            "{}_SEMANTIC_ZONE_CROSSES_ROLES:{!r}".format(stage, cross_role_zones)
+        )
     if indices != list(range(SOURCE_BOUNDARY_FACE_COUNT)):
         raise RuntimeError(f"{stage}_SEMANTIC_SOURCE_COVERAGE_INVALID")
     if counts != EXPECTED_BOUNDARY_ROLE_COUNTS:
