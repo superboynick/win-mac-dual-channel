@@ -270,3 +270,62 @@ writing 109 node zones
 writing 108 edge zones 
 writing 119 face zones 
 writing node curvature data
+done.
+    updating regions...
+    done.
+checking object "product_continuous_fluid-ajm006_v03_fluid_continuous"...
+    skipping validating regions of mesh object "product_continuous_fluid-ajm006_v03_fluid_continuous"...done.
+auto meshing object product_continuous_fluid-ajm006_v03_fluid_continuous...
+
+Identifying Topology...
+
+The octree hexcore cells will be refined using local surface mesh sizes and body of influence (boi) size controls, if there are any defined.
+Generating Pyramids...
+
+Generating initial mesh...
+delete dead zones.
+
+Refining mesh...
+
+Create polyhedra ...
+
+delete virtual and dead zones.
+
+Merging zones...
+
+Cleaning up dead entities...
+
+
+Merging Domains...
+done.
+
+                     name       id cells (quality < 0.05)  minimum quality cell count
+------------------------- -------- ---------------------- ---------------- ----------
+ajm006_v03_fluid_continuous      482                      0       0.52909493      34883
+
+                     name       id cells (quality < 0.05)  minimum quality cell count
+------------------------- -------- ---------------------- ---------------- ----------
+          Overall Summary     none                      0       0.52909493      34883
+
+Total Number of Cell Zones : 1
+
+[Quality Measure : Orthogonal Quality]
+
+---------------- Volume mesh creation completed in :  0.07 minutes
+
+---------------- 34883 cells were created in :  0.08 minutes
+
+---------------- The mesh has a minimum Orthogonal Quality of:  0.53 
+
+---------------- The volume meshing of product_continuous_fluid-ajm006_v03_fluid_continuous is complete.
+
+Writing "C:\Users\admin\win-mac-dual-channel\airjet-simulation\logs\evidence\c5_mesh\v03_mesh.msh.h5" ...
+writing 3 node zones
+writing 2 edge zones 
+writing 2 face zones 
+writing 1 cell zones 
+writing boundary layer flags
+writing node curvature data
+done.Copying the required intermediate mesh files into C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\logs\\evidence\\c5_mesh\\v03_mesh_workflow_files
+Done.
+Shutting down Server...
