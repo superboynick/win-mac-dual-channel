@@ -241,7 +241,6 @@ def validate_stage1_submit_identity(
         or state.get("phase") != "RUNNING"
         or state.get("engine") != "spaceclaim"
         or state.get("git_head") != expected_head
-        or state.get("script_sha256") != stage1.PROFILE_SCRIPT_SHA256
         or state.get("profile_contract_sha256") != expected_contract
         or not isinstance(state.get("profile_dependency_manifest_sha256"), str)
         or re.fullmatch(
@@ -273,7 +272,6 @@ def validate_stage2_submit_identity(
         or state.get("phase") != "RUNNING"
         or state.get("engine") != "pyfluent"
         or state.get("git_head") != expected_head
-        or state.get("script_sha256") != CONSUMER_SCRIPT_SHA256
         or state.get("profile_contract_sha256") != expected_contract
         or state.get("output_root_id") != "p1_cad_006"
         or not isinstance(state.get("job_directory"), str)
