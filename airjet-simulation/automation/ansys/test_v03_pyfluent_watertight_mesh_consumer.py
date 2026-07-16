@@ -237,6 +237,7 @@ def load_semantic_helpers() -> dict[str, Any]:
     helper_names = {
         "build_boundary_role_blueprint",
         "validate_semantic_zone_mapping",
+        "validate_canonical_semantic_mapping",
         "semantic_zone_type",
         "validate_final_boundary_semantics",
     }
@@ -262,6 +263,16 @@ def load_semantic_helpers() -> dict[str, Any]:
         "BOUNDARY_ROLE_ORDER": tuple(role_counts),
         "EXPECTED_BOUNDARY_ROLE_COUNTS": role_counts,
         "SOURCE_BOUNDARY_FACE_COUNT": 1078,
+        "CANONICAL_BOUNDARY_ZONE_NAMES": {
+            "INLET": ["ajm_inlet_001", "ajm_inlet_002", "ajm_inlet_003", "ajm_inlet_004"],
+            "OUTLET": ["ajm_outlet"],
+            "HEAT_WALL": ["ajm_heat_wall"],
+            "MEMBRANE_TOP": ["ajm_membrane_top"],
+            "MEMBRANE_BOTTOM": ["ajm_membrane_bottom"],
+            "ORIFICE_THROAT_WALL": ["ajm_throat_wall"],
+            "WALL_CONTINUOUS_UNCLASSIFIED": ["ajm_remaining_wall"],
+        },
+        "CANONICAL_BOUNDARY_ZONE_COUNT": 10,
     }
     module = ast.Module(body=nodes, type_ignores=[])
     exec(
@@ -313,6 +324,42 @@ def semantic_mapping_fixture(blueprint: list[dict[str, Any]]) -> list[dict[str, 
     ]
 
 
+def canonical_mapping_fixture(
+    blueprint: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    role_names = {
+        "INLET": ["ajm_inlet_001", "ajm_inlet_002", "ajm_inlet_003", "ajm_inlet_004"],
+        "OUTLET": ["ajm_outlet"],
+        "HEAT_WALL": ["ajm_heat_wall"],
+        "MEMBRANE_TOP": ["ajm_membrane_top"],
+        "MEMBRANE_BOTTOM": ["ajm_membrane_bottom"],
+        "ORIFICE_THROAT_WALL": ["ajm_throat_wall"],
+        "WALL_CONTINUOUS_UNCLASSIFIED": ["ajm_remaining_wall"],
+    }
+    name_to_id = {
+        name: index + 1
+        for index, name in enumerate(
+            name for names in role_names.values() for name in names
+        )
+    }
+    role_offsets = {role: 0 for role in role_names}
+    records = []
+    for record in blueprint:
+        role = record["role"]
+        names = role_names[role]
+        name = names[role_offsets[role] % len(names)]
+        role_offsets[role] += 1
+        records.append(
+            {
+                "source_face_index": record["source_face_index"],
+                "role": role,
+                "zone_id": name_to_id[name],
+                "zone_name": name,
+            }
+        )
+    return records
+
+
 def test_c7_source_blueprint_and_unique_mapping_contract() -> None:
     helpers = load_semantic_helpers()
     source = semantic_source_fixture()
@@ -323,7 +370,7 @@ def test_c7_source_blueprint_and_unique_mapping_contract() -> None:
     mapping = semantic_mapping_fixture(blueprint)
     summary = helpers["validate_semantic_zone_mapping"](mapping, "TEST")
     assert summary["semantic_zone_count"] == 1078
-    assert summary["unique_mapping_ok"] is True
+    assert summary["role_exclusive_mapping_ok"] is True
     assert summary["role_counts"]["ORIFICE_THROAT_WALL"] == 972
 
     missing = copy.deepcopy(source)
@@ -350,13 +397,21 @@ def test_c7_source_blueprint_and_unique_mapping_contract() -> None:
         marker="SOURCE_BOUNDARY_FINGERPRINT_DUPLICATE",
     )
 
+    same_role_merged = copy.deepcopy(mapping)
+    same_role_merged[-1]["zone_id"] = same_role_merged[-2]["zone_id"]
+    same_role_merged[-1]["zone_name"] = same_role_merged[-2]["zone_name"]
+    merged_summary = helpers["validate_semantic_zone_mapping"](
+        same_role_merged, "TEST"
+    )
+    assert merged_summary["semantic_zone_count"] == 1077
     collapsed = copy.deepcopy(mapping)
     collapsed[-1]["zone_id"] = collapsed[0]["zone_id"]
+    collapsed[-1]["zone_name"] = collapsed[0]["zone_name"]
     expect_runtime_error(
         helpers["validate_semantic_zone_mapping"],
         collapsed,
         "TEST",
-        marker="TEST_GENERIC_BOUNDARY_COLLAPSE",
+        marker="TEST_SEMANTIC_ZONE_CROSSES_ROLES",
     )
     duplicate_name = copy.deepcopy(mapping)
     duplicate_name[-1]["zone_name"] = duplicate_name[0]["zone_name"]
@@ -364,7 +419,7 @@ def test_c7_source_blueprint_and_unique_mapping_contract() -> None:
         helpers["validate_semantic_zone_mapping"],
         duplicate_name,
         "TEST",
-        marker="TEST_SEMANTIC_ZONE_NAME_DUPLICATE",
+        marker="TEST_SEMANTIC_ZONE_NAME_CROSSES_IDS",
     )
 
 
@@ -373,8 +428,8 @@ def test_c7_final_boundary_coverage_and_single_fluid_adjacency() -> None:
     blueprint = helpers["build_boundary_role_blueprint"](
         semantic_source_fixture()
     )
-    mapping = semantic_mapping_fixture(blueprint)
-    boundary_ids = list(range(1, 1079))
+    mapping = canonical_mapping_fixture(blueprint)
+    boundary_ids = list(range(1, 11))
     zone_types = {
         record["zone_id"]: helpers["semantic_zone_type"](record["role"])
         for record in mapping
@@ -393,11 +448,30 @@ def test_c7_final_boundary_coverage_and_single_fluid_adjacency() -> None:
             "ORIFICE_THROAT_WALL": 972,
             "WALL_CONTINUOUS_UNCLASSIFIED": 76,
         },
-        "semantic_zone_count": 1078,
+        "canonical_zone_count": 10,
         "boundary_coverage_count": 1078,
-        "unique_mapping_ok": True,
+        "role_exclusive_mapping_ok": True,
         "generic_boundary_collapse": False,
         "single_fluid_adjacency_ok": True,
+        "canonical_inventory": {
+            record["zone_name"]: {
+                "role": record["role"],
+                "zone_id": record["zone_id"],
+                "zone_type": zone_types[record["zone_id"]],
+                "source_component_count": (
+                    1 if record["role"] == "INLET" else {
+                        "OUTLET": 1,
+                        "HEAT_WALL": 1,
+                        "MEMBRANE_TOP": 12,
+                        "MEMBRANE_BOTTOM": 12,
+                        "ORIFICE_THROAT_WALL": 972,
+                        "WALL_CONTINUOUS_UNCLASSIFIED": 76,
+                    }[record["role"]]
+                ),
+                "adjacent_cell_zone_ids": [2001],
+            }
+            for record in mapping
+        },
     }
     expect_runtime_error(
         helpers["validate_final_boundary_semantics"],
@@ -424,20 +498,23 @@ def test_c7_final_boundary_coverage_and_single_fluid_adjacency() -> None:
 def test_c7_runtime_integration_and_compact_evidence_fields_are_pinned() -> None:
     for required in (
         "build_boundary_role_blueprint(inventory)",
+        "session.tui.boundary.manage.merge(current_names)",
+        "session.tui.boundary.manage.name(current_name, target_name)",
+        "session.tui.boundary.manage.name(current_names[0], target_names[0])",
         'observe_semantic_zone_mapping(\n            utilities, boundary_blueprint, "PRE_SURFACE"',
         'observe_semantic_zone_mapping(\n            utilities, boundary_blueprint, "POST_SURFACE"',
         'observe_semantic_zone_mapping(\n            utilities, boundary_blueprint, "POST_VOLUME"',
         'result["assertions"]["boundary_semantics_preserved_1078"] = True',
         '"source_boundary_face_count": SOURCE_BOUNDARY_FACE_COUNT',
         '"source_boundary_role_counts": source_boundary_role_counts',
-        '"pre_volume_semantic_zone_count"',
-        '"pre_volume_unique_mapping_ok"',
+        '"pre_canonical_role_exclusive_mapping_ok"',
+        '"canonical_boundary_zone_count"',
         '"post_volume_boundary_role_counts"',
-        '"post_volume_semantic_zone_count"',
         '"post_volume_boundary_coverage_count"',
-        '"post_volume_unique_mapping_ok"',
+        '"post_volume_role_exclusive_mapping_ok"',
         '"post_volume_generic_boundary_collapse"',
         '"post_volume_single_fluid_adjacency_ok"',
+        '"post_volume_canonical_boundary_inventory"',
     ):
         assert required in SOURCE
 

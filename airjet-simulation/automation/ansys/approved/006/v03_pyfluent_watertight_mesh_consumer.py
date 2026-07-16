@@ -126,6 +126,18 @@ EXPECTED_BOUNDARY_ROLE_COUNTS = {
     "WALL_CONTINUOUS_UNCLASSIFIED": 76,
 }
 SOURCE_BOUNDARY_FACE_COUNT = sum(EXPECTED_BOUNDARY_ROLE_COUNTS.values())
+CANONICAL_BOUNDARY_ZONE_NAMES = {
+    "INLET": ["ajm_inlet_001", "ajm_inlet_002", "ajm_inlet_003", "ajm_inlet_004"],
+    "OUTLET": ["ajm_outlet"],
+    "HEAT_WALL": ["ajm_heat_wall"],
+    "MEMBRANE_TOP": ["ajm_membrane_top"],
+    "MEMBRANE_BOTTOM": ["ajm_membrane_bottom"],
+    "ORIFICE_THROAT_WALL": ["ajm_throat_wall"],
+    "WALL_CONTINUOUS_UNCLASSIFIED": ["ajm_remaining_wall"],
+}
+CANONICAL_BOUNDARY_ZONE_COUNT = sum(
+    len(names) for names in CANONICAL_BOUNDARY_ZONE_NAMES.values()
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -427,7 +439,9 @@ def validate_semantic_zone_mapping(
     counts = {role: 0 for role in BOUNDARY_ROLE_ORDER}
     indices = []
     zone_ids = []
-    zone_names_seen = set()
+    zone_roles: dict[int, str] = {}
+    zone_name_by_id: dict[int, str] = {}
+    zone_id_by_name: dict[str, int] = {}
     role_zone_ids = {role: [] for role in BOUNDARY_ROLE_ORDER}
     role_zone_names = {role: [] for role in BOUNDARY_ROLE_ORDER}
     for record in records:
@@ -448,24 +462,32 @@ def validate_semantic_zone_mapping(
             raise RuntimeError(f"{stage}_SEMANTIC_MAPPING_VALUE_INVALID")
         indices.append(index)
         zone_ids.append(zone_id)
-        if zone_name in zone_names_seen:
-            raise RuntimeError(f"{stage}_SEMANTIC_ZONE_NAME_DUPLICATE")
-        zone_names_seen.add(zone_name)
+        existing_role = zone_roles.get(zone_id)
+        if existing_role is not None and existing_role != role:
+            raise RuntimeError(f"{stage}_SEMANTIC_ZONE_CROSSES_ROLES")
+        existing_name = zone_name_by_id.get(zone_id)
+        if existing_name is not None and existing_name != zone_name:
+            raise RuntimeError(f"{stage}_SEMANTIC_ZONE_ID_NAME_CONFLICT")
+        existing_id = zone_id_by_name.get(zone_name)
+        if existing_id is not None and existing_id != zone_id:
+            raise RuntimeError(f"{stage}_SEMANTIC_ZONE_NAME_CROSSES_IDS")
+        zone_roles[zone_id] = role
+        zone_name_by_id[zone_id] = zone_name
+        zone_id_by_name[zone_name] = zone_id
         counts[role] += 1
-        role_zone_ids[role].append(zone_id)
-        role_zone_names[role].append(zone_name)
+        if zone_id not in role_zone_ids[role]:
+            role_zone_ids[role].append(zone_id)
+            role_zone_names[role].append(zone_name)
     if indices != list(range(SOURCE_BOUNDARY_FACE_COUNT)):
         raise RuntimeError(f"{stage}_SEMANTIC_SOURCE_COVERAGE_INVALID")
     if counts != EXPECTED_BOUNDARY_ROLE_COUNTS:
         raise RuntimeError(f"{stage}_SEMANTIC_ROLE_COUNTS_INVALID:{counts}")
-    if len(set(zone_ids)) != SOURCE_BOUNDARY_FACE_COUNT:
-        raise RuntimeError(f"{stage}_GENERIC_BOUNDARY_COLLAPSE")
     return {
         "role_counts": counts,
         "role_zone_ids": role_zone_ids,
         "role_zone_names": role_zone_names,
-        "semantic_zone_count": len(zone_ids),
-        "unique_mapping_ok": True,
+        "semantic_zone_count": len(set(zone_ids)),
+        "role_exclusive_mapping_ok": True,
     }
 
 
@@ -476,17 +498,52 @@ def observe_semantic_zone_mapping(
         one_face_zone(meshing_utilities, record["probe_point_mm"])
         for record in blueprint
     ]
-    names = zone_names(meshing_utilities, zone_ids)
+    unique_zone_ids = sorted(set(zone_ids))
+    unique_zone_names = zone_names(meshing_utilities, unique_zone_ids)
+    zone_name_by_id = dict(zip(unique_zone_ids, unique_zone_names))
     records = [
         {
             "source_face_index": blueprint[index]["source_face_index"],
             "role": blueprint[index]["role"],
             "zone_id": zone_ids[index],
-            "zone_name": names[index],
+            "zone_name": zone_name_by_id[zone_ids[index]],
         }
         for index in range(len(blueprint))
     ]
     return records, validate_semantic_zone_mapping(records, stage)
+
+
+def canonicalize_boundary_zones(
+    session: Any, semantic_summary: dict[str, Any]
+) -> None:
+    role_zone_names = semantic_summary.get("role_zone_names")
+    if not isinstance(role_zone_names, dict):
+        raise RuntimeError("PRE_CANONICAL_ROLE_ZONE_NAMES_INVALID")
+    for role in BOUNDARY_ROLE_ORDER:
+        current_names = role_zone_names.get(role)
+        target_names = CANONICAL_BOUNDARY_ZONE_NAMES[role]
+        if not isinstance(current_names, list) or not current_names:
+            raise RuntimeError(f"PRE_CANONICAL_ROLE_ZONE_EMPTY:{role}")
+        if role == "INLET":
+            if len(current_names) != 4:
+                raise RuntimeError("PRE_CANONICAL_INLET_ZONES_NOT_4")
+            for current_name, target_name in zip(current_names, target_names):
+                session.tui.boundary.manage.name(current_name, target_name)
+            continue
+        if len(current_names) > 1:
+            session.tui.boundary.manage.merge(current_names)
+        session.tui.boundary.manage.name(current_names[0], target_names[0])
+
+
+def validate_canonical_semantic_mapping(
+    records: list[dict[str, Any]], stage: str
+) -> dict[str, Any]:
+    summary = validate_semantic_zone_mapping(records, stage)
+    if summary["role_zone_names"] != CANONICAL_BOUNDARY_ZONE_NAMES:
+        raise RuntimeError(f"{stage}_CANONICAL_BOUNDARY_NAMES_INVALID")
+    if summary["semantic_zone_count"] != CANONICAL_BOUNDARY_ZONE_COUNT:
+        raise RuntimeError(f"{stage}_CANONICAL_BOUNDARY_ZONE_COUNT_NOT_10")
+    return summary
 
 
 def semantic_zone_type(role: str) -> str:
@@ -506,7 +563,7 @@ def validate_final_boundary_semantics(
     adjacency: dict[int, list[int]],
     cell_zone_ids: list[int],
 ) -> dict[str, Any]:
-    summary = validate_semantic_zone_mapping(records, "POST_VOLUME")
+    summary = validate_canonical_semantic_mapping(records, "POST_VOLUME")
     semantic_zone_ids = sorted(
         zone_id
         for role_ids in summary["role_zone_ids"].values()
@@ -528,13 +585,30 @@ def validate_final_boundary_semantics(
         raise RuntimeError("POST_VOLUME_SEMANTIC_ZONE_TYPES_INVALID")
     if any(adjacency[zone_id] != cell_zone_ids for zone_id in semantic_zone_ids):
         raise RuntimeError("POST_VOLUME_SEMANTIC_SINGLE_FLUID_ADJACENCY_INVALID")
+    canonical_inventory = {}
+    for record in records:
+        name = record["zone_name"]
+        if name in canonical_inventory:
+            continue
+        canonical_inventory[name] = {
+            "role": record["role"],
+            "zone_id": record["zone_id"],
+            "zone_type": zone_types[record["zone_id"]],
+            "source_component_count": EXPECTED_BOUNDARY_ROLE_COUNTS[
+                record["role"]
+            ] if record["role"] != "INLET" else 1,
+            "adjacent_cell_zone_ids": adjacency[record["zone_id"]],
+        }
+    if len(canonical_inventory) != CANONICAL_BOUNDARY_ZONE_COUNT:
+        raise RuntimeError("POST_VOLUME_CANONICAL_INVENTORY_COUNT_NOT_10")
     return {
         "role_counts": summary["role_counts"],
-        "semantic_zone_count": SOURCE_BOUNDARY_FACE_COUNT,
-        "boundary_coverage_count": len(boundary_zone_ids),
-        "unique_mapping_ok": True,
+        "canonical_zone_count": CANONICAL_BOUNDARY_ZONE_COUNT,
+        "boundary_coverage_count": SOURCE_BOUNDARY_FACE_COUNT,
+        "role_exclusive_mapping_ok": True,
         "generic_boundary_collapse": False,
         "single_fluid_adjacency_ok": True,
+        "canonical_inventory": canonical_inventory,
     }
 
 
@@ -1118,14 +1192,25 @@ try:
             utilities, boundary_blueprint, "PRE_SURFACE"
         )
     )
+    canonicalize_boundary_zones(session, pre_surface_semantic_summary)
+    canonical_semantic_records, canonical_semantic_summary = (
+        observe_semantic_zone_mapping(
+            utilities, boundary_blueprint, "PRE_SURFACE_CANONICAL"
+        )
+    )
+    canonical_semantic_summary = validate_canonical_semantic_mapping(
+        canonical_semantic_records, "PRE_SURFACE_CANONICAL"
+    )
     inlet_zone_ids = list(
-        pre_surface_semantic_summary["role_zone_ids"]["INLET"]
+        canonical_semantic_summary["role_zone_ids"]["INLET"]
     )
     outlet_zone_ids = list(
-        pre_surface_semantic_summary["role_zone_ids"]["OUTLET"]
+        canonical_semantic_summary["role_zone_ids"]["OUTLET"]
     )
     throat_zone_hits = list(
-        pre_surface_semantic_summary["role_zone_ids"]["ORIFICE_THROAT_WALL"]
+        record["zone_id"]
+        for record in canonical_semantic_records
+        if record["role"] == "ORIFICE_THROAT_WALL"
     )
     trace_checkpoint(
         "boundary_zone_queries_completed",
@@ -1150,14 +1235,16 @@ try:
     result["assertions"]["boundary_roles_reconstructed"] = True
     if len(throat_zone_hits) != THROAT_COUNT:
         raise RuntimeError("THROAT_ZONE_HIT_COUNT_NOT_972")
-    if len(throat_zone_ids) != THROAT_COUNT:
-        raise RuntimeError("THROAT_ZONE_UNIQUE_COUNT_NOT_972")
+    if len(throat_zone_ids) != 1:
+        raise RuntimeError("CANONICAL_THROAT_ZONE_COUNT_NOT_1")
     result["assertions"]["throat_roles_reconstructed_972"] = True
-    imported_face_zone_names = zone_names_one_way(
-        utilities, imported_face_zone_ids
-    )
-    if len(imported_face_zone_names) != len(imported_face_zone_ids):
-        raise RuntimeError("IMPORTED_FACE_ZONE_NAME_INVENTORY_MISMATCH")
+    imported_face_zone_names = [
+        name
+        for role in BOUNDARY_ROLE_ORDER
+        for name in canonical_semantic_summary["role_zone_names"][role]
+    ]
+    if len(imported_face_zone_names) != CANONICAL_BOUNDARY_ZONE_COUNT:
+        raise RuntimeError("CANONICAL_FACE_ZONE_NAME_INVENTORY_NOT_10")
     session.tui.boundary.manage.flip(imported_face_zone_names)
     trace_checkpoint(
         "imported_boundary_normals_reversed",
@@ -1188,6 +1275,9 @@ try:
         observe_semantic_zone_mapping(
             utilities, boundary_blueprint, "POST_SURFACE"
         )
+    )
+    post_surface_semantic_summary = validate_canonical_semantic_mapping(
+        post_surface_semantic_records, "POST_SURFACE"
     )
     semantic_zone_names = [
         record["zone_name"] for record in post_surface_semantic_records
@@ -1592,6 +1682,9 @@ try:
             utilities, boundary_blueprint, "POST_VOLUME"
         )
     )
+    post_volume_semantic_summary = validate_canonical_semantic_mapping(
+        post_volume_semantic_records, "POST_VOLUME"
+    )
     post_volume_semantic_role_ids = post_volume_semantic_summary[
         "role_zone_ids"
     ]
@@ -1625,9 +1718,9 @@ try:
         and len(post_volume_inlet_zone_ids) == 4
         and len(post_volume_outlet_zone_ids) == 1
         and not set(post_volume_inlet_zone_ids) & set(post_volume_outlet_zone_ids)
-        and len(post_volume_throat_zone_ids) == THROAT_COUNT
+        and len(post_volume_throat_zone_ids) == 1
         and post_volume_semantic_summary["semantic_zone_count"]
-        == SOURCE_BOUNDARY_FACE_COUNT
+        == CANONICAL_BOUNDARY_ZONE_COUNT
         and post_volume_semantic_summary["role_counts"]
         == EXPECTED_BOUNDARY_ROLE_COUNTS
         and [record["zone_name"] for record in post_surface_semantic_records]
@@ -1872,6 +1965,8 @@ try:
         "source_boundary_role_counts": source_boundary_role_counts,
         "pre_surface_semantic_records": pre_surface_semantic_records,
         "pre_surface_semantic_summary": pre_surface_semantic_summary,
+        "canonical_semantic_records": canonical_semantic_records,
+        "canonical_semantic_summary": canonical_semantic_summary,
         "post_surface_semantic_records": post_surface_semantic_records,
         "post_surface_semantic_summary": post_surface_semantic_summary,
         "post_volume_semantic_records": post_volume_semantic_records,
@@ -2067,29 +2162,29 @@ try:
         "node_count": node_count,
         "source_boundary_face_count": SOURCE_BOUNDARY_FACE_COUNT,
         "source_boundary_role_counts": source_boundary_role_counts,
-        "pre_volume_semantic_zone_count": post_surface_semantic_summary[
-            "semantic_zone_count"
+        "pre_canonical_role_exclusive_mapping_ok": pre_surface_semantic_summary[
+            "role_exclusive_mapping_ok"
         ],
-        "pre_volume_unique_mapping_ok": post_surface_semantic_summary[
-            "unique_mapping_ok"
+        "canonical_boundary_zone_count": canonical_semantic_summary[
+            "semantic_zone_count"
         ],
         "post_volume_boundary_role_counts": final_boundary_semantics[
             "role_counts"
         ],
-        "post_volume_semantic_zone_count": final_boundary_semantics[
-            "semantic_zone_count"
-        ],
         "post_volume_boundary_coverage_count": final_boundary_semantics[
             "boundary_coverage_count"
         ],
-        "post_volume_unique_mapping_ok": final_boundary_semantics[
-            "unique_mapping_ok"
+        "post_volume_role_exclusive_mapping_ok": final_boundary_semantics[
+            "role_exclusive_mapping_ok"
         ],
         "post_volume_generic_boundary_collapse": final_boundary_semantics[
             "generic_boundary_collapse"
         ],
         "post_volume_single_fluid_adjacency_ok": final_boundary_semantics[
             "single_fluid_adjacency_ok"
+        ],
+        "post_volume_canonical_boundary_inventory": final_boundary_semantics[
+            "canonical_inventory"
         ],
         "cell_zone_count": len(cell_zone_ids),
         "cell_zone_ids": cell_zone_ids,

@@ -25,7 +25,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "c8b829d425a2df3a0c338141f287448f4ac224c2fabcd5a93b8e7fe28426774f"
+CONSUMER_SCRIPT_SHA256 = "a2adb82b1f7bb3509f57ead6e066b915c1a75c7b3291aea2db0bd272b307b99c"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -63,6 +63,18 @@ BOUNDARY_ROLE_COUNTS = {
     "WALL_CONTINUOUS_UNCLASSIFIED": 76,
 }
 BOUNDARY_FACE_COUNT = 1078
+CANONICAL_BOUNDARY_SPEC = {
+    "ajm_inlet_001": ("INLET", "velocity-inlet", 1),
+    "ajm_inlet_002": ("INLET", "velocity-inlet", 1),
+    "ajm_inlet_003": ("INLET", "velocity-inlet", 1),
+    "ajm_inlet_004": ("INLET", "velocity-inlet", 1),
+    "ajm_outlet": ("OUTLET", "pressure-outlet", 1),
+    "ajm_heat_wall": ("HEAT_WALL", "wall", 1),
+    "ajm_membrane_top": ("MEMBRANE_TOP", "wall", 12),
+    "ajm_membrane_bottom": ("MEMBRANE_BOTTOM", "wall", 12),
+    "ajm_throat_wall": ("ORIFICE_THROAT_WALL", "wall", 972),
+    "ajm_remaining_wall": ("WALL_CONTINUOUS_UNCLASSIFIED", "wall", 76),
+}
 PREDECESSOR_ARTIFACTS = (
     "v03_continuous_fluid_producer.json",
     "product_continuous_fluid.step",
@@ -389,6 +401,53 @@ def exact_boundary_role_counts(value: Any) -> bool:
     )
 
 
+def validate_canonical_boundary_inventory(
+    value: Any, accepted_cell_zone_ids: list[int]
+) -> None:
+    if (
+        not isinstance(value, dict)
+        or set(value) != set(CANONICAL_BOUNDARY_SPEC)
+        or len(accepted_cell_zone_ids) != 1
+    ):
+        raise RuntimeError("CONSUMER_CANONICAL_BOUNDARY_INVENTORY_INVALID")
+    observed_zone_ids: set[int] = set()
+    observed_role_counts = {role: 0 for role in BOUNDARY_ROLE_COUNTS}
+    for name, expected in CANONICAL_BOUNDARY_SPEC.items():
+        record = value.get(name)
+        role, zone_type, source_component_count = expected
+        if (
+            not isinstance(record, dict)
+            or set(record)
+            != {
+                "role",
+                "zone_id",
+                "zone_type",
+                "source_component_count",
+                "adjacent_cell_zone_ids",
+            }
+            or record.get("role") != role
+            or record.get("zone_type") != zone_type
+            or type(record.get("source_component_count")) is not int
+            or record["source_component_count"] != source_component_count
+            or type(record.get("zone_id")) is not int
+            or record["zone_id"] <= 0
+            or record["zone_id"] in observed_zone_ids
+            or record.get("adjacent_cell_zone_ids")
+            != accepted_cell_zone_ids
+        ):
+            raise RuntimeError(
+                "CONSUMER_CANONICAL_BOUNDARY_RECORD_INVALID:{}".format(name)
+            )
+        observed_zone_ids.add(record["zone_id"])
+        observed_role_counts[role] += source_component_count
+    if (
+        len(observed_zone_ids) != len(CANONICAL_BOUNDARY_SPEC)
+        or observed_role_counts != BOUNDARY_ROLE_COUNTS
+        or sum(observed_role_counts.values()) != BOUNDARY_FACE_COUNT
+    ):
+        raise RuntimeError("CONSUMER_CANONICAL_BOUNDARY_COVERAGE_INVALID")
+
+
 def validate_connected_mesh_evidence(evidence: Any) -> None:
     expected_keys = {
         "cell_count",
@@ -410,14 +469,14 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         "post_volume_throat_zone_count",
         "source_boundary_face_count",
         "source_boundary_role_counts",
-        "pre_volume_semantic_zone_count",
-        "pre_volume_unique_mapping_ok",
+        "pre_canonical_role_exclusive_mapping_ok",
+        "canonical_boundary_zone_count",
         "post_volume_boundary_role_counts",
-        "post_volume_semantic_zone_count",
         "post_volume_boundary_coverage_count",
-        "post_volume_unique_mapping_ok",
+        "post_volume_role_exclusive_mapping_ok",
         "post_volume_generic_boundary_collapse",
         "post_volume_single_fluid_adjacency_ok",
+        "post_volume_canonical_boundary_inventory",
         "throat_face_adjacency",
         "throat_face_adjacency_ok",
         "anchor_zone_ids",
@@ -467,18 +526,17 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         or not exact_boundary_role_counts(
             evidence.get("source_boundary_role_counts")
         )
-        or type(evidence.get("pre_volume_semantic_zone_count")) is not int
-        or evidence["pre_volume_semantic_zone_count"] != BOUNDARY_FACE_COUNT
-        or evidence.get("pre_volume_unique_mapping_ok") is not True
+        or evidence.get("pre_canonical_role_exclusive_mapping_ok") is not True
+        or type(evidence.get("canonical_boundary_zone_count")) is not int
+        or evidence["canonical_boundary_zone_count"]
+        != len(CANONICAL_BOUNDARY_SPEC)
         or not exact_boundary_role_counts(
             evidence.get("post_volume_boundary_role_counts")
         )
-        or type(evidence.get("post_volume_semantic_zone_count")) is not int
-        or evidence["post_volume_semantic_zone_count"] != BOUNDARY_FACE_COUNT
         or type(evidence.get("post_volume_boundary_coverage_count")) is not int
         or evidence["post_volume_boundary_coverage_count"]
         != BOUNDARY_FACE_COUNT
-        or evidence.get("post_volume_unique_mapping_ok") is not True
+        or evidence.get("post_volume_role_exclusive_mapping_ok") is not True
         or evidence.get("post_volume_generic_boundary_collapse") is not False
         or evidence.get("post_volume_single_fluid_adjacency_ok") is not True
         or sum(BOUNDARY_ROLE_COUNTS.values()) != BOUNDARY_FACE_COUNT
@@ -500,6 +558,9 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
     ):
         raise RuntimeError("CONSUMER_MESH_EVIDENCE_ZONE_IDS_INVALID")
     zone_set = set(zone_ids)
+    validate_canonical_boundary_inventory(
+        evidence.get("post_volume_canonical_boundary_inventory"), zone_ids
+    )
     zone_keys = {str(value) for value in zone_ids}
     zone_types = evidence.get("cell_zone_types")
     counts = evidence.get("cell_counts_by_zone")

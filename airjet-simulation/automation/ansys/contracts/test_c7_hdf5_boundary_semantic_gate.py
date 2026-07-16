@@ -15,6 +15,7 @@ from c7_hdf5_boundary_semantic_gate import (  # noqa: E402
     CELL_ZONE_NAME,
     FAIL_STATUS,
     FORMAT_VERSION,
+    EXPECTED_SOURCE_COMPONENT_COUNTS,
     INTERIOR_NAME,
     PASS_STATUS,
     SOLVER_MARKER,
@@ -55,6 +56,7 @@ def fixture() -> dict:
             }
         ],
         "face_zones": faces,
+        "source_component_counts": dict(EXPECTED_SOURCE_COMPONENT_COUNTS),
         "cell_count": 4,
         "used_node_count": 64,
         "used_node_bbox_mm": {
@@ -118,11 +120,12 @@ def main() -> int:
     rejected(lambda x: x["used_node_bbox_mm"]["max"].__setitem__(0, 20.0), "C7_USED_NODE_BBOX_OUT_OF_CONTRACT")
     rejected(lambda x: x.update(cell_count=3), "C7_CELL_COUNT_INVALID")
     rejected(lambda x: x["face_zones"].pop(), "C7_CANONICAL_10_ZONE_INVENTORY_INVALID")
+    rejected(lambda x: x["source_component_counts"].update(REMAINING_WALL=75), "C7_SOURCE_COMPONENT_COUNTS_INVALID")
 
     sample = 'DATA { 1, -2, 3.5e1 } ATTRIBUTE "x" { DATA { 99 } }'
     assert _numbers(sample, integer=False) == [1.0, -2.0, 35.0]
     assert _strings('DATA { "a;b" }') == ["a;b"]
-    print("C7_HDF5_GATE_TEST=PASS positive=1 collapsed=1 negative=8 parser=2")
+    print("C7_HDF5_GATE_TEST=PASS positive=1 collapsed=1 negative=9 parser=2")
     return 0
 
 

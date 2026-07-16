@@ -38,6 +38,15 @@ CANONICAL_BOUNDARIES = {
     "ajm006_v03_orifice_throat_wall": 3,
     "ajm006_v03_remaining_wall": 3,
 }
+EXPECTED_SOURCE_COMPONENT_COUNTS = {
+    "INLET": 4,
+    "OUTLET": 1,
+    "HEAT_WALL": 1,
+    "MEMBRANE_TOP": 12,
+    "MEMBRANE_BOTTOM": 12,
+    "ORIFICE_THROAT_WALL": 972,
+    "REMAINING_WALL": 76,
+}
 EXPECTED_BBOX_MIN_MM = (-10.875, -17.750025, 1.2675)
 EXPECTED_BBOX_MAX_MM = (10.89, 20.75, 2.800025)
 BBOX_TOLERANCE_MM = 0.02
@@ -123,6 +132,18 @@ def validate_observation(observation: Dict[str, Any]) -> Dict[str, Any]:
             or count <= 0
         ):
             _error(errors, "C7_FACE_ZONE_COUNT_INVALID")
+
+    source_component_counts = observation.get("source_component_counts")
+    if (
+        not isinstance(source_component_counts, dict)
+        or set(source_component_counts) != set(EXPECTED_SOURCE_COMPONENT_COUNTS)
+        or any(
+            not _valid_int(source_component_counts.get(role))
+            or source_component_counts.get(role) != expected
+            for role, expected in EXPECTED_SOURCE_COMPONENT_COUNTS.items()
+        )
+    ):
+        _error(errors, "C7_SOURCE_COMPONENT_COUNTS_INVALID")
 
     adjacency = observation.get("adjacency")
     required_zero = (
@@ -368,6 +389,10 @@ def extract_observation(mesh: Path, h5dump: Path) -> Dict[str, Any]:
         "cell_count": cell_count,
         "used_node_count": len(used_nodes),
         "used_node_bbox_mm": bbox,
+        # An aggregated final HDF face zone cannot independently recover the
+        # producer's source-face lineage.  A trusted reconstruction observer
+        # must supply this exact field before a canonical result may PASS.
+        "source_component_counts": {},
         "adjacency": {
             "total_faces": sum(row["face_count"] for row in face_rows),
             "boundary_zone_count": sum(1 for row in face_rows if row["zone_type"] != 2),
