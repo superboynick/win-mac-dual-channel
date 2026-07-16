@@ -58,3 +58,47 @@ Importing one geom object per program-controlled and one zone per face ...
     setting mixed import resolution type to 'SolidAndSurface'
     setting target application to 'FluentMeshing'
     attaching to assembly ...
+    attaching to assembly done in 3.129 [s]
+    Warning: ?????????
+    processing assembly 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-5e7fabb3eec0\\product_continuous_fluid.step' with ID 1
+    length unit = [mm]
+    processing part 'product_continuous_fluid' with ID 3
+    processing named selection 'Color:143.175.143'
+    processing data ...
+    removing named collections of entities ...
+    removed named collections:  'Color:143.175.143'
+        Data information
+            Meshing model
+                Attributes:
+                    'LengthUnit': '[mm]'
+                Entity summary:
+                    Component: 2
+                    Body     : 1
+                    Shell    : 13
+                    Face     : 106
+                    Loop     : 2052
+                    Edge     : 2172
+                    Vertex   : 2096
+                    Surface  : 106
+                    Curve    : 2172
+                Tessellation summary:
+                    Face facets  : 4136
+                    Edge segments: 46884
+                Bounding box:
+                    (-10.875, -17.75, 1.2675) x (10.875, 20.75, 2.8)
+                Assembly component hierarchy:
+                    'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-5e7fabb3eec0\\product_continuous_fluid.step'
+                      'product_continuous_fluid'
+    
+    
+    exporting FLTG data to file 'C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\logs\\evidence\\c5_mesh\\FM_LAPTOP-LCCLM2HI_44124\\out1784214016.87000344124.tgf' ...
+    writing face-based mesh file 'C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\logs\\evidence\\c5_mesh\\FM_LAPTOP-LCCLM2HI_44124\\out1784214016.87000344124.tgf' ...
+    ======== Exported Data ========
+    Entity summary:
+        Object       : 1
+        Object region: 1
+        Zone         : 106
+    
+    running conversion done.
+    running ANSYS TGrid CADToTGridConverter done.
+    ran ANSYS TGrid CADToTGridConverter in 3.336 [s]
