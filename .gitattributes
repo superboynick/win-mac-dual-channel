@@ -1,3 +1,12 @@
-codex-skills/** text eol=lf
-airjet-simulation/automation/ansys/** text eol=lf
+* text=auto eol=lf
+*.py text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.csv text eol=lf
 *.sh text eol=lf
+*.ps1 text eol=lf
+*.env text eol=lf
+*.txt text eol=lf
+*.msh.h5 binary
+*.scdocx binary
+*.wbjn text eol=lf
