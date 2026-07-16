@@ -2008,9 +2008,9 @@ for invariant in (
         fail("V03 C5 runner lacks fail-closed evidence invariant: " + invariant)
 
 # Require the producer-side observation to be computed from all queries and
-# from the current region list on both sides of Update Regions.  These helpers
-# reject raw None, multi-owner hits, fluidized actuator pockets, and inventory
-# drift before the report can advertise PASS.
+# from the actual post-mesh Fluent cell-zone APIs.  The route must describe
+# fluid-only geometry and must never invoke Create/Update Regions, whose void
+# semantics previously selected an actuator pocket instead of the main flow.
 for invariant in (
     "validate_full_throat_occupancy(",
     '"occupancy_mode": "FULL_972"',
@@ -2026,13 +2026,20 @@ for invariant in (
     '"actuator_gap_zones_excluded": True',
     '"actuator_gap_exclusion_evaluable": actuator_gap_exclusion_evaluable',
     '"throat_occupancy_first_miss_indices"',
-    'REGION_INVENTORY_FIELD_PAIRS = (',
-    '("region_current_list", "region_current_type_list")',
-    "pre_update_region_inventory = parse_region_inventory(",
-    "post_update_region_inventory = parse_region_inventory(",
-    "region_transition = validate_region_transition(",
+    '"The geometry consists of only fluid regions with no voids"',
+    'cell_zone_raw = list(utilities.get_cell_zones(filter="*"))',
+    'cell_zone_types = {',
+    'utilities.get_zone_type(zone_id=zone_id)',
+    'if any(value != "fluid" for value in cell_zone_types.values()):',
+    'if len(cell_zone_ids) != 1:',
+    'cell_zone_names = zone_names_one_way(utilities, cell_zone_ids)',
+    '"workflow.describe_geometry.setup_type"',
+    '"utilities.get_cell_zones"',
+    '"utilities.get_zone_type"',
+    '"meshing_utilities.convert_zone_ids_to_name_strings"',
+    '"route": "FLUID_ONLY_NO_VOID_NO_REGION_EXTRACTION"',
     '"main_flow_region_count": 1',
-    '"non_flow_region_count": 11',
+    '"non_flow_region_count": 0',
     'actuator_gap_exclusion_evaluable = "error" not in actuator_gap_exclusion',
     'actuator_gap_exclusion.get("actuator_gap_zones_excluded") is True',
     'throat_occupancy_evaluable = "error" not in occupancy_contract',
@@ -2044,6 +2051,19 @@ for invariant in (
 if "passthrough" in v03_mesh_source or "passthrough" in v03_mesh_runner_source:
     fail("V03 C5 runtime reintroduced forbidden region passthrough")
 for forbidden in (
+    "workflow.create_regions",
+    "workflow.update_regions",
+    "number_of_flow_volumes",
+    '"The geometry consists of both fluid and solid regions and/or voids"',
+    "REGION_INVENTORY_FIELD_PAIRS",
+    "NON_FLOW_REGION_TYPES",
+    "parse_region_inventory(",
+    "validate_region_transition(",
+    "NOT_1_FLOW_11_NON_FLOW",
+):
+    if forbidden in v03_mesh_source:
+        fail("V03 C5 consumer reintroduced obsolete mixed/void route: " + forbidden)
+for forbidden in (
     "actuator_gap_exclusion_evaluable = True",
     "actuator_gap_zones_excluded = True",
     'and result["assertions"]["actuator_gap_exclusion"]',
@@ -2053,13 +2073,6 @@ for forbidden in (
 ):
     if forbidden in v03_mesh_source:
         fail("V03 C5 consumer contains false actuator-gap evidence: " + forbidden)
-for invariant in (
-    'raise RuntimeError(f"{label}_REGION_INVENTORY_UNRESOLVED")',
-    'approved_update_arguments = pre_update_region_inventory[',
-    'region_transition = validate_region_transition(',
-):
-    if invariant not in v03_mesh_source:
-        fail("V03 C5 consumer lacks fail-closed region transition: " + invariant)
 
 v03_mesh_consumer_test_source = V03_MESH_CONSUMER_TEST.read_text(
     encoding="utf-8"
@@ -2079,7 +2092,8 @@ for guard_name in (
     "test_actuator_gap_failure_stays_truthful_and_does_not_block_mesh_write",
     "test_throat_occupancy_failure_stays_truthful_and_does_not_block_mesh_write",
     "test_mesh_size_parser_accepts_frozen_v261_summary",
-    "test_region_inventory_and_transition_pure_contract",
+    "test_fluid_only_region_route_is_explicit_and_ordered",
+    "test_fluid_only_inventory_is_observed_from_actual_cell_zone",
 ):
     if guard_name not in consumer_guard_names:
         fail("V03 C5 consumer regression guard missing: " + guard_name)
@@ -2100,11 +2114,14 @@ for invariant in (
     '"actuator_gap_hit_count": 0',
     '"actuator_gap_raw_none_count": 12',
     '"actuator_gap_zones_excluded": True',
-    '["fluid"] + ["dead"] * 11',
-    'marker="INVENTORY_UNRESOLVED"',
-    'marker="NOT_1_FLOW_11_NON_FLOW"',
-    'marker="INVENTORY_CONFLICT"',
-    'marker="RENAMED_RECLASSIFIED_OR_MERGED"',
+    '"The geometry consists of only fluid regions with no voids"',
+    '"workflow.describe_geometry.setup_type"',
+    '"utilities.get_cell_zones"',
+    '"utilities.get_zone_type"',
+    '"meshing_utilities.convert_zone_ids_to_name_strings"',
+    '"non_flow_region_count": 0',
+    '"workflow.create_regions"',
+    '"workflow.update_regions"',
     "MESH_STATS_V261_SUMMARY_INCOMPLETE_OR_DUPLICATE",
     "assert parse(frozen) == (35108, 239073, 242139, 1)",
 ):

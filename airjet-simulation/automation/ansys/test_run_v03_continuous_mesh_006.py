@@ -60,27 +60,24 @@ def file_entry(name: str, index: int) -> dict:
 
 
 def valid_region_inventory() -> dict:
-    names = ["main-flow"] + [f"actuator-gap-{index:02d}" for index in range(11)]
-    types = ["fluid"] + ["void"] * 11
     return {
-        "source_fields": ["region_current_list/region_current_type_list"],
+        "source_fields": [
+            "workflow.describe_geometry.setup_type",
+            "utilities.get_cell_zones",
+            "utilities.get_zone_type",
+            "meshing_utilities.convert_zone_ids_to_name_strings",
+        ],
         "regions": [
             {
-                "name": name,
-                "type": types[index],
-                "classification": "MAIN_FLOW" if index == 0 else "NON_FLOW",
+                "name": "main-flow",
+                "type": "fluid",
+                "classification": "MAIN_FLOW",
             }
-            for index, name in enumerate(names)
         ],
         "main_flow_region_count": 1,
-        "non_flow_region_count": 11,
+        "non_flow_region_count": 0,
         "main_flow_region_name": "main-flow",
-        "approved_update_arguments": {
-            "old_region_name_list": names,
-            "old_region_type_list": types,
-            "region_name_list": names,
-            "region_type_list": types,
-        },
+        "approved_update_arguments": {},
     }
 
 
@@ -202,14 +199,13 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "pre_update_region_inventory": valid_region_inventory(),
             "post_update_region_inventory": valid_region_inventory(),
             "region_transition": {
+                "route": "FLUID_ONLY_NO_VOID_NO_REGION_EXTRACTION",
                 "main_flow_region_count": 1,
-                "non_flow_region_count": 11,
-                "region_names_types_preserved": True,
-                "void_to_fluid_conversion": False,
-                "region_merge_or_omission": False,
+                "non_flow_region_count": 0,
+                "unchanged": True,
             },
             "main_flow_region_count": 1,
-            "non_flow_region_count": 11,
+            "non_flow_region_count": 0,
             "free_face_count": 0,
             "multi_face_count": 0,
             "min_orthogonal_quality": 0.12,
@@ -241,7 +237,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
 
 def test_consumer_report_accepts_exact_contract() -> None:
     assert runner.CONSUMER_SCRIPT_SHA256 == (
-        "9138a8343ad931494e1059fce475937bbd8899f4f24d208553df415b1295f68c"
+        "7cca113549774eb1c32c564169877f35c80a20851fbee8a48225010845b9e397"
     )
     report, state, manifest = valid_report_state_manifest()
     assert runner.validate_consumer_report(manifest, state, HEAD) == report
@@ -416,6 +412,35 @@ def test_consumer_report_rejects_c5_gate_and_region_passthrough_drift() -> None:
             "pre_update_region_inventory"
         ].__setitem__("source_fields", ["untrusted_names/untrusted_types"]),
         "REGION_INVENTORY_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"][
+            "pre_update_region_inventory"
+        ]["regions"].append(
+            {"name": "second-flow", "type": "fluid", "classification": "MAIN_FLOW"}
+        ),
+        "REGION_INVENTORY_INVALID",
+    )
+    for invalid_type in ("dead", "void", "excluded"):
+        rejects(
+            lambda report, _state, _manifest, value=invalid_type: report[
+                "mesh_evidence"
+            ]["pre_update_region_inventory"]["regions"][0].__setitem__(
+                "type", value
+            ),
+            "REGION_RECORD_INVALID",
+        )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"][
+            "pre_update_region_inventory"
+        ].__setitem__("non_flow_region_count", 11),
+        "REGION_CLASSIFICATION_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"][
+            "region_transition"
+        ].__setitem__("route", "SELF_REPORTED_PASSTHROUGH"),
+        "TOPOLOGY_INVALID",
     )
 
 

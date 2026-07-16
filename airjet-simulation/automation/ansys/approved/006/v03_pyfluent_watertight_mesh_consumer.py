@@ -9,6 +9,7 @@ iterations.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import copy
 import faulthandler
 import hashlib
 import json
@@ -104,13 +105,6 @@ VOLUME_MAX_SIZE_MM = 0.75
 TARGET_FLOW_VOLUME_MESH_TOLERANCE_MM3 = 1.0
 ACTUATOR_GAP_CENTER_Z_MM = 1.795
 ACTUATOR_GAP_PROBE_COUNT = 12
-REGION_INVENTORY_FIELD_PAIRS = (
-    ("region_current_list", "region_current_type_list"),
-    ("region_name_list", "region_type_list"),
-    ("old_region_name_list", "old_region_type_list"),
-    ("region_internals", "region_internal_types"),
-)
-NON_FLOW_REGION_TYPES = {"dead", "void", "excluded"}
 
 
 def sha256_file(path: Path) -> str:
@@ -472,103 +466,6 @@ def validate_actuator_gap_exclusion(
         "actuator_gap_hit_count": 0,
         "actuator_gap_raw_none_count": ACTUATOR_GAP_PROBE_COUNT,
         "actuator_gap_zones_excluded": True,
-    }
-
-
-def parse_region_inventory(state: Any, label: str) -> dict[str, Any]:
-    """Parse exact region names/types and reject absent or conflicting views."""
-    if not isinstance(state, dict):
-        raise RuntimeError(f"{label}_REGION_STATE_NOT_OBJECT")
-    observations: list[tuple[str, list[str], list[str]]] = []
-    for name_key, type_key in REGION_INVENTORY_FIELD_PAIRS:
-        names = state.get(name_key)
-        types = state.get(type_key)
-        if names is None and types is None:
-            continue
-        if not isinstance(names, list) or not isinstance(types, list):
-            raise RuntimeError(f"{label}_REGION_LISTS_NOT_ARRAYS")
-        if (
-            len(names) != len(types)
-            or len(names) != ACTUATOR_GAP_PROBE_COUNT
-            or len(set(names)) != len(names)
-            or any(not isinstance(name, str) or not name.strip() for name in names)
-            or any(not isinstance(value, str) or not value.strip() for value in types)
-        ):
-            raise RuntimeError(f"{label}_REGION_LISTS_INVALID")
-        observations.append((f"{name_key}/{type_key}", names, types))
-    if not observations:
-        raise RuntimeError(f"{label}_REGION_INVENTORY_UNRESOLVED")
-
-    _, canonical_names, canonical_types = observations[0]
-    canonical_pairs = list(zip(canonical_names, canonical_types))
-    if any(list(zip(names, types)) != canonical_pairs for _, names, types in observations[1:]):
-        raise RuntimeError(f"{label}_REGION_INVENTORY_CONFLICT")
-    normalized_types = [value.strip().lower() for value in canonical_types]
-    fluid_indices = [
-        index for index, value in enumerate(normalized_types) if value == "fluid"
-    ]
-    non_flow_indices = [
-        index
-        for index, value in enumerate(normalized_types)
-        if value in NON_FLOW_REGION_TYPES
-    ]
-    if len(fluid_indices) != 1 or len(non_flow_indices) != 11:
-        raise RuntimeError(
-            f"{label}_REGION_CLASSIFICATION_NOT_1_FLOW_11_NON_FLOW"
-        )
-    if sorted(fluid_indices + non_flow_indices) != list(range(12)):
-        raise RuntimeError(f"{label}_REGION_TYPE_NOT_EXPLICITLY_APPROVED")
-    return {
-        "source_fields": [item[0] for item in observations],
-        "regions": [
-            {
-                "name": name,
-                "type": region_type,
-                "classification": (
-                    "MAIN_FLOW" if index == fluid_indices[0] else "NON_FLOW"
-                ),
-            }
-            for index, (name, region_type) in enumerate(canonical_pairs)
-        ],
-        "main_flow_region_count": 1,
-        "non_flow_region_count": 11,
-        "main_flow_region_name": canonical_names[fluid_indices[0]],
-        "approved_update_arguments": {
-            "old_region_name_list": list(canonical_names),
-            "old_region_type_list": list(canonical_types),
-            "region_name_list": list(canonical_names),
-            "region_type_list": list(canonical_types),
-        },
-    }
-
-
-def validate_region_transition(
-    pre_update: dict[str, Any], post_update: dict[str, Any]
-) -> dict[str, Any]:
-    """Prove update preserved all names/types and did not merge or promote voids."""
-    pre_pairs = [
-        (record["name"], record["type"])
-        for record in pre_update.get("regions", [])
-    ]
-    post_pairs = [
-        (record["name"], record["type"])
-        for record in post_update.get("regions", [])
-    ]
-    if pre_pairs != post_pairs or len(pre_pairs) != 12:
-        raise RuntimeError("REGION_TRANSITION_RENAMED_RECLASSIFIED_OR_MERGED")
-    if (
-        pre_update.get("main_flow_region_count") != 1
-        or post_update.get("main_flow_region_count") != 1
-        or pre_update.get("non_flow_region_count") != 11
-        or post_update.get("non_flow_region_count") != 11
-    ):
-        raise RuntimeError("REGION_TRANSITION_COUNTS_INVALID")
-    return {
-        "main_flow_region_count": 1,
-        "non_flow_region_count": 11,
-        "region_names_types_preserved": True,
-        "void_to_fluid_conversion": False,
-        "region_merge_or_omission": False,
     }
 
 
@@ -1041,10 +938,9 @@ try:
 
     workflow.describe_geometry.update_child_tasks(setup_type_changed=False)
     workflow.describe_geometry.setup_type = (
-        "The geometry consists of both fluid and solid regions and/or voids"
+        "The geometry consists of only fluid regions with no voids"
     )
     workflow.describe_geometry.update_child_tasks(setup_type_changed=True)
-    workflow.describe_geometry.capping_required = False
     workflow.describe_geometry.wall_to_internal = False
     workflow.describe_geometry.invoke_share_topology = "No"
     workflow.describe_geometry.multizone = False
@@ -1090,65 +986,11 @@ try:
             )
         )
 
-    workflow.create_regions.number_of_flow_volumes = 1
-    create_regions_pre_state = workflow.create_regions.arguments()
     trace_checkpoint(
-        "create_regions_pre_execute_state",
-        python_type=type(create_regions_pre_state).__name__,
-        state=json_safe_trace_value(create_regions_pre_state),
-    )
-    workflow.create_regions()
-    update_regions_pre_state = workflow.update_regions.arguments()
-    pre_update_region_inventory = parse_region_inventory(
-        update_regions_pre_state, "PRE_UPDATE"
-    )
-    trace_checkpoint(
-        "update_regions_pre_execute_state",
-        python_type=type(update_regions_pre_state).__name__,
-        state=json_safe_trace_value(update_regions_pre_state),
-        parsed_inventory=pre_update_region_inventory,
-    )
-    approved_update_arguments = pre_update_region_inventory[
-        "approved_update_arguments"
-    ]
-    workflow.update_regions.old_region_name_list = approved_update_arguments[
-        "old_region_name_list"
-    ]
-    workflow.update_regions.old_region_type_list = approved_update_arguments[
-        "old_region_type_list"
-    ]
-    workflow.update_regions.region_name_list = approved_update_arguments[
-        "region_name_list"
-    ]
-    workflow.update_regions.region_type_list = approved_update_arguments[
-        "region_type_list"
-    ]
-    approved_update_state = workflow.update_regions.arguments()
-    approved_update_inventory = parse_region_inventory(
-        approved_update_state, "APPROVED_UPDATE"
-    )
-    if approved_update_inventory["approved_update_arguments"] != approved_update_arguments:
-        raise RuntimeError("APPROVED_UPDATE_REGION_ARGUMENTS_NOT_EXACT")
-    trace_checkpoint(
-        "update_regions_approved_arguments_frozen",
-        state=json_safe_trace_value(approved_update_state),
-        parsed_inventory=approved_update_inventory,
-    )
-    workflow.update_regions()
-    update_regions_post_state = workflow.update_regions.arguments()
-    post_update_region_inventory = parse_region_inventory(
-        update_regions_post_state, "POST_UPDATE"
-    )
-    region_transition = validate_region_transition(
-        pre_update_region_inventory, post_update_region_inventory
-    )
-    result["assertions"]["region_classification"] = True
-    trace_checkpoint(
-        "update_regions_post_execute_state",
-        python_type=type(update_regions_post_state).__name__,
-        state=json_safe_trace_value(update_regions_post_state),
-        parsed_inventory=post_update_region_inventory,
-        transition=region_transition,
+        "fluid_only_no_void_region_route_selected",
+        setup_type=workflow.describe_geometry.setup_type,
+        create_regions_executed=False,
+        update_regions_executed=False,
     )
     volume_mesh = workflow.create_volume_mesh_wtm
     volume_mesh.volume_fill = "poly-hexcore"
@@ -1175,6 +1017,42 @@ try:
     }
     if any(value != "fluid" for value in cell_zone_types.values()):
         raise RuntimeError(f"NON_FLUID_CELL_ZONE_PRESENT:{cell_zone_types}")
+    if len(cell_zone_ids) != 1:
+        raise RuntimeError(f"FLUID_ONLY_CELL_ZONE_NOT_UNIQUE:{cell_zone_ids}")
+    cell_zone_names = zone_names_one_way(utilities, cell_zone_ids)
+    fluid_only_inventory = {
+        "source_fields": [
+            "workflow.describe_geometry.setup_type",
+            "utilities.get_cell_zones",
+            "utilities.get_zone_type",
+            "meshing_utilities.convert_zone_ids_to_name_strings",
+        ],
+        "regions": [
+            {
+                "name": cell_zone_names[0],
+                "type": "fluid",
+                "classification": "MAIN_FLOW",
+            }
+        ],
+        "main_flow_region_count": 1,
+        "non_flow_region_count": 0,
+        "main_flow_region_name": cell_zone_names[0],
+        "approved_update_arguments": {},
+    }
+    pre_update_region_inventory = copy.deepcopy(fluid_only_inventory)
+    post_update_region_inventory = copy.deepcopy(fluid_only_inventory)
+    region_transition = {
+        "route": "FLUID_ONLY_NO_VOID_NO_REGION_EXTRACTION",
+        "main_flow_region_count": 1,
+        "non_flow_region_count": 0,
+        "unchanged": True,
+    }
+    result["assertions"]["region_classification"] = True
+    trace_checkpoint(
+        "fluid_only_region_inventory_observed",
+        inventory=fluid_only_inventory,
+        transition=region_transition,
+    )
     cell_count_api = utilities.get_cell_zone_count(
         cell_zone_id_list=cell_zone_ids
     )
@@ -1546,7 +1424,7 @@ try:
         and target_flow_volume_matches_predecessor
         and result["assertions"]["region_classification"]
         and region_transition["main_flow_region_count"] == 1
-        and region_transition["non_flow_region_count"] == 11
+        and region_transition["non_flow_region_count"] == 0
         and post_volume_role_resolution_ok
         and boundary_adjacency_ok
         and throat_face_adjacency_ok

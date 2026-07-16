@@ -122,8 +122,7 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "surface.cfd_surface_mesh_controls.max_size = SURFACE_MAX_SIZE_MM",
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=False)",
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=True)",
-        '"The geometry consists of both fluid and solid regions and/or voids"',
-        "workflow.describe_geometry.capping_required = False",
+        '"The geometry consists of only fluid regions with no voids"',
         "workflow.describe_geometry.wall_to_internal = False",
         "workflow.describe_geometry.arguments()",
         '"describe_geometry_pre_execute_state"',
@@ -132,14 +131,7 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.update_boundaries.old_boundary_zone_list",
         "workflow.update_boundaries.old_boundary_zone_type_list",
         '"boundary_zone_types_updated"',
-        "workflow.create_regions.number_of_flow_volumes = 1",
-        "workflow.create_regions.arguments()",
-        '"create_regions_pre_execute_state"',
-        "workflow.create_regions()",
-        "workflow.update_regions.arguments()",
-        '"update_regions_pre_execute_state"',
-        "state=json_safe_trace_value(update_regions_pre_state)",
-        "workflow.update_regions()",
+        '"fluid_only_no_void_region_route_selected"',
         "workflow.create_volume_mesh_wtm",
         'volume_mesh.volume_fill = "poly-hexcore"',
         "volume_mesh.volume_fill_controls.hex_max_cell_length = VOLUME_MAX_SIZE_MM",
@@ -150,61 +142,47 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.update_boundaries.boundary_label_type_list",
         "workflow.update_boundaries.old_boundary_label_list",
         "workflow.update_boundaries.old_boundary_label_type_list",
+        "workflow.create_regions",
+        "workflow.update_regions",
+        "number_of_flow_volumes",
+        '"The geometry consists of both fluid and solid regions and/or voids"',
     ):
         assert forbidden not in SOURCE
 
 
-def test_update_regions_is_explicit_fail_closed_and_ordered() -> None:
+def test_fluid_only_region_route_is_explicit_and_ordered() -> None:
     boundary_guard = SOURCE.index("BOUNDARY_ZONE_TYPES_NOT_4_VELOCITY_1_PRESSURE")
-    create_state = SOURCE.index("workflow.create_regions.arguments()")
-    create_trace = SOURCE.index('"create_regions_pre_execute_state"')
-    create_execute = SOURCE.index("workflow.create_regions()", create_state + 1)
-    state_read = SOURCE.index("workflow.update_regions.arguments()")
-    state_trace = SOURCE.index('"update_regions_pre_execute_state"')
-    approved_trace = SOURCE.index('"update_regions_approved_arguments_frozen"')
-    region_execute = SOURCE.index("workflow.update_regions()", state_read + 1)
-    post_state = SOURCE.index(
-        "update_regions_post_state = workflow.update_regions.arguments()"
+    describe = SOURCE.index(
+        '"The geometry consists of only fluid regions with no voids"'
     )
-    transition = SOURCE.index("region_transition = validate_region_transition(")
+    route_trace = SOURCE.index('"fluid_only_no_void_region_route_selected"')
     volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
-    assert (
-        boundary_guard
-        < create_state
-        < create_trace
-        < create_execute
-        < state_read
-        < state_trace
-        < approved_trace
-        < region_execute
-        < post_state
-        < transition
-        < volume_mesh
-    )
-    assert SOURCE.count("workflow.create_regions.arguments()") == 1
-    assert SOURCE.count("workflow.create_regions()") == 1
-    assert SOURCE.count("workflow.update_regions.arguments()") == 3
-    assert SOURCE.count("workflow.update_regions()") == 1
-    explicit_window = SOURCE[state_read:region_execute]
+    inventory = SOURCE.index("fluid_only_inventory = {")
+    assert describe < boundary_guard < route_trace < volume_mesh < inventory
     for required in (
-        "pre_update_region_inventory = parse_region_inventory(",
-        "workflow.update_regions.old_region_name_list =",
-        "workflow.update_regions.old_region_type_list =",
-        "workflow.update_regions.region_name_list =",
-        "workflow.update_regions.region_type_list =",
-        "APPROVED_UPDATE_REGION_ARGUMENTS_NOT_EXACT",
+        '"workflow.describe_geometry.setup_type"',
+        '"utilities.get_cell_zones"',
+        '"utilities.get_zone_type"',
+        '"meshing_utilities.convert_zone_ids_to_name_strings"',
+        '"non_flow_region_count": 0',
+        '"route": "FLUID_ONLY_NO_VOID_NO_REGION_EXTRACTION"',
+        "create_regions_executed=False",
+        "update_regions_executed=False",
     ):
-        assert required in explicit_window
-    for forbidden in ("workflow.update_regions.set_state(",):
-        assert forbidden not in explicit_window
+        assert required in SOURCE
+    for forbidden in (
+        "workflow.create_regions",
+        "workflow.update_regions",
+        "number_of_flow_volumes",
+        '"The geometry consists of both fluid and solid regions and/or voids"',
+    ):
+        assert forbidden not in SOURCE
 
 
 def load_contract_helpers() -> dict[str, Any]:
     helper_names = {
         "validate_full_throat_occupancy",
         "validate_actuator_gap_exclusion",
-        "parse_region_inventory",
-        "validate_region_transition",
         "parse_mesh_size",
     }
     nodes = [
@@ -217,13 +195,6 @@ def load_contract_helpers() -> dict[str, Any]:
         "Any": Any,
         "THROAT_COUNT": 972,
         "ACTUATOR_GAP_PROBE_COUNT": 12,
-        "REGION_INVENTORY_FIELD_PAIRS": (
-            ("region_current_list", "region_current_type_list"),
-            ("region_name_list", "region_type_list"),
-            ("old_region_name_list", "old_region_type_list"),
-            ("region_internals", "region_internal_types"),
-        ),
-        "NON_FLOW_REGION_TYPES": {"dead", "void", "excluded"},
         "re": re,
     }
     module = ast.Module(body=nodes, type_ignores=[])
@@ -379,53 +350,16 @@ def test_throat_occupancy_failure_stays_truthful_and_does_not_block_mesh_write()
     )
 
 
-def test_region_inventory_and_transition_pure_contract() -> None:
-    helpers = load_contract_helpers()
-    parse = helpers["parse_region_inventory"]
-    transition = helpers["validate_region_transition"]
-    names = ["main-flow"] + [f"actuator-pocket-{index:02d}" for index in range(11)]
-    types = ["fluid"] + ["dead"] * 11
-    state = {
-        "region_current_list": names,
-        "region_current_type_list": types,
-        "region_name_list": list(names),
-        "region_type_list": list(types),
-    }
-    pre = parse(state, "PRE_UPDATE")
-    post = parse(copy.deepcopy(state), "POST_UPDATE")
-    assert pre["main_flow_region_count"] == 1
-    assert pre["non_flow_region_count"] == 11
-    assert transition(pre, post) == {
-        "main_flow_region_count": 1,
-        "non_flow_region_count": 11,
-        "region_names_types_preserved": True,
-        "void_to_fluid_conversion": False,
-        "region_merge_or_omission": False,
-    }
-    expect_runtime_error(
-        parse, {}, "PRE_UPDATE", marker="INVENTORY_UNRESOLVED"
-    )
-    all_fluid = copy.deepcopy(state)
-    all_fluid["region_current_type_list"] = ["fluid"] * 12
-    all_fluid["region_type_list"] = ["fluid"] * 12
-    expect_runtime_error(
-        parse, all_fluid, "PRE_UPDATE", marker="NOT_1_FLOW_11_NON_FLOW"
-    )
-    conflicting = copy.deepcopy(state)
-    conflicting["region_type_list"][1] = "fluid"
-    expect_runtime_error(
-        parse, conflicting, "PRE_UPDATE", marker="INVENTORY_CONFLICT"
-    )
-    renamed_state = copy.deepcopy(state)
-    renamed_state["region_current_list"][1] = "silently-renamed"
-    renamed_state["region_name_list"][1] = "silently-renamed"
-    renamed = parse(renamed_state, "POST_UPDATE")
-    expect_runtime_error(
-        transition,
-        pre,
-        renamed,
-        marker="RENAMED_RECLASSIFIED_OR_MERGED",
-    )
+def test_fluid_only_inventory_is_observed_from_actual_cell_zone() -> None:
+    for required in (
+        "if len(cell_zone_ids) != 1:",
+        "cell_zone_names = zone_names_one_way(utilities, cell_zone_ids)",
+        '"name": cell_zone_names[0]',
+        '"type": "fluid"',
+        '"classification": "MAIN_FLOW"',
+        'post_update_region_inventory = copy.deepcopy(fluid_only_inventory)',
+    ):
+        assert required in SOURCE
 def test_json_safe_trace_helper_preserves_nested_input() -> None:
     helper_node = next(
         node for node in TREE.body

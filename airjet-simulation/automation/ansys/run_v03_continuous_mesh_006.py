@@ -25,7 +25,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "9138a8343ad931494e1059fce475937bbd8899f4f24d208553df415b1295f68c"
+CONSUMER_SCRIPT_SHA256 = "7cca113549774eb1c32c564169877f35c80a20851fbee8a48225010845b9e397"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -331,16 +331,15 @@ def validate_region_inventory(inventory: Any) -> None:
         or not source_fields
         or len(source_fields) != len(set(source_fields))
         or any(not isinstance(item, str) or not item for item in source_fields)
-        or not set(source_fields).issubset(
-            {
-                "region_current_list/region_current_type_list",
-                "region_name_list/region_type_list",
-                "old_region_name_list/old_region_type_list",
-                "region_internals/region_internal_types",
-            }
-        )
+        or source_fields
+        != [
+            "workflow.describe_geometry.setup_type",
+            "utilities.get_cell_zones",
+            "utilities.get_zone_type",
+            "meshing_utilities.convert_zone_ids_to_name_strings",
+        ]
         or not isinstance(regions, list)
-        or len(regions) != 12
+        or len(regions) != 1
         or not isinstance(approved, dict)
     ):
         raise RuntimeError("CONSUMER_REGION_INVENTORY_INVALID")
@@ -352,27 +351,19 @@ def validate_region_inventory(inventory: Any) -> None:
             or set(region) != {"name", "type", "classification"}
             or not isinstance(region.get("name"), str)
             or not region["name"]
-            or region.get("type") not in {"fluid", "dead", "void", "excluded"}
-            or region.get("classification")
-            != ("MAIN_FLOW" if region.get("type") == "fluid" else "NON_FLOW")
+            or region.get("type") != "fluid"
+            or region.get("classification") != "MAIN_FLOW"
         ):
             raise RuntimeError("CONSUMER_REGION_RECORD_INVALID")
         names.append(region["name"])
         types.append(region["type"])
     if (
-        len(set(names)) != 12
+        len(set(names)) != 1
         or types.count("fluid") != 1
-        or sum(item in {"dead", "void", "excluded"} for item in types) != 11
         or inventory.get("main_flow_region_count") != 1
-        or inventory.get("non_flow_region_count") != 11
+        or inventory.get("non_flow_region_count") != 0
         or inventory.get("main_flow_region_name") != names[types.index("fluid")]
-        or approved
-        != {
-            "old_region_name_list": names,
-            "old_region_type_list": types,
-            "region_name_list": names,
-            "region_type_list": types,
-        }
+        or approved != {}
     ):
         raise RuntimeError("CONSUMER_REGION_CLASSIFICATION_INVALID")
 
@@ -649,12 +640,18 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         or evidence.get("actuator_gap_exclusion_evaluable") is not True
         or actuator_gap_excluded is not True
         or main_flow_count != 1
-        or non_flow_count != 11
+        or non_flow_count != 0
         or not isinstance(pre_inv, dict)
         or not isinstance(post_inv, dict)
         or not isinstance(region_trans, dict)
         or region_trans.get("main_flow_region_count") != 1
-        or region_trans.get("non_flow_region_count") != 11
+        or region_trans
+        != {
+            "route": "FLUID_ONLY_NO_VOID_NO_REGION_EXTRACTION",
+            "main_flow_region_count": 1,
+            "non_flow_region_count": 0,
+            "unchanged": True,
+        }
         or type(hit_count) is not int
         or type(miss_count) is not int
         or type(raw_none_count) is not int
@@ -681,11 +678,10 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         pre_inv != post_inv
         or region_trans
         != {
+            "route": "FLUID_ONLY_NO_VOID_NO_REGION_EXTRACTION",
             "main_flow_region_count": 1,
-            "non_flow_region_count": 11,
-            "region_names_types_preserved": True,
-            "void_to_fluid_conversion": False,
-            "region_merge_or_omission": False,
+            "non_flow_region_count": 0,
+            "unchanged": True,
         }
     ):
         raise RuntimeError("CONSUMER_REGION_TRANSITION_INVALID")
