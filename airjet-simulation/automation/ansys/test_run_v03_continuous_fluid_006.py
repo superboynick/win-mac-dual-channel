@@ -460,8 +460,14 @@ def test_v03_script_is_isolated_and_fail_closed():
         'expected_xy_evidence["pass"]',
         'v03_finite_throat_route_v1.json',
         'expected_construction_lateral_area_mm2',
+        '8.0 * perimeter_boolean_overlap_mm * membrane',
+        '"AJM006_V03_BRIDGE_L_%03d" % cell_index',
+        '"AJM006_V03_BRIDGE_R_%03d" % cell_index',
+        '"AJM006_V03_BRIDGE_B_%03d" % cell_index',
+        '"AJM006_V03_BRIDGE_T_%03d" % cell_index',
     ):
         assert required in source
+    assert source.count('"AJM006_V03_BRIDGE_') == 4
     for forbidden in (
         "ShareTopology.FindAndFix",
         "GenerateMesh(",

@@ -131,11 +131,11 @@
     "vent_riser_overlap_mm": 0.001,
     "vent_riser_overlap_role": "UNCHANGED_C1_BOOLEAN_ROBUSTNESS_CONTROL",
     "perimeter_boolean_overlap_mm": 0.05,
-    "perimeter_boolean_overlap_raw_mm3": 0.6672,
+    "perimeter_boolean_overlap_raw_mm3": 1.3392,
     "perimeter_boolean_overlap_role": "C5_BOOLEAN_ROBUSTNESS_DIAGNOSTIC_BOTTOM_TO_RING_INTERFACE",
     "perimeter_boolean_overlap_product_fact": false,
     "perimeter_boolean_overlap_union_volume_delta_mm3": 0.0,
-    "perimeter_boolean_overlap_reason": "The perimeter rings extend 0.05 mm inward into the frozen bottom-chamber footprint while their outer edges are clamped to the frozen footprint bounds; the construction overlap must not change product dimensions or the membrane boundary",
+    "perimeter_boolean_overlap_reason": "Four 0.04 mm-high bridge solids per cell straddle the frozen bottom/ring interfaces by 0.05 mm on each side; every bridge is contained in the original final union so product dimensions and membrane boundaries must remain unchanged",
     "analytic_volume_components_mm3": {
       "downstream_manifold": 191.671875,
       "finite_throat_core": 4.771293842639498,

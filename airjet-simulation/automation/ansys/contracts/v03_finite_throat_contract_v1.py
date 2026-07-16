@@ -346,7 +346,7 @@ def validate_route(route: dict[str, Any], repo: Path) -> dict[str, Any]:
         or not close(geometry.get("vent_riser_overlap_mm"), 0.001)
         or not close(geometry.get("perimeter_boolean_overlap_mm"), 0.05)
         or not close(
-            geometry.get("perimeter_boolean_overlap_raw_mm3"), 0.6672
+            geometry.get("perimeter_boolean_overlap_raw_mm3"), 1.3392
         )
         or not close(
             geometry.get("perimeter_boolean_overlap_union_volume_delta_mm3"),
