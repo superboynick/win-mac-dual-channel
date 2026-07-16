@@ -33,3 +33,5 @@ MPI Option Selected: intel
 
 Cleanup script file is C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\logs\\evidence\\c5_mesh\\cleanup-fluent-LAPTOP-LCCLM2HI-18532.bat
 Multicore processors detected. Processor affinity set!
+Information: The server has started and is running.
+(set-session-idle-timeout 3)#f
