@@ -1946,8 +1946,10 @@ for invariant in (
     "session.tui.file.write_mesh(str(MESH_PATH))",
     "workflow.import_geometry.file_name = str(STAGED_NATIVE_PATH)",
     '"NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1078:{}"',
-    "session.tui.boundary.separate.sep_face_zone_by_region([inlet_name])",
-    '"POST_SURFACE_INLET_SPLIT_COUNT_NOT_4"',
+    "session.tui.boundary.separate.sep_face_zone_by_region(",
+    '"POST_SURFACE_INLET_REPRESENTATIVE_BINDING_INVALID"',
+    '"POST_SURFACE_INLET_SPLIT"',
+    "PRODUCT_ROLE_COUNTS_INVALID",
     '"PREDECESSOR_NATIVE_EVIDENCE_INVALID"',
     '"exact_native_and_step_byte_staging"',
     '"ROUND_TRIP_CORROBORATION_NOT_MESH_SOURCE"',
@@ -2018,7 +2020,7 @@ for invariant in (
 
 # Require the producer-side observation to be computed from all queries and
 # from the actual post-mesh Fluent cell-zone APIs.  The route must describe
-# the observed mixed-region route.  The eleven non-flow gaps must be measured,
+# the observed mixed-region route.  The twelve non-flow gaps must be measured,
 # preserved in evidence, and excluded explicitly rather than hidden behind the
 # obsolete fluid-only/no-void declaration.
 for invariant in (
@@ -2059,9 +2061,63 @@ for invariant in (
     'throat_occupancy_evaluable = "error" not in occupancy_contract',
     'occupancy_contract.get("executed_queries") == THROAT_COUNT',
     'occupancy_contract.get("hit_count") == THROAT_COUNT',
+    "build_post_surface_coverage_diagnostic(",
+    '"post_surface_native_role_coverage_observed"',
+    '"global_zone_ids"',
+    '"global_zone_names"',
+    '"global_zone_types"',
+    '"global_zone_face_counts"',
+    '"role_mapped_ids"',
+    '"role_mapped_names"',
+    '"missing_global_ids"',
+    '"unexpected_mapped_ids"',
+    '"missing_zone_diagnostics"',
+    "get_all_objects()",
+    "get_face_zones_of_object(",
+    "get_labels_on_face_zones(",
+    "get_regions_of_face_zones(",
+    "get_average_bounding_box_center(",
+    'raise RuntimeError("POST_SURFACE_NATIVE_ROLE_ZONE_COVERAGE_INVALID")',
+    'result["diagnostics"]',
+    'result["diagnostic_trace"] = file_record(PRELAUNCH_TRACE_PATH)',
+    "resolve_post_surface_dual_object_boundaries(",
+    'get_objects(type_name="geom")',
+    'get_objects(type_name="mesh")',
+    "session.tui.objects.delete_all_geom()",
+    '"POST_SURFACE_GEOMETRY_DELETE"',
+    '"POST_SURFACE_ROLE_MERGE"',
+    '"POST_SURFACE_INLET_SPLIT"',
+    '"POST_SURFACE_CANONICAL"',
+    "classify_post_surface_product_roles(",
+    "bind_post_surface_inlet_representatives(",
+    "rebuild_post_surface_canonical_records(",
+    '"POST_SURFACE_ROLE_MERGE_FACE_COUNT_NOT_CONSERVED"',
+    '"POST_SURFACE_INLET_SPLIT_LINEAGE_NOT_CONSERVED"',
+    '"POST_SURFACE_CANONICAL_FACE_COUNT_NOT_CONSERVED"',
 ):
     if invariant not in v03_mesh_source:
         fail("V03 C5 consumer lacks computed occupancy/region invariant: " + invariant)
+v03_mesh_tree = ast.parse(v03_mesh_source, filename=str(v03_mesh_source_path))
+rebind_functions = [
+    node
+    for node in v03_mesh_tree.body
+    if isinstance(node, ast.FunctionDef)
+    and node.name == "rebind_post_surface_canonical_records"
+]
+if len(rebind_functions) != 1:
+    fail("V03 post-surface rebind function is not unique")
+rebind_calls = [
+    node
+    for node in ast.walk(rebind_functions[0])
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+]
+if any(node.func.id == "observe_semantic_zone_mapping" for node in rebind_calls):
+    fail("V03 post-surface rebind reintroduced exhaustive 1078-point mapping")
+if sum(
+    node.func.id == "bind_post_surface_inlet_representatives"
+    for node in rebind_calls
+) != 1:
+    fail("V03 post-surface rebind does not use one exact four-inlet binder")
 if "passthrough" in v03_mesh_source or "passthrough" in v03_mesh_runner_source:
     fail("V03 C5 runtime reintroduced forbidden region passthrough")
 for forbidden in (
@@ -2104,6 +2160,15 @@ for guard_name in (
     "test_mesh_size_parser_accepts_frozen_v261_summary",
     "test_mixed_region_route_is_explicit_and_ordered",
     "test_mixed_region_inventory_is_observed_before_volume",
+    "test_post_surface_coverage_diagnostic_is_complete_and_fail_safe",
+    "test_native_coverage_mismatch_traces_then_raises_original_error",
+    "test_post_surface_native_trace_precedes_unchanged_gate_error",
+    "test_post_surface_dual_object_41_wall_partition_is_exact",
+    "test_post_surface_dual_object_partition_rejects_every_trust_break",
+    "test_product_only_state_guards_41_and_10_zone_transitions",
+    "test_destructive_post_surface_sequence_is_fully_gated",
+    "test_rebind_has_zero_exhaustive_post_surface_mapping_calls",
+    "test_inlet_binding_executes_exactly_four_point_queries",
 ):
     if guard_name not in consumer_guard_names:
         fail("V03 C5 consumer regression guard missing: " + guard_name)

@@ -124,9 +124,9 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         '"NATIVE_SCDOCX_BOUND_TO_SIGNED_PREDECESSOR"',
         '"NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1078:{}"',
         "rebind_post_surface_canonical_records(",
-        "session.tui.boundary.separate.sep_face_zone_by_region([inlet_name])",
+        "session.tui.boundary.separate.sep_face_zone_by_region(",
         '"POST_SURFACE_NATIVE_BOUNDARY_ZONE_COUNT_LT_7:{}"',
-        '"POST_SURFACE_INLET_SPLIT_COUNT_NOT_4"',
+        '"POST_SURFACE_INLET_REPRESENTATIVE_BINDING_INVALID"',
         "validate_post_surface_role_partition(",
         "canonical_boundary_update_contract(",
         'workflow.import_geometry.length_unit = "mm"',
@@ -244,6 +244,17 @@ def load_semantic_helpers() -> dict[str, Any]:
         "workflow_task_identity",
         "semantic_zone_type",
         "validate_final_boundary_semantics",
+        "json_safe_trace_value",
+        "zone_names_one_way",
+        "safe_diagnostic_observation",
+        "build_post_surface_coverage_diagnostic",
+        "resolve_post_surface_dual_object_boundaries",
+        "enforce_post_surface_native_role_coverage",
+        "classify_post_surface_product_roles",
+        "rebuild_post_surface_canonical_records",
+        "one_face_zone",
+        "bind_post_surface_inlet_representatives",
+        "validate_post_surface_product_only_state",
     }
     nodes = [
         node
@@ -263,6 +274,7 @@ def load_semantic_helpers() -> dict[str, Any]:
     namespace = {
         "Any": Any,
         "math": __import__("math"),
+        "re": re,
         "THROAT_RADIUS_MM": 0.125,
         "BOUNDARY_ROLE_ORDER": tuple(role_counts),
         "EXPECTED_BOUNDARY_ROLE_COUNTS": role_counts,
@@ -278,6 +290,7 @@ def load_semantic_helpers() -> dict[str, Any]:
         },
         "CANONICAL_BOUNDARY_ZONE_COUNT": 10,
         "THROAT_LOCAL_SIZE_MM": 0.075,
+        "PRELAUNCH_TRACE_PATH": Path("v03_pyfluent_prelaunch_trace.jsonl"),
     }
     module = ast.Module(body=nodes, type_ignores=[])
     exec(
@@ -500,6 +513,573 @@ def test_c7_final_boundary_coverage_and_single_fluid_adjacency() -> None:
     )
 
 
+def post_surface_dual_object_fixture():
+    origin_ids = {
+        "INLET": [1051, 1056, 1065, 1071],
+        "OUTLET": [2],
+        "HEAT_WALL": [1078],
+        "MEMBRANE_TOP": [7],
+        "MEMBRANE_BOTTOM": [9],
+        "ORIFICE_THROAT_WALL": [78],
+        "WALL_CONTINUOUS_UNCLASSIFIED": [3],
+    }
+    origin_names = {
+        "INLET": ["ajm_inlet_001", "ajm_inlet_002", "ajm_inlet_003", "ajm_inlet_004"],
+        "OUTLET": ["ajm_outlet"],
+        "HEAT_WALL": ["ajm_heat_wall"],
+        "MEMBRANE_TOP": ["ajm_membrane_top"],
+        "MEMBRANE_BOTTOM": ["ajm_membrane_bottom"],
+        "ORIFICE_THROAT_WALL": ["ajm_throat_wall"],
+        "WALL_CONTINUOUS_UNCLASSIFIED": ["ajm_remaining_wall"],
+    }
+    name_by_id = {}
+    for role in origin_ids:
+        name_by_id.update(zip(origin_ids[role], origin_names[role]))
+    product_ids = {
+        "INLET": [1105],
+        "OUTLET": [4],
+        "HEAT_WALL": [8],
+        "MEMBRANE_TOP": [5] + list(range(1136, 1147)),
+        "MEMBRANE_BOTTOM": [6] + list(range(1147, 1158)),
+        "ORIFICE_THROAT_WALL": [1106],
+        "WALL_CONTINUOUS_UNCLASSIFIED": [1104] + list(range(1124, 1136)),
+    }
+    name_by_id.update(
+        {
+            1105: "inlet",
+            4: "outlet",
+            8: "heat_wall",
+            5: "membrane_top",
+            6: "membrane_bottom",
+            1106: "orifice_throat_wall",
+            1104: "fluid_continuous:1",
+        }
+    )
+    name_by_id.update({zone_id: f"membrane_top:{zone_id}" for zone_id in range(1136, 1147)})
+    name_by_id.update({zone_id: f"membrane_bottom:{zone_id}" for zone_id in range(1147, 1158)})
+    name_by_id.update({zone_id: f"fluid_continuous:{zone_id}" for zone_id in range(1124, 1136)})
+    origin_flat = sorted(zone_id for ids in origin_ids.values() for zone_id in ids)
+    product_flat = sorted(zone_id for ids in product_ids.values() for zone_id in ids)
+    return {
+        "origin_ids": origin_ids,
+        "origin_names": origin_names,
+        "product_ids": product_ids,
+        "objects": ["mesh-object-with-no-trusted-name", "origin-object-also-untrusted"],
+        "type_objects": {
+            "geom": ["origin-object-also-untrusted"],
+            "mesh": ["mesh-object-with-no-trusted-name"],
+        },
+        "object_ids": {
+            "mesh-object-with-no-trusted-name": product_flat,
+            "origin-object-also-untrusted": origin_flat,
+        },
+        "global_ids": sorted(origin_flat + product_flat),
+        "name_by_id": name_by_id,
+        "type_by_id": {
+            zone_id: ("geometry" if zone_id in origin_flat else "wall")
+            for zone_id in origin_flat + product_flat
+        },
+    }
+
+
+class PostSurfaceDualObjectUtilities:
+    def __init__(self, fixture):
+        self.fixture = fixture
+
+    def get_objects(self, filter=None, type_name=None):
+        if type_name is not None:
+            return list(self.fixture["type_objects"][type_name])
+        assert filter == "*"
+        return list(self.fixture["objects"])
+
+    def get_face_zones(self, filter):
+        assert filter == "*"
+        return list(reversed(self.fixture["global_ids"]))
+
+    def get_face_zones_of_object(self, object_name):
+        return list(reversed(self.fixture["object_ids"][object_name]))
+
+    def convert_zone_ids_to_name_strings(self, zone_id_list):
+        return [self.fixture["name_by_id"][zone_id] for zone_id in zone_id_list]
+
+    def get_zone_type(self, zone_id):
+        return self.fixture["type_by_id"][zone_id]
+
+    def get_face_zone_count(self, face_zone_id_list):
+        return 1
+
+    def get_adjacent_cell_zones_for_given_face_zones(self, face_zone_id_list):
+        return []
+
+    def get_labels_on_face_zones(self, face_zone_id_list):
+        return []
+
+    def get_regions_of_face_zones(self, face_zone_id_list):
+        return []
+
+    def get_all_objects(self):
+        return list(self.fixture["objects"])
+
+    def get_average_bounding_box_center(self, face_zone_id_list):
+        return [0.0, 0.0, 0.0]
+
+
+def test_post_surface_dual_object_41_wall_partition_is_exact() -> None:
+    resolve = load_semantic_helpers()[
+        "resolve_post_surface_dual_object_boundaries"
+    ]
+    fixture = post_surface_dual_object_fixture()
+    observed = resolve(
+        PostSurfaceDualObjectUtilities(fixture),
+        fixture["origin_ids"],
+        fixture["origin_names"],
+    )
+    assert observed["global_zone_ids"] == fixture["global_ids"]
+    assert observed["origin_object"] == "origin-object-also-untrusted"
+    assert observed["product_object"] == "mesh-object-with-no-trusted-name"
+    assert observed["geometry_objects"] == ["origin-object-also-untrusted"]
+    assert observed["mesh_objects"] == ["mesh-object-with-no-trusted-name"]
+    assert observed["origin_zone_ids"] == sorted(
+        zone_id for ids in fixture["origin_ids"].values() for zone_id in ids
+    )
+    assert observed["product_zone_ids"] == sorted(
+        zone_id for ids in fixture["product_ids"].values() for zone_id in ids
+    )
+    assert {
+        role: sorted(ids)
+        for role, ids in observed["product_role_zone_ids"].items()
+    } == {
+        role: sorted(ids) for role, ids in fixture["product_ids"].items()
+    }
+    assert observed["product_role_counts"] == {
+        "INLET": 1,
+        "OUTLET": 1,
+        "HEAT_WALL": 1,
+        "MEMBRANE_TOP": 12,
+        "MEMBRANE_BOTTOM": 12,
+        "ORIFICE_THROAT_WALL": 1,
+        "WALL_CONTINUOUS_UNCLASSIFIED": 13,
+    }
+    assert set(observed["origin_zone_ids"]).isdisjoint(
+        observed["product_zone_ids"]
+    )
+
+
+def test_post_surface_dual_object_partition_rejects_every_trust_break() -> None:
+    resolve = load_semantic_helpers()[
+        "resolve_post_surface_dual_object_boundaries"
+    ]
+    base = post_surface_dual_object_fixture()
+
+    def reject(fixture, marker, origin_ids=None, origin_names=None):
+        expect_runtime_error(
+            resolve,
+            PostSurfaceDualObjectUtilities(fixture),
+            origin_ids if origin_ids is not None else fixture["origin_ids"],
+            origin_names if origin_names is not None else fixture["origin_names"],
+            marker=marker,
+        )
+
+    broken = copy.deepcopy(base)
+    broken["objects"] = broken["objects"][:1]
+    reject(broken, "POST_SURFACE_OBJECT_COUNT_NOT_EXACT_2")
+
+    broken = copy.deepcopy(base)
+    product_object, origin_object = broken["objects"]
+    broken["object_ids"][product_object][0] = broken["object_ids"][origin_object][0]
+    reject(broken, "POST_SURFACE_OBJECT_ZONE_IDS_OVERLAP")
+
+    broken = copy.deepcopy(base)
+    broken["global_ids"] = broken["global_ids"][:-1]
+    reject(broken, "POST_SURFACE_GLOBAL_ZONE_COUNT_NOT_EXACT_51")
+
+    broken = copy.deepcopy(base)
+    broken["type_by_id"][broken["origin_ids"]["OUTLET"][0]] = "wall"
+    reject(broken, "POST_SURFACE_ORIGIN_ZONE_TYPE_NOT_GEOMETRY")
+
+    broken = copy.deepcopy(base)
+    broken["type_objects"]["geom"] = []
+    reject(broken, "POST_SURFACE_OBJECT_KIND_PARTITION_INVALID")
+
+    broken = copy.deepcopy(base)
+    broken["name_by_id"][broken["origin_ids"]["OUTLET"][0]] = "not-ajm-outlet"
+    reject(broken, "POST_SURFACE_ORIGIN_CANONICAL_NAMES_INVALID")
+
+    wrong_expected_ids = copy.deepcopy(base["origin_ids"])
+    wrong_expected_ids["OUTLET"] = [999]
+    reject(
+        copy.deepcopy(base),
+        "POST_SURFACE_ORIGIN_IDS_NOT_BOUND_TO_CANONICAL_SOURCE",
+        origin_ids=wrong_expected_ids,
+    )
+
+    broken = copy.deepcopy(base)
+    broken["type_by_id"][broken["product_ids"]["OUTLET"][0]] = "geometry"
+    reject(broken, "POST_SURFACE_PRODUCT_ZONE_TYPE_NOT_WALL")
+
+    broken = copy.deepcopy(base)
+    broken["name_by_id"][broken["product_ids"]["OUTLET"][0]] = "mystery_wall"
+    reject(broken, "POST_SURFACE_PRODUCT_ZONE_NAME_UNKNOWN")
+
+    broken = copy.deepcopy(base)
+    broken["name_by_id"][broken["product_ids"]["MEMBRANE_TOP"][1]] = "membrane_bottom:9999"
+    reject(broken, "POST_SURFACE_PRODUCT_ROLE_COUNTS_INVALID")
+
+    broken = copy.deepcopy(base)
+    broken["name_by_id"][broken["product_ids"]["MEMBRANE_TOP"][1]] = "membrane_top:9999"
+    reject(broken, "POST_SURFACE_PRODUCT_EXACT_NAME_SETS_INVALID")
+
+
+def test_post_surface_coverage_diagnostic_is_complete_and_fail_safe() -> None:
+    build = load_semantic_helpers()["build_post_surface_coverage_diagnostic"]
+
+    class Utilities:
+        def convert_zone_ids_to_name_strings(self, zone_id_list):
+            return ["zone-{}".format(zone_id) for zone_id in zone_id_list]
+
+        def get_zone_type(self, zone_id):
+            return "wall" if zone_id != 99 else "interior"
+
+        def get_face_zone_count(self, face_zone_id_list):
+            return 17 + face_zone_id_list[0]
+
+        def get_adjacent_cell_zones_for_given_face_zones(self, face_zone_id_list):
+            return [2001, 2002] if face_zone_id_list == [99] else [2001]
+
+        def get_labels_on_face_zones(self, face_zone_id_list):
+            return ["orphan-label"] if face_zone_id_list == [99] else []
+
+        def get_regions_of_face_zones(self, face_zone_id_list):
+            return ["dead11"] if face_zone_id_list == [99] else ["fluid"]
+
+        def get_all_objects(self):
+            return ["fluid-object", "orphan-object"]
+
+        def get_face_zones_of_object(self, object_name):
+            return [1, 2] if object_name == "fluid-object" else [99]
+
+        def get_average_bounding_box_center(self, face_zone_id_list):
+            return [float(face_zone_id_list[0]), 2.0, 3.0]
+
+    role_ids = {
+        role: ([1] if role == "INLET" else [2])
+        for role in (
+            "INLET",
+            "OUTLET",
+            "HEAT_WALL",
+            "MEMBRANE_TOP",
+            "MEMBRANE_BOTTOM",
+            "ORIFICE_THROAT_WALL",
+            "WALL_CONTINUOUS_UNCLASSIFIED",
+        )
+    }
+    role_names = {
+        role: ["mapped-{}".format(role.lower())] for role in role_ids
+    }
+    observed = build(Utilities(), [1, 2, 99], role_ids, role_names)
+    assert set(observed) == {
+        "global_zone_ids",
+        "global_zone_count",
+        "global_zone_names",
+        "global_zone_types",
+        "global_zone_face_counts",
+        "role_mapped_ids",
+        "role_mapped_names",
+        "role_mapped_count",
+        "missing_global_ids",
+        "unexpected_mapped_ids",
+        "missing_zone_diagnostics",
+    }
+    assert observed["global_zone_ids"] == [1, 2, 99]
+    assert observed["global_zone_count"] == 3
+    assert observed["global_zone_names"] == {
+        "status": "OK",
+        "value": ["zone-1", "zone-2", "zone-99"],
+    }
+    assert observed["missing_global_ids"] == [99]
+    assert observed["unexpected_mapped_ids"] == []
+    assert observed["role_mapped_count"] == 2
+    assert observed["missing_zone_diagnostics"]["99"] == {
+        "face_count": {"status": "OK", "value": 116},
+        "zone_type": {"status": "OK", "value": "interior"},
+        "one_way_name": {"status": "OK", "value": "zone-99"},
+        "adjacent_cell_zone_ids": {"status": "OK", "value": [2001, 2002]},
+        "labels": {"status": "OK", "value": ["orphan-label"]},
+        "region_origins": {"status": "OK", "value": ["dead11"]},
+        "object_origin_names": {"status": "OK", "value": ["orphan-object"]},
+        "average_bounding_box_center": {
+            "status": "OK",
+            "value": [99.0, 2.0, 3.0],
+        },
+    }
+
+    class OptionalQueriesFail(Utilities):
+        def get_adjacent_cell_zones_for_given_face_zones(self, face_zone_id_list):
+            raise RuntimeError("adjacency unavailable")
+
+        def get_labels_on_face_zones(self, face_zone_id_list):
+            raise RuntimeError("labels unavailable")
+
+        def get_regions_of_face_zones(self, face_zone_id_list):
+            raise RuntimeError("regions unavailable")
+
+        def get_all_objects(self):
+            raise RuntimeError("objects unavailable")
+
+        def get_average_bounding_box_center(self, face_zone_id_list):
+            raise RuntimeError("origin unavailable")
+
+    failed = build(OptionalQueriesFail(), [1, 2, 99], role_ids, role_names)
+    missing = failed["missing_zone_diagnostics"]["99"]
+    for field in (
+        "adjacent_cell_zone_ids",
+        "labels",
+        "region_origins",
+        "object_origin_names",
+        "average_bounding_box_center",
+    ):
+        assert missing[field]["status"] == "ERROR"
+        assert missing[field]["error_type"] == "RuntimeError"
+        assert missing[field]["error"]
+
+    class OptionalQueriesReturnNone(Utilities):
+        def get_adjacent_cell_zones_for_given_face_zones(self, face_zone_id_list):
+            return None
+
+        def get_labels_on_face_zones(self, face_zone_id_list):
+            return None
+
+        def get_regions_of_face_zones(self, face_zone_id_list):
+            return None
+
+        def get_all_objects(self):
+            return None
+
+        def get_average_bounding_box_center(self, face_zone_id_list):
+            return None
+
+    returned_none = build(
+        OptionalQueriesReturnNone(), [1, 2, 99], role_ids, role_names
+    )["missing_zone_diagnostics"]["99"]
+    for field in (
+        "adjacent_cell_zone_ids",
+        "labels",
+        "region_origins",
+        "object_origin_names",
+        "average_bounding_box_center",
+    ):
+        assert returned_none[field] == {
+            "status": "ERROR",
+            "error_type": "RuntimeError",
+            "error": "POST_SURFACE_DIAGNOSTIC_QUERY_RETURNED_NONE",
+        }
+
+
+def test_native_coverage_mismatch_traces_then_raises_original_error() -> None:
+    helpers = load_semantic_helpers()
+    events = []
+    helpers["trace_checkpoint"] = (
+        lambda name, **details: events.append((name, details))
+    )
+
+    fixture = post_surface_dual_object_fixture()
+    role_ids = copy.deepcopy(fixture["origin_ids"])
+    role_ids["OUTLET"] = list(fixture["product_ids"]["OUTLET"])
+    role_names = copy.deepcopy(fixture["origin_names"])
+    diagnostics = {}
+    expect_runtime_error(
+        helpers["enforce_post_surface_native_role_coverage"],
+        PostSurfaceDualObjectUtilities(fixture),
+        fixture["global_ids"],
+        role_ids,
+        role_names,
+        fixture["origin_ids"],
+        fixture["origin_names"],
+        diagnostics,
+        marker="POST_SURFACE_NATIVE_ROLE_ZONE_COVERAGE_INVALID",
+    )
+    assert events and events[0][0] == "post_surface_native_role_coverage_observed"
+    assert events[0][1]["global_zone_count"] == 51
+    assert diagnostics["post_surface_native_role_coverage"] == {
+        "trace_relative_path": "v03_pyfluent_prelaunch_trace.jsonl",
+        "observation": events[0][1],
+    }
+
+
+def test_post_surface_native_trace_precedes_unchanged_gate_error() -> None:
+    function = next(
+        node
+        for node in TREE.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "enforce_post_surface_native_role_coverage"
+    )
+    guarded = next(node for node in function.body if isinstance(node, ast.Try))
+    try_source = "\n".join(
+        ast.get_source_segment(SOURCE, node) or "" for node in guarded.body
+    )
+    handler_source = "\n".join(
+        ast.get_source_segment(SOURCE, node) or ""
+        for handler in guarded.handlers
+        for node in handler.body
+    )
+    assert "resolve_post_surface_dual_object_boundaries(" in try_source
+    assert "POST_SURFACE_NATIVE_ROLE_ZONE_COVERAGE_INVALID" in try_source
+    assert "build_post_surface_coverage_diagnostic(" not in try_source
+    assert "build_post_surface_coverage_diagnostic(" in handler_source
+    assert "post_surface_native_role_coverage_observed" in handler_source
+
+
+def test_product_only_state_guards_41_and_10_zone_transitions() -> None:
+    validate = load_semantic_helpers()[
+        "validate_post_surface_product_only_state"
+    ]
+    fixture = post_surface_dual_object_fixture()
+    product_object = fixture["objects"][0]
+    product_ids = list(fixture["object_ids"][product_object])
+    product_only = copy.deepcopy(fixture)
+    product_only["objects"] = [product_object]
+    product_only["global_ids"] = list(product_ids)
+    product_only["object_ids"] = {product_object: list(product_ids)}
+    observed = validate(
+        PostSurfaceDualObjectUtilities(product_only),
+        product_object,
+        product_ids,
+        41,
+        "POST_SURFACE_GEOMETRY_DELETE",
+    )
+    assert observed["objects"] == [product_object]
+    assert len(observed["global_zone_ids"]) == 41
+
+    canonical_ids = sorted(product_ids)[:10]
+    canonical = copy.deepcopy(product_only)
+    canonical["global_ids"] = list(canonical_ids)
+    canonical["object_ids"][product_object] = list(canonical_ids)
+    observed = validate(
+        PostSurfaceDualObjectUtilities(canonical),
+        product_object,
+        canonical_ids,
+        10,
+        "POST_SURFACE_CANONICAL",
+    )
+    assert len(observed["global_zone_ids"]) == 10
+
+    broken = copy.deepcopy(product_only)
+    broken["objects"].append("unexpected-object")
+    broken["object_ids"]["unexpected-object"] = []
+    expect_runtime_error(
+        validate,
+        PostSurfaceDualObjectUtilities(broken),
+        product_object,
+        product_ids,
+        41,
+        "POST_SURFACE_GEOMETRY_DELETE",
+        marker="POST_SURFACE_GEOMETRY_DELETE_PRODUCT_ONLY_STATE_INVALID",
+    )
+
+
+def test_destructive_post_surface_sequence_is_fully_gated() -> None:
+    function = next(
+        node
+        for node in TREE.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "rebind_post_surface_canonical_records"
+    )
+    source = ast.get_source_segment(SOURCE, function)
+    assert source is not None
+    dual = source.index("enforce_post_surface_native_role_coverage(")
+    partition_trace = source.index(
+        '"post_surface_dual_object_partition_validated"'
+    )
+    delete = source.index("session.tui.objects.delete_all_geom()")
+    delete_gate = source.index(
+        '"POST_SURFACE_GEOMETRY_DELETE"', delete
+    )
+    merge = source.index("session.tui.boundary.manage.merge(")
+    merge_gate = source.index('"POST_SURFACE_ROLE_MERGE"', merge)
+    split = source.index(
+        "session.tui.boundary.separate.sep_face_zone_by_region(", merge_gate
+    )
+    split_gate = source.index('"POST_SURFACE_INLET_SPLIT"', split)
+    canonicalize = source.index("canonicalize_boundary_zones(", split_gate)
+    canonical_gate = source.index('"POST_SURFACE_CANONICAL"', canonicalize)
+    assert (
+        dual
+        < partition_trace
+        < delete
+        < delete_gate
+        < merge
+        < merge_gate
+        < split
+        < split_gate
+        < canonicalize
+        < canonical_gate
+    )
+
+
+def test_rebind_has_zero_exhaustive_post_surface_mapping_calls() -> None:
+    function = next(
+        node
+        for node in TREE.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "rebind_post_surface_canonical_records"
+    )
+    calls = [
+        node
+        for node in ast.walk(function)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "observe_semantic_zone_mapping"
+    ]
+    assert calls == []
+    assert sum(
+        1
+        for node in ast.walk(function)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "bind_post_surface_inlet_representatives"
+    ) == 1
+
+
+def test_inlet_binding_executes_exactly_four_point_queries() -> None:
+    bind = load_semantic_helpers()[
+        "bind_post_surface_inlet_representatives"
+    ]
+
+    class Utilities:
+        def __init__(self):
+            self.query_count = 0
+
+        def get_face_zones(self, xyz_coordinates):
+            self.query_count += 1
+            return [int(xyz_coordinates[0])]
+
+        def convert_zone_ids_to_name_strings(self, zone_id_list):
+            return ["inlet:{}".format(zone_id) for zone_id in zone_id_list]
+
+    blueprint = [
+        {
+            "source_face_index": index,
+            "role": "INLET",
+            "probe_point_mm": [float(zone_id), 0.0, 0.0],
+        }
+        for index, zone_id in enumerate((1105, 29316, 29317, 29318))
+    ]
+    utilities = Utilities()
+    ids, names = bind(
+        utilities,
+        blueprint,
+        [29318, 1105, 29317, 29316],
+    )
+    assert utilities.query_count == 4
+    assert ids == [1105, 29316, 29317, 29318]
+    assert names == [
+        "inlet:1105",
+        "inlet:29316",
+        "inlet:29317",
+        "inlet:29318",
+    ]
+
+
 def test_post_surface_partition_region_and_local_sizing_negative_contracts() -> None:
     helpers = load_semantic_helpers()
     roles = {
@@ -607,6 +1187,8 @@ def test_c7_runtime_integration_and_compact_evidence_fields_are_pinned() -> None
         "session.tui.boundary.manage.name(current_names[0], target_names[0])",
         'observe_semantic_zone_mapping(\n            utilities, boundary_blueprint, "PRE_SURFACE"',
         "rebind_post_surface_canonical_records(",
+        'result["diagnostics"]',
+        'result["diagnostic_trace"] = file_record(PRELAUNCH_TRACE_PATH)',
         'observe_semantic_zone_mapping(\n            utilities, boundary_blueprint, "POST_VOLUME"',
         'result["assertions"]["boundary_semantics_preserved_1078"] = True',
         '"source_boundary_face_count": SOURCE_BOUNDARY_FACE_COUNT',

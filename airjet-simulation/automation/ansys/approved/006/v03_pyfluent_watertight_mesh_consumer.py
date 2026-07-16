@@ -688,11 +688,635 @@ def validate_post_surface_role_partition(
     return normalized
 
 
+def safe_diagnostic_observation(operation: Any) -> dict[str, Any]:
+    """Capture an optional diagnostic query without changing gate control flow."""
+    try:
+        value = operation()
+    except Exception as exc:
+        return {
+            "status": "ERROR",
+            "error_type": type(exc).__name__,
+            "error": str(exc),
+        }
+    if value is None:
+        return {
+            "status": "ERROR",
+            "error_type": "RuntimeError",
+            "error": "POST_SURFACE_DIAGNOSTIC_QUERY_RETURNED_NONE",
+        }
+    return {
+        "status": "OK",
+        "value": json_safe_trace_value(value),
+    }
+
+
+def build_post_surface_coverage_diagnostic(
+    meshing_utilities: Any,
+    global_zone_ids: list[int],
+    role_zone_ids: dict[str, list[int]],
+    role_zone_names: dict[str, list[str]],
+) -> dict[str, Any]:
+    """Observe a global-vs-role face-zone mismatch without weakening coverage."""
+    global_ids = sorted(set(global_zone_ids))
+    mapped_ids = sorted(
+        set(zone_id for values in role_zone_ids.values() for zone_id in values)
+    )
+    missing_global_ids = sorted(set(global_ids) - set(mapped_ids))
+    unexpected_mapped_ids = sorted(set(mapped_ids) - set(global_ids))
+    global_zone_names = safe_diagnostic_observation(
+        lambda: zone_names_one_way(meshing_utilities, global_ids)
+    )
+    global_zone_types = {
+        str(zone_id): safe_diagnostic_observation(
+            lambda zone_id=zone_id: meshing_utilities.get_zone_type(
+                zone_id=zone_id
+            )
+        )
+        for zone_id in global_ids
+    }
+    global_zone_face_counts = {
+        str(zone_id): safe_diagnostic_observation(
+            lambda zone_id=zone_id: meshing_utilities.get_face_zone_count(
+                face_zone_id_list=[zone_id]
+            )
+        )
+        for zone_id in global_ids
+    }
+
+    def observe_object_origins(zone_id: int) -> dict[str, Any]:
+        object_names = safe_diagnostic_observation(
+            lambda: meshing_utilities.get_all_objects()
+        )
+        if object_names["status"] != "OK":
+            return object_names
+        objects = object_names["value"]
+        if (
+            not isinstance(objects, list)
+            or any(not isinstance(name, str) or not name for name in objects)
+        ):
+            return {
+                "status": "ERROR",
+                "error_type": "RuntimeError",
+                "error": "POST_SURFACE_DIAGNOSTIC_OBJECT_NAMES_INVALID",
+            }
+        origins = []
+        query_errors = {}
+        for object_name in objects:
+            observation = safe_diagnostic_observation(
+                lambda object_name=object_name: (
+                    meshing_utilities.get_face_zones_of_object(
+                        object_name=object_name
+                    )
+                )
+            )
+            if observation["status"] != "OK":
+                query_errors[object_name] = observation
+                continue
+            object_zone_ids = observation["value"]
+            if not isinstance(object_zone_ids, list):
+                query_errors[object_name] = {
+                    "status": "ERROR",
+                    "error_type": "RuntimeError",
+                    "error": "POST_SURFACE_DIAGNOSTIC_OBJECT_ZONE_IDS_INVALID",
+                }
+                continue
+            if zone_id in object_zone_ids:
+                origins.append(object_name)
+        if query_errors:
+            return {
+                "status": "ERROR",
+                "value": origins,
+                "query_errors": query_errors,
+            }
+        return {"status": "OK", "value": origins}
+
+    missing_zone_diagnostics = {}
+    for zone_id in missing_global_ids:
+        missing_zone_diagnostics[str(zone_id)] = {
+            "face_count": global_zone_face_counts[str(zone_id)],
+            "zone_type": global_zone_types[str(zone_id)],
+            "one_way_name": safe_diagnostic_observation(
+                lambda zone_id=zone_id: zone_names_one_way(
+                    meshing_utilities, [zone_id]
+                )[0]
+            ),
+            "adjacent_cell_zone_ids": safe_diagnostic_observation(
+                lambda zone_id=zone_id: (
+                    meshing_utilities.get_adjacent_cell_zones_for_given_face_zones(
+                        face_zone_id_list=[zone_id]
+                    )
+                )
+            ),
+            "labels": safe_diagnostic_observation(
+                lambda zone_id=zone_id: meshing_utilities.get_labels_on_face_zones(
+                    face_zone_id_list=[zone_id]
+                )
+            ),
+            "region_origins": safe_diagnostic_observation(
+                lambda zone_id=zone_id: meshing_utilities.get_regions_of_face_zones(
+                    face_zone_id_list=[zone_id]
+                )
+            ),
+            "object_origin_names": observe_object_origins(zone_id),
+            "average_bounding_box_center": safe_diagnostic_observation(
+                lambda zone_id=zone_id: (
+                    meshing_utilities.get_average_bounding_box_center(
+                        face_zone_id_list=[zone_id]
+                    )
+                )
+            ),
+        }
+    return {
+        "global_zone_ids": global_ids,
+        "global_zone_count": len(global_ids),
+        "global_zone_names": global_zone_names,
+        "global_zone_types": global_zone_types,
+        "global_zone_face_counts": global_zone_face_counts,
+        "role_mapped_ids": {
+            role: list(role_zone_ids[role]) for role in BOUNDARY_ROLE_ORDER
+        },
+        "role_mapped_names": {
+            role: list(role_zone_names[role]) for role in BOUNDARY_ROLE_ORDER
+        },
+        "role_mapped_count": len(mapped_ids),
+        "missing_global_ids": missing_global_ids,
+        "unexpected_mapped_ids": unexpected_mapped_ids,
+        "missing_zone_diagnostics": missing_zone_diagnostics,
+    }
+
+
+def resolve_post_surface_dual_object_boundaries(
+    meshing_utilities: Any,
+    expected_origin_role_zone_ids: dict[str, list[int]],
+    expected_origin_role_zone_names: dict[str, list[str]],
+) -> dict[str, Any]:
+    """Resolve only the 41 remeshed wall zones as solver boundaries.
+
+    Fluent retains the ten pre-surface canonical zones on an origin geometry
+    object while creating 41 wall zones on a separate surface-mesh object.
+    Object names are intentionally not trusted; exact membership, zone names,
+    zone types, disjointness, and global coverage identify both objects.
+    """
+    if (
+        not isinstance(expected_origin_role_zone_ids, dict)
+        or set(expected_origin_role_zone_ids) != set(BOUNDARY_ROLE_ORDER)
+        or not isinstance(expected_origin_role_zone_names, dict)
+        or set(expected_origin_role_zone_names) != set(BOUNDARY_ROLE_ORDER)
+    ):
+        raise RuntimeError("POST_SURFACE_EXPECTED_ORIGIN_SCHEMA_INVALID")
+    expected_origin_ids = []
+    for role in BOUNDARY_ROLE_ORDER:
+        role_ids = expected_origin_role_zone_ids[role]
+        role_names = expected_origin_role_zone_names[role]
+        if (
+            not isinstance(role_ids, list)
+            or len(role_ids) != len(CANONICAL_BOUNDARY_ZONE_NAMES[role])
+            or any(type(zone_id) is not int or zone_id <= 0 for zone_id in role_ids)
+            or role_names != CANONICAL_BOUNDARY_ZONE_NAMES[role]
+        ):
+            raise RuntimeError("POST_SURFACE_EXPECTED_ORIGIN_ROLE_INVALID:" + role)
+        expected_origin_ids.extend(role_ids)
+    if len(expected_origin_ids) != 10 or len(set(expected_origin_ids)) != 10:
+        raise RuntimeError("POST_SURFACE_EXPECTED_ORIGIN_IDS_NOT_EXACT_10")
+
+    raw_objects = meshing_utilities.get_objects(filter="*")
+    try:
+        object_names = list(raw_objects)
+    except TypeError as exc:
+        raise RuntimeError("POST_SURFACE_OBJECT_LIST_NOT_ITERABLE") from exc
+    if (
+        len(object_names) != 2
+        or len(set(object_names)) != 2
+        or any(not isinstance(name, str) or not name for name in object_names)
+    ):
+        raise RuntimeError("POST_SURFACE_OBJECT_COUNT_NOT_EXACT_2")
+
+    raw_global_ids = meshing_utilities.get_face_zones(filter="*")
+    try:
+        global_ids = list(raw_global_ids)
+    except TypeError as exc:
+        raise RuntimeError("POST_SURFACE_GLOBAL_ZONE_IDS_NOT_ITERABLE") from exc
+    if (
+        len(global_ids) != 51
+        or len(set(global_ids)) != 51
+        or any(type(zone_id) is not int or zone_id <= 0 for zone_id in global_ids)
+    ):
+        raise RuntimeError("POST_SURFACE_GLOBAL_ZONE_COUNT_NOT_EXACT_51")
+    global_ids = sorted(global_ids)
+
+    inventories = {}
+    for object_name in object_names:
+        raw_ids = meshing_utilities.get_face_zones_of_object(
+            object_name=object_name
+        )
+        try:
+            zone_ids = list(raw_ids)
+        except TypeError as exc:
+            raise RuntimeError(
+                "POST_SURFACE_OBJECT_ZONE_IDS_NOT_ITERABLE"
+            ) from exc
+        if (
+            not zone_ids
+            or len(set(zone_ids)) != len(zone_ids)
+            or any(type(zone_id) is not int or zone_id <= 0 for zone_id in zone_ids)
+        ):
+            raise RuntimeError("POST_SURFACE_OBJECT_ZONE_IDS_INVALID")
+        zone_ids = sorted(zone_ids)
+        names = zone_names_one_way(meshing_utilities, zone_ids)
+        records = []
+        for zone_id, zone_name in zip(zone_ids, names):
+            zone_type = meshing_utilities.get_zone_type(zone_id=zone_id)
+            if not isinstance(zone_type, str) or not zone_type.strip():
+                raise RuntimeError("POST_SURFACE_OBJECT_ZONE_TYPE_INVALID")
+            records.append(
+                {
+                    "zone_id": zone_id,
+                    "zone_name": zone_name,
+                    "zone_type": zone_type,
+                }
+            )
+        inventories[object_name] = records
+
+    object_id_sets = {
+        name: {record["zone_id"] for record in records}
+        for name, records in inventories.items()
+    }
+    first_ids = object_id_sets[object_names[0]]
+    second_ids = object_id_sets[object_names[1]]
+    if first_ids & second_ids:
+        raise RuntimeError("POST_SURFACE_OBJECT_ZONE_IDS_OVERLAP")
+    if first_ids | second_ids != set(global_ids):
+        raise RuntimeError("POST_SURFACE_OBJECT_ZONE_UNION_NOT_GLOBAL_51")
+    sizes = {name: len(records) for name, records in inventories.items()}
+    if sorted(sizes.values()) != [10, 41]:
+        raise RuntimeError("POST_SURFACE_OBJECT_CARDINALITIES_NOT_10_AND_41")
+    origin_object = next(name for name, size in sizes.items() if size == 10)
+    product_object = next(name for name, size in sizes.items() if size == 41)
+    geometry_objects = list(meshing_utilities.get_objects(type_name="geom"))
+    mesh_objects = list(meshing_utilities.get_objects(type_name="mesh"))
+    if geometry_objects != [origin_object] or mesh_objects != [product_object]:
+        raise RuntimeError("POST_SURFACE_OBJECT_KIND_PARTITION_INVALID")
+
+    expected_origin_role_by_name = {
+        zone_name: role
+        for role, zone_names_for_role in CANONICAL_BOUNDARY_ZONE_NAMES.items()
+        for zone_name in zone_names_for_role
+    }
+    origin_records = inventories[origin_object]
+    if any(
+        record["zone_type"].strip().lower() != "geometry"
+        for record in origin_records
+    ):
+        raise RuntimeError("POST_SURFACE_ORIGIN_ZONE_TYPE_NOT_GEOMETRY")
+    origin_name_set = {record["zone_name"] for record in origin_records}
+    if origin_name_set != set(expected_origin_role_by_name):
+        raise RuntimeError("POST_SURFACE_ORIGIN_CANONICAL_NAMES_INVALID")
+    origin_role_ids = {role: [] for role in BOUNDARY_ROLE_ORDER}
+    origin_role_names = {role: [] for role in BOUNDARY_ROLE_ORDER}
+    for record in origin_records:
+        role = expected_origin_role_by_name[record["zone_name"]]
+        origin_role_ids[role].append(record["zone_id"])
+        origin_role_names[role].append(record["zone_name"])
+    if any(
+        set(origin_role_ids[role]) != set(expected_origin_role_zone_ids[role])
+        for role in BOUNDARY_ROLE_ORDER
+    ):
+        raise RuntimeError("POST_SURFACE_ORIGIN_IDS_NOT_BOUND_TO_CANONICAL_SOURCE")
+
+    product_patterns = {
+        "INLET": r"inlet",
+        "OUTLET": r"outlet",
+        "HEAT_WALL": r"heat_wall",
+        "MEMBRANE_TOP": r"membrane_top(?::[0-9]+)?",
+        "MEMBRANE_BOTTOM": r"membrane_bottom(?::[0-9]+)?",
+        "ORIFICE_THROAT_WALL": r"orifice_throat_wall",
+        "WALL_CONTINUOUS_UNCLASSIFIED": r"fluid_continuous(?::[0-9]+)?",
+    }
+    expected_product_counts = {
+        "INLET": 1,
+        "OUTLET": 1,
+        "HEAT_WALL": 1,
+        "MEMBRANE_TOP": 12,
+        "MEMBRANE_BOTTOM": 12,
+        "ORIFICE_THROAT_WALL": 1,
+        "WALL_CONTINUOUS_UNCLASSIFIED": 13,
+    }
+    expected_product_names = {
+        "INLET": {"inlet"},
+        "OUTLET": {"outlet"},
+        "HEAT_WALL": {"heat_wall"},
+        "MEMBRANE_TOP": {"membrane_top"}
+        | {"membrane_top:{}".format(value) for value in range(1136, 1147)},
+        "MEMBRANE_BOTTOM": {"membrane_bottom"}
+        | {"membrane_bottom:{}".format(value) for value in range(1147, 1158)},
+        "ORIFICE_THROAT_WALL": {"orifice_throat_wall"},
+        "WALL_CONTINUOUS_UNCLASSIFIED": {"fluid_continuous:1"}
+        | {"fluid_continuous:{}".format(value) for value in range(1124, 1136)},
+    }
+    product_records = inventories[product_object]
+    if any(
+        record["zone_type"].strip().lower() != "wall"
+        for record in product_records
+    ):
+        raise RuntimeError("POST_SURFACE_PRODUCT_ZONE_TYPE_NOT_WALL")
+    product_role_ids = {role: [] for role in BOUNDARY_ROLE_ORDER}
+    product_role_names = {role: [] for role in BOUNDARY_ROLE_ORDER}
+    for record in product_records:
+        matches = [
+            role
+            for role, pattern in product_patterns.items()
+            if re.fullmatch(pattern, record["zone_name"], flags=re.IGNORECASE)
+        ]
+        if not matches:
+            raise RuntimeError(
+                "POST_SURFACE_PRODUCT_ZONE_NAME_UNKNOWN:{}".format(
+                    record["zone_name"]
+                )
+            )
+        if len(matches) != 1:
+            raise RuntimeError(
+                "POST_SURFACE_PRODUCT_ZONE_NAME_OVERLAPS_ROLES:{}".format(
+                    record["zone_name"]
+                )
+            )
+        role = matches[0]
+        product_role_ids[role].append(record["zone_id"])
+        product_role_names[role].append(record["zone_name"])
+    product_counts = {
+        role: len(product_role_ids[role]) for role in BOUNDARY_ROLE_ORDER
+    }
+    if product_counts != expected_product_counts:
+        raise RuntimeError(
+            "POST_SURFACE_PRODUCT_ROLE_COUNTS_INVALID:{!r}".format(
+                product_counts
+            )
+        )
+    if any(
+        {name.lower() for name in product_role_names[role]}
+        != expected_product_names[role]
+        for role in BOUNDARY_ROLE_ORDER
+    ):
+        raise RuntimeError("POST_SURFACE_PRODUCT_EXACT_NAME_SETS_INVALID")
+    if set(
+        zone_id for values in product_role_ids.values() for zone_id in values
+    ) != object_id_sets[product_object]:
+        raise RuntimeError("POST_SURFACE_PRODUCT_ROLE_COVERAGE_INVALID")
+
+    return {
+        "global_zone_ids": global_ids,
+        "origin_object": origin_object,
+        "geometry_objects": geometry_objects,
+        "origin_zone_ids": sorted(object_id_sets[origin_object]),
+        "origin_role_zone_ids": origin_role_ids,
+        "origin_role_zone_names": origin_role_names,
+        "product_object": product_object,
+        "mesh_objects": mesh_objects,
+        "product_zone_ids": sorted(object_id_sets[product_object]),
+        "product_role_zone_ids": product_role_ids,
+        "product_role_zone_names": product_role_names,
+        "product_role_counts": product_counts,
+    }
+
+
+def enforce_post_surface_native_role_coverage(
+    meshing_utilities: Any,
+    global_zone_ids: list[int],
+    role_zone_ids: dict[str, list[int]],
+    role_zone_names: dict[str, list[str]],
+    expected_origin_role_zone_ids: dict[str, list[int]],
+    expected_origin_role_zone_names: dict[str, list[str]],
+    diagnostics: dict[str, Any],
+) -> dict[str, Any]:
+    """Persist native coverage evidence before preserving the hard gate."""
+    try:
+        partition = resolve_post_surface_dual_object_boundaries(
+            meshing_utilities,
+            expected_origin_role_zone_ids,
+            expected_origin_role_zone_names,
+        )
+        if any(
+            set(role_zone_ids[role])
+            != set(partition["origin_role_zone_ids"][role])
+            or set(role_zone_names[role])
+            != set(partition["origin_role_zone_names"][role])
+            for role in BOUNDARY_ROLE_ORDER
+        ):
+            raise RuntimeError("POST_SURFACE_NATIVE_ROLE_ZONE_COVERAGE_INVALID")
+        return partition
+    except Exception:
+        try:
+            observation = build_post_surface_coverage_diagnostic(
+                meshing_utilities,
+                global_zone_ids,
+                role_zone_ids,
+                role_zone_names,
+            )
+        except Exception as diagnostic_exc:
+            observation = {
+                "diagnostic_status": "ERROR",
+                "error_type": type(diagnostic_exc).__name__,
+                "error": str(diagnostic_exc),
+            }
+        diagnostics["post_surface_native_role_coverage"] = {
+            "trace_relative_path": PRELAUNCH_TRACE_PATH.name,
+            "observation": observation,
+        }
+        try:
+            trace_checkpoint(
+                "post_surface_native_role_coverage_observed",
+                **observation,
+            )
+        except Exception as trace_exc:
+            diagnostics["post_surface_native_role_coverage"]["trace_error"] = {
+                "error_type": type(trace_exc).__name__,
+                "error": str(trace_exc),
+            }
+        raise
+
+
+def classify_post_surface_product_roles(
+    meshing_utilities: Any,
+    product_zone_ids: list[int],
+    expected_counts: dict[str, int],
+    stage: str,
+    expected_name_sets: dict[str, set[str]] | None = None,
+) -> dict[str, Any]:
+    """Classify a small product-only zone inventory without 1078 probes."""
+    if (
+        not isinstance(product_zone_ids, list)
+        or not product_zone_ids
+        or len(set(product_zone_ids)) != len(product_zone_ids)
+        or any(type(zone_id) is not int or zone_id <= 0 for zone_id in product_zone_ids)
+        or set(expected_counts) != set(BOUNDARY_ROLE_ORDER)
+    ):
+        raise RuntimeError(f"{stage}_PRODUCT_ZONE_INPUT_INVALID")
+    zone_ids = sorted(product_zone_ids)
+    zone_names_for_ids = zone_names_one_way(meshing_utilities, zone_ids)
+    patterns = {
+        "INLET": r"inlet(?::[0-9]+)?",
+        "OUTLET": r"outlet",
+        "HEAT_WALL": r"heat_wall",
+        "MEMBRANE_TOP": r"membrane_top(?::[0-9]+)?",
+        "MEMBRANE_BOTTOM": r"membrane_bottom(?::[0-9]+)?",
+        "ORIFICE_THROAT_WALL": r"orifice_throat_wall",
+        "WALL_CONTINUOUS_UNCLASSIFIED": r"fluid_continuous(?::[0-9]+)?",
+    }
+    role_ids = {role: [] for role in BOUNDARY_ROLE_ORDER}
+    role_names = {role: [] for role in BOUNDARY_ROLE_ORDER}
+    for zone_id, zone_name in zip(zone_ids, zone_names_for_ids):
+        zone_type = meshing_utilities.get_zone_type(zone_id=zone_id)
+        if not isinstance(zone_type, str) or zone_type.strip().lower() != "wall":
+            raise RuntimeError(f"{stage}_PRODUCT_ZONE_TYPE_NOT_WALL")
+        matches = [
+            role
+            for role, pattern in patterns.items()
+            if re.fullmatch(pattern, zone_name, flags=re.IGNORECASE)
+        ]
+        if len(matches) != 1:
+            raise RuntimeError(f"{stage}_PRODUCT_ZONE_NAME_NOT_EXACT_ROLE")
+        role_ids[matches[0]].append(zone_id)
+        role_names[matches[0]].append(zone_name)
+    counts = {role: len(role_ids[role]) for role in BOUNDARY_ROLE_ORDER}
+    if counts != expected_counts:
+        raise RuntimeError(f"{stage}_PRODUCT_ROLE_COUNTS_INVALID:{counts!r}")
+    if expected_name_sets is not None and any(
+        {name.lower() for name in role_names[role]}
+        != {name.lower() for name in expected_name_sets[role]}
+        for role in BOUNDARY_ROLE_ORDER
+    ):
+        raise RuntimeError(f"{stage}_PRODUCT_EXACT_NAME_SETS_INVALID")
+    return {
+        "role_zone_ids": role_ids,
+        "role_zone_names": role_names,
+        "role_counts": counts,
+        "product_zone_ids": zone_ids,
+    }
+
+
+def rebuild_post_surface_canonical_records(
+    boundary_blueprint: list[dict[str, Any]],
+    role_zone_ids: dict[str, list[int]],
+    role_zone_names: dict[str, list[str]],
+) -> list[dict[str, Any]]:
+    """Rebuild all source records from ten validated canonical role zones."""
+    if (
+        len(boundary_blueprint) != SOURCE_BOUNDARY_FACE_COUNT
+        or set(role_zone_ids) != set(BOUNDARY_ROLE_ORDER)
+        or set(role_zone_names) != set(BOUNDARY_ROLE_ORDER)
+        or any(
+            len(role_zone_ids[role]) != (4 if role == "INLET" else 1)
+            or len(role_zone_names[role]) != len(role_zone_ids[role])
+            for role in BOUNDARY_ROLE_ORDER
+        )
+    ):
+        raise RuntimeError("POST_SURFACE_CANONICAL_REBUILD_INPUT_INVALID")
+    inlet_source_indices = [
+        record["source_face_index"]
+        for record in boundary_blueprint
+        if record["role"] == "INLET"
+    ]
+    if len(inlet_source_indices) != 4:
+        raise RuntimeError("POST_SURFACE_CANONICAL_REBUILD_INLET_NOT_4")
+    inlet_position = {
+        source_index: position
+        for position, source_index in enumerate(inlet_source_indices)
+    }
+    records = []
+    for blueprint_record in boundary_blueprint:
+        role = blueprint_record["role"]
+        position = (
+            inlet_position[blueprint_record["source_face_index"]]
+            if role == "INLET"
+            else 0
+        )
+        records.append(
+            {
+                "source_face_index": blueprint_record["source_face_index"],
+                "role": role,
+                "zone_id": role_zone_ids[role][position],
+                "zone_name": role_zone_names[role][position],
+            }
+        )
+    return records
+
+
+def bind_post_surface_inlet_representatives(
+    meshing_utilities: Any,
+    boundary_blueprint: list[dict[str, Any]],
+    classified_inlet_ids: list[int],
+) -> tuple[list[int], list[str]]:
+    """Bind four inlet zones with exactly four representative point queries."""
+    inlet_blueprint = [
+        record for record in boundary_blueprint if record["role"] == "INLET"
+    ]
+    if len(inlet_blueprint) != 4:
+        raise RuntimeError("POST_SURFACE_INLET_BLUEPRINT_NOT_4")
+    ordered_inlet_ids = [
+        one_face_zone(meshing_utilities, record["probe_point_mm"])
+        for record in inlet_blueprint
+    ]
+    if (
+        len(set(ordered_inlet_ids)) != 4
+        or set(ordered_inlet_ids) != set(classified_inlet_ids)
+    ):
+        raise RuntimeError("POST_SURFACE_INLET_REPRESENTATIVE_BINDING_INVALID")
+    return ordered_inlet_ids, zone_names_one_way(
+        meshing_utilities, ordered_inlet_ids
+    )
+
+
+def validate_post_surface_product_only_state(
+    meshing_utilities: Any,
+    product_object: str,
+    expected_product_zone_ids: list[int],
+    expected_zone_count: int,
+    stage: str,
+) -> dict[str, Any]:
+    """Require geometry deletion to leave exactly the validated product object."""
+    objects = list(meshing_utilities.get_objects(filter="*"))
+    global_zone_ids = sorted(
+        set(meshing_utilities.get_face_zones(filter="*"))
+    )
+    product_zone_ids = sorted(
+        set(
+            meshing_utilities.get_face_zones_of_object(
+                object_name=product_object
+            )
+        )
+    )
+    expected = sorted(set(expected_product_zone_ids))
+    zone_types = {
+        str(zone_id): meshing_utilities.get_zone_type(zone_id=zone_id)
+        for zone_id in global_zone_ids
+    }
+    observation = {
+        "objects": objects,
+        "global_zone_ids": global_zone_ids,
+        "product_object": product_object,
+        "product_zone_ids": product_zone_ids,
+        "zone_types": zone_types,
+    }
+    if (
+        objects != [product_object]
+        or global_zone_ids != expected
+        or product_zone_ids != expected
+        or len(expected) != expected_zone_count
+        or any(value.strip().lower() != "wall" for value in zone_types.values())
+    ):
+        raise RuntimeError(
+            "{}_PRODUCT_ONLY_STATE_INVALID:{!r}".format(
+                stage, observation
+            )
+        )
+    return observation
+
+
 def rebind_post_surface_canonical_records(
     session: Any,
     meshing_utilities: Any,
     canonical_records: list[dict[str, Any]],
     boundary_blueprint: list[dict[str, Any]],
+    diagnostics: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Split the remeshed inlet label and rebind ten canonical boundary zones."""
     zone_ids_before = sorted(set(meshing_utilities.get_face_zones(filter="*")))
@@ -704,60 +1328,216 @@ def rebind_post_surface_canonical_records(
         )
     if len(canonical_records) != SOURCE_BOUNDARY_FACE_COUNT:
         raise RuntimeError("POST_SURFACE_CANONICAL_SOURCE_NOT_1078")
-    observed_records, observed_summary = observe_semantic_zone_mapping(
-        meshing_utilities, boundary_blueprint, "POST_SURFACE_NATIVE"
+    expected_origin_summary = validate_canonical_semantic_mapping(
+        canonical_records, "POST_SURFACE_ORIGIN_CANONICAL"
     )
-    role_zone_ids = validate_post_surface_role_partition(
-        observed_summary["role_zone_ids"]
+    native_partition = enforce_post_surface_native_role_coverage(
+        meshing_utilities,
+        zone_ids_before,
+        expected_origin_summary["role_zone_ids"],
+        expected_origin_summary["role_zone_names"],
+        expected_origin_summary["role_zone_ids"],
+        expected_origin_summary["role_zone_names"],
+        diagnostics,
     )
-    if set(
-        zone_id for values in role_zone_ids.values() for zone_id in values
-    ) != set(zone_ids_before):
-        raise RuntimeError("POST_SURFACE_NATIVE_ROLE_ZONE_COVERAGE_INVALID")
-    if len(role_zone_ids["INLET"]) == 1:
-        inlet_name = zone_names(
-            meshing_utilities, role_zone_ids["INLET"]
-        )[0]
-        session.tui.boundary.separate.sep_face_zone_by_region([inlet_name])
-        observed_records, observed_summary = observe_semantic_zone_mapping(
-            meshing_utilities, boundary_blueprint, "POST_SURFACE_INLET_SPLIT"
-        )
-        role_zone_ids = validate_post_surface_role_partition(
-            observed_summary["role_zone_ids"], inlet_counts=(4,)
-        )
-    elif len(role_zone_ids["INLET"]) != 4:
-        raise RuntimeError("POST_SURFACE_INLET_SPLIT_COUNT_NOT_4")
+    diagnostics["post_surface_dual_object_partition"] = {
+        "trace_relative_path": PRELAUNCH_TRACE_PATH.name,
+        "observation": native_partition,
+    }
+    trace_checkpoint(
+        "post_surface_dual_object_partition_validated",
+        partition=native_partition,
+    )
+    session.tui.objects.delete_all_geom()
+    product_only_observation = validate_post_surface_product_only_state(
+        meshing_utilities,
+        native_partition["product_object"],
+        native_partition["product_zone_ids"],
+        41,
+        "POST_SURFACE_GEOMETRY_DELETE",
+    )
+    diagnostics["post_surface_product_only_after_geometry_delete"] = {
+        "trace_relative_path": PRELAUNCH_TRACE_PATH.name,
+        "observation": product_only_observation,
+    }
+    trace_checkpoint(
+        "post_surface_product_only_after_geometry_delete_observed",
+        **product_only_observation,
+    )
+    role_zone_ids = {
+        role: list(native_partition["product_role_zone_ids"][role])
+        for role in BOUNDARY_ROLE_ORDER
+    }
     role_zone_names = {
-        role: zone_names(meshing_utilities, ids)
-        for role, ids in role_zone_ids.items()
+        role: list(native_partition["product_role_zone_names"][role])
+        for role in BOUNDARY_ROLE_ORDER
+    }
+    native_face_counts = {
+        zone_id: meshing_utilities.get_face_zone_count(
+            face_zone_id_list=[zone_id]
+        )
+        for zone_id in native_partition["product_zone_ids"]
+    }
+    if any(
+        type(value) is not int or value <= 0
+        for value in native_face_counts.values()
+    ):
+        raise RuntimeError("POST_SURFACE_NATIVE_PRODUCT_FACE_COUNT_NOT_POSITIVE")
+    native_role_face_counts = {
+        role: sum(native_face_counts[zone_id] for zone_id in role_zone_ids[role])
+        for role in BOUNDARY_ROLE_ORDER
     }
     for role in BOUNDARY_ROLE_ORDER:
         if role != "INLET" and len(role_zone_names[role]) > 1:
             session.tui.boundary.manage.merge(role_zone_names[role])
-    merged_records, merged_summary = observe_semantic_zone_mapping(
-        meshing_utilities, boundary_blueprint, "POST_SURFACE_MERGED"
+    merged_product_ids = list(
+        meshing_utilities.get_face_zones_of_object(
+            object_name=native_partition["product_object"]
+        )
     )
-    merged_role_ids = validate_post_surface_role_partition(
-        merged_summary["role_zone_ids"], inlet_counts=(4,)
-    )
-    if any(
-        len(ids) != (4 if role == "INLET" else 1)
-        for role, ids in merged_role_ids.items()
-    ):
-        raise RuntimeError("POST_SURFACE_ROLE_MERGE_NOT_4_PLUS_SIX")
-    role_zone_names = {
-        role: zone_names(meshing_utilities, ids)
-        for role, ids in merged_role_ids.items()
+    one_per_role = {role: 1 for role in BOUNDARY_ROLE_ORDER}
+    merged_name_sets = {
+        "INLET": {"inlet"},
+        "OUTLET": {"outlet"},
+        "HEAT_WALL": {"heat_wall"},
+        "MEMBRANE_TOP": {"membrane_top"},
+        "MEMBRANE_BOTTOM": {"membrane_bottom"},
+        "ORIFICE_THROAT_WALL": {"orifice_throat_wall"},
+        "WALL_CONTINUOUS_UNCLASSIFIED": {"fluid_continuous:1"},
     }
+    merged_summary = classify_post_surface_product_roles(
+        meshing_utilities,
+        merged_product_ids,
+        one_per_role,
+        "POST_SURFACE_ROLE_MERGE",
+        merged_name_sets,
+    )
+    merged_role_ids = merged_summary["role_zone_ids"]
+    merged_role_names = merged_summary["role_zone_names"]
+    merged_product_observation = validate_post_surface_product_only_state(
+        meshing_utilities,
+        native_partition["product_object"],
+        merged_summary["product_zone_ids"],
+        7,
+        "POST_SURFACE_ROLE_MERGE",
+    )
+    merged_face_counts = {
+        role: meshing_utilities.get_face_zone_count(
+            face_zone_id_list=merged_role_ids[role]
+        )
+        for role in BOUNDARY_ROLE_ORDER
+    }
+    if merged_face_counts != native_role_face_counts:
+        raise RuntimeError("POST_SURFACE_ROLE_MERGE_FACE_COUNT_NOT_CONSERVED")
+    diagnostics["post_surface_product_only_after_role_merge"] = {
+        "trace_relative_path": PRELAUNCH_TRACE_PATH.name,
+        "observation": merged_product_observation,
+    }
+    trace_checkpoint(
+        "post_surface_product_only_after_role_merge_observed",
+        **merged_product_observation,
+    )
+    session.tui.boundary.separate.sep_face_zone_by_region(
+        [merged_role_names["INLET"][0]]
+    )
+    split_product_ids = list(
+        meshing_utilities.get_face_zones_of_object(
+            object_name=native_partition["product_object"]
+        )
+    )
+    split_counts = {
+        role: (4 if role == "INLET" else 1)
+        for role in BOUNDARY_ROLE_ORDER
+    }
+    split_summary = classify_post_surface_product_roles(
+        meshing_utilities,
+        split_product_ids,
+        split_counts,
+        "POST_SURFACE_INLET_SPLIT",
+    )
+    split_role_ids = split_summary["role_zone_ids"]
+    split_role_names = split_summary["role_zone_names"]
+    ordered_inlet_ids, ordered_inlet_names = (
+        bind_post_surface_inlet_representatives(
+            meshing_utilities,
+            boundary_blueprint,
+            split_role_ids["INLET"],
+        )
+    )
+    split_role_ids["INLET"] = ordered_inlet_ids
+    split_role_names["INLET"] = ordered_inlet_names
+    split_product_observation = validate_post_surface_product_only_state(
+        meshing_utilities,
+        native_partition["product_object"],
+        split_summary["product_zone_ids"],
+        10,
+        "POST_SURFACE_INLET_SPLIT",
+    )
+    split_face_counts = {
+        str(zone_id): meshing_utilities.get_face_zone_count(
+            face_zone_id_list=[zone_id]
+        )
+        for ids in split_role_ids.values()
+        for zone_id in ids
+    }
+    if any(
+        type(value) is not int or value <= 0
+        for value in split_face_counts.values()
+    ):
+        raise RuntimeError("POST_SURFACE_INLET_SPLIT_FACE_COUNT_NOT_POSITIVE")
+    if (
+        sum(split_face_counts[str(zone_id)] for zone_id in split_role_ids["INLET"])
+        != merged_face_counts["INLET"]
+        or any(
+            split_role_ids[role] != merged_role_ids[role]
+            or split_role_names[role] != merged_role_names[role]
+            or split_face_counts[str(split_role_ids[role][0])]
+            != merged_face_counts[role]
+            for role in BOUNDARY_ROLE_ORDER
+            if role != "INLET"
+        )
+    ):
+        raise RuntimeError("POST_SURFACE_INLET_SPLIT_LINEAGE_NOT_CONSERVED")
+    diagnostics["post_surface_product_only_after_inlet_split"] = {
+        "trace_relative_path": PRELAUNCH_TRACE_PATH.name,
+        "observation": split_product_observation,
+        "split_face_counts": split_face_counts,
+    }
+    trace_checkpoint(
+        "post_surface_product_only_after_inlet_split_observed",
+        **split_product_observation,
+        split_face_counts=split_face_counts,
+    )
     canonicalize_boundary_zones(
         session,
         {
-            "role_zone_ids": merged_role_ids,
-            "role_zone_names": role_zone_names,
+            "role_zone_ids": split_role_ids,
+            "role_zone_names": split_role_names,
         },
     )
-    rebound, rebound_summary = observe_semantic_zone_mapping(
-        meshing_utilities, boundary_blueprint, "POST_SURFACE_CANONICAL"
+    canonical_role_names = {
+        role: list(CANONICAL_BOUNDARY_ZONE_NAMES[role])
+        for role in BOUNDARY_ROLE_ORDER
+    }
+    if any(
+        zone_names_one_way(meshing_utilities, split_role_ids[role])
+        != canonical_role_names[role]
+        for role in BOUNDARY_ROLE_ORDER
+    ):
+        raise RuntimeError("POST_SURFACE_CANONICAL_ZONE_NAMES_INVALID")
+    canonical_face_counts = {
+        str(zone_id): meshing_utilities.get_face_zone_count(
+            face_zone_id_list=[zone_id]
+        )
+        for ids in split_role_ids.values()
+        for zone_id in ids
+    }
+    if canonical_face_counts != split_face_counts:
+        raise RuntimeError("POST_SURFACE_CANONICAL_FACE_COUNT_NOT_CONSERVED")
+    rebound = rebuild_post_surface_canonical_records(
+        boundary_blueprint,
+        split_role_ids,
+        canonical_role_names,
     )
     validated = validate_canonical_semantic_mapping(
         rebound, "POST_SURFACE_CANONICAL"
@@ -769,6 +1549,23 @@ def rebind_post_surface_canonical_records(
         zone_id
         for ids in validated["role_zone_ids"].values()
         for zone_id in ids
+    )
+    final_product_observation = validate_post_surface_product_only_state(
+        meshing_utilities,
+        native_partition["product_object"],
+        canonical_zone_ids,
+        10,
+        "POST_SURFACE_CANONICAL",
+    )
+    diagnostics["post_surface_canonical_product_only"] = {
+        "trace_relative_path": PRELAUNCH_TRACE_PATH.name,
+        "observation": final_product_observation,
+        "split_face_counts": split_face_counts,
+    }
+    trace_checkpoint(
+        "post_surface_canonical_product_only_observed",
+        **final_product_observation,
+        split_face_counts=split_face_counts,
     )
     if global_zone_ids_after != canonical_zone_ids:
         raise RuntimeError("POST_SURFACE_GLOBAL_FACE_ZONES_NOT_CANONICAL_10")
@@ -1428,6 +2225,8 @@ result: dict[str, Any] = {
     "exact_product_geometry": "NOT_CLAIMED",
     "visibility": "NOT_USER_OBSERVED",
     "license_arguments_added": False,
+    "diagnostics": {},
+    "diagnostic_trace": None,
     "assertions": {name: False for name in ASSERTION_NAMES},
     "identity": {
         "git_head": os.environ.get("AIRJET_GIT_HEAD"),
@@ -1761,6 +2560,7 @@ try:
             utilities,
             canonical_semantic_records,
             boundary_blueprint,
+            result["diagnostics"],
         )
     )
     semantic_zone_names, semantic_zone_types, semantic_zone_ids = (
@@ -2834,6 +3634,8 @@ finally:
         )
         if path.is_file()
     }
+    if PRELAUNCH_TRACE_PATH.is_file():
+        result["diagnostic_trace"] = file_record(PRELAUNCH_TRACE_PATH)
     write_json(REPORT_PATH, result)
 
 if result["status"] != "PASS_PRELIMINARY_MESH_CAPABILITY":
