@@ -102,3 +102,16 @@ Importing one geom object per program-controlled and one zone per face ...
     running conversion done.
     running ANSYS TGrid CADToTGridConverter done.
     ran ANSYS TGrid CADToTGridConverter in 3.219 [s]
+
+Reading "C:\Users\admin\win-mac-dual-channel\airjet-simulation\logs\evidence\c5_mesh\FM_LAPTOP-LCCLM2HI_12044/out1784214840.57656312044.tgf"...
+
+nodes: 2096
+faces: 4136
+cells: 0
+analyzing boundary connectivity...done.
+
+
+---------------- Import of product_continuous_fluid, consisting of one single part/object , complete. 
+ 
+
+---------------- Import complete in  0.09 minutes.
