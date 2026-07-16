@@ -2027,6 +2027,8 @@ for invariant in (
     '"actuator_gap_exclusion_evaluable": actuator_gap_exclusion_evaluable',
     '"throat_occupancy_first_miss_indices"',
     '"The geometry consists of only fluid regions with no voids"',
+    "workflow.describe_geometry.setup_type = FLUID_ONLY_SETUP_TYPE",
+    "setup_type=FLUID_ONLY_SETUP_TYPE",
     'cell_zone_raw = list(utilities.get_cell_zones(filter="*"))',
     'cell_zone_types = {',
     'utilities.get_zone_type(zone_id=zone_id)',

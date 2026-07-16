@@ -105,6 +105,7 @@ VOLUME_MAX_SIZE_MM = 0.75
 TARGET_FLOW_VOLUME_MESH_TOLERANCE_MM3 = 1.0
 ACTUATOR_GAP_CENTER_Z_MM = 1.795
 ACTUATOR_GAP_PROBE_COUNT = 12
+FLUID_ONLY_SETUP_TYPE = "The geometry consists of only fluid regions with no voids"
 
 
 def sha256_file(path: Path) -> str:
@@ -937,9 +938,7 @@ try:
     result["assertions"]["surface_mesh"] = True
 
     workflow.describe_geometry.update_child_tasks(setup_type_changed=False)
-    workflow.describe_geometry.setup_type = (
-        "The geometry consists of only fluid regions with no voids"
-    )
+    workflow.describe_geometry.setup_type = FLUID_ONLY_SETUP_TYPE
     workflow.describe_geometry.update_child_tasks(setup_type_changed=True)
     workflow.describe_geometry.wall_to_internal = False
     workflow.describe_geometry.invoke_share_topology = "No"
@@ -988,7 +987,7 @@ try:
 
     trace_checkpoint(
         "fluid_only_no_void_region_route_selected",
-        setup_type=workflow.describe_geometry.setup_type,
+        setup_type=FLUID_ONLY_SETUP_TYPE,
         create_regions_executed=False,
         update_regions_executed=False,
     )

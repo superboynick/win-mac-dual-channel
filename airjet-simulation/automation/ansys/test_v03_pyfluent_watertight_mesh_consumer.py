@@ -123,6 +123,7 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=False)",
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=True)",
         '"The geometry consists of only fluid regions with no voids"',
+        "workflow.describe_geometry.setup_type = FLUID_ONLY_SETUP_TYPE",
         "workflow.describe_geometry.wall_to_internal = False",
         "workflow.describe_geometry.arguments()",
         '"describe_geometry_pre_execute_state"',
@@ -166,6 +167,7 @@ def test_fluid_only_region_route_is_explicit_and_ordered() -> None:
         '"meshing_utilities.convert_zone_ids_to_name_strings"',
         '"non_flow_region_count": 0',
         '"route": "FLUID_ONLY_NO_VOID_NO_REGION_EXTRACTION"',
+        "setup_type=FLUID_ONLY_SETUP_TYPE",
         "create_regions_executed=False",
         "update_regions_executed=False",
     ):
