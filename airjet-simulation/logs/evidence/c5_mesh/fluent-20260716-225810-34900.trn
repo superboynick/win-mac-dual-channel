@@ -246,3 +246,16 @@ product_continuous_fluid-ajm006_v03_fluid_continuous                     0      
 ---------------- Boundary Conditions Updated
 Writing "C:\Users\admin\win-mac-dual-channel\airjet-simulation\logs\evidence\c5_mesh\FM_LAPTOP-LCCLM2HI_34900\TaskObject8.msh.h5" ...
 writing 109 node zones
+writing 108 edge zones 
+writing 119 face zones 
+writing node curvature data
+done.
+    updating regions...
+
+Warning: 1 external baffles identified.
+Check for leaks and self-intersections in the mesh, if these are not expected.
+
+         region-name    number of baffles zone ids of baffles
+-------------------- -------------------- --------------------
+    external baffles                    1                (323)
+
