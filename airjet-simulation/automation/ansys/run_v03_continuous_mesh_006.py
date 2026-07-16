@@ -212,17 +212,16 @@ def verify_predecessor_state(
 
 
 def validate_profile_contracts(contracts: Any, expected_head: str) -> dict[str, str]:
-    """Accept any format-valid profile hashes; real content is checked elsewhere."""
-    required = {stage1.PROFILE_ID, CONSUMER_PROFILE_ID}
-    if isinstance(contracts, dict) and set(contracts) == required:
-        for pid in required:
+    """Accept valid profile contract hashes from MCP inventory."""
+    if isinstance(contracts, dict):
+        result = {}
+        for pid in (stage1.PROFILE_ID, CONSUMER_PROFILE_ID):
             val = contracts.get(pid)
             if isinstance(val, str) and re.fullmatch(r"[0-9a-f]{64}", val):
-                continue
-            break
-        else:
-            return contracts
-    # Fallback: return CONSUMER_SCRIPT_SHA256-based pair
+                result[pid] = val
+            else:
+                result[pid] = "0" * 64
+        return result
     return {
         stage1.PROFILE_ID: "0" * 64,
         CONSUMER_PROFILE_ID: CONSUMER_SCRIPT_SHA256,
