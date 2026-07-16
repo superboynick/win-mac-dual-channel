@@ -7,7 +7,7 @@
                     "CadImportOptions": {
                         "OneZonePer": "face"
                     },
-                    "FileName": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-86b658998972\\product_continuous_fluid.step",
+                    "FileName": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-57d27a83351d\\product_continuous_fluid.step",
                     "LengthUnit": "mm",
                     "NumParts": "1"
                 },
@@ -79,6 +79,74 @@
                 "_name_": "Enclose Fluid Regions (Capping)"
             },
             "TaskObject:TaskObject7": {
+                "Arguments": {
+                    "BoundaryZoneList": [
+                        "origin-product_continuous_fluid-ajm006_v03_fluid_continuous.14",
+                        "origin-product_continuous_fluid-ajm006_v03_fluid_continuous.16",
+                        "origin-product_continuous_fluid-ajm006_v03_fluid_continuous.22",
+                        "origin-product_continuous_fluid-ajm006_v03_fluid_continuous.29",
+                        "origin-product_continuous_fluid-ajm006_v03_fluid_continuous.30"
+                    ],
+                    "BoundaryZoneTypeList": [
+                        "velocity-inlet",
+                        "velocity-inlet",
+                        "velocity-inlet",
+                        "velocity-inlet",
+                        "pressure-outlet"
+                    ],
+                    "OldBoundaryZoneList": [
+                        "origin-product_continuous_fluid-ajm006_v03_fluid_continuous.14",
+                        "origin-product_continuous_fluid-ajm006_v03_fluid_continuous.16",
+                        "origin-product_continuous_fluid-ajm006_v03_fluid_continuous.22",
+                        "origin-product_continuous_fluid-ajm006_v03_fluid_continuous.29",
+                        "origin-product_continuous_fluid-ajm006_v03_fluid_continuous.30"
+                    ],
+                    "OldBoundaryZoneTypeList": [
+                        "geometry",
+                        "geometry",
+                        "geometry",
+                        "geometry",
+                        "geometry"
+                    ],
+                    "ZoneLocation": [
+                        "5",
+                        "-10.875",
+                        "-14.5",
+                        "1.6174999",
+                        "10.875",
+                        "-14.5",
+                        "2.1824999",
+                        "origin-product_continuous_fluid-ajm006_v03_fluid_continuous.14",
+                        "3.5",
+                        "-17.75",
+                        "2.1815",
+                        "5.1999998",
+                        "-17.75",
+                        "2.8",
+                        "origin-product_continuous_fluid-ajm006_v03_fluid_continuous.16",
+                        "-6.5",
+                        "-17.75",
+                        "2.1815",
+                        "-4.8000002",
+                        "-17.75",
+                        "2.8",
+                        "origin-product_continuous_fluid-ajm006_v03_fluid_continuous.22",
+                        "-10.875",
+                        "-14.5",
+                        "1.5175",
+                        "10.875",
+                        "20.75",
+                        "1.5175",
+                        "origin-product_continuous_fluid-ajm006_v03_fluid_continuous.29",
+                        "-10.875",
+                        "20.75",
+                        "1.2675",
+                        "10.875",
+                        "20.75",
+                        "1.5175",
+                        "origin-product_continuous_fluid-ajm006_v03_fluid_continuous.30"
+                    ]
+                },
                 "CommandName": "UpdateBoundaries",
                 "ObjectPath": "",
                 "State": "Out-of-date",
