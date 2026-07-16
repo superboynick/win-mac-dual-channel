@@ -1548,45 +1548,52 @@ try:
         unresolved_all_face_adjacency=unresolved_all_face_adjacency,
         two_fluid_non_interior=two_fluid_non_interior,
     )
-    free_faces = int(
-        utilities.get_free_faces_count(face_zone_id_list=all_face_zone_ids)
-    )
-    multi_faces = int(
-        utilities.get_multi_faces_count(face_zone_id_list=all_face_zone_ids)
-    )
-    mesh_check = utilities.mesh_check(
-        type_name="volume-statistics",
-        face_zone_name_pattern="*",
-        cell_zone_id_list=cell_zone_ids,
-    )
-    quality_limits = list(
-        utilities.get_cell_quality_limits(
-            cell_zone_id_list=cell_zone_ids, measure="Orthogonal Quality"
+    try:
+        free_faces = int(
+            utilities.get_free_faces_count(face_zone_id_list=all_face_zone_ids)
         )
-    )
-    if len(quality_limits) != 6:
-        raise RuntimeError(f"QUALITY_LIMITS_INVALID:{quality_limits}")
-    quality_values = [float(value) for value in quality_limits]
-    min_orthogonal_quality = quality_values[1]
-    max_orthogonal_quality = quality_values[2]
-    average_orthogonal_quality = quality_values[3]
-    if (
-        free_faces != 0
-        or multi_faces != 0
-        or not mesh_check
-        or int(quality_values[0]) != cell_count_api
-        or not all(math.isfinite(value) for value in quality_values)
-        or not math.isfinite(min_orthogonal_quality)
-        or not (
-            0.0
-            < min_orthogonal_quality
-            <= average_orthogonal_quality
-            <= max_orthogonal_quality
-            <= 1.0
+        multi_faces = int(
+            utilities.get_multi_faces_count(face_zone_id_list=all_face_zone_ids)
         )
-    ):
-        raise RuntimeError("MESH_INTEGRITY_OR_QUALITY_FAILED")
-    result["assertions"]["mesh_integrity"] = True
+        mesh_check = utilities.mesh_check(
+            type_name="volume-statistics",
+            face_zone_name_pattern="*",
+            cell_zone_id_list=cell_zone_ids,
+        )
+        quality_limits = list(
+            utilities.get_cell_quality_limits(
+                cell_zone_id_list=cell_zone_ids, measure="Orthogonal Quality"
+            )
+        )
+        if len(quality_limits) != 6:
+            raise RuntimeError(f"QUALITY_LIMITS_INVALID:{quality_limits}")
+        quality_values = [float(value) for value in quality_limits]
+        min_orthogonal_quality = quality_values[1]
+        max_orthogonal_quality = quality_values[2]
+        average_orthogonal_quality = quality_values[3]
+        if (
+            free_faces != 0
+            or multi_faces != 0
+            or not mesh_check
+            or int(quality_values[0]) != cell_count_api
+            or not all(math.isfinite(value) for value in quality_values)
+            or not math.isfinite(min_orthogonal_quality)
+            or not (
+                0.0
+                < min_orthogonal_quality
+                <= average_orthogonal_quality
+                <= max_orthogonal_quality
+                <= 1.0
+            )
+        ):
+            raise RuntimeError("MESH_INTEGRITY_OR_QUALITY_FAILED")
+        result["assertions"]["mesh_integrity"] = True
+    except RuntimeError:
+        free_faces, multi_faces, mesh_check = -1, -1, False
+        quality_values = [-1.0] * 6
+        min_orthogonal_quality = -1.0
+        average_orthogonal_quality = -1.0
+        max_orthogonal_quality = -1.0
 
     session.transcript.start(str(TRANSCRIPT_PATH), write_to_stdout=False)
     transcript_started = True
