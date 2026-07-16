@@ -196,6 +196,8 @@ def test_fluid_only_region_route_is_explicit_and_ordered() -> None:
         'f"origin-{mesh_object_candidates[0]}" not in mesh_objects',
         "len(mesh_objects) != 2",
         'utilities.get_regions(object_name=mesh_object_name, filter="*")',
+        'float(throat_query_points[0][0]) - THROAT_RADIUS_MM',
+        '"material_point_region_compute_observed"',
         'mesh_object_name, ["*"], "dead"',
         'mesh_object_name, [MAIN_FLOW_MATERIAL_POINT_NAME], "fluid"',
         "setup_type=FLUID_ONLY_SETUP_TYPE",

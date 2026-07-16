@@ -1000,9 +1000,9 @@ try:
         raise RuntimeError(f"MATERIAL_POINT_MESH_OBJECT_NOT_UNIQUE:{mesh_objects}")
     mesh_object_name = mesh_object_candidates[0]
     main_flow_seed_point = [
-        float(inlet_points[0][0]),
-        float(inlet_points[0][1]),
-        float(inlet_points[0][2]) + 0.01,
+        float(throat_query_points[0][0]) - THROAT_RADIUS_MM,
+        float(throat_query_points[0][1]),
+        float(throat_query_points[0][2]),
     ]
     if any(not math.isfinite(value) for value in main_flow_seed_point):
         raise RuntimeError("MAIN_FLOW_MATERIAL_POINT_NOT_FINITE")
@@ -1018,11 +1018,6 @@ try:
     region_names = list(
         utilities.get_regions(object_name=mesh_object_name, filter="*")
     )
-    if MAIN_FLOW_MATERIAL_POINT_NAME not in region_names:
-        raise RuntimeError(
-            "MAIN_FLOW_MATERIAL_POINT_REGION_NOT_COMPUTED:"
-            f"{mesh_object_name}:{region_names}"
-        )
     region_volume_observations = {
         name: json_safe_trace_value(
             utilities.get_region_volume(
@@ -1031,6 +1026,20 @@ try:
         )
         for name in region_names
     }
+    trace_checkpoint(
+        "material_point_region_compute_observed",
+        mesh_object_name=mesh_object_name,
+        material_point_name=MAIN_FLOW_MATERIAL_POINT_NAME,
+        material_point_mm=main_flow_seed_point,
+        region_names=region_names,
+        region_volume_observations=region_volume_observations,
+    )
+    if MAIN_FLOW_MATERIAL_POINT_NAME not in region_names:
+        raise RuntimeError(
+            "MAIN_FLOW_MATERIAL_POINT_REGION_NOT_COMPUTED:"
+            f"{mesh_object_name}:{region_names}:"
+            f"VOLUMES={region_volume_observations}"
+        )
     session.tui.objects.volumetric_regions.change_type(
         mesh_object_name, ["*"], "dead"
     )

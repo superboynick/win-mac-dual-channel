@@ -2047,6 +2047,8 @@ for invariant in (
     'not name.startswith("origin-")',
     'f"origin-{mesh_object_candidates[0]}" not in mesh_objects',
     "len(mesh_objects) != 2",
+    'float(throat_query_points[0][0]) - THROAT_RADIUS_MM',
+    '"material_point_region_compute_observed"',
     'mesh_object_name, ["*"], "dead"',
     'mesh_object_name, [MAIN_FLOW_MATERIAL_POINT_NAME], "fluid"',
     '"main_flow_region_count": 1',
