@@ -109,3 +109,15 @@ faces: 4136
 cells: 0
 analyzing boundary connectivity...done.
 
+
+---------------- Import of product_continuous_fluid, consisting of one single part/object , complete. 
+ 
+
+---------------- Import complete in  0.09 minutes.
+Writing "C:\Users\admin\win-mac-dual-channel\airjet-simulation\logs\evidence\c5_mesh\FM_LAPTOP-LCCLM2HI_39556\TaskObject3.msh.h5" ...
+writing 1 node zones
+writing 0 edge zones 
+writing 106 face zones 
+writing node curvature data
+done.
+Importing one mesh object per program-controlled and one zone per body ...
