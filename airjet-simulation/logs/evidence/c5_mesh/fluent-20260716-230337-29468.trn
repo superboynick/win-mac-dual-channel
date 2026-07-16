@@ -200,3 +200,15 @@ Reading "C:\Users\admin\win-mac-dual-channel\airjet-simulation\logs\evidence\c5_
 
 ANSYS(R) TGLib(TM) 3D, revision 24.1.0
  Read 373143 vertices
+0 faces marked.
+
+    computing regions...
+
+Warning: 1 external baffles identified.
+Check for leaks and self-intersections in the mesh, if these are not expected.
+done
+
+         region-name    number of baffles zone ids of baffles
+-------------------- -------------------- --------------------
+    external baffles                    1                (323)
+
