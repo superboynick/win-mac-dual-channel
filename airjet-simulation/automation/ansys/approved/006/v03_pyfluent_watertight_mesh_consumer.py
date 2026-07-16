@@ -82,6 +82,9 @@ ASSERTION_NAMES = (
     "surface_mesh",
     "flow_cell_zone_inventory",
     "volume_mesh",
+    "region_classification",
+    "throat_occupancy_full_972",
+    "actuator_gap_exclusion",
     "connected_fluid_cell_zone_graph",
     "target_flow_volume_matches_predecessor",
     "mesh_integrity",
@@ -100,6 +103,14 @@ THROAT_LOCAL_SIZE_MM = 0.075
 VOLUME_MAX_SIZE_MM = 0.75
 TARGET_FLOW_VOLUME_MESH_TOLERANCE_MM3 = 1.0
 ACTUATOR_GAP_CENTER_Z_MM = 1.795
+ACTUATOR_GAP_PROBE_COUNT = 12
+REGION_INVENTORY_FIELD_PAIRS = (
+    ("region_current_list", "region_current_type_list"),
+    ("region_name_list", "region_type_list"),
+    ("old_region_name_list", "old_region_type_list"),
+    ("region_internals", "region_internal_types"),
+)
+NON_FLOW_REGION_TYPES = {"dead", "void", "excluded"}
 
 
 def sha256_file(path: Path) -> str:
@@ -356,6 +367,208 @@ def cell_zone_query(
     return {
         "raw_none": False,
         "zone_ids": [int(value) for value in zone_ids],
+    }
+
+
+def validate_full_throat_occupancy(
+    records: list[dict[str, Any]], accepted_flow_cell_zone_ids: list[int]
+) -> dict[str, Any]:
+    """Require one independently observed owner for every one of 972 throats."""
+    if (
+        len(accepted_flow_cell_zone_ids) != 1
+        or isinstance(accepted_flow_cell_zone_ids[0], bool)
+        or not isinstance(accepted_flow_cell_zone_ids[0], int)
+    ):
+        raise RuntimeError("THROAT_OCCUPANCY_ACCEPTED_FLOW_ZONE_NOT_UNIQUE")
+    if len(records) != THROAT_COUNT:
+        raise RuntimeError("THROAT_OCCUPANCY_QUERY_COUNT_NOT_972")
+    expected_indices = list(range(THROAT_COUNT))
+    observed_indices = [record.get("query_index") for record in records]
+    if observed_indices != expected_indices:
+        raise RuntimeError("THROAT_OCCUPANCY_QUERY_INDICES_NOT_EXACT")
+
+    accepted_owner = accepted_flow_cell_zone_ids[0]
+    owner_counts: dict[str, int] = {}
+    misses: list[int] = []
+    raw_none_count = 0
+    for record in records:
+        if type(record.get("raw_none")) is not bool:
+            raise RuntimeError("THROAT_OCCUPANCY_RAW_NONE_NOT_BOOLEAN")
+        zone_ids = record.get("zone_ids")
+        if not isinstance(zone_ids, list) or any(
+            isinstance(value, bool) or not isinstance(value, int)
+            for value in zone_ids
+        ):
+            raise RuntimeError("THROAT_OCCUPANCY_ZONE_IDS_INVALID")
+        if record["raw_none"]:
+            raw_none_count += 1
+        if (
+            record["raw_none"]
+            or len(zone_ids) != 1
+            or zone_ids[0] != accepted_owner
+        ):
+            misses.append(record["query_index"])
+            continue
+        key = str(zone_ids[0])
+        owner_counts[key] = owner_counts.get(key, 0) + 1
+
+    hit_count = THROAT_COUNT - len(misses)
+    unique_owner_per_query = (
+        hit_count == THROAT_COUNT
+        and owner_counts == {str(accepted_owner): THROAT_COUNT}
+    )
+    if misses or raw_none_count or not unique_owner_per_query:
+        raise RuntimeError(
+            "THROAT_OCCUPANCY_NOT_FULL_SINGLE_OWNER:"
+            f"HITS={hit_count}:MISSES={len(misses)}:RAW_NONE={raw_none_count}"
+        )
+    return {
+        "occupancy_mode": "FULL_972",
+        "executed_queries": THROAT_COUNT,
+        "hit_count": hit_count,
+        "miss_count": 0,
+        "raw_none_count": 0,
+        "first_miss_indices": [],
+        "accepted_flow_cell_zone_id": accepted_owner,
+        "owner_counts": owner_counts,
+        "unique_owner_per_query": True,
+        "all_hits_belong_to_the_single_accepted_flow_cell_zone": True,
+    }
+
+
+def validate_actuator_gap_exclusion(
+    records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Require all twelve actuator-gap probes to preserve Fluent's no-zone signal."""
+    if len(records) != ACTUATOR_GAP_PROBE_COUNT:
+        raise RuntimeError("ACTUATOR_GAP_PROBE_COUNT_NOT_12")
+    expected_indices = list(range(ACTUATOR_GAP_PROBE_COUNT))
+    observed_indices = [record.get("query_index") for record in records]
+    if observed_indices != expected_indices:
+        raise RuntimeError("ACTUATOR_GAP_PROBE_INDICES_NOT_EXACT")
+    for record in records:
+        if type(record.get("raw_none")) is not bool:
+            raise RuntimeError("ACTUATOR_GAP_RAW_NONE_NOT_BOOLEAN")
+        zone_ids = record.get("zone_ids")
+        if not isinstance(zone_ids, list) or any(
+            isinstance(value, bool) or not isinstance(value, int)
+            for value in zone_ids
+        ):
+            raise RuntimeError("ACTUATOR_GAP_ZONE_IDS_INVALID")
+    hit_count = sum(bool(record["zone_ids"]) for record in records)
+    raw_none_count = sum(record["raw_none"] for record in records)
+    excluded = (
+        hit_count == 0
+        and raw_none_count == ACTUATOR_GAP_PROBE_COUNT
+        and all(not record["zone_ids"] for record in records)
+    )
+    if not excluded:
+        raise RuntimeError(
+            "ACTUATOR_GAP_ZONES_NOT_EXCLUDED:"
+            f"HITS={hit_count}:RAW_NONE={raw_none_count}"
+        )
+    return {
+        "actuator_gap_probe_count": ACTUATOR_GAP_PROBE_COUNT,
+        "actuator_gap_hit_count": 0,
+        "actuator_gap_raw_none_count": ACTUATOR_GAP_PROBE_COUNT,
+        "actuator_gap_zones_excluded": True,
+    }
+
+
+def parse_region_inventory(state: Any, label: str) -> dict[str, Any]:
+    """Parse exact region names/types and reject absent or conflicting views."""
+    if not isinstance(state, dict):
+        raise RuntimeError(f"{label}_REGION_STATE_NOT_OBJECT")
+    observations: list[tuple[str, list[str], list[str]]] = []
+    for name_key, type_key in REGION_INVENTORY_FIELD_PAIRS:
+        names = state.get(name_key)
+        types = state.get(type_key)
+        if names is None and types is None:
+            continue
+        if not isinstance(names, list) or not isinstance(types, list):
+            raise RuntimeError(f"{label}_REGION_LISTS_NOT_ARRAYS")
+        if (
+            len(names) != len(types)
+            or len(names) != ACTUATOR_GAP_PROBE_COUNT
+            or len(set(names)) != len(names)
+            or any(not isinstance(name, str) or not name.strip() for name in names)
+            or any(not isinstance(value, str) or not value.strip() for value in types)
+        ):
+            raise RuntimeError(f"{label}_REGION_LISTS_INVALID")
+        observations.append((f"{name_key}/{type_key}", names, types))
+    if not observations:
+        raise RuntimeError(f"{label}_REGION_INVENTORY_UNRESOLVED")
+
+    _, canonical_names, canonical_types = observations[0]
+    canonical_pairs = list(zip(canonical_names, canonical_types))
+    if any(list(zip(names, types)) != canonical_pairs for _, names, types in observations[1:]):
+        raise RuntimeError(f"{label}_REGION_INVENTORY_CONFLICT")
+    normalized_types = [value.strip().lower() for value in canonical_types]
+    fluid_indices = [
+        index for index, value in enumerate(normalized_types) if value == "fluid"
+    ]
+    non_flow_indices = [
+        index
+        for index, value in enumerate(normalized_types)
+        if value in NON_FLOW_REGION_TYPES
+    ]
+    if len(fluid_indices) != 1 or len(non_flow_indices) != 11:
+        raise RuntimeError(
+            f"{label}_REGION_CLASSIFICATION_NOT_1_FLOW_11_NON_FLOW"
+        )
+    if sorted(fluid_indices + non_flow_indices) != list(range(12)):
+        raise RuntimeError(f"{label}_REGION_TYPE_NOT_EXPLICITLY_APPROVED")
+    return {
+        "source_fields": [item[0] for item in observations],
+        "regions": [
+            {
+                "name": name,
+                "type": region_type,
+                "classification": (
+                    "MAIN_FLOW" if index == fluid_indices[0] else "NON_FLOW"
+                ),
+            }
+            for index, (name, region_type) in enumerate(canonical_pairs)
+        ],
+        "main_flow_region_count": 1,
+        "non_flow_region_count": 11,
+        "main_flow_region_name": canonical_names[fluid_indices[0]],
+        "approved_update_arguments": {
+            "old_region_name_list": list(canonical_names),
+            "old_region_type_list": list(canonical_types),
+            "region_name_list": list(canonical_names),
+            "region_type_list": list(canonical_types),
+        },
+    }
+
+
+def validate_region_transition(
+    pre_update: dict[str, Any], post_update: dict[str, Any]
+) -> dict[str, Any]:
+    """Prove update preserved all names/types and did not merge or promote voids."""
+    pre_pairs = [
+        (record["name"], record["type"])
+        for record in pre_update.get("regions", [])
+    ]
+    post_pairs = [
+        (record["name"], record["type"])
+        for record in post_update.get("regions", [])
+    ]
+    if pre_pairs != post_pairs or len(pre_pairs) != 12:
+        raise RuntimeError("REGION_TRANSITION_RENAMED_RECLASSIFIED_OR_MERGED")
+    if (
+        pre_update.get("main_flow_region_count") != 1
+        or post_update.get("main_flow_region_count") != 1
+        or pre_update.get("non_flow_region_count") != 11
+        or post_update.get("non_flow_region_count") != 11
+    ):
+        raise RuntimeError("REGION_TRANSITION_COUNTS_INVALID")
+    return {
+        "main_flow_region_count": 1,
+        "non_flow_region_count": 11,
+        "region_names_types_preserved": True,
+        "void_to_fluid_conversion": False,
+        "region_merge_or_omission": False,
     }
 
 
@@ -849,12 +1062,60 @@ try:
     )
     workflow.create_regions()
     update_regions_pre_state = workflow.update_regions.arguments()
+    pre_update_region_inventory = parse_region_inventory(
+        update_regions_pre_state, "PRE_UPDATE"
+    )
     trace_checkpoint(
         "update_regions_pre_execute_state",
         python_type=type(update_regions_pre_state).__name__,
         state=json_safe_trace_value(update_regions_pre_state),
+        parsed_inventory=pre_update_region_inventory,
+    )
+    approved_update_arguments = pre_update_region_inventory[
+        "approved_update_arguments"
+    ]
+    workflow.update_regions.old_region_name_list = approved_update_arguments[
+        "old_region_name_list"
+    ]
+    workflow.update_regions.old_region_type_list = approved_update_arguments[
+        "old_region_type_list"
+    ]
+    workflow.update_regions.region_name_list = approved_update_arguments[
+        "region_name_list"
+    ]
+    workflow.update_regions.region_type_list = approved_update_arguments[
+        "region_type_list"
+    ]
+    approved_update_state = workflow.update_regions.arguments()
+    approved_update_inventory = parse_region_inventory(
+        approved_update_state, "APPROVED_UPDATE"
+    )
+    if (
+        approved_update_inventory["approved_update_arguments"]
+        != approved_update_arguments
+    ):
+        raise RuntimeError("APPROVED_UPDATE_REGION_ARGUMENTS_NOT_EXACT")
+    trace_checkpoint(
+        "update_regions_approved_arguments_frozen",
+        state=json_safe_trace_value(approved_update_state),
+        parsed_inventory=approved_update_inventory,
     )
     workflow.update_regions()
+    update_regions_post_state = workflow.update_regions.arguments()
+    post_update_region_inventory = parse_region_inventory(
+        update_regions_post_state, "POST_UPDATE"
+    )
+    region_transition = validate_region_transition(
+        pre_update_region_inventory, post_update_region_inventory
+    )
+    result["assertions"]["region_classification"] = True
+    trace_checkpoint(
+        "update_regions_post_execute_state",
+        python_type=type(update_regions_post_state).__name__,
+        state=json_safe_trace_value(update_regions_post_state),
+        parsed_inventory=post_update_region_inventory,
+        transition=region_transition,
+    )
     volume_mesh = workflow.create_volume_mesh_wtm
     volume_mesh.volume_fill = "poly-hexcore"
     volume_mesh.volume_fill_controls.hex_max_cell_length = VOLUME_MAX_SIZE_MM
@@ -996,10 +1257,12 @@ try:
         }
     )
     anchor_occupancy_ok = all(
+        not record["raw_none"]
+        and
         len(record["zone_ids"]) == 1
-        and record["zone_ids"][0] in set(cell_zone_ids)
+        and record["zone_ids"] == cell_zone_ids
         for record in anchor_records
-    )
+    ) and bool(anchor_records)
     representative_indices = list(range(0, THROAT_COUNT, 81))
     representative_throat_controls = [
         {
@@ -1013,17 +1276,18 @@ try:
         for index in representative_indices
     ]
     actuator_gap_center_controls = [
-        cell_zone_query(utilities, point)
-        for point in actuator_gap_center_points
+        {
+            "query_index": index,
+            **cell_zone_query(utilities, point),
+        }
+        for index, point in enumerate(actuator_gap_center_points)
     ]
-    actuator_gap_exclusion_evaluable = anchor_occupancy_ok
-    actuator_gap_zones_excluded = (
-        actuator_gap_exclusion_evaluable
-        and all(
-            not record["raw_none"] and not record["zone_ids"]
-            for record in actuator_gap_center_controls
-        )
+    actuator_gap_exclusion = validate_actuator_gap_exclusion(
+        actuator_gap_center_controls
     )
+    actuator_gap_exclusion_evaluable = True
+    actuator_gap_zones_excluded = True
+    result["assertions"]["actuator_gap_exclusion"] = True
     trace_checkpoint(
         "cell_zone_point_query_controls_observed",
         upstream_anchor_hits=upstream_anchor_hits,
@@ -1033,36 +1297,38 @@ try:
         representative_throat_controls=representative_throat_controls,
         actuator_gap_center_points=actuator_gap_center_points,
         actuator_gap_center_controls=actuator_gap_center_controls,
+        actuator_gap_exclusion=actuator_gap_exclusion,
         actuator_gap_exclusion_evaluable=actuator_gap_exclusion_evaluable,
         actuator_gap_zones_excluded=actuator_gap_zones_excluded,
     )
 
-    occupancy_indices = (
-        list(range(THROAT_COUNT))
-        if anchor_occupancy_ok
-        else representative_indices
-    )
+    if not anchor_occupancy_ok:
+        raise RuntimeError("FLOW_ANCHOR_OCCUPANCY_NOT_PROVEN")
+    occupancy_indices = list(range(THROAT_COUNT))
     occupancy = [
-        cell_zone_query(utilities, throat_axis_points[index])
+        {
+            "query_index": index,
+            **cell_zone_query(utilities, throat_axis_points[index]),
+        }
         for index in occupancy_indices
     ]
-    occupancy_misses = [
-        source_index
-        for source_index, record in zip(occupancy_indices, occupancy)
-        if len(record["zone_ids"]) != 1
-        or record["zone_ids"][0] not in set(cell_zone_ids)
-    ]
+    occupancy_contract = validate_full_throat_occupancy(
+        occupancy, cell_zone_ids
+    )
+    occupancy_misses = occupancy_contract["first_miss_indices"]
+    result["assertions"]["throat_occupancy_full_972"] = True
     trace_checkpoint(
         "throat_center_occupancy_observed",
-        query_count=len(occupancy),
-        hit_count=len(occupancy) - len(occupancy_misses),
-        miss_count=len(occupancy_misses),
-        first_miss_indices=occupancy_misses[:100],
-        raw_none_count=sum(record["raw_none"] for record in occupancy),
+        query_count=occupancy_contract["executed_queries"],
+        hit_count=occupancy_contract["hit_count"],
+        miss_count=occupancy_contract["miss_count"],
+        first_miss_indices=occupancy_contract["first_miss_indices"],
+        raw_none_count=occupancy_contract["raw_none_count"],
         distinct_results=sorted(
             {str(record["zone_ids"]) for record in occupancy}
         ),
-        query_scope=("FULL_972" if len(occupancy) == THROAT_COUNT else "SAMPLED_12"),
+        query_scope=occupancy_contract["occupancy_mode"],
+        occupancy_contract=occupancy_contract,
     )
 
     all_face_observation = optional_int_sequence(
@@ -1194,6 +1460,15 @@ try:
     if (
         graph_connected
         and target_flow_volume_matches_predecessor
+        and result["assertions"]["region_classification"]
+        and result["assertions"]["throat_occupancy_full_972"]
+        and result["assertions"]["actuator_gap_exclusion"]
+        and region_transition["main_flow_region_count"] == 1
+        and region_transition["non_flow_region_count"] == 11
+        and actuator_gap_exclusion["actuator_gap_zones_excluded"]
+        and occupancy_contract[
+            "all_hits_belong_to_the_single_accepted_flow_cell_zone"
+        ]
         and post_volume_role_resolution_ok
         and boundary_adjacency_ok
         and throat_face_adjacency_ok
@@ -1218,6 +1493,11 @@ try:
         throat_face_adjacency_ok=throat_face_adjacency_ok,
         anchor_zone_ids=anchor_zone_ids,
         anchor_occupancy_ok=anchor_occupancy_ok,
+        occupancy_contract=occupancy_contract,
+        actuator_gap_exclusion=actuator_gap_exclusion,
+        pre_update_region_inventory=pre_update_region_inventory,
+        post_update_region_inventory=post_update_region_inventory,
+        region_transition=region_transition,
         baffle_observation=baffle_observation,
         baffle_zone_ids=baffle_zone_ids,
         embedded_baffle_observation=embedded_baffle_observation,
@@ -1329,23 +1609,45 @@ try:
         "representative_throat_controls": representative_throat_controls,
         "actuator_gap_center_points": actuator_gap_center_points,
         "actuator_gap_center_controls": actuator_gap_center_controls,
+        "actuator_gap_probe_count": actuator_gap_exclusion[
+            "actuator_gap_probe_count"
+        ],
+        "actuator_gap_hit_count": actuator_gap_exclusion[
+            "actuator_gap_hit_count"
+        ],
+        "actuator_gap_raw_none_count": actuator_gap_exclusion[
+            "actuator_gap_raw_none_count"
+        ],
         "actuator_gap_exclusion_evaluable": actuator_gap_exclusion_evaluable,
         "actuator_gap_zones_excluded": actuator_gap_zones_excluded,
-        "throat_query_count": len(throat_query_points),
-        "throat_occupancy_executed_query_count": len(occupancy),
-        "throat_occupancy_query_scope": (
-            "FULL_972" if len(occupancy) == THROAT_COUNT else "SAMPLED_12"
-        ),
+        "pre_update_region_inventory": pre_update_region_inventory,
+        "post_update_region_inventory": post_update_region_inventory,
+        "region_transition": region_transition,
+        "main_flow_region_count": region_transition["main_flow_region_count"],
+        "non_flow_region_count": region_transition["non_flow_region_count"],
+        "throat_query_count": THROAT_COUNT,
+        "throat_occupancy_executed_query_count": occupancy_contract[
+            "executed_queries"
+        ],
+        "throat_occupancy_query_scope": occupancy_contract["occupancy_mode"],
         "throat_zone_hit_count": len(throat_zone_hits),
         "throat_zone_ids": throat_zone_ids,
         "throat_zone_names": throat_zone_names,
-        "throat_occupancy_hit_count": len(occupancy) - len(occupancy_misses),
-        "throat_occupancy_miss_count": len(occupancy_misses),
-        "throat_occupancy_raw_none_count": sum(
-            record["raw_none"] for record in occupancy
-        ),
-        "throat_occupancy_first_miss_indices": occupancy_misses[:100],
-        "throat_occupancy_zone_counts": occupancy_zone_counts,
+        "throat_occupancy_hit_count": occupancy_contract["hit_count"],
+        "throat_occupancy_miss_count": occupancy_contract["miss_count"],
+        "throat_occupancy_raw_none_count": occupancy_contract[
+            "raw_none_count"
+        ],
+        "throat_occupancy_first_miss_indices": occupancy_contract[
+            "first_miss_indices"
+        ],
+        "throat_occupancy_zone_counts": occupancy_contract["owner_counts"],
+        "throat_occupancy_unique_owner_per_query": occupancy_contract[
+            "unique_owner_per_query"
+        ],
+        "throat_occupancy_all_hits_in_accepted_flow_zone": occupancy_contract[
+            "all_hits_belong_to_the_single_accepted_flow_cell_zone"
+        ],
         "cell_zone_ids": cell_zone_ids,
         "cell_zone_types": {str(key): value for key, value in cell_zone_types.items()},
         "cell_counts_by_zone": cell_counts_by_zone,
@@ -1498,6 +1800,23 @@ try:
         "throat_face_adjacency_ok": throat_face_adjacency_ok,
         "anchor_zone_ids": anchor_zone_ids,
         "anchor_occupancy_ok": anchor_occupancy_ok,
+        "actuator_gap_probe_count": actuator_gap_exclusion[
+            "actuator_gap_probe_count"
+        ],
+        "actuator_gap_hit_count": actuator_gap_exclusion[
+            "actuator_gap_hit_count"
+        ],
+        "actuator_gap_raw_none_count": actuator_gap_exclusion[
+            "actuator_gap_raw_none_count"
+        ],
+        "actuator_gap_zones_excluded": actuator_gap_exclusion[
+            "actuator_gap_zones_excluded"
+        ],
+        "main_flow_region_count": region_transition["main_flow_region_count"],
+        "non_flow_region_count": region_transition["non_flow_region_count"],
+        "pre_update_region_inventory": pre_update_region_inventory,
+        "post_update_region_inventory": post_update_region_inventory,
+        "region_transition": region_transition,
         "baffle_zone_count": len(baffle_zone_ids),
         "embedded_baffle_zone_count": len(embedded_baffle_zone_ids),
         "external_baffle_resolved": external_baffle_inventory["resolved"],
@@ -1506,14 +1825,23 @@ try:
             unresolved_all_face_adjacency
         ),
         "two_fluid_non_interior_count": len(two_fluid_non_interior),
-        "throat_occupancy_hit_count": len(occupancy) - len(occupancy_misses),
-        "throat_occupancy_miss_count": len(occupancy_misses),
-        "throat_occupancy_raw_none_count": sum(
-            record["raw_none"] for record in occupancy
-        ),
-        "throat_occupancy_zone_counts": occupancy_zone_counts,
-        "throat_query_count": len(throat_query_points),
-        "throat_occupancy_executed_query_count": len(occupancy),
+        "throat_occupancy_query_scope": occupancy_contract["occupancy_mode"],
+        "throat_occupancy_hit_count": occupancy_contract["hit_count"],
+        "throat_occupancy_miss_count": occupancy_contract["miss_count"],
+        "throat_occupancy_raw_none_count": occupancy_contract[
+            "raw_none_count"
+        ],
+        "throat_occupancy_zone_counts": occupancy_contract["owner_counts"],
+        "throat_occupancy_unique_owner_per_query": occupancy_contract[
+            "unique_owner_per_query"
+        ],
+        "throat_occupancy_all_hits_in_accepted_flow_zone": occupancy_contract[
+            "all_hits_belong_to_the_single_accepted_flow_cell_zone"
+        ],
+        "throat_query_count": THROAT_COUNT,
+        "throat_occupancy_executed_query_count": occupancy_contract[
+            "executed_queries"
+        ],
         "throat_zone_count": len(throat_zone_ids),
         "expected_step_flow_volume_mm3": expected_target_flow_volume_mm3,
         "meshed_cell_volume_mm3": float(cell_volume),

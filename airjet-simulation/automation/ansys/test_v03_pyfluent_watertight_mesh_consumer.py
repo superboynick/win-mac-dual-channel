@@ -6,6 +6,7 @@ from __future__ import annotations
 import ast
 import copy
 from pathlib import Path
+from typing import Any
 
 
 HERE = Path(__file__).resolve().parent
@@ -47,7 +48,7 @@ def test_exact_profile_and_assertion_contract() -> None:
     }
     assert len(values["PRODUCER_ASSERTIONS"]) == 17
     assertions = values["ASSERTION_NAMES"]
-    assert len(assertions) == 17 and len(set(assertions)) == 17
+    assert len(assertions) == 20 and len(set(assertions)) == 20
     assert values["STUDENT_ENTITY_LIMIT"] == 1_000_000
     assert values["THROAT_COUNT"] == 972
     assert values["SURFACE_MIN_SIZE_MM"] == 0.05
@@ -152,14 +153,19 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         assert forbidden not in SOURCE
 
 
-def test_update_regions_probe_is_observation_only_and_ordered() -> None:
+def test_update_regions_is_explicit_fail_closed_and_ordered() -> None:
     boundary_guard = SOURCE.index("BOUNDARY_ZONE_TYPES_NOT_4_VELOCITY_1_PRESSURE")
     create_state = SOURCE.index("workflow.create_regions.arguments()")
     create_trace = SOURCE.index('"create_regions_pre_execute_state"')
     create_execute = SOURCE.index("workflow.create_regions()", create_state + 1)
     state_read = SOURCE.index("workflow.update_regions.arguments()")
     state_trace = SOURCE.index('"update_regions_pre_execute_state"')
+    approved_trace = SOURCE.index('"update_regions_approved_arguments_frozen"')
     region_execute = SOURCE.index("workflow.update_regions()", state_read + 1)
+    post_state = SOURCE.index(
+        "update_regions_post_state = workflow.update_regions.arguments()"
+    )
+    transition = SOURCE.index("region_transition = validate_region_transition(")
     volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
     assert (
         boundary_guard
@@ -168,21 +174,194 @@ def test_update_regions_probe_is_observation_only_and_ordered() -> None:
         < create_execute
         < state_read
         < state_trace
+        < approved_trace
         < region_execute
+        < post_state
+        < transition
         < volume_mesh
     )
     assert SOURCE.count("workflow.create_regions.arguments()") == 1
     assert SOURCE.count("workflow.create_regions()") == 1
-    assert SOURCE.count("workflow.update_regions.arguments()") == 1
+    assert SOURCE.count("workflow.update_regions.arguments()") == 3
     assert SOURCE.count("workflow.update_regions()") == 1
-    observation_window = SOURCE[state_read:region_execute]
-    for forbidden in (
+    explicit_window = SOURCE[state_read:region_execute]
+    for required in (
+        "pre_update_region_inventory = parse_region_inventory(",
+        "workflow.update_regions.old_region_name_list =",
+        "workflow.update_regions.old_region_type_list =",
         "workflow.update_regions.region_name_list =",
         "workflow.update_regions.region_type_list =",
-        "workflow.update_regions.set_state(",
-        "workflow.update_regions.arguments({",
+        "APPROVED_UPDATE_REGION_ARGUMENTS_NOT_EXACT",
     ):
-        assert forbidden not in observation_window
+        assert required in explicit_window
+    for forbidden in ("workflow.update_regions.set_state(",):
+        assert forbidden not in explicit_window
+
+
+def load_contract_helpers() -> dict[str, Any]:
+    helper_names = {
+        "validate_full_throat_occupancy",
+        "validate_actuator_gap_exclusion",
+        "parse_region_inventory",
+        "validate_region_transition",
+    }
+    nodes = [
+        node
+        for node in TREE.body
+        if isinstance(node, ast.FunctionDef) and node.name in helper_names
+    ]
+    assert {node.name for node in nodes} == helper_names
+    namespace = {
+        "Any": Any,
+        "THROAT_COUNT": 972,
+        "ACTUATOR_GAP_PROBE_COUNT": 12,
+        "REGION_INVENTORY_FIELD_PAIRS": (
+            ("region_current_list", "region_current_type_list"),
+            ("region_name_list", "region_type_list"),
+            ("old_region_name_list", "old_region_type_list"),
+            ("region_internals", "region_internal_types"),
+        ),
+        "NON_FLOW_REGION_TYPES": {"dead", "void", "excluded"},
+    }
+    module = ast.Module(body=nodes, type_ignores=[])
+    exec(
+        compile(ast.fix_missing_locations(module), str(SOURCE_PATH), "exec"),
+        namespace,
+    )
+    return namespace
+
+
+def expect_runtime_error(function, *args, marker: str) -> None:
+    try:
+        function(*args)
+    except RuntimeError as exc:
+        assert marker in str(exc)
+    else:
+        raise AssertionError(f"expected rejection: {marker}")
+
+
+def test_full_972_occupancy_pure_contract() -> None:
+    validate = load_contract_helpers()["validate_full_throat_occupancy"]
+    records = [
+        {"query_index": index, "raw_none": False, "zone_ids": [41]}
+        for index in range(972)
+    ]
+    observed = validate(records, [41])
+    assert observed == {
+        "occupancy_mode": "FULL_972",
+        "executed_queries": 972,
+        "hit_count": 972,
+        "miss_count": 0,
+        "raw_none_count": 0,
+        "first_miss_indices": [],
+        "accepted_flow_cell_zone_id": 41,
+        "owner_counts": {"41": 972},
+        "unique_owner_per_query": True,
+        "all_hits_belong_to_the_single_accepted_flow_cell_zone": True,
+    }
+    expect_runtime_error(
+        validate, records[:12], [41], marker="QUERY_COUNT_NOT_972"
+    )
+    duplicate = copy.deepcopy(records)
+    duplicate[1]["query_index"] = 0
+    expect_runtime_error(
+        validate, duplicate, [41], marker="QUERY_INDICES_NOT_EXACT"
+    )
+    wrong_owner = copy.deepcopy(records)
+    wrong_owner[300]["zone_ids"] = [42]
+    expect_runtime_error(
+        validate, wrong_owner, [41], marker="NOT_FULL_SINGLE_OWNER"
+    )
+    multi_owner = copy.deepcopy(records)
+    multi_owner[300]["zone_ids"] = [41, 42]
+    expect_runtime_error(
+        validate, multi_owner, [41], marker="NOT_FULL_SINGLE_OWNER"
+    )
+    raw_none = copy.deepcopy(records)
+    raw_none[300] = {"query_index": 300, "raw_none": True, "zone_ids": []}
+    expect_runtime_error(
+        validate, raw_none, [41], marker="NOT_FULL_SINGLE_OWNER"
+    )
+    truthy = copy.deepcopy(records)
+    truthy[0]["raw_none"] = 1
+    expect_runtime_error(
+        validate, truthy, [41], marker="RAW_NONE_NOT_BOOLEAN"
+    )
+    expect_runtime_error(
+        validate, records, [41, 42], marker="ACCEPTED_FLOW_ZONE_NOT_UNIQUE"
+    )
+
+
+def test_actuator_gap_exclusion_pure_contract() -> None:
+    validate = load_contract_helpers()["validate_actuator_gap_exclusion"]
+    records = [
+        {"query_index": index, "raw_none": True, "zone_ids": []}
+        for index in range(12)
+    ]
+    assert validate(records) == {
+        "actuator_gap_probe_count": 12,
+        "actuator_gap_hit_count": 0,
+        "actuator_gap_raw_none_count": 12,
+        "actuator_gap_zones_excluded": True,
+    }
+    hit = copy.deepcopy(records)
+    hit[3] = {"query_index": 3, "raw_none": False, "zone_ids": [41]}
+    expect_runtime_error(validate, hit, marker="ZONES_NOT_EXCLUDED")
+    empty_not_none = copy.deepcopy(records)
+    empty_not_none[3]["raw_none"] = False
+    expect_runtime_error(validate, empty_not_none, marker="ZONES_NOT_EXCLUDED")
+    duplicate = copy.deepcopy(records)
+    duplicate[3]["query_index"] = 2
+    expect_runtime_error(validate, duplicate, marker="PROBE_INDICES_NOT_EXACT")
+
+
+def test_region_inventory_and_transition_pure_contract() -> None:
+    helpers = load_contract_helpers()
+    parse = helpers["parse_region_inventory"]
+    transition = helpers["validate_region_transition"]
+    names = ["main-flow"] + [f"actuator-pocket-{index:02d}" for index in range(11)]
+    types = ["fluid"] + ["dead"] * 11
+    state = {
+        "region_current_list": names,
+        "region_current_type_list": types,
+        "region_name_list": list(names),
+        "region_type_list": list(types),
+    }
+    pre = parse(state, "PRE_UPDATE")
+    post = parse(copy.deepcopy(state), "POST_UPDATE")
+    assert pre["main_flow_region_count"] == 1
+    assert pre["non_flow_region_count"] == 11
+    assert transition(pre, post) == {
+        "main_flow_region_count": 1,
+        "non_flow_region_count": 11,
+        "region_names_types_preserved": True,
+        "void_to_fluid_conversion": False,
+        "region_merge_or_omission": False,
+    }
+    expect_runtime_error(
+        parse, {}, "PRE_UPDATE", marker="INVENTORY_UNRESOLVED"
+    )
+    all_fluid = copy.deepcopy(state)
+    all_fluid["region_current_type_list"] = ["fluid"] * 12
+    all_fluid["region_type_list"] = ["fluid"] * 12
+    expect_runtime_error(
+        parse, all_fluid, "PRE_UPDATE", marker="NOT_1_FLOW_11_NON_FLOW"
+    )
+    conflicting = copy.deepcopy(state)
+    conflicting["region_type_list"][1] = "fluid"
+    expect_runtime_error(
+        parse, conflicting, "PRE_UPDATE", marker="INVENTORY_CONFLICT"
+    )
+    renamed_state = copy.deepcopy(state)
+    renamed_state["region_current_list"][1] = "silently-renamed"
+    renamed_state["region_name_list"][1] = "silently-renamed"
+    renamed = parse(renamed_state, "POST_UPDATE")
+    expect_runtime_error(
+        transition,
+        pre,
+        renamed,
+        marker="RENAMED_RECLASSIFIED_OR_MERGED",
+    )
 def test_json_safe_trace_helper_preserves_nested_input() -> None:
     helper_node = next(
         node for node in TREE.body
@@ -275,7 +454,7 @@ def test_cell_zone_point_query_preserves_no_hit() -> None:
         'return {"raw_none": True, "zone_ids": []}',
         '"CELL_ZONE_QUERY_RETURN_NOT_ITERABLE"',
         '"CELL_ZONE_QUERY_RETURN_NOT_INTEGER_IDS"',
-        "first_miss_indices=occupancy_misses[:100]",
+        '"first_miss_indices": []',
     ):
         assert required in SOURCE
     assert SOURCE.index('"throat_center_occupancy_observed"') < SOURCE.index(

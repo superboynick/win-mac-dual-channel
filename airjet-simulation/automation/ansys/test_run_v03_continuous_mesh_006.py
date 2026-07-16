@@ -3,10 +3,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import copy
+import json
 import math
 from pathlib import Path
 import sys
+from tempfile import TemporaryDirectory
 from types import ModuleType, SimpleNamespace
 
 
@@ -297,6 +300,270 @@ def test_predecessor_state_rejects_missing_and_hash_drift() -> None:
         assert "FROZEN_MISMATCH" in str(exc)
     else:
         raise AssertionError("drifted predecessor accepted")
+
+
+def running_state(job_id: str, engine: str, profile_id: str, script_sha: str) -> dict:
+    return {
+        "job_id": job_id,
+        "case_id": runner.CASE_ID,
+        "profile_id": profile_id,
+        "engine": engine,
+        "script_sha256": script_sha,
+        "profile_contract_sha256": PROFILE_CONTRACT,
+        "profile_dependency_manifest_sha256": None,
+        "profile_dependency_artifacts": [],
+        "git_head": HEAD,
+        "output_root_id": "p1_cad_006",
+        "job_directory": "D:/AirJet_P1/{}".format(job_id),
+        "license_arguments_added": False,
+        "predecessor_job_id": None,
+        "predecessor_artifacts": [],
+        "phase": "RUNNING",
+    }
+
+
+def test_preflight_block_has_zero_stdio_submit_and_child_calls() -> None:
+    counts = {"stdio": 0, "submit": 0, "child": 0}
+    old_output_root = runner.stage1.OUTPUT_ROOT
+    old_result_path = runner.RESULT_PATH
+    old_preflight = runner.stage1.preflight
+    old_stdio = runner.stdio_client
+    old_parameters = runner.StdioServerParameters
+    old_call_json = runner.stage1.call_json
+    with TemporaryDirectory() as root:
+        temp_root = Path(root)
+
+        def blocked_preflight() -> dict:
+            return {
+                "preflight_ok": False,
+                "preflight_errors": ["TEST_BLOCK"],
+            }
+
+        def stdio_spy(*_args, **_kwargs):
+            counts["stdio"] += 1
+            raise AssertionError("stdio reached after blocked preflight")
+
+        def child_spy(*_args, **_kwargs):
+            counts["child"] += 1
+            raise AssertionError("child parameters built after blocked preflight")
+
+        async def call_spy(_session, name, *_args, **_kwargs):
+            if name == "submit_job":
+                counts["submit"] += 1
+            raise AssertionError("MCP call reached after blocked preflight")
+
+        try:
+            runner.stage1.OUTPUT_ROOT = temp_root
+            runner.RESULT_PATH = temp_root / "result.json"
+            runner.stage1.preflight = blocked_preflight
+            runner.stdio_client = stdio_spy
+            runner.StdioServerParameters = child_spy
+            runner.stage1.call_json = call_spy
+            assert asyncio.run(runner.run_suite()) == 2
+            saved = json.loads(runner.RESULT_PATH.read_text(encoding="utf-8"))
+        finally:
+            runner.stage1.OUTPUT_ROOT = old_output_root
+            runner.RESULT_PATH = old_result_path
+            runner.stage1.preflight = old_preflight
+            runner.stdio_client = old_stdio
+            runner.StdioServerParameters = old_parameters
+            runner.stage1.call_json = old_call_json
+    assert counts == {"stdio": 0, "submit": 0, "child": 0}
+    assert saved["stage1"]["capability_status"] == "NOT_RUN"
+    assert saved["stage2"]["capability_status"] == "NOT_RUN"
+
+
+def test_stage1_post_submit_failure_persists_partial_and_cancels() -> None:
+    calls = []
+    old_result_path = runner.RESULT_PATH
+    old_call_json = runner.stage1.call_json
+    with TemporaryDirectory() as root:
+        runner.RESULT_PATH = Path(root) / "partial.json"
+
+        async def fake_call(_session, name, arguments=None, **_kwargs):
+            calls.append((name, arguments))
+            if name == "submit_job":
+                state = running_state(
+                    "stage1-job", "wrong-engine", runner.stage1.PROFILE_ID,
+                    runner.stage1.PROFILE_SCRIPT_SHA256,
+                )
+                return state
+            if name == "cancel_job":
+                partial = json.loads(runner.RESULT_PATH.read_text(encoding="utf-8"))
+                assert partial["stage1"]["submitted"] is True
+                assert partial["stage1"]["capability_status"] == "FAIL"
+                return {"job_id": "stage1-job", "phase": "CANCELLED"}
+            raise AssertionError("unexpected MCP call {}".format(name))
+
+        try:
+            runner.stage1.call_json = fake_call
+            result = runner.new_result()
+            try:
+                asyncio.run(runner.run_submitted_stages(
+                    object(), result, HEAD,
+                    {runner.stage1.PROFILE_ID: PROFILE_CONTRACT},
+                ))
+            except RuntimeError as exc:
+                assert "STAGE1_SUBMIT_IDENTITY_MISMATCH" in str(exc)
+            else:
+                raise AssertionError("stage1 identity failure accepted")
+            saved = json.loads(runner.RESULT_PATH.read_text(encoding="utf-8"))
+        finally:
+            runner.RESULT_PATH = old_result_path
+            runner.stage1.call_json = old_call_json
+    assert [name for name, _ in calls] == ["submit_job", "cancel_job"]
+    assert saved["stage1"]["submitted"] is True
+    assert saved["stage1"]["capability_status"] == "FAIL"
+    assert saved["stage1"]["reached_terminal"] is True
+    assert saved["stage1"]["cancellation"]["confirmed_terminal"] is True
+    assert saved["stage2"]["submitted"] is False
+    assert saved["stage2"]["capability_status"] == "NOT_RUN"
+
+
+def test_stage2_post_submit_failure_preserves_stage1_and_cancels() -> None:
+    calls = []
+    old_result_path = runner.RESULT_PATH
+    old_call_json = runner.stage1.call_json
+    old_wait = runner.wait_for_job
+    old_dependency = runner.stage1.validate_dependency_artifacts
+    old_report = runner.stage1.validate_producer_report
+    with TemporaryDirectory() as root:
+        runner.RESULT_PATH = Path(root) / "partial.json"
+        first_running = running_state(
+            "stage1-job", "spaceclaim", runner.stage1.PROFILE_ID,
+            runner.stage1.PROFILE_SCRIPT_SHA256,
+        )
+        first_running["profile_contract_sha256"] = PROFILE_CONTRACT
+        first_manifest = {
+            "job_id": "stage1-job",
+            "phase": "PROCESS_EXITED_0",
+            "files": [],
+        }
+
+        async def fake_wait(_session, state, _timeout, stage_result, suite_result):
+            terminal = dict(state)
+            terminal["phase"] = "PROCESS_EXITED_0"
+            stage_result["job_state"] = terminal
+            stage_result["reached_terminal"] = True
+            stage_result["cancellation_required"] = False
+            runner.persist_result(suite_result)
+            return terminal
+
+        async def fake_call(_session, name, arguments=None, **_kwargs):
+            calls.append((name, arguments))
+            if name == "submit_job" and arguments["profile_id"] == runner.stage1.PROFILE_ID:
+                return copy.deepcopy(first_running)
+            if name == "artifact_manifest":
+                return copy.deepcopy(first_manifest)
+            if name == "submit_job":
+                second = running_state(
+                    "stage2-job", "wrong-engine", runner.CONSUMER_PROFILE_ID,
+                    runner.CONSUMER_SCRIPT_SHA256,
+                )
+                second["predecessor_job_id"] = "stage1-job"
+                return second
+            if name == "cancel_job":
+                partial = json.loads(runner.RESULT_PATH.read_text(encoding="utf-8"))
+                assert partial["stage2"]["submitted"] is True
+                assert partial["stage2"]["capability_status"] == "FAIL"
+                return {"job_id": "stage2-job", "phase": "CANCELLED"}
+            raise AssertionError("unexpected MCP call {}".format(name))
+
+        try:
+            runner.stage1.call_json = fake_call
+            runner.wait_for_job = fake_wait
+            runner.stage1.validate_dependency_artifacts = lambda _value: None
+            runner.stage1.validate_producer_report = (
+                lambda _manifest, _state, _head: {"status": "PASS"}
+            )
+            result = runner.new_result()
+            try:
+                asyncio.run(runner.run_submitted_stages(
+                    object(), result, HEAD,
+                    {
+                        runner.stage1.PROFILE_ID: PROFILE_CONTRACT,
+                        runner.CONSUMER_PROFILE_ID: PROFILE_CONTRACT,
+                    },
+                ))
+            except RuntimeError as exc:
+                assert "STAGE2_SUBMIT_IDENTITY_MISMATCH" in str(exc)
+            else:
+                raise AssertionError("stage2 identity failure accepted")
+            saved = json.loads(runner.RESULT_PATH.read_text(encoding="utf-8"))
+        finally:
+            runner.RESULT_PATH = old_result_path
+            runner.stage1.call_json = old_call_json
+            runner.wait_for_job = old_wait
+            runner.stage1.validate_dependency_artifacts = old_dependency
+            runner.stage1.validate_producer_report = old_report
+    assert [name for name, _ in calls] == [
+        "submit_job", "artifact_manifest", "submit_job", "cancel_job"
+    ]
+    assert saved["stage1"]["capability_status"] == "PASS"
+    assert saved["stage1"]["reached_terminal"] is True
+    assert saved["stage2"]["submitted"] is True
+    assert saved["stage2"]["capability_status"] == "FAIL"
+    assert saved["stage2"]["reached_terminal"] is True
+    assert saved["stage2"]["cancellation"]["confirmed_terminal"] is True
+
+
+def test_reached_terminal_malformed_manifest_is_fail_not_not_run() -> None:
+    old_result_path = runner.RESULT_PATH
+    old_call_json = runner.stage1.call_json
+    old_wait = runner.wait_for_job
+    old_dependency = runner.stage1.validate_dependency_artifacts
+    with TemporaryDirectory() as root:
+        runner.RESULT_PATH = Path(root) / "partial.json"
+        first_running = running_state(
+            "stage1-job", "spaceclaim", runner.stage1.PROFILE_ID,
+            runner.stage1.PROFILE_SCRIPT_SHA256,
+        )
+
+        async def fake_wait(_session, state, _timeout, stage_result, suite_result):
+            terminal = dict(state)
+            terminal["phase"] = "PROCESS_EXITED_0"
+            stage_result["job_state"] = terminal
+            stage_result["reached_terminal"] = True
+            stage_result["cancellation_required"] = False
+            runner.persist_result(suite_result)
+            return terminal
+
+        async def fake_call(_session, name, arguments=None, **_kwargs):
+            if name == "submit_job":
+                return copy.deepcopy(first_running)
+            if name == "artifact_manifest":
+                return {"job_id": "stage1-job", "phase": "MALFORMED"}
+            raise AssertionError("cancel must not run after terminal state")
+
+        try:
+            runner.stage1.call_json = fake_call
+            runner.wait_for_job = fake_wait
+            runner.stage1.validate_dependency_artifacts = lambda _value: None
+            result = runner.new_result()
+            try:
+                asyncio.run(runner.run_submitted_stages(
+                    object(), result, HEAD,
+                    {runner.stage1.PROFILE_ID: PROFILE_CONTRACT},
+                ))
+            except RuntimeError as exc:
+                assert "STAGE1_NOT_PROCESS_EXITED_0" in str(exc)
+            else:
+                raise AssertionError("malformed reached manifest accepted")
+            saved = json.loads(runner.RESULT_PATH.read_text(encoding="utf-8"))
+        finally:
+            runner.RESULT_PATH = old_result_path
+            runner.stage1.call_json = old_call_json
+            runner.wait_for_job = old_wait
+            runner.stage1.validate_dependency_artifacts = old_dependency
+    assert saved["stage1"]["submitted"] is True
+    assert saved["stage1"]["reached_terminal"] is True
+    assert saved["stage1"]["capability_status"] == "FAIL"
+    assert saved["stage1"]["cancellation"] == {
+        "attempted": False,
+        "confirmed_terminal": True,
+        "terminal_phase": "PROCESS_EXITED_0",
+    }
+    assert saved["stage2"]["capability_status"] == "NOT_RUN"
 
 
 def main() -> None:

@@ -48,8 +48,19 @@ def fail(code: str) -> None:
     raise ContractError(code)
 
 
+def canonical_source_contract_bytes(value: bytes) -> bytes:
+    """Return the LF bytes Git stores for reviewed text source contracts."""
+
+    normalized = value.replace(b"\r\n", b"\n")
+    if b"\r" in normalized:
+        fail("V03_SOURCE_CONTRACT_BARE_CR")
+    return normalized
+
+
 def sha256_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(
+        canonical_source_contract_bytes(path.read_bytes())
+    ).hexdigest()
 
 
 def read_csv(path: Path) -> list[dict[str, str]]:

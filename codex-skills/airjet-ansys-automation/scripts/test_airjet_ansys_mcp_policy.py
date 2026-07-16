@@ -1938,6 +1938,181 @@ for invariant in (
 for forbidden in ("switch_to_solver", "additional_arguments=", ".iterate("):
     if forbidden in v03_mesh_source:
         fail("V03 PyFluent consumer contains forbidden action: " + forbidden)
+
+# C5 is a full-observation contract.  The earlier diagnostic admitted either
+# twelve anchor queries or all 972 throat queries; that fallback is no longer
+# evidence for the connected-volume mesh claim.  Reject the semantic shape of
+# that fallback rather than relying on its current whitespace or spelling.
+v03_mesh_runner_tree = ast.parse(
+    V03_MESH_RUNNER.read_text(encoding="utf-8"),
+    filename=str(V03_MESH_RUNNER),
+)
+for comparison in (
+    node for node in ast.walk(v03_mesh_runner_tree)
+    if isinstance(node, ast.Compare)
+):
+    comparison_names = {
+        node.id for node in ast.walk(comparison) if isinstance(node, ast.Name)
+    }
+    comparison_sets = []
+    for candidate in ast.walk(comparison):
+        if not isinstance(candidate, ast.Set):
+            continue
+        try:
+            comparison_sets.append({ast.literal_eval(item) for item in candidate.elts})
+        except (TypeError, ValueError):
+            continue
+    if (
+        "executed_queries" in comparison_names
+        and {12, 972} in comparison_sets
+    ):
+        fail("V03 C5 runner still admits the obsolete 12-or-972 query fallback")
+
+v03_mesh_runner_source = V03_MESH_RUNNER.read_text(encoding="utf-8")
+for invariant in (
+    '"throat_occupancy_query_scope"',
+    '"throat_occupancy_executed_query_count"',
+    '"throat_occupancy_hit_count"',
+    '"throat_occupancy_miss_count"',
+    '"throat_occupancy_raw_none_count"',
+    '"throat_occupancy_first_miss_indices"',
+    '"throat_occupancy_zone_counts"',
+    '"throat_occupancy_unique_owner_per_query"',
+    '"throat_occupancy_all_hits_in_accepted_flow_zone"',
+    '"anchor_zone_ids"',
+    '"anchor_occupancy_ok"',
+    '"actuator_gap_probe_count"',
+    '"actuator_gap_hit_count"',
+    '"actuator_gap_raw_none_count"',
+    '"actuator_gap_zones_excluded"',
+    '"pre_update_region_inventory"',
+    '"post_update_region_inventory"',
+    '"main_flow_region_count"',
+    '"non_flow_region_count"',
+    '"FULL_972"',
+):
+    if invariant not in v03_mesh_runner_source:
+        fail("V03 C5 runner lacks fail-closed evidence invariant: " + invariant)
+
+# Require the producer-side observation to be computed from all queries and
+# from the current region list on both sides of Update Regions.  These helpers
+# reject raw None, multi-owner hits, fluidized actuator pockets, and inventory
+# drift before the report can advertise PASS.
+for invariant in (
+    "validate_full_throat_occupancy(",
+    '"occupancy_mode": "FULL_972"',
+    '"executed_queries": THROAT_COUNT',
+    '"miss_count": 0',
+    '"raw_none_count": 0',
+    '"unique_owner_per_query": True',
+    '"all_hits_belong_to_the_single_accepted_flow_cell_zone": True',
+    "validate_actuator_gap_exclusion(",
+    '"actuator_gap_probe_count": ACTUATOR_GAP_PROBE_COUNT',
+    '"actuator_gap_hit_count": 0',
+    '"actuator_gap_raw_none_count": ACTUATOR_GAP_PROBE_COUNT',
+    '"actuator_gap_zones_excluded": True',
+    'REGION_INVENTORY_FIELD_PAIRS = (',
+    '("region_current_list", "region_current_type_list")',
+    "pre_update_region_inventory = parse_region_inventory(",
+    "post_update_region_inventory = parse_region_inventory(",
+    "region_transition = validate_region_transition(",
+    '"main_flow_region_count": 1',
+    '"non_flow_region_count": 11',
+):
+    if invariant not in v03_mesh_source:
+        fail("V03 C5 consumer lacks computed occupancy/region invariant: " + invariant)
+
+v03_mesh_consumer_test_source = V03_MESH_CONSUMER_TEST.read_text(
+    encoding="utf-8"
+)
+v03_mesh_consumer_test_tree = ast.parse(
+    v03_mesh_consumer_test_source,
+    filename=str(V03_MESH_CONSUMER_TEST),
+)
+consumer_guard_names = {
+    node.name
+    for node in v03_mesh_consumer_test_tree.body
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+}
+for guard_name in (
+    "test_full_972_occupancy_pure_contract",
+    "test_actuator_gap_exclusion_pure_contract",
+    "test_region_inventory_and_transition_pure_contract",
+):
+    if guard_name not in consumer_guard_names:
+        fail("V03 C5 consumer regression guard missing: " + guard_name)
+for invariant in (
+    '"occupancy_mode": "FULL_972"',
+    '"executed_queries": 972',
+    '"hit_count": 972',
+    '"miss_count": 0',
+    '"raw_none_count": 0',
+    '"unique_owner_per_query": True',
+    '"all_hits_belong_to_the_single_accepted_flow_cell_zone": True',
+    "records[:12]",
+    'marker="QUERY_COUNT_NOT_972"',
+    'marker="NOT_FULL_SINGLE_OWNER"',
+    'marker="RAW_NONE_NOT_BOOLEAN"',
+    'marker="ACCEPTED_FLOW_ZONE_NOT_UNIQUE"',
+    '"actuator_gap_probe_count": 12',
+    '"actuator_gap_hit_count": 0',
+    '"actuator_gap_raw_none_count": 12',
+    '"actuator_gap_zones_excluded": True',
+    '["fluid"] + ["dead"] * 11',
+    'marker="INVENTORY_UNRESOLVED"',
+    'marker="NOT_1_FLOW_11_NON_FLOW"',
+    'marker="INVENTORY_CONFLICT"',
+    'marker="RENAMED_RECLASSIFIED_OR_MERGED"',
+):
+    if invariant not in v03_mesh_consumer_test_source:
+        fail("V03 C5 consumer negative/positive coverage missing: " + invariant)
+
+# Once submit_job returns, evidence must be persisted before validation and
+# every stage must be protected by cancellation.  The pure spies are mandatory
+# so this policy does not mistake source markers alone for exercised guards.
+v03_mesh_runner_test_source = V03_MESH_RUNNER_TEST.read_text(encoding="utf-8")
+v03_mesh_runner_test_tree = ast.parse(
+    v03_mesh_runner_test_source,
+    filename=str(V03_MESH_RUNNER_TEST),
+)
+runner_guard_names = {
+    node.name
+    for node in v03_mesh_runner_test_tree.body
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+}
+for guard_name in (
+    "test_preflight_block_has_zero_stdio_submit_and_child_calls",
+    "test_stage1_post_submit_failure_persists_partial_and_cancels",
+    "test_stage2_post_submit_failure_preserves_stage1_and_cancels",
+    "test_reached_terminal_malformed_manifest_is_fail_not_not_run",
+):
+    if guard_name not in runner_guard_names:
+        fail("V03 C5 runner cancellation regression guard missing: " + guard_name)
+for invariant in (
+    "def persist_result(",
+    "async def cancel_submitted_job(",
+    "async def run_submitted_stages(",
+    '"submitted": True',
+    '"capability_status": "FAIL"',
+    "stage1_complete = False",
+    "stage2_complete = False",
+    "finally:",
+    "await cancel_submitted_job(session, result[\"stage1\"])",
+    "await cancel_submitted_job(session, result[\"stage2\"])",
+):
+    if invariant not in v03_mesh_runner_source:
+        fail("V03 C5 runner lacks partial/cancel invariant: " + invariant)
+for invariant in (
+    'counts == {"stdio": 0, "submit": 0, "child": 0}',
+    '["submit_job", "cancel_job"]',
+    '"submit_job", "artifact_manifest", "submit_job", "cancel_job"',
+    'saved["stage1"]["capability_status"] == "FAIL"',
+    'saved["stage2"]["capability_status"] == "FAIL"',
+    'saved["stage2"]["capability_status"] == "NOT_RUN"',
+    '["cancellation"]["confirmed_terminal"] is True',
+):
+    if invariant not in v03_mesh_runner_test_source:
+        fail("V03 C5 runner spy coverage missing: " + invariant)
 for path in (
     V03_MESH_RUNNER,
     V03_MESH_RUNNER_TEST,

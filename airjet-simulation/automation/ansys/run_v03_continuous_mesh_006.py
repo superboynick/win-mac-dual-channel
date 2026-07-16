@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import suppress
 from datetime import datetime, timedelta, timezone
 import hashlib
 from importlib.metadata import version
@@ -68,6 +67,36 @@ CONSUMER_ARTIFACTS = {
 
 def sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def persist_result(result: dict[str, Any]) -> None:
+    """Persist the latest partial evidence without waiting for suite closeout."""
+    RESULT_PATH.write_text(
+        json.dumps(result, indent=2, sort_keys=True), encoding="utf-8"
+    )
+
+
+def new_result() -> dict[str, Any]:
+    return {
+        "task": "AJM006_V03_TWO_STAGE_CONTINUOUS_MESH_SUITE",
+        "case_id": CASE_ID,
+        "started_at": stage1.utc_now(),
+        "ended_at": None,
+        "final_status": "FAIL_PRELIMINARY_V03_TWO_STAGE_MESH_SUITE",
+        "preflight": None,
+        "inventory": None,
+        "stage1": {
+            "submitted": False,
+            "reached_terminal": False,
+            "capability_status": "NOT_RUN",
+        },
+        "stage2": {
+            "submitted": False,
+            "reached_terminal": False,
+            "capability_status": "NOT_RUN",
+        },
+        "error": None,
+    }
 
 
 def exact_consumer_profile(head: str) -> dict[str, Any]:
@@ -544,7 +573,11 @@ def validate_consumer_report(
 
 
 async def wait_for_job(
-    session: ClientSession, state: dict[str, Any], timeout_seconds: int
+    session: ClientSession,
+    state: dict[str, Any],
+    timeout_seconds: int,
+    stage_result: dict[str, Any],
+    suite_result: dict[str, Any],
 ) -> dict[str, Any]:
     job_id = state.get("job_id")
     phase = state.get("phase")
@@ -565,50 +598,272 @@ async def wait_for_job(
     )
     stable = {name: state.get(name) for name in stable_names}
     deadline = time.monotonic() + timeout_seconds
+    while phase == "RUNNING":
+        if time.monotonic() >= deadline:
+            raise RuntimeError("JOB_WAIT_TIMEOUT")
+        await asyncio.sleep(stage1.POLL_SECONDS)
+        state = await stage1.call_json(
+            session, "poll_job", {"job_id": job_id}
+        )
+        stage_result["job_state"] = state
+        phase = state.get("phase") if isinstance(state, dict) else None
+        persist_result(suite_result)
+        if not isinstance(state, dict):
+            raise RuntimeError("JOB_STATE_NOT_OBJECT")
+        for name, expected in stable.items():
+            if state.get(name) != expected:
+                raise RuntimeError("JOB_IDENTITY_CHANGED:{}".format(name))
+        if phase != "RUNNING" and phase not in stage1.TERMINAL_PHASES:
+            raise RuntimeError("UNKNOWN_JOB_PHASE:{}".format(phase))
+        if phase in stage1.TERMINAL_PHASES:
+            stage_result["reached_terminal"] = True
+            stage_result["cancellation_required"] = False
+            persist_result(suite_result)
+    return state
+
+
+async def cancel_submitted_job(
+    session: ClientSession, stage_result: dict[str, Any]
+) -> bool:
+    """Cancel a submitted RUNNING job and record terminal confirmation."""
+    state = stage_result.get("job_state")
+    phase = state.get("phase") if isinstance(state, dict) else None
+    cancellation_required = stage_result.get("cancellation_required") is True
+    if not cancellation_required and phase in stage1.TERMINAL_PHASES:
+        stage_result["reached_terminal"] = True
+        stage_result["cancellation"] = {
+            "attempted": False,
+            "confirmed_terminal": True,
+            "terminal_phase": phase,
+        }
+        return True
+    if not cancellation_required:
+        stage_result["cancellation"] = {
+            "attempted": False,
+            "confirmed_terminal": False,
+            "terminal_phase": None,
+            "error": "SUBMITTED_STATE_NOT_RUNNING_OR_TERMINAL",
+        }
+        return False
+    job_id = stage_result.get("cancellation_job_id")
+    if not isinstance(job_id, str) or not job_id:
+        stage_result["cancellation"] = {
+            "attempted": False,
+            "confirmed_terminal": False,
+            "terminal_phase": None,
+            "error": "SUBMITTED_JOB_ID_INVALID",
+        }
+        return False
     try:
-        while phase == "RUNNING":
-            if time.monotonic() >= deadline:
-                state = await stage1.call_json(
-                    session, "cancel_job", {"job_id": job_id}
-                )
-                phase = state.get("phase")
-                break
+        cancelled = await stage1.call_json(
+            session, "cancel_job", {"job_id": job_id}
+        )
+        stage_result["cancellation_state"] = cancelled
+        if not isinstance(cancelled, dict):
+            raise RuntimeError("CANCEL_STATE_NOT_OBJECT")
+        if cancelled.get("job_id") != job_id:
+            raise RuntimeError("CANCEL_JOB_ID_MISMATCH")
+        phase = cancelled.get("phase")
+        deadline = time.monotonic() + 60
+        while phase == "RUNNING" and time.monotonic() < deadline:
             await asyncio.sleep(stage1.POLL_SECONDS)
-            state = await stage1.call_json(
+            cancelled = await stage1.call_json(
                 session, "poll_job", {"job_id": job_id}
             )
-            for name, expected in stable.items():
-                if state.get(name) != expected:
-                    raise RuntimeError("JOB_IDENTITY_CHANGED:{}".format(name))
-            phase = state.get("phase")
-            if phase != "RUNNING" and phase not in stage1.TERMINAL_PHASES:
-                raise RuntimeError("UNKNOWN_JOB_PHASE:{}".format(phase))
-    except BaseException:
-        if phase == "RUNNING":
-            with suppress(BaseException):
-                await stage1.call_json(
-                    session, "cancel_job", {"job_id": job_id}
-                )
-        raise
-    return state
+            stage_result["cancellation_state"] = cancelled
+            if (
+                not isinstance(cancelled, dict)
+                or cancelled.get("job_id") != job_id
+            ):
+                raise RuntimeError("CANCEL_POLL_IDENTITY_INVALID")
+            phase = cancelled.get("phase")
+        if phase not in stage1.TERMINAL_PHASES:
+            raise RuntimeError("CANCEL_NOT_TERMINAL:{}".format(phase))
+        stage_result["job_state"] = cancelled
+        stage_result["reached_terminal"] = True
+        stage_result["cancellation_required"] = False
+        stage_result["cancellation"] = {
+            "attempted": True,
+            "confirmed_terminal": True,
+            "terminal_phase": phase,
+        }
+        return True
+    except BaseException as exc:
+        stage_result["cancellation"] = {
+            "attempted": True,
+            "confirmed_terminal": False,
+            "terminal_phase": None,
+            "error": "{}:{}".format(type(exc).__name__, exc),
+        }
+        return False
+
+
+async def run_submitted_stages(
+    session: ClientSession,
+    result: dict[str, Any],
+    head: str,
+    contracts: dict[str, Any],
+) -> None:
+    first = await stage1.call_json(
+        session,
+        "submit_job",
+        {"profile_id": stage1.PROFILE_ID, "case_id": CASE_ID},
+    )
+    result["stage1"].update({
+        "submitted": True,
+        "capability_status": "FAIL",
+        "job_state": first,
+        "cancellation_job_id": (
+            first.get("job_id") if isinstance(first, dict) else None
+        ),
+        "cancellation_required": (
+            isinstance(first, dict)
+            and isinstance(first.get("job_id"), str)
+            and bool(first.get("job_id"))
+            and first.get("phase") == "RUNNING"
+        ),
+    })
+    stage1_complete = False
+    try:
+        persist_result(result)
+        if (
+            not isinstance(first, dict)
+            or first.get("phase") != "RUNNING"
+            or first.get("engine") != "spaceclaim"
+            or first.get("git_head") != head
+            or first.get("script_sha256") != stage1.PROFILE_SCRIPT_SHA256
+            or first.get("profile_contract_sha256")
+            != contracts.get(stage1.PROFILE_ID)
+            or first.get("license_arguments_added") is not False
+            or first.get("predecessor_job_id") is not None
+        ):
+            raise RuntimeError("STAGE1_SUBMIT_IDENTITY_MISMATCH")
+        stage1.validate_dependency_artifacts(
+            first.get("profile_dependency_artifacts")
+        )
+        first = await wait_for_job(
+            session, first, 7200, result["stage1"], result
+        )
+        result["stage1"]["job_state"] = first
+        result["stage1"]["reached_terminal"] = (
+            first.get("phase") in stage1.TERMINAL_PHASES
+        )
+        persist_result(result)
+        first_manifest = await stage1.call_json(
+            session,
+            "artifact_manifest",
+            {"job_id": first.get("job_id")},
+            timeout_seconds=600,
+        )
+        result["stage1"]["manifest"] = first_manifest
+        persist_result(result)
+        if (
+            not isinstance(first_manifest, dict)
+            or first.get("phase") != "PROCESS_EXITED_0"
+            or first_manifest.get("phase") != "PROCESS_EXITED_0"
+            or first_manifest.get("job_id") != first.get("job_id")
+        ):
+            raise RuntimeError("STAGE1_NOT_PROCESS_EXITED_0")
+        result["stage1"]["report"] = stage1.validate_producer_report(
+            first_manifest, first, head
+        )
+        result["stage1"]["frozen_manifest_sha256"] = sha256_bytes(
+            json.dumps(
+                first_manifest,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        )
+        result["stage1"]["capability_status"] = "PASS"
+        stage1_complete = True
+        persist_result(result)
+    finally:
+        if not stage1_complete:
+            await cancel_submitted_job(session, result["stage1"])
+            persist_result(result)
+
+    second = await stage1.call_json(
+        session,
+        "submit_job",
+        {
+            "profile_id": CONSUMER_PROFILE_ID,
+            "case_id": CASE_ID,
+            "predecessor_job_id": first.get("job_id"),
+        },
+    )
+    result["stage2"].update({
+        "submitted": True,
+        "capability_status": "FAIL",
+        "job_state": second,
+        "cancellation_job_id": (
+            second.get("job_id") if isinstance(second, dict) else None
+        ),
+        "cancellation_required": (
+            isinstance(second, dict)
+            and isinstance(second.get("job_id"), str)
+            and bool(second.get("job_id"))
+            and second.get("phase") == "RUNNING"
+        ),
+    })
+    stage2_complete = False
+    try:
+        persist_result(result)
+        if (
+            not isinstance(second, dict)
+            or second.get("phase") != "RUNNING"
+            or second.get("engine") != "pyfluent"
+            or second.get("git_head") != head
+            or second.get("script_sha256") != CONSUMER_SCRIPT_SHA256
+            or second.get("profile_contract_sha256")
+            != contracts.get(CONSUMER_PROFILE_ID)
+            or second.get("license_arguments_added") is not False
+            or second.get("predecessor_job_id") != first.get("job_id")
+            or second.get("profile_dependency_manifest_sha256") is not None
+            or second.get("profile_dependency_artifacts") != []
+        ):
+            raise RuntimeError("STAGE2_SUBMIT_IDENTITY_MISMATCH")
+        verify_predecessor_state(second, first_manifest)
+        second = await wait_for_job(
+            session, second, 7200, result["stage2"], result
+        )
+        result["stage2"]["job_state"] = second
+        result["stage2"]["reached_terminal"] = (
+            second.get("phase") in stage1.TERMINAL_PHASES
+        )
+        persist_result(result)
+        verify_predecessor_state(second, first_manifest)
+        second_manifest = await stage1.call_json(
+            session,
+            "artifact_manifest",
+            {"job_id": second.get("job_id")},
+            timeout_seconds=600,
+        )
+        result["stage2"]["manifest"] = second_manifest
+        persist_result(result)
+        if (
+            not isinstance(second_manifest, dict)
+            or second.get("phase") != "PROCESS_EXITED_0"
+            or second_manifest.get("phase") != "PROCESS_EXITED_0"
+            or second_manifest.get("job_id") != second.get("job_id")
+        ):
+            raise RuntimeError("STAGE2_NOT_PROCESS_EXITED_0")
+        result["stage2"]["report"] = validate_consumer_report(
+            second_manifest, second, head
+        )
+        result["stage2"]["capability_status"] = "PASS"
+        stage2_complete = True
+        persist_result(result)
+    finally:
+        if not stage2_complete:
+            await cancel_submitted_job(session, result["stage2"])
+            persist_result(result)
 
 
 async def run_suite() -> int:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ") + "_" + uuid4().hex[:8]
     stage1.OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
     stderr_path = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_MCP_STDERR_{}.log".format(stamp)
-    result: dict[str, Any] = {
-        "task": "AJM006_V03_TWO_STAGE_CONTINUOUS_MESH_SUITE",
-        "case_id": CASE_ID,
-        "started_at": stage1.utc_now(),
-        "ended_at": None,
-        "final_status": "FAIL_PRELIMINARY_V03_TWO_STAGE_MESH_SUITE",
-        "preflight": None,
-        "inventory": None,
-        "stage1": {},
-        "stage2": {},
-        "error": None,
-    }
+    result = new_result()
     exit_code = 2
     try:
         pf = stage1.preflight()
@@ -661,92 +916,8 @@ async def run_suite() -> int:
                         raise RuntimeError("BLOCKED_INVENTORY_IDENTITY_OR_PROFILES")
                     contracts = inventory.get("profile_contract_sha256") or {}
 
-                    first = await stage1.call_json(
-                        session,
-                        "submit_job",
-                        {"profile_id": stage1.PROFILE_ID, "case_id": CASE_ID},
-                    )
-                    if (
-                        first.get("phase") != "RUNNING"
-                        or first.get("engine") != "spaceclaim"
-                        or first.get("git_head") != head
-                        or first.get("script_sha256") != stage1.PROFILE_SCRIPT_SHA256
-                        or first.get("profile_contract_sha256")
-                        != contracts.get(stage1.PROFILE_ID)
-                        or first.get("license_arguments_added") is not False
-                        or first.get("predecessor_job_id") is not None
-                    ):
-                        raise RuntimeError("STAGE1_SUBMIT_IDENTITY_MISMATCH")
-                    stage1.validate_dependency_artifacts(
-                        first.get("profile_dependency_artifacts")
-                    )
-                    first = await wait_for_job(session, first, 7200)
-                    result["stage1"]["job_state"] = first
-                    first_manifest = await stage1.call_json(
-                        session,
-                        "artifact_manifest",
-                        {"job_id": first.get("job_id")},
-                        timeout_seconds=600,
-                    )
-                    result["stage1"]["manifest"] = first_manifest
-                    if (
-                        first.get("phase") != "PROCESS_EXITED_0"
-                        or first_manifest.get("phase") != "PROCESS_EXITED_0"
-                        or first_manifest.get("job_id") != first.get("job_id")
-                    ):
-                        raise RuntimeError("STAGE1_NOT_PROCESS_EXITED_0")
-                    result["stage1"]["report"] = stage1.validate_producer_report(
-                        first_manifest, first, head
-                    )
-                    result["stage1"]["frozen_manifest_sha256"] = sha256_bytes(
-                        json.dumps(
-                            first_manifest,
-                            sort_keys=True,
-                            separators=(",", ":"),
-                        ).encode("utf-8")
-                    )
-
-                    second = await stage1.call_json(
-                        session,
-                        "submit_job",
-                        {
-                            "profile_id": CONSUMER_PROFILE_ID,
-                            "case_id": CASE_ID,
-                            "predecessor_job_id": first.get("job_id"),
-                        },
-                    )
-                    if (
-                        second.get("phase") != "RUNNING"
-                        or second.get("engine") != "pyfluent"
-                        or second.get("git_head") != head
-                        or second.get("script_sha256") != CONSUMER_SCRIPT_SHA256
-                        or second.get("profile_contract_sha256")
-                        != contracts.get(CONSUMER_PROFILE_ID)
-                        or second.get("license_arguments_added") is not False
-                        or second.get("predecessor_job_id") != first.get("job_id")
-                        or second.get("profile_dependency_manifest_sha256") is not None
-                        or second.get("profile_dependency_artifacts") != []
-                    ):
-                        raise RuntimeError("STAGE2_SUBMIT_IDENTITY_MISMATCH")
-                    verify_predecessor_state(second, first_manifest)
-                    second = await wait_for_job(session, second, 7200)
-                    result["stage2"]["job_state"] = second
-                    verify_predecessor_state(second, first_manifest)
-                    second_manifest = await stage1.call_json(
-                        session,
-                        "artifact_manifest",
-                        {"job_id": second.get("job_id")},
-                        timeout_seconds=600,
-                    )
-                    result["stage2"]["manifest"] = second_manifest
-                    if (
-                        second.get("phase") != "PROCESS_EXITED_0"
-                        or second_manifest.get("phase") != "PROCESS_EXITED_0"
-                        or second_manifest.get("job_id") != second.get("job_id")
-                    ):
-                        raise RuntimeError("STAGE2_NOT_PROCESS_EXITED_0")
-                    result["stage2"]["report"] = validate_consumer_report(
-                        second_manifest, second, head
+                    await run_submitted_stages(
+                        session, result, head, contracts
                     )
                     result["final_status"] = "PASS_PRELIMINARY_V03_TWO_STAGE_MESH_SUITE"
                     exit_code = 0
@@ -758,9 +929,7 @@ async def run_suite() -> int:
         }
     finally:
         result["ended_at"] = stage1.utc_now()
-        RESULT_PATH.write_text(
-            json.dumps(result, indent=2, sort_keys=True), encoding="utf-8"
-        )
+        persist_result(result)
         print(
             json.dumps(
                 {

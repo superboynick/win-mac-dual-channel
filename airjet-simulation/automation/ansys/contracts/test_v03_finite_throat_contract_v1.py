@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from pathlib import Path
+import tempfile
 
 import v03_finite_throat_contract_v1 as contract
 
@@ -87,6 +89,24 @@ def test_route_accepts_independent_static_sources():
         "minimum_spacing_mm": 0.7006239999999995,
         "analytic_volume_mm3": 451.7788188426395,
     }
+
+
+def test_source_hash_canonicalizes_crlf_and_rejects_other_mutations():
+    lf = b"alpha,beta\n1,2\n"
+    crlf = lf.replace(b"\n", b"\r\n")
+    with tempfile.TemporaryDirectory() as temporary:
+        path = Path(temporary) / "source.csv"
+        path.write_bytes(lf)
+        expected = hashlib.sha256(lf).hexdigest()
+        assert contract.sha256_file(path) == expected
+        path.write_bytes(crlf)
+        assert contract.sha256_file(path) == expected
+        path.write_bytes(b"alpha,beta\n1,3\n")
+        assert contract.sha256_file(path) != expected
+        path.write_bytes(b"alpha,beta\r1,2\n")
+        expect_contract_error(
+            lambda: contract.sha256_file(path), "V03_SOURCE_CONTRACT_BARE_CR"
+        )
 
 
 def test_route_rejects_identity_and_source_tamper():
@@ -200,6 +220,7 @@ def test_producer_rejects_topology_body_and_claim_tamper():
 def main() -> None:
     tests = [
         test_route_accepts_independent_static_sources,
+        test_source_hash_canonicalizes_crlf_and_rejects_other_mutations,
         test_route_rejects_identity_and_source_tamper,
         test_route_rejects_c016_relabel_and_value_tamper,
         test_route_rejects_assignment_and_analytic_tamper,
