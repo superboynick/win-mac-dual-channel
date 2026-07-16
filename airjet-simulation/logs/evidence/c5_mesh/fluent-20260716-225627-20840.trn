@@ -36,3 +36,24 @@ Multicore processors detected. Processor affinity set!
 Information: The server has started and is running.
 (set-session-idle-timeout 3)#f
 >>> 
+Importing one geom object per program-controlled and one zone per face ...
+    D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261\\commonfiles\\CPython\\3_10\\winx64\\Release\\python\\..\\Ansys\\TGrid\\CADReaders.py started by admin on LAPTOP-LCCLM2HI winx64 on Thu Jul 16 22:56:41 2026
+    using Python 3.10.19 (remotes/origin/54ee32c922d15cece27c63aab31ba27b8fb8da4e-dirty:54ee32c9, Dec  2 2) [MSC v.1942 64 bit (AMD64)]
+    
+    using Ansys.Meshing.FieldMesher build Feb  3 2026 15:07:12
+    
+    running ANSYS TGrid CADToTGridConverter ...
+    setting up parameters ...
+    setting up parameters done.
+    running conversion ...
+    converting 1 file(s) from Workbench to FLTG using output path 'C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\logs\\evidence\\c5_mesh\\FM_LAPTOP-LCCLM2HI_20840/out1784213801.08346920840.tgf'
+    converting file 'product_continuous_fluid.step' (1 of 1) from Workbench to FLTG using output path 'C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\logs\\evidence\\c5_mesh\\FM_LAPTOP-LCCLM2HI_20840'
+    importing data ...
+    importing meshing model from PartMgr from file 'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-5e7fabb3eec0\\product_continuous_fluid.step' ...
+    setting enclosure and symmetry processing to False
+    setting stitch type to PROGRAMTOLERANCE
+    setting transfer named selections to True
+    setting named selection prefixes to ''
+    setting mixed import resolution type to 'SolidAndSurface'
+    setting target application to 'FluentMeshing'
+    attaching to assembly ...
