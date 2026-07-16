@@ -1924,6 +1924,7 @@ if (
         "v03_continuous_fluid_producer.json",
         "product_continuous_fluid.scdocx",
         "product_continuous_fluid.step",
+        "v03_native_reopen.json",
         "v03_step_reimport.json",
         "v03_throat_inventory.json",
         "v03_source_chain.json",
@@ -1945,6 +1946,9 @@ for invariant in (
     "session.tui.file.write_mesh(str(MESH_PATH))",
     "workflow.import_geometry.file_name = str(STAGED_NATIVE_PATH)",
     '"NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1078:{}"',
+    '"PREDECESSOR_NATIVE_EVIDENCE_INVALID"',
+    '"exact_native_and_step_byte_staging"',
+    '"ROUND_TRIP_CORROBORATION_NOT_MESH_SOURCE"',
     '"physics": "NOT_RUN"',
     '"solver_iterations": 0',
 ):
@@ -2187,6 +2191,8 @@ for invariant in (
     "BLOCKED_PROFILE_CONTRACT_HASHES_INVALID",
     'if set(profile) != set(expected):',
     'not 0.0 < float(evidence["min_orthogonal_quality"]) <= 1.0',
+    'evidence.get("post_volume_throat_zone_count") != 1',
+    'evidence.get("throat_zone_count") != 1',
 ):
     if invariant not in v03_mesh_runner_source:
         fail("V03 C5 runner lacks partial/cancel invariant: " + invariant)

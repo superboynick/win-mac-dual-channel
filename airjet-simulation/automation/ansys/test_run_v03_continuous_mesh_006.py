@@ -173,7 +173,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "post_volume_role_resolution_ok": True,
             "post_volume_inlet_zone_count": 4,
             "post_volume_outlet_zone_count": 1,
-            "post_volume_throat_zone_count": 972,
+            "post_volume_throat_zone_count": 1,
             "source_boundary_face_count": 1078,
             "source_boundary_role_counts": copy.deepcopy(
                 runner.BOUNDARY_ROLE_COUNTS
@@ -191,12 +191,11 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
                 valid_canonical_boundary_inventory()
             ),
             "throat_face_adjacency": {
-                str(200 + index): {
+                "200": {
                     "label": "THROAT_FACE_ADJACENCY",
                     "raw_none": False,
                     "values": [1],
                 }
-                for index in range(972)
             },
             "throat_face_adjacency_ok": True,
             "anchor_zone_ids": [1],
@@ -213,10 +212,10 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "throat_occupancy_zone_counts": {"1": 972},
             "throat_query_count": 972,
             "throat_occupancy_executed_query_count": 972,
-            "throat_zone_count": 972,
-            "expected_step_flow_volume_mm3": 451.77324837529704,
+            "throat_zone_count": 1,
+            "expected_native_flow_volume_mm3": 451.77881884263655,
             "meshed_cell_volume_mm3": 451.8,
-            "target_flow_volume_delta_mm3": 0.02675162470294712,
+            "target_flow_volume_delta_mm3": 0.02118115736347259,
             "target_flow_volume_tolerance_mm3": 1.0,
             "target_flow_volume_matches_predecessor": True,
             "throat_occupancy_query_scope": "FULL_972",
@@ -501,7 +500,7 @@ def test_consumer_report_rejects_c5_gate_and_region_passthrough_drift() -> None:
     )
     rejects(
         lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
-            "throat_zone_count", 1
+            "throat_zone_count", 972
         ),
         "TOPOLOGY_INVALID",
     )
@@ -580,7 +579,7 @@ def predecessor_fixture() -> tuple[dict, dict]:
     return {"predecessor_artifacts": copy.deepcopy(files)}, {"files": files}
 
 
-def test_predecessor_state_accepts_frozen_exact_six() -> None:
+def test_predecessor_state_accepts_frozen_exact_seven() -> None:
     state, manifest = predecessor_fixture()
     runner.verify_predecessor_state(state, manifest)
 
@@ -612,6 +611,19 @@ def test_predecessor_state_rejects_missing_and_hash_drift() -> None:
         assert "PREDECESSOR_ARTIFACTS" in str(exc)
     else:
         raise AssertionError("duplicate predecessor accepted")
+    for native_name in (
+        "product_continuous_fluid.scdocx",
+        "v03_native_reopen.json",
+    ):
+        state, manifest = predecessor_fixture()
+        native_index = runner.PREDECESSOR_ARTIFACTS.index(native_name)
+        state["predecessor_artifacts"][native_index]["sha256"] = "0" * 64
+        try:
+            runner.verify_predecessor_state(state, manifest)
+        except RuntimeError as exc:
+            assert "FROZEN_MISMATCH" in str(exc)
+        else:
+            raise AssertionError("drifted native predecessor accepted: " + native_name)
 
 
 def running_state(job_id: str, engine: str, profile_id: str, script_sha: str) -> dict:

@@ -535,6 +535,7 @@
           "v03_continuous_fluid_producer.json",
           "product_continuous_fluid.scdocx",
           "product_continuous_fluid.step",
+          "v03_native_reopen.json",
           "v03_step_reimport.json",
           "v03_throat_inventory.json",
           "v03_source_chain.json"

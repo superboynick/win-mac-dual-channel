@@ -50,6 +50,7 @@ PREDECESSOR_ARTIFACTS = {
     "v03_continuous_fluid_producer.json",
     "product_continuous_fluid.scdocx",
     "product_continuous_fluid.step",
+    "v03_native_reopen.json",
     "v03_step_reimport.json",
     "v03_throat_inventory.json",
     "v03_source_chain.json",
@@ -250,6 +251,7 @@ def validate_predecessor() -> tuple[
     manifest = read_json(manifest_path)
     producer = read_json(PREDECESSOR_DIR / PREDECESSOR_REPORT)
     inventory = read_json(PREDECESSOR_DIR / "v03_throat_inventory.json")
+    native_reopen = read_json(PREDECESSOR_DIR / "v03_native_reopen.json")
     step_reimport = read_json(PREDECESSOR_DIR / "v03_step_reimport.json")
     entries = exact_manifest_map(manifest)
     expected_tree = PREDECESSOR_ARTIFACTS | {"predecessor-manifest.json"}
@@ -301,13 +303,26 @@ def validate_predecessor() -> tuple[
         raise RuntimeError("PREDECESSOR_ASSERTIONS_NOT_EXACT_PASS")
     producer_step = (producer.get("files") or {}).get("continuous_step") or {}
     producer_native = (producer.get("files") or {}).get("continuous_native") or {}
+    producer_native_reopen = (producer.get("files") or {}).get("native_reopen") or {}
+    producer_step_reimport = (producer.get("files") or {}).get("step_reimport") or {}
     step_path = PREDECESSOR_DIR / "product_continuous_fluid.step"
     native_path = PREDECESSOR_DIR / "product_continuous_fluid.scdocx"
     native_summary = (producer.get("geometry") or {}).get("native_reopen_summary") or {}
+    step_reimport_summary = (
+        (producer.get("geometry") or {}).get("step_reimport_summary") or {}
+    )
     native_fingerprint = native_summary.get("body_fingerprint") or {}
     native_throat_inventory = (
         (producer.get("geometry") or {}).get("native_throat_inventory") or {}
     )
+    expected_boundary_counts = {
+        "HEAT_WALL": 1,
+        "INLET": 4,
+        "MEMBRANE_BOTTOM": 12,
+        "MEMBRANE_TOP": 12,
+        "ORIFICE_THROAT_WALL": THROAT_COUNT,
+        "OUTLET": 1,
+    }
     if (
         producer_step.get("sha256") != sha256_file(step_path)
         or producer_step.get("size") != step_path.stat().st_size
@@ -318,6 +333,19 @@ def validate_predecessor() -> tuple[
             "ORIFICE_THROAT_WALL"
         )
         != THROAT_COUNT
+        or step_reimport.get("boundary_counts") != expected_boundary_counts
+        or step_reimport.get("body_fingerprints")
+        != [step_reimport_summary.get("body_fingerprint")]
+        or step_reimport.get("boundary_counts")
+        != step_reimport_summary.get("boundary_counts")
+        or step_reimport.get("comparison_deltas")
+        != step_reimport_summary.get("comparison_deltas")
+        or step_reimport.get("comparison_tolerances")
+        != step_reimport_summary.get("comparison_tolerances")
+        or producer_step_reimport.get("sha256")
+        != sha256_file(PREDECESSOR_DIR / "v03_step_reimport.json")
+        or producer_step_reimport.get("size")
+        != (PREDECESSOR_DIR / "v03_step_reimport.json").stat().st_size
     ):
         raise RuntimeError("PREDECESSOR_STEP_EVIDENCE_INVALID")
     if (
@@ -330,6 +358,19 @@ def validate_predecessor() -> tuple[
         or native_fingerprint.get("is_manifold") is not True
         or native_throat_inventory.get("candidate_face_count") != THROAT_COUNT
         or native_throat_inventory.get("pass") is not True
+        or native_reopen.get("body_count") != 1
+        or native_reopen.get("open_success") is not True
+        or native_reopen.get("body_fingerprints") != [native_fingerprint]
+        or native_summary.get("group_counts")
+        != expected_boundary_counts | {"FLUID_CONTINUOUS": 1}
+        or native_reopen.get("group_counts") != expected_boundary_counts | {
+            "FLUID_CONTINUOUS": 1
+        }
+        or native_reopen.get("throat_inventory") != native_throat_inventory
+        or producer_native_reopen.get("sha256")
+        != sha256_file(PREDECESSOR_DIR / "v03_native_reopen.json")
+        or producer_native_reopen.get("size")
+        != (PREDECESSOR_DIR / "v03_native_reopen.json").stat().st_size
     ):
         raise RuntimeError("PREDECESSOR_NATIVE_EVIDENCE_INVALID")
     return manifest, producer, inventory, snapshot
@@ -1534,7 +1575,7 @@ try:
     )
     trace_checkpoint(
         "target_flow_volume_observed",
-        expected_step_flow_volume_mm3=expected_target_flow_volume_mm3,
+        expected_native_flow_volume_mm3=expected_target_flow_volume_mm3,
         meshed_cell_volume_mm3=float(cell_volume),
         absolute_delta_mm3=target_flow_volume_delta_mm3,
         tolerance_mm3=TARGET_FLOW_VOLUME_MESH_TOLERANCE_MM3,
@@ -2096,7 +2137,7 @@ try:
         "cell_zone_types": {str(key): value for key, value in cell_zone_types.items()},
         "cell_counts_by_zone": cell_counts_by_zone,
         "cell_volumes_by_zone": cell_volumes_by_zone,
-        "expected_step_flow_volume_mm3": expected_target_flow_volume_mm3,
+        "expected_native_flow_volume_mm3": expected_target_flow_volume_mm3,
         "meshed_cell_volume_mm3": float(cell_volume),
         "target_flow_volume_delta_mm3": target_flow_volume_delta_mm3,
         "target_flow_volume_tolerance_mm3": (
@@ -2198,6 +2239,8 @@ try:
         "exact_native_and_step_byte_staging": (
             staged_step_immutable and staged_native_immutable
         ),
+        "mesh_geometry_source": "NATIVE_SCDOCX_BOUND_TO_SIGNED_PREDECESSOR",
+        "step_evidence_role": "ROUND_TRIP_CORROBORATION_NOT_MESH_SOURCE",
     }
     write_json(VERIFICATION_PATH, verification)
     source_chain = {
@@ -2210,6 +2253,8 @@ try:
         "predecessor_profile_id": manifest.get("predecessor_profile_id"),
         "source_step_sha256": step_hash,
         "source_native_sha256": native_hash,
+        "mesh_geometry_source": "NATIVE_SCDOCX_BOUND_TO_SIGNED_PREDECESSOR",
+        "step_evidence_role": "ROUND_TRIP_CORROBORATION_NOT_MESH_SOURCE",
         "mesh_sha256": sha256_file(MESH_PATH),
     }
     write_json(SOURCE_CHAIN_PATH, source_chain)
@@ -2335,7 +2380,7 @@ try:
             "executed_queries"
         ],
         "throat_zone_count": len(throat_zone_ids),
-        "expected_step_flow_volume_mm3": expected_target_flow_volume_mm3,
+        "expected_native_flow_volume_mm3": expected_target_flow_volume_mm3,
         "meshed_cell_volume_mm3": float(cell_volume),
         "target_flow_volume_delta_mm3": target_flow_volume_delta_mm3,
         "target_flow_volume_tolerance_mm3": (

@@ -79,6 +79,7 @@ PREDECESSOR_ARTIFACTS = (
     "v03_continuous_fluid_producer.json",
     "product_continuous_fluid.scdocx",
     "product_continuous_fluid.step",
+    "v03_native_reopen.json",
     "v03_step_reimport.json",
     "v03_throat_inventory.json",
     "v03_source_chain.json",
@@ -499,7 +500,7 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         "throat_occupancy_all_hits_in_accepted_flow_zone",
         "throat_query_count",
         "throat_zone_count",
-        "expected_step_flow_volume_mm3",
+        "expected_native_flow_volume_mm3",
         "meshed_cell_volume_mm3",
         "target_flow_volume_delta_mm3",
         "target_flow_volume_tolerance_mm3",
@@ -662,7 +663,7 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         evidence.get("post_volume_role_resolution_ok") is not True
         or evidence.get("post_volume_inlet_zone_count") != 4
         or evidence.get("post_volume_outlet_zone_count") != 1
-        or evidence.get("post_volume_throat_zone_count") != 972
+        or evidence.get("post_volume_throat_zone_count") != 1
         or evidence.get("throat_face_adjacency_ok") is not True
         or not isinstance(throat_adjacency, dict)
         or len(throat_adjacency)
@@ -678,7 +679,7 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
     ):
         raise RuntimeError("CONSUMER_MESH_EVIDENCE_THROAT_GRAPH_INVALID")
 
-    expected_volume = evidence.get("expected_step_flow_volume_mm3")
+    expected_volume = evidence.get("expected_native_flow_volume_mm3")
     meshed_volume = evidence.get("meshed_cell_volume_mm3")
     volume_delta = evidence.get("target_flow_volume_delta_mm3")
     volume_tolerance = evidence.get("target_flow_volume_tolerance_mm3")
@@ -779,7 +780,7 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         or any(not positive_int(value) for value in ownership.values())
         or sum(ownership.values()) != hit_count
         or ownership != {str(zone_ids[0]): 972}
-        or evidence.get("throat_zone_count") != 972
+        or evidence.get("throat_zone_count") != 1
         or evidence.get("free_face_count") != 0
         or evidence.get("multi_face_count") != 0
         or isinstance(evidence.get("min_orthogonal_quality"), bool)
