@@ -530,9 +530,17 @@ def test_submit_identity_and_contract_hashes_fail_closed() -> None:
         ("job_id", ""),
         ("case_id", "wrong-case"),
         ("profile_id", "wrong-profile"),
+        ("phase", "PROCESS_EXITED_0"),
+        ("engine", "pyfluent"),
+        ("git_head", "0" * 40),
         ("output_root_id", "wrong-root"),
         ("job_directory", ""),
+        ("script_sha256", "0" * 64),
+        ("profile_contract_sha256", "0" * 64),
         ("profile_dependency_manifest_sha256", None),
+        ("license_arguments_added", True),
+        ("predecessor_job_id", "unexpected-job"),
+        ("predecessor_artifacts", [{"relative_path": "unexpected"}]),
     ):
         changed = copy.deepcopy(first)
         changed[name] = value
@@ -540,6 +548,8 @@ def test_submit_identity_and_contract_hashes_fail_closed() -> None:
             runner.validate_stage1_submit_identity(changed, HEAD, PROFILE_CONTRACT)
         except RuntimeError as exc:
             assert "STAGE1_SUBMIT_IDENTITY_MISMATCH" in str(exc)
+            if name == "script_sha256":
+                assert "SCRIPT_SHA256" in str(exc)
         else:
             raise AssertionError(f"stage1 identity drift accepted: {name}")
 
@@ -554,9 +564,17 @@ def test_submit_identity_and_contract_hashes_fail_closed() -> None:
         ("job_id", ""),
         ("case_id", "wrong-case"),
         ("profile_id", "wrong-profile"),
+        ("phase", "PROCESS_EXITED_0"),
+        ("engine", "spaceclaim"),
+        ("git_head", "0" * 40),
         ("output_root_id", "wrong-root"),
         ("job_directory", ""),
+        ("script_sha256", "0" * 64),
+        ("profile_contract_sha256", "0" * 64),
+        ("license_arguments_added", True),
         ("predecessor_job_id", "wrong-job"),
+        ("profile_dependency_manifest_sha256", "0" * 64),
+        ("profile_dependency_artifacts", [{"relative_path": "unexpected"}]),
     ):
         changed = copy.deepcopy(second)
         changed[name] = value
@@ -566,6 +584,8 @@ def test_submit_identity_and_contract_hashes_fail_closed() -> None:
             )
         except RuntimeError as exc:
             assert "STAGE2_SUBMIT_IDENTITY_MISMATCH" in str(exc)
+            if name == "script_sha256":
+                assert "SCRIPT_SHA256" in str(exc)
         else:
             raise AssertionError(f"stage2 identity drift accepted: {name}")
 

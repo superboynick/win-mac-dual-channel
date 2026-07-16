@@ -235,30 +235,38 @@ def validate_profile_contracts(contracts: Any) -> dict[str, str]:
 def validate_stage1_submit_identity(
     state: Any, expected_head: str, expected_contract: str
 ) -> None:
-    if (
-        not isinstance(state, dict)
-        or not isinstance(state.get("job_id"), str)
-        or not state["job_id"]
-        or state.get("case_id") != CASE_ID
-        or state.get("profile_id") != stage1.PROFILE_ID
-        or state.get("phase") != "RUNNING"
-        or state.get("engine") != "spaceclaim"
-        or state.get("git_head") != expected_head
-        or state.get("script_sha256") != stage1.PROFILE_SCRIPT_SHA256
-        or state.get("profile_contract_sha256") != expected_contract
-        or not isinstance(state.get("profile_dependency_manifest_sha256"), str)
-        or re.fullmatch(
-            r"[0-9a-f]{64}", state["profile_dependency_manifest_sha256"]
+    if not isinstance(state, dict):
+        raise RuntimeError("STAGE1_SUBMIT_IDENTITY_MISMATCH:NOT_DICT")
+    dependency_hash = state.get("profile_dependency_manifest_sha256")
+    checks = (
+        ("JOB_ID", isinstance(state.get("job_id"), str) and bool(state["job_id"])),
+        ("CASE_ID", state.get("case_id") == CASE_ID),
+        ("PROFILE_ID", state.get("profile_id") == stage1.PROFILE_ID),
+        ("PHASE", state.get("phase") == "RUNNING"),
+        ("ENGINE", state.get("engine") == "spaceclaim"),
+        ("GIT_HEAD", state.get("git_head") == expected_head),
+        ("SCRIPT_SHA256", state.get("script_sha256") == stage1.PROFILE_SCRIPT_SHA256),
+        ("PROFILE_CONTRACT", state.get("profile_contract_sha256") == expected_contract),
+        (
+            "DEPENDENCY_MANIFEST_SHA256",
+            isinstance(dependency_hash, str)
+            and re.fullmatch(r"[0-9a-f]{64}", dependency_hash) is not None,
+        ),
+        ("OUTPUT_ROOT", state.get("output_root_id") == "p1_cad_006"),
+        (
+            "JOB_DIRECTORY",
+            isinstance(state.get("job_directory"), str)
+            and bool(state["job_directory"]),
+        ),
+        ("LICENSE_ARGUMENTS", state.get("license_arguments_added") is False),
+        ("PREDECESSOR_JOB", state.get("predecessor_job_id") is None),
+        ("PREDECESSOR_ARTIFACTS", state.get("predecessor_artifacts") == []),
+    )
+    errors = [name for name, valid in checks if not valid]
+    if errors:
+        raise RuntimeError(
+            "STAGE1_SUBMIT_IDENTITY_MISMATCH:" + ",".join(errors)
         )
-        is None
-        or state.get("output_root_id") != "p1_cad_006"
-        or not isinstance(state.get("job_directory"), str)
-        or not state["job_directory"]
-        or state.get("license_arguments_added") is not False
-        or state.get("predecessor_job_id") is not None
-        or state.get("predecessor_artifacts") != []
-    ):
-        raise RuntimeError("STAGE1_SUBMIT_IDENTITY_MISMATCH")
 
 
 def validate_stage2_submit_identity(
@@ -267,26 +275,33 @@ def validate_stage2_submit_identity(
     expected_contract: str,
     predecessor_job_id: str,
 ) -> None:
-    if (
-        not isinstance(state, dict)
-        or not isinstance(state.get("job_id"), str)
-        or not state["job_id"]
-        or state.get("case_id") != CASE_ID
-        or state.get("profile_id") != CONSUMER_PROFILE_ID
-        or state.get("phase") != "RUNNING"
-        or state.get("engine") != "pyfluent"
-        or state.get("git_head") != expected_head
-        or state.get("script_sha256") != CONSUMER_SCRIPT_SHA256
-        or state.get("profile_contract_sha256") != expected_contract
-        or state.get("output_root_id") != "p1_cad_006"
-        or not isinstance(state.get("job_directory"), str)
-        or not state["job_directory"]
-        or state.get("license_arguments_added") is not False
-        or state.get("predecessor_job_id") != predecessor_job_id
-        or state.get("profile_dependency_manifest_sha256") is not None
-        or state.get("profile_dependency_artifacts") != []
-    ):
-        raise RuntimeError("STAGE2_SUBMIT_IDENTITY_MISMATCH")
+    if not isinstance(state, dict):
+        raise RuntimeError("STAGE2_SUBMIT_IDENTITY_MISMATCH:NOT_DICT")
+    checks = (
+        ("JOB_ID", isinstance(state.get("job_id"), str) and bool(state["job_id"])),
+        ("CASE_ID", state.get("case_id") == CASE_ID),
+        ("PROFILE_ID", state.get("profile_id") == CONSUMER_PROFILE_ID),
+        ("PHASE", state.get("phase") == "RUNNING"),
+        ("ENGINE", state.get("engine") == "pyfluent"),
+        ("GIT_HEAD", state.get("git_head") == expected_head),
+        ("SCRIPT_SHA256", state.get("script_sha256") == CONSUMER_SCRIPT_SHA256),
+        ("PROFILE_CONTRACT", state.get("profile_contract_sha256") == expected_contract),
+        ("OUTPUT_ROOT", state.get("output_root_id") == "p1_cad_006"),
+        (
+            "JOB_DIRECTORY",
+            isinstance(state.get("job_directory"), str)
+            and bool(state["job_directory"]),
+        ),
+        ("LICENSE_ARGUMENTS", state.get("license_arguments_added") is False),
+        ("PREDECESSOR_JOB", state.get("predecessor_job_id") == predecessor_job_id),
+        ("DEPENDENCY_MANIFEST", state.get("profile_dependency_manifest_sha256") is None),
+        ("DEPENDENCY_ARTIFACTS", state.get("profile_dependency_artifacts") == []),
+    )
+    errors = [name for name, valid in checks if not valid]
+    if errors:
+        raise RuntimeError(
+            "STAGE2_SUBMIT_IDENTITY_MISMATCH:" + ",".join(errors)
+        )
 
 
 def positive_int(value: Any, upper: Optional[int] = None) -> bool:

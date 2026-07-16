@@ -2146,6 +2146,8 @@ for invariant in (
     "validate_profile_contracts(",
     "validate_stage1_submit_identity(",
     "validate_stage2_submit_identity(",
+    'state.get("script_sha256") == stage1.PROFILE_SCRIPT_SHA256',
+    'state.get("script_sha256") == CONSUMER_SCRIPT_SHA256',
     "CONSUMER_PREDECESSOR_ARTIFACTS_DUPLICATE_OR_INVALID",
     "BLOCKED_PROFILE_CONTRACT_HASHES_INVALID",
     'if set(profile) != set(expected):',
@@ -2174,6 +2176,7 @@ for invariant in (
     'saved["stage2"]["capability_status"] == "NOT_RUN"',
     '["cancellation"]["confirmed_terminal"] is True',
     "for invalid_quality in (-1.0, 0.0, 1.01):",
+    '("script_sha256", "0" * 64)',
 ):
     if invariant not in v03_mesh_runner_test_source:
         fail("V03 C5 runner spy coverage missing: " + invariant)
