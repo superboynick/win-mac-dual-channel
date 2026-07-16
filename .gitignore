@@ -6,3 +6,9 @@ tmp/pdfs/
 airjet-simulation/tmp/
 __pycache__/
 *.py[cod]
+
+# Local AirJet C5 meshing runtime outputs; keep any future directory README trackable.
+/airjet-simulation/logs/evidence/c5_mesh/*
+!/airjet-simulation/logs/evidence/c5_mesh/README.md
+/save_mesh*.py
+/pyfluent_watchdog.*
