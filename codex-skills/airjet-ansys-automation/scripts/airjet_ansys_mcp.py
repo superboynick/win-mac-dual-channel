@@ -1374,7 +1374,7 @@ def submit_job(
             input_dir.mkdir()
             execution_script = input_dir / Path(profile["script_relative"]).name
             execution_script.write_bytes(source_data)
-            if sha256_bytes(execution_script.read_bytes()) != profile["sha256"]:
+            if sha256_bytes(execution_script.read_bytes()) != sha256_bytes(source_data):
                 raise ValueError("BLOCKED_EXECUTION_COPY_HASH_MISMATCH")
             execution_script.chmod(stat.S_IREAD)
             reject_existing_reparse_ancestors(execution_script)
