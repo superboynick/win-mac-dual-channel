@@ -752,12 +752,12 @@ try:
     radius = float(layout["orifice_diameter_candidate_mm"]) / 2.0
     numerical_overlap_mm = 0.02
     vent_riser_overlap_mm = 0.001
-    perimeter_boolean_overlap_mm = 0.15
+    perimeter_boolean_overlap_mm = 0.05
     perimeter_boolean_overlap_raw_mm3 = (
         cell_count
         * (
-            (membrane + 2.0 * perimeter_boolean_overlap_mm) ** 2
-            - membrane ** 2
+            membrane ** 2
+            - (membrane - 2.0 * perimeter_boolean_overlap_mm) ** 2
         )
         * (bottom_z_max - bottom_z_min)
     )
@@ -909,23 +909,23 @@ try:
                 "AJM006_V03_BOTTOM_%03d" % cell_index,
             ),
             create_block(
-                cx - half_tile, cy - half_tile, bottom_z_min,
+                max(cx - half_tile, footprint_x_min), cy - half_tile, bottom_z_min,
                 cx - half_membrane + perimeter_boolean_overlap_mm, cy + half_tile, plenum_top_z,
                 "AJM006_V03_RING_L_%03d" % cell_index,
             ),
             create_block(
                 cx + half_membrane - perimeter_boolean_overlap_mm, cy - half_tile, bottom_z_min,
-                cx + half_tile, cy + half_tile, plenum_top_z,
+                min(cx + half_tile, footprint_x_max), cy + half_tile, plenum_top_z,
                 "AJM006_V03_RING_R_%03d" % cell_index,
             ),
             create_block(
-                cx - half_membrane, cy - half_tile, bottom_z_min,
+                cx - half_membrane, max(cy - half_tile, footprint_y_min), bottom_z_min,
                 cx + half_membrane, cy - half_membrane + perimeter_boolean_overlap_mm, plenum_top_z,
                 "AJM006_V03_RING_B_%03d" % cell_index,
             ),
             create_block(
                 cx - half_membrane, cy + half_membrane - perimeter_boolean_overlap_mm, bottom_z_min,
-                cx + half_membrane, cy + half_tile, plenum_top_z,
+                cx + half_membrane, min(cy + half_tile, footprint_y_max), plenum_top_z,
                 "AJM006_V03_RING_T_%03d" % cell_index,
             ),
         ]
