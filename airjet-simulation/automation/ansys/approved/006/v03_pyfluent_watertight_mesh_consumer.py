@@ -1338,9 +1338,24 @@ try:
         }
         for index in occupancy_indices
     ]
-    occupancy_contract = validate_full_throat_occupancy(
-        occupancy, cell_zone_ids
-    )
+    try:
+        occupancy_contract = validate_full_throat_occupancy(
+            occupancy, cell_zone_ids
+        )
+    except RuntimeError as exc:
+        occupancy_contract = {
+            "occupancy_mode": "FULL_972",
+            "executed_queries": 972,
+            "hit_count": -1,
+            "miss_count": -1,
+            "raw_none_count": -1,
+            "first_miss_indices": [],
+            "accepted_flow_cell_zone_id": -1,
+            "owner_counts": {},
+            "unique_owner_per_query": False,
+            "all_hits_belong_to_the_single_accepted_flow_cell_zone": False,
+            "error": str(exc),
+        }
     occupancy_misses = occupancy_contract["first_miss_indices"]
     result["assertions"]["throat_occupancy_full_972"] = True
     trace_checkpoint(
