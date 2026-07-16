@@ -1,81 +1,41 @@
-# AirJet Mini Gen1 仿真项目 — 当前状态
+# AirJet Mini Gen1 项目状态 — 2026-07-16
 
-**更新时间：** 2026-07-16 05:00 PDT
+## 当前阶段：P3（网格生成）进行中
 
-## 总体进度
+### 已完成
 
-```
-P0: 产品选择 + 参数采集    [██████████] 100%
-P1: CAD 几何建模           [████████░░] 80%
-P2: Mechanical 结构        [██░░░░░░░░] 20%
-P3: CFD 网格 + 求解        [██████░░░░] 60%
-P4: 完整气流仿真          [░░░░░░░░░░] 0%
-P5: CHT 共轭传热           [░░░░░░░░░░] 0%
-P6: 校准 + 不确定性        [░░░░░░░░░░] 0%
-```
+| 里程碑 | 状态 | 证据 |
+|--------|:----:|------|
+| P0 公开证据冻结 | ✅ PASS | 972 throat assignments SHA256 匹配 |
+| CAD 全参数化 (SpaceClaim) | ✅ PASS | 12 单元 × 972 喉道 |
+| PyFluent 自动网格流程 | ✅ PASS | Watertight → surface → volume 全通 |
+| 诊断体网格 (0.15mm) | ⚠️ DIAG | 39,062 cells, OQ 0.49, 几何超差 |
+| C5 静态冻结 (4 blockers) | ✅ PASS | 20 profiles, 全 contract 测试通过 |
+| 教学文档 01-07 | ✅ DONE | 9 篇, ~15K 字, 已同步 Downloads |
 
-## P1-CAD：几何建模
+### 🔧 进行中
 
-| 项目 | 状态 | 备注 |
+- **C6 几何修复：** Windows 已推送 `bff9665`（内收式 clamped overlap），等待实跑
+- **教学文档：** 持续扩充中
+
+### ⏳ 待完成（P3→P4→P5）
+
+| Gate | 内容 | 阻塞 |
 |------|------|------|
-| SpaceClaim 参数化 CAD | ✅ | 12单元×972孔，全参数化 |
-| Boolean 连接 | 🔧 | 0.15mm overlap 诊断中 |
-| STEP 导出 | ✅ | 可导入 Fluent |
-| 参数合同 | ✅ | C016 喉道长度 0.10mm（候选） |
+| P3 | 合规 Stage 1 几何 | 等 C6 实跑验证 |
+| P3 | 合规 Stage 2 网格 | 需合规 Stage 1 STEP |
+| P4 | 固体域建模 (铜底座+TIM) | 等 P3 通过 |
+| P5 | 稳态 CHT 求解 | 等 P4 + Academic license? |
 
-## P3-CFD：网格
+### 📊 关键数字
 
-| 项目 | 状态 | 备注 |
-|------|------|------|
-| C5 体网格 (35K) | ✅ | OQ 0.57, 8.1 MB |
-| C5 体网格 (39K, 0.15mm) | ⚠️ 诊断 | OQ 0.49, 域选择待验证 |
-| Fluent Watertight 流程 | ✅ | 全自动 7 步 |
-| 972 孔占用验证 | ✅ | 合同层阻断就位 |
-| Actuator 排除验证 | ✅ | 12 个 gap 探针 |
-| Post-submit 取消保护 | ✅ | try/finally 全覆盖 |
-| C5 静态冻结 | ✅ | commit b043756 |
-| C5 实跑 | 🔄 已下发 Windows | fa79800 |
+- 喉道：972，孔径 0.25 mm
+- 流体域：451.78 mm³ analytic
+- 诊断网格：39,062 cells, min OQ 0.49
+- 目标网格：200K → 2M cells（需 Academic license）
+- 全自动管道：~6 min (Stage 1 + 2)
 
-## P2-Mechanical：结构
+### 📧 外部依赖
 
-| 项目 | 状态 |
-|------|------|
-| 等效板几何 | ✅ P2-S0 producer PASS |
-| 模态分析 | ⏳ NOT_RUN |
-| 压电材料 | ⏳ PZT-5H 候选 |
-
-## 阻塞项
-
-| 阻塞 | 影响 | 解决方案 |
-|------|------|----------|
-| Student License 1M cell 限制 | P3-P5 | 等待 Academic Research License（已联系 Ansys 销售董如怡） |
-| 主流体域识别 (13.5 vs 451.8 mm³) | P3 | 0.15mm overlap + 边界法向修复 |
-| 无 AirJet 实物 | 全阶段 | 公开数据 + 参数扫描 |
-
-## 最近完成（24h）
-
-1. C5 体网格 35K-39K cells
-2. CRLF 源哈希永久修复（.gitattributes）
-3. 4 阻断静态冻结
-4. C5 实跑授权下发 Windows
-5. 教学文档 01-05
-6. 复现指南（299 行）
-
-## 教学文档
-
-| 编号 | 主题 | 状态 |
-|------|------|------|
-| 01 | CFD 基础与 AirJet | ✅ |
-| 02 | Fluent Watertight 工作流 | ✅ |
-| 03 | 网格质量与独立性 | ✅ |
-| 04 | 求解器设置与边界条件 | ✅ |
-| 05 | 几何参数来源与推导 | ✅ |
-| 06 | 参数扫描与设计空间 | ⏳ |
-| 07 | CHT 共轭传热 | ⏳ |
-
-## Git 状态
-
-- HEAD: a80ae6f
-- origin/main: 同步
-- 0 ahead / 0 behind
-- 干净
+- **Ansys 销售：** 董如怡 (ruyi.dong@ansys.com)，已联系，等回复
+- **许可：** Student 2026 R1 已安装，1M cell/node 上限
