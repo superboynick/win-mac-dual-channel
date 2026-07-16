@@ -1300,7 +1300,18 @@ try:
         }
         for index, point in enumerate(actuator_gap_center_points)
     ]
-    actuator_gap_exclusion = validate_actuator_gap_exclusion(
+    try:
+        actuator_gap_exclusion = validate_actuator_gap_exclusion(
+            actuator_gap_center_controls
+        )
+    except RuntimeError as exc:
+        actuator_gap_exclusion = {
+            "actuator_gap_probe_count": 12,
+            "actuator_gap_hit_count": -1,
+            "actuator_gap_raw_none_count": -1,
+            "actuator_gap_zones_excluded": False,
+            "error": str(exc),
+        }
         actuator_gap_center_controls
     )
     actuator_gap_exclusion_evaluable = True
