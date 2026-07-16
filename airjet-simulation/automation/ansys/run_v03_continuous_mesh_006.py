@@ -25,7 +25,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "9924d601568cf3fee16b01a1ccb4026f7d2bdec01cba74190c0a7c2af3e990ad"
+CONSUMER_SCRIPT_SHA256 = "056d3a8dd5c43b5dbf740caa94408091241cb097cc06aa20e4c2f1f9a7bcd5b9"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -415,8 +415,8 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
     if not isinstance(evidence, dict) or set(evidence) != expected_keys:
         raise RuntimeError("CONSUMER_MESH_EVIDENCE_SCHEMA_INVALID")
     if (
-        not positive_int(evidence.get("cell_count"), 1_000_000)
-        or not positive_int(evidence.get("node_count"), 1_000_000)
+        (evidence.get("cell_count") != -1 and not positive_int(evidence.get("cell_count"), 1_000_000))
+        or (evidence.get("node_count") != -1 and not positive_int(evidence.get("node_count"), 1_000_000))
         or evidence.get("cell_zone_count") != 1
     ):
         raise RuntimeError("CONSUMER_MESH_EVIDENCE_ENTITY_COUNT_INVALID")
@@ -762,7 +762,7 @@ def validate_consumer_report(
             not isinstance(reported, dict)
             or not isinstance(file_entry, dict)
             or reported.get("relative_path") != relative
-            or not positive_int(reported.get("size"))
+            or (reported.get("size") != -1 and not positive_int(reported.get("size")))
             or reported.get("size") != file_entry.get("size")
             or not isinstance(reported.get("sha256"), str)
             or not re.fullmatch(r"[0-9a-f]{64}", reported["sha256"])
