@@ -297,3 +297,19 @@ print(f"SAVED: {mesh_path.stat().st_size} bytes")
 | `v03_continuous_fluid_producer.json` | Stage 1 产出报告 |
 | `v03_pyfluent_watertight_mesh_consumer.json` | Stage 2 产出报告 |
 | `result.json` | 网格保存确认 |
+
+## 11. 0.15mm 诊断结果分析
+
+### 关键发现
+0.15mm perimeter Boolean overlap **成功修复了 Fluent WTM 区域选择问题**。
+HDF5 节点坐标独立验证确认网格化区域为主流体域（全产品包络），而非 actuator gap 腔体。
+
+### 几何合同违反
+然而，0.15mm overlap 改变了冻结几何体：
+- Native 体积：451.880 mm³ vs 冻结 451.779 mm³（+0.102 mm³，超 0.08 容差）
+- STEP 体积：451.875 mm³ vs 冻结 451.779 mm³（+0.096 mm³，超 0.03 容差）
+- X 包络：±10.9 mm vs ±10.875 mm
+- Y min：-17.750025 mm vs -17.75 mm
+
+### 下一步
+需要设计不改变冻结几何体或明确建立新合同的 Boolean 鲁棒性修复方案。
