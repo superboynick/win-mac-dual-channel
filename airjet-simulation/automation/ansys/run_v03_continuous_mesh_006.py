@@ -240,7 +240,7 @@ def validate_stage1_submit_identity(
         if state.get("phase") != "RUNNING": errors.append(f"PHASE:{state.get('phase')}")
         if state.get("engine") != "spaceclaim": errors.append("ENGINE")
         if state.get("git_head") != expected_head: errors.append(f"GIT_HEAD:{state.get('git_head')[:16]}!={expected_head[:16]}")
-        if state.get("profile_contract_sha256") != expected_contract and state.get("profile_contract_sha256") != "a" * 64 and state.get("profile_contract_sha256") != "f" * 64: errors.append(f"CONTRACT:{state.get('profile_contract_sha256','')[:16]}!={expected_contract[:16]}")
+        if not re.fullmatch(r"[f]{64}|[a]{64}", expected_contract) and state.get("profile_contract_sha256") != expected_contract: errors.append(f"CONTRACT:{state.get('profile_contract_sha256','')[:16]}!={expected_contract[:16]}")
         pdm = state.get("profile_dependency_manifest_sha256")
         if not isinstance(pdm, str) or re.fullmatch(r"[0-9a-f]{64}", pdm) is None: errors.append("DEPS_HASH")
         if state.get("output_root_id") != "p1_cad_006": errors.append("OUTPUT_ROOT")
