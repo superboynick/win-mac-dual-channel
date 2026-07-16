@@ -754,20 +754,57 @@ def parse_mesh_size(transcript: str) -> tuple[int, int, int, int]:
             r"(?i)level\s+cells\s+faces\s+nodes\s+partitions", line
         )
     ]
-    if not header_indices:
-        raise RuntimeError("MESH_STATS_HEADER_MISSING")
-    rows = []
-    for line in lines[header_indices[-1] + 1 :]:
-        match = re.fullmatch(
-            r"0\s+([0-9][0-9,]*)\s+([0-9][0-9,]*)\s+"
-            r"([0-9][0-9,]*)\s+([0-9][0-9,]*)",
-            line,
-        )
-        if match:
-            rows.append(tuple(int(value.replace(",", "")) for value in match.groups()))
-    if len(rows) != 1:
-        raise RuntimeError("MESH_STATS_LEVEL_ZERO_ROW_NOT_UNIQUE")
-    return rows[0]
+    if header_indices:
+        rows = []
+        for line in lines[header_indices[-1] + 1 :]:
+            match = re.fullmatch(
+                r"0\s+([0-9][0-9,]*)\s+([0-9][0-9,]*)\s+"
+                r"([0-9][0-9,]*)\s+([0-9][0-9,]*)",
+                line,
+            )
+            if match:
+                rows.append(
+                    tuple(
+                        int(value.replace(",", ""))
+                        for value in match.groups()
+                    )
+                )
+        if len(rows) != 1:
+            raise RuntimeError("MESH_STATS_LEVEL_ZERO_ROW_NOT_UNIQUE")
+        return rows[0]
+
+    v261_labels = (
+        "interior nodes",
+        "interior faces",
+        "interior cells",
+        "boundary nodes",
+        "boundary faces",
+    )
+    v261_values: dict[str, int] = {}
+    for label in v261_labels:
+        matches = [
+            re.fullmatch(
+                r"(?i)number\s+of\s+{}\s*=\s*([0-9][0-9,]*)".format(
+                    re.escape(label)
+                ),
+                line,
+            )
+            for line in lines
+        ]
+        values = [
+            int(match.group(1).replace(",", ""))
+            for match in matches
+            if match is not None
+        ]
+        if len(values) != 1:
+            raise RuntimeError("MESH_STATS_V261_SUMMARY_INCOMPLETE_OR_DUPLICATE")
+        v261_values[label] = values[0]
+    return (
+        v261_values["interior cells"],
+        v261_values["interior faces"] + v261_values["boundary faces"],
+        v261_values["interior nodes"] + v261_values["boundary nodes"],
+        1,
+    )
 
 
 result: dict[str, Any] = {

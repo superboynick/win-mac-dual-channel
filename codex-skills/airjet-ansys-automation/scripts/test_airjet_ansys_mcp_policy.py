@@ -2078,6 +2078,7 @@ for guard_name in (
     "test_actuator_gap_exclusion_pure_contract",
     "test_actuator_gap_failure_stays_truthful_and_does_not_block_mesh_write",
     "test_throat_occupancy_failure_stays_truthful_and_does_not_block_mesh_write",
+    "test_mesh_size_parser_accepts_frozen_v261_summary",
     "test_region_inventory_and_transition_pure_contract",
 ):
     if guard_name not in consumer_guard_names:
@@ -2104,6 +2105,8 @@ for invariant in (
     'marker="NOT_1_FLOW_11_NON_FLOW"',
     'marker="INVENTORY_CONFLICT"',
     'marker="RENAMED_RECLASSIFIED_OR_MERGED"',
+    "MESH_STATS_V261_SUMMARY_INCOMPLETE_OR_DUPLICATE",
+    "assert parse(frozen) == (35108, 239073, 242139, 1)",
 ):
     if invariant not in v03_mesh_consumer_test_source:
         fail("V03 C5 consumer negative/positive coverage missing: " + invariant)

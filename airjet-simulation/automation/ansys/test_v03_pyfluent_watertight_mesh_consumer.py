@@ -6,6 +6,7 @@ from __future__ import annotations
 import ast
 import copy
 from pathlib import Path
+import re
 from typing import Any
 
 
@@ -204,6 +205,7 @@ def load_contract_helpers() -> dict[str, Any]:
         "validate_actuator_gap_exclusion",
         "parse_region_inventory",
         "validate_region_transition",
+        "parse_mesh_size",
     }
     nodes = [
         node
@@ -222,6 +224,7 @@ def load_contract_helpers() -> dict[str, Any]:
             ("region_internals", "region_internal_types"),
         ),
         "NON_FLOW_REGION_TYPES": {"dead", "void", "excluded"},
+        "re": re,
     }
     module = ast.Module(body=nodes, type_ignores=[])
     exec(
@@ -238,6 +241,29 @@ def expect_runtime_error(function, *args, marker: str) -> None:
         assert marker in str(exc)
     else:
         raise AssertionError(f"expected rejection: {marker}")
+
+
+def test_mesh_size_parser_accepts_frozen_v261_summary() -> None:
+    parse = load_contract_helpers()["parse_mesh_size"]
+    frozen = """number of interior nodes = 174926
+number of interior edges = 8475
+number of interior faces = 224572
+number of interior cells = 35108
+number of boundary nodes = 67213
+number of boundary edges = 30196
+number of boundary faces = 14501
+"""
+    assert parse(frozen) == (35108, 239073, 242139, 1)
+    expect_runtime_error(
+        parse,
+        frozen.replace("number of boundary faces = 14501\n", ""),
+        marker="MESH_STATS_V261_SUMMARY_INCOMPLETE_OR_DUPLICATE",
+    )
+    expect_runtime_error(
+        parse,
+        frozen + "number of interior cells = 35108\n",
+        marker="MESH_STATS_V261_SUMMARY_INCOMPLETE_OR_DUPLICATE",
+    )
 
 
 def test_full_972_occupancy_pure_contract() -> None:
