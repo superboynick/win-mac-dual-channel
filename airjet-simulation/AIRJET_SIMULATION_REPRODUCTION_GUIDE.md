@@ -127,16 +127,21 @@ airjet-simulation/
 | 目标 cell zone 数 | 1 | 单一主流体域 |
 | 期望流体体积 | 451.773 mm³ | 从 STEP predecessor 冻结 |
 
-### C5 粗网格结果（已验证）
+### C5 粗网格结果（⚠️ 诊断性 — 非正式几何/P1/求解器结果）
 
-| 指标 | 值 |
-|---|---|
-| 体单元数 | 39,062（0.15mm overlap） |
-| 面网格面数 | 334,190 (total), 425,584 (包括 dead zones) |
-| 流体区域数 | 1 fluid + 11 voids |
-| min Orthogonal Quality | 0.49 ~ 0.57 |
-| 外部 baffle | 1 (zone 323, 预期) |
-| 网格文件大小 | ~8.1-9.0 MB (.msh.h5) |
+| 指标 | 值 | 备注 |
+|---|---|---|
+| 体单元数 | 39,062 | 0.15mm Boolean overlap |
+| 面网格面数 | ~334,190 (total) | 含 dead zones |
+| 流体区域数 | 1 fluid + 11 voids | ✅ 主流体域（全产品包络） |
+| min Orthogonal Quality | 0.49 | 下游需 ≥0.15 |
+| 外部 baffle | 1 (zone 323) | 预期 |
+| 网格文件大小 | 8.97 MB (.msh.h5) | SHA256 见 logs/evidence |
+
+> ⚠️ **关键区分：** 此网格证明了 0.15mm overlap 修复了区域选择
+> （27.75×41.5×1.53mm 包络 → 主流体域），但**几何合同被违反**：
+> X 包络从 ±10.875mm 变为 ±10.9mm，体积超差。此网格仅用于
+> 流程诊断，不可用于 P1 几何验证、P2 网格独立性、或 P3 求解。
 
 ---
 
@@ -207,7 +212,7 @@ s.tui.mesh.quality()
 | Fluent volume-statistics SIGSEGV | Student 2026 R1 bug | 跳过 API 查询，从 transcript 提取数据 |
 | 972 点查询返回 None | v261 post-volume API 限制 | 改用 face adjacency 验证喉道连通性 |
 | Student license "Exiting due to license issue" | poly-hexcore 默认网格太密 | 使用 sizing 控制（max 0.75, min 0.05, throat 0.075） |
-| 体网格域为 actuator gap 而非主流体 | SpaceClaim Boolean overlap 不够 | 增大 perimeter_boolean_overlap_mm 从 0.02 → 0.15 |
+| 体网格域为 actuator gap 而非主流体 | SpaceClaim Boolean overlap 不够 | 0.02→0.15mm 修复区域选择但违反几何合同；需内收式修复（见 §11） |
 
 ---
 
@@ -298,18 +303,35 @@ print(f"SAVED: {mesh_path.stat().st_size} bytes")
 | `v03_pyfluent_watertight_mesh_consumer.json` | Stage 2 产出报告 |
 | `result.json` | 网格保存确认 |
 
-## 11. 0.15mm 诊断结果分析
+## 11. 0.15mm 诊断结果分析（⚠️ 流程验证通过，几何合同违反）
 
-### 关键发现
-0.15mm perimeter Boolean overlap **成功修复了 Fluent WTM 区域选择问题**。
-HDF5 节点坐标独立验证确认网格化区域为主流体域（全产品包络），而非 actuator gap 腔体。
+### ✅ 已验证的能力
 
-### 几何合同违反
-然而，0.15mm overlap 改变了冻结几何体：
-- Native 体积：451.880 mm³ vs 冻结 451.779 mm³（+0.102 mm³，超 0.08 容差）
-- STEP 体积：451.875 mm³ vs 冻结 451.779 mm³（+0.096 mm³，超 0.03 容差）
-- X 包络：±10.9 mm vs ±10.875 mm
-- Y min：-17.750025 mm vs -17.75 mm
+- Fluent WTM 自动识别主流体域（非 actuator gap 腔体）
+- HDF5 节点坐标：X=[-10.9, 10.9], Y=[-17.75, 20.75], Z=[1.27, 2.80] mm
+- 1 fluid zone + 11 voids：几何拓扑正确
+- min OQ 0.49：Student 许可下可生成可用网格
 
-### 下一步
-需要设计不改变冻结几何体或明确建立新合同的 Boolean 鲁棒性修复方案。
+### ❌ 几何合同违反
+
+| 参数 | 冻结值 | 0.15mm 实际 | 超差 |
+|---|---|---|---|
+| X 包络 | ±10.875 mm | ±10.9 mm | +0.025 mm |
+| Y min | -17.75 mm | -17.750025 mm | +0.000025 mm |
+| 体积 (native) | 451.779 mm³ | 451.880 mm³ | +0.102 mm³ |
+| 体积 (STEP) | 451.779 mm³ | 451.875 mm³ | +0.096 mm³ |
+
+### 🔧 下一步几何修正方案
+
+**方案 A（推荐）：内收式 Boolean overlap**
+- 不扩展流体域边界，将 actuator pocket 体向域内延伸 0.10 mm
+- 重叠区域完全包含在原始冻结几何体内部
+- 预期：X=±10.875, Y=-17.75 保持不变
+
+**方案 B：两步法**
+- Step 1: 流体域临时扩大 0.20 mm → Boolean subtract
+- Step 2: 用原始边界面裁剪回冻结尺寸
+
+**方案 C：Split Face 替换 Boolean Subtract**
+- 用 pocket 面与主流体域面求交 → Split Face → 删除 pocket 区域
+- 避免 Boolean 容差问题
