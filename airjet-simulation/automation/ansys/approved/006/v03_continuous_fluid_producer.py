@@ -900,31 +900,31 @@ try:
         cy = float(origin[1])
         pieces = [
             create_block(
-                cx - half_membrane - perimeter_boolean_overlap_mm,
-                cy - half_membrane - perimeter_boolean_overlap_mm,
+                cx - half_membrane,
+                cy - half_membrane,
                 bottom_z_min,
-                cx + half_membrane + perimeter_boolean_overlap_mm,
-                cy + half_membrane + perimeter_boolean_overlap_mm,
+                cx + half_membrane,
+                cy + half_membrane,
                 bottom_z_max,
                 "AJM006_V03_BOTTOM_%03d" % cell_index,
             ),
             create_block(
                 cx - half_tile, cy - half_tile, bottom_z_min,
-                cx - half_membrane, cy + half_tile, plenum_top_z,
+                cx - half_membrane + perimeter_boolean_overlap_mm, cy + half_tile, plenum_top_z,
                 "AJM006_V03_RING_L_%03d" % cell_index,
             ),
             create_block(
-                cx + half_membrane, cy - half_tile, bottom_z_min,
+                cx + half_membrane - perimeter_boolean_overlap_mm, cy - half_tile, bottom_z_min,
                 cx + half_tile, cy + half_tile, plenum_top_z,
                 "AJM006_V03_RING_R_%03d" % cell_index,
             ),
             create_block(
                 cx - half_membrane, cy - half_tile, bottom_z_min,
-                cx + half_membrane, cy - half_membrane, plenum_top_z,
+                cx + half_membrane, cy - half_membrane + perimeter_boolean_overlap_mm, plenum_top_z,
                 "AJM006_V03_RING_B_%03d" % cell_index,
             ),
             create_block(
-                cx - half_membrane, cy + half_membrane, bottom_z_min,
+                cx - half_membrane, cy + half_membrane - perimeter_boolean_overlap_mm, bottom_z_min,
                 cx + half_membrane, cy + half_tile, plenum_top_z,
                 "AJM006_V03_RING_T_%03d" % cell_index,
             ),
