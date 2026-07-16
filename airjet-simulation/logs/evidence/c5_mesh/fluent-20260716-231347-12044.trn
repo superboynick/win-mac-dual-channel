@@ -37,3 +37,4 @@ LAPTOP-LCCLM2HI is already loaded (29.4812).                       Process affin
 Information: The server has started and is running.
 (set-session-idle-timeout 3)#f
 >>> 
+Importing one geom object per program-controlled and one zone per face ...
