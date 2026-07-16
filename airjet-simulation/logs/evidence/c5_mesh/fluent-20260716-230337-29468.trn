@@ -212,3 +212,31 @@ done
 -------------------- -------------------- --------------------
     external baffles                    1                (323)
 
+
+
+------------------------------------- --------------------- -------------------- ---------------- ----------
+                                 name skewed-cells (> 0.80)    averaged-skewness maximum-skewness face count
+------------------------------------- --------------------- -------------------- ---------------- ----------
+
+          ajm006_v03_fluid_continuous                     0          0.026783202       0.40892449      28172
+  dead0-ajm006_v03_fluid_continuous:1                     0          0.026519463        0.4414614      27870
+  dead1-ajm006_v03_fluid_continuous:2                     0           0.02614965       0.42566086      28250
+  dead2-ajm006_v03_fluid_continuous:3                     0          0.027025168       0.52331243      27880
+  dead3-ajm006_v03_fluid_continuous:4                     0          0.026348275       0.37843348      27494
+  dead4-ajm006_v03_fluid_continuous:5                     0          0.027136396       0.44245093      27846
+  dead5-ajm006_v03_fluid_continuous:6                     0           0.02669456       0.44811837      27848
+  dead6-ajm006_v03_fluid_continuous:7                     0          0.027456896       0.47587385      27416
+  dead7-ajm006_v03_fluid_continuous:8                     0          0.026832282        0.4230587      27838
+  dead8-ajm006_v03_fluid_continuous:9                     0          0.027319664       0.46676331      27938
+ dead9-ajm006_v03_fluid_continuous:10                     0          0.026688791       0.44036382      27810
+dead10-ajm006_v03_fluid_continuous:11                     0          0.027031459       0.43743811      27932
+------------------------------------- --------------------- -------------------- ---------------- ----------
+                                 name skewed-cells (> 0.80)    averaged-skewness maximum-skewness face count
+------------------------------------- --------------------- -------------------- ---------------- ----------
+
+product_continuous_fluid-ajm006_v03_fluid_continuous                     0          0.026831181       0.52331243     334294
+
+---------------- After Surface mesh, the model consists of 1 fluid/solid regions and 11 voids.
+
+---------------- Surface Meshing of product_continuous_fluid complete in  0.44 minutes, with a maximum skewness of  0.54. 
+
