@@ -916,6 +916,16 @@ try:
     if len(throat_zone_hits) != THROAT_COUNT:
         raise RuntimeError("THROAT_ZONE_HIT_COUNT_NOT_972")
     result["assertions"]["throat_roles_reconstructed_972"] = True
+    imported_face_zone_names = zone_names_one_way(
+        utilities, imported_face_zone_ids
+    )
+    if len(imported_face_zone_names) != len(imported_face_zone_ids):
+        raise RuntimeError("IMPORTED_FACE_ZONE_NAME_INVENTORY_MISMATCH")
+    session.tui.boundary.manage.flip(imported_face_zone_names)
+    trace_checkpoint(
+        "imported_boundary_normals_reversed",
+        face_zone_count=len(imported_face_zone_names),
+    )
 
     local = workflow.add_local_sizing_wtm
     child = local.add_child_and_update(
@@ -1062,7 +1072,7 @@ try:
     pre_update_region_inventory = copy.deepcopy(fluid_only_inventory)
     post_update_region_inventory = copy.deepcopy(fluid_only_inventory)
     region_transition = {
-        "route": "FLUID_ONLY_OBJECT_CELL_ZONE_TYPE",
+        "route": "REVERSED_BOUNDARY_FLUID_OBJECT",
         "main_flow_region_count": 1,
         "non_flow_region_count": 0,
         "unchanged": True,

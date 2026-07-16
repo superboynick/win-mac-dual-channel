@@ -101,6 +101,8 @@ def test_exact_byte_predecessor_and_role_reconstruction() -> None:
         "raw_zone_ids = meshing_utilities.get_face_zones(",
         "zone_ids = list(raw_zone_ids)",
         '"boundary_zone_queries_completed"',
+        "session.tui.boundary.manage.flip(imported_face_zone_names)",
+        '"imported_boundary_normals_reversed"',
     ):
         assert required in SOURCE
     assert "type(zone_ids) is not list" not in SOURCE
@@ -180,7 +182,7 @@ def test_fluid_only_region_route_is_explicit_and_ordered() -> None:
         '"utilities.get_zone_type"',
         '"meshing_utilities.convert_zone_ids_to_name_strings"',
         '"non_flow_region_count": 0',
-        '"route": "FLUID_ONLY_OBJECT_CELL_ZONE_TYPE"',
+        '"route": "REVERSED_BOUNDARY_FLUID_OBJECT"',
         'utilities.get_objects(filter="*")',
         'not name.startswith("origin-")',
         'f"origin-{mesh_object_candidates[0]}" not in mesh_objects',
