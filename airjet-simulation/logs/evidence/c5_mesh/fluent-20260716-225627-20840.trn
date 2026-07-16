@@ -1,0 +1,34 @@
+Auto-Transcript Start Time:  22:56:27, 16 Jul 2026 中国标准时间 
+Current Directory: "C:\Users\admin\win-mac-dual-channel\airjet-simulation\logs\evidence\c5_mesh"
+
+              Welcome to ANSYS Fluent 2026 R1
+
+              Copyright 2026 Synopsys, Inc. and ANSYS, Inc. All rights reserved.
+              Unauthorized use, distribution or duplication is prohibited.
+              This product is subject to U.S. laws governing export and re-export.
+              For full Legal Notice, see documentation.
+
+Build Time: Feb  2 2026 16:32:00 EST  Build Id: 10262  
+ 
+Connected License Server List:	<Non FlexNet Publisher License Server (FNPLS)>
+
+     --------------------------------------------------------------
+     This is a student version of ANSYS FLUENT. Usage of this product
+     license is limited to the terms and conditions specified in your ANSYS
+     license form, additional terms section.
+     --------------------------------------------------------------
+Host spawning Node 0 on machine "LAPTOP-LCCLM2HI" (win64).
+Host waiting for connection from Node 0 at 127.0.0.1:10240 
+
+Node 0 connecting to the Host ... connection established.
+
+-------------------------------------------------------------------------------------
+ID    Hostname         Core  O.S.         PID    CPU Model Name                     
+-------------------------------------------------------------------------------------
+n0    LAPTOP-LCCLM2HI  1/24  Windows-x64  22772  Intel(R) Core(TM) Ultra 9 275HX    
+host  LAPTOP-LCCLM2HI        Windows-x64  27288  Intel(R) Core(TM) Ultra 9 275HX    
+
+MPI Option Selected: intel
+-------------------------------------------------------------------------------------
+
+Cleanup script file is C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\logs\\evidence\\c5_mesh\\cleanup-fluent-LAPTOP-LCCLM2HI-27288.bat
