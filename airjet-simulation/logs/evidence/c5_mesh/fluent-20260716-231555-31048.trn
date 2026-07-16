@@ -1,0 +1,21 @@
+Auto-Transcript Start Time:  23:15:55, 16 Jul 2026 中国标准时间 
+Current Directory: "C:\Users\admin\win-mac-dual-channel\airjet-simulation\logs\evidence\c5_mesh"
+
+              Welcome to ANSYS Fluent 2026 R1
+
+              Copyright 2026 Synopsys, Inc. and ANSYS, Inc. All rights reserved.
+              Unauthorized use, distribution or duplication is prohibited.
+              This product is subject to U.S. laws governing export and re-export.
+              For full Legal Notice, see documentation.
+
+Build Time: Feb  2 2026 16:32:00 EST  Build Id: 10262  
+ 
+Connected License Server List:	<Non FlexNet Publisher License Server (FNPLS)>
+
+     --------------------------------------------------------------
+     This is a student version of ANSYS FLUENT. Usage of this product
+     license is limited to the terms and conditions specified in your ANSYS
+     license form, additional terms section.
+     --------------------------------------------------------------
+Host spawning Node 0 on machine "LAPTOP-LCCLM2HI" (win64).
+Host waiting for connection from Node 0 at 127.0.0.1:11672 
