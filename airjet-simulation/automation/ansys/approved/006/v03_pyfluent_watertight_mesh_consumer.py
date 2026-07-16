@@ -1463,89 +1463,79 @@ try:
         unresolved_all_face_adjacency=unresolved_all_face_adjacency,
         two_fluid_non_interior=two_fluid_non_interior,
     )
-    try:
-        free_faces = int(
-            utilities.get_free_faces_count(face_zone_id_list=all_face_zone_ids)
+    free_faces = int(
+        utilities.get_free_faces_count(face_zone_id_list=all_face_zone_ids)
+    )
+    multi_faces = int(
+        utilities.get_multi_faces_count(face_zone_id_list=all_face_zone_ids)
+    )
+    mesh_check = utilities.mesh_check(
+        type_name="volume-statistics",
+        face_zone_name_pattern="*",
+        cell_zone_id_list=cell_zone_ids,
+    )
+    quality_limits = list(
+        utilities.get_cell_quality_limits(
+            cell_zone_id_list=cell_zone_ids, measure="Orthogonal Quality"
         )
-        multi_faces = int(
-            utilities.get_multi_faces_count(face_zone_id_list=all_face_zone_ids)
+    )
+    if len(quality_limits) != 6:
+        raise RuntimeError(f"QUALITY_LIMITS_INVALID:{quality_limits}")
+    quality_values = [float(value) for value in quality_limits]
+    min_orthogonal_quality = quality_values[1]
+    max_orthogonal_quality = quality_values[2]
+    average_orthogonal_quality = quality_values[3]
+    if (
+        free_faces != 0
+        or multi_faces != 0
+        or not mesh_check
+        or int(quality_values[0]) != cell_count_api
+        or not all(math.isfinite(value) for value in quality_values)
+        or not math.isfinite(min_orthogonal_quality)
+        or not (
+            0.0
+            < min_orthogonal_quality
+            <= average_orthogonal_quality
+            <= max_orthogonal_quality
+            <= 1.0
         )
-        mesh_check = utilities.mesh_check(
-            type_name="volume-statistics",
-            face_zone_name_pattern="*",
-            cell_zone_id_list=cell_zone_ids,
-        )
-        quality_limits = list(
-            utilities.get_cell_quality_limits(
-                cell_zone_id_list=cell_zone_ids, measure="Orthogonal Quality"
-            )
-        )
-        if len(quality_limits) != 6:
-            raise RuntimeError(f"QUALITY_LIMITS_INVALID:{quality_limits}")
-        quality_values = [float(value) for value in quality_limits]
-        min_orthogonal_quality = quality_values[1]
-        max_orthogonal_quality = quality_values[2]
-        average_orthogonal_quality = quality_values[3]
-        if (
-            free_faces != 0
-            or multi_faces != 0
-            or not mesh_check
-            or int(quality_values[0]) != cell_count_api
-            or not all(math.isfinite(value) for value in quality_values)
-            or not math.isfinite(min_orthogonal_quality)
-            or not (
-                0.0
-                < min_orthogonal_quality
-                <= average_orthogonal_quality
-                <= max_orthogonal_quality
-                <= 1.0
-            )
-        ):
-            raise RuntimeError("MESH_INTEGRITY_OR_QUALITY_FAILED")
-        result["assertions"]["mesh_integrity"] = True
-    except RuntimeError:
-        free_faces, multi_faces, mesh_check = -1, -1, False
-        quality_values = [-1.0] * 6
-        min_orthogonal_quality = -1.0
-        average_orthogonal_quality = -1.0
-        max_orthogonal_quality = -1.0
+    ):
+        raise RuntimeError("MESH_INTEGRITY_OR_QUALITY_FAILED")
+    result["assertions"]["mesh_integrity"] = True
 
-    if min_orthogonal_quality == -1.0:
-        cell_count, face_count, node_count, partitions = -1, -1, -1, 1
-    else:
-        session.transcript.start(str(TRANSCRIPT_PATH), write_to_stdout=False)
-        transcript_started = True
-        session.tui.report.mesh_size()
-        transcript_text = ""
-        transcript_deadline = time.monotonic() + 5.0
-        while time.monotonic() < transcript_deadline:
-            if TRANSCRIPT_PATH.is_file():
-                transcript_text = TRANSCRIPT_PATH.read_text(
-                    encoding="utf-8", errors="strict"
-                )
-                try:
-                    parse_mesh_size(transcript_text)
-                    break
-                except RuntimeError:
-                    pass
-            time.sleep(0.05)
-        session.transcript.stop()
-        transcript_started = False
-        cell_count, face_count, node_count, partitions = parse_mesh_size(
-            transcript_text
-        )
-        if (
-            cell_count <= 0
-            or node_count <= 0
-            or partitions != 1
-            or cell_count != cell_count_api
-            or cell_count > STUDENT_ENTITY_LIMIT
-            or node_count > STUDENT_ENTITY_LIMIT
-        ):
-            raise RuntimeError(
-                f"STUDENT_LIMIT_UNPROVEN_OR_EXCEEDED:{cell_count}:{node_count}"
-        )
-        result["assertions"]["student_limit_guard"] = True
+    session.transcript.start(str(TRANSCRIPT_PATH), write_to_stdout=False)
+    transcript_started = True
+    session.tui.report.mesh_size()
+    transcript_text = ""
+    transcript_deadline = time.monotonic() + 5.0
+    while time.monotonic() < transcript_deadline:
+        if TRANSCRIPT_PATH.is_file():
+            transcript_text = TRANSCRIPT_PATH.read_text(
+                encoding="utf-8", errors="strict"
+            )
+            try:
+                parse_mesh_size(transcript_text)
+                break
+            except RuntimeError:
+                pass
+        time.sleep(0.05)
+    session.transcript.stop()
+    transcript_started = False
+    cell_count, face_count, node_count, partitions = parse_mesh_size(
+        transcript_text
+    )
+    if (
+        cell_count <= 0
+        or node_count <= 0
+        or partitions != 1
+        or cell_count != cell_count_api
+        or cell_count > STUDENT_ENTITY_LIMIT
+        or node_count > STUDENT_ENTITY_LIMIT
+    ):
+        raise RuntimeError(
+            f"STUDENT_LIMIT_UNPROVEN_OR_EXCEEDED:{cell_count}:{node_count}"
+    )
+    result["assertions"]["student_limit_guard"] = True
 
     occupancy_zone_counts: dict[str, int] = {}
     for record in occupancy:
@@ -1653,10 +1643,7 @@ try:
     write_json(INVENTORY_PATH, inventory_report)
 
     if not result["assertions"]["target_flow_volume_matches_predecessor"]:
-        trace_checkpoint("target_volume_warning", expected=expected_target_flow_volume_mm3, actual=float(cell_volume), delta=target_flow_volume_delta_mm3)
-        # Continue despite volume mismatch
-        if False:
-            raise RuntimeError(
+        raise RuntimeError(
             "TARGET_FLOW_VOLUME_NOT_MESHED:"
             f"EXPECTED={expected_target_flow_volume_mm3}:"
             f"ACTUAL={float(cell_volume)}:"
