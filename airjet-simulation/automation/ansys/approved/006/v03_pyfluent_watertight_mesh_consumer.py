@@ -106,7 +106,6 @@ TARGET_FLOW_VOLUME_MESH_TOLERANCE_MM3 = 1.0
 ACTUATOR_GAP_CENTER_Z_MM = 1.795
 ACTUATOR_GAP_PROBE_COUNT = 12
 FLUID_ONLY_SETUP_TYPE = "The geometry consists of only fluid regions with no voids"
-MAIN_FLOW_MATERIAL_POINT_NAME = "ajm-main-flow"
 
 
 def sha256_file(path: Path) -> str:
@@ -997,67 +996,18 @@ try:
         or f"origin-{mesh_object_candidates[0]}" not in mesh_objects
         or len(mesh_objects) != 2
     ):
-        raise RuntimeError(f"MATERIAL_POINT_MESH_OBJECT_NOT_UNIQUE:{mesh_objects}")
+        raise RuntimeError(f"FLUID_MESH_OBJECT_NOT_UNIQUE:{mesh_objects}")
     mesh_object_name = mesh_object_candidates[0]
-    main_flow_seed_point = [
-        float(throat_query_points[0][0]) - THROAT_RADIUS_MM,
-        float(throat_query_points[0][1]),
-        float(throat_query_points[0][2]),
-    ]
-    if any(not math.isfinite(value) for value in main_flow_seed_point):
-        raise RuntimeError("MAIN_FLOW_MATERIAL_POINT_NOT_FINITE")
-    session.tui.material_point.create_material_point(
-        MAIN_FLOW_MATERIAL_POINT_NAME,
-        main_flow_seed_point[0],
-        main_flow_seed_point[1],
-        main_flow_seed_point[2],
+    utilities.set_object_cell_zone_type(
+        object_name=mesh_object_name, cell_zone_type="fluid"
     )
-    session.tui.objects.volumetric_regions.compute(
-        mesh_object_name, True, [MAIN_FLOW_MATERIAL_POINT_NAME]
-    )
-    region_names = list(
-        utilities.get_regions(object_name=mesh_object_name, filter="*")
-    )
-    region_volume_observations = {
-        name: json_safe_trace_value(
-            utilities.get_region_volume(
-                object_name=mesh_object_name, region_name=name
-            )
-        )
-        for name in region_names
-    }
     trace_checkpoint(
-        "material_point_region_compute_observed",
+        "fluid_object_cell_zone_type_selected",
         mesh_object_name=mesh_object_name,
-        material_point_name=MAIN_FLOW_MATERIAL_POINT_NAME,
-        material_point_mm=main_flow_seed_point,
-        region_names=region_names,
-        region_volume_observations=region_volume_observations,
-    )
-    if MAIN_FLOW_MATERIAL_POINT_NAME not in region_names:
-        raise RuntimeError(
-            "MAIN_FLOW_MATERIAL_POINT_REGION_NOT_COMPUTED:"
-            f"{mesh_object_name}:{region_names}:"
-            f"VOLUMES={region_volume_observations}"
-        )
-    session.tui.objects.volumetric_regions.change_type(
-        mesh_object_name, ["*"], "dead"
-    )
-    session.tui.objects.volumetric_regions.change_type(
-        mesh_object_name, [MAIN_FLOW_MATERIAL_POINT_NAME], "fluid"
+        selected_cell_zone_type="fluid",
     )
     trace_checkpoint(
-        "material_point_region_selection_completed",
-        mesh_object_name=mesh_object_name,
-        material_point_name=MAIN_FLOW_MATERIAL_POINT_NAME,
-        material_point_mm=main_flow_seed_point,
-        region_names=region_names,
-        region_volume_observations=region_volume_observations,
-        default_region_type="dead",
-        selected_region_type="fluid",
-    )
-    trace_checkpoint(
-        "fluid_only_material_point_region_route_selected",
+        "fluid_only_object_cell_zone_type_route_selected",
         setup_type=FLUID_ONLY_SETUP_TYPE,
         create_regions_executed=False,
         update_regions_executed=False,
@@ -1112,7 +1062,7 @@ try:
     pre_update_region_inventory = copy.deepcopy(fluid_only_inventory)
     post_update_region_inventory = copy.deepcopy(fluid_only_inventory)
     region_transition = {
-        "route": "FLUID_ONLY_MATERIAL_POINT_REGION_SELECTION",
+        "route": "FLUID_ONLY_OBJECT_CELL_ZONE_TYPE",
         "main_flow_region_count": 1,
         "non_flow_region_count": 0,
         "unchanged": True,

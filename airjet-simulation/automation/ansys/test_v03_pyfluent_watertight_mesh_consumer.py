@@ -132,10 +132,9 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.update_boundaries.old_boundary_zone_list",
         "workflow.update_boundaries.old_boundary_zone_type_list",
         '"boundary_zone_types_updated"',
-        "session.tui.material_point.create_material_point(",
-        "session.tui.objects.volumetric_regions.compute(",
-        "session.tui.objects.volumetric_regions.change_type(",
-        '"fluid_only_material_point_region_route_selected"',
+        "utilities.set_object_cell_zone_type(",
+        'cell_zone_type="fluid"',
+        '"fluid_only_object_cell_zone_type_route_selected"',
         "workflow.create_volume_mesh_wtm",
         'volume_mesh.volume_fill = "poly-hexcore"',
         "volume_mesh.volume_fill_controls.hex_max_cell_length = VOLUME_MAX_SIZE_MM",
@@ -159,26 +158,18 @@ def test_fluid_only_region_route_is_explicit_and_ordered() -> None:
     describe = SOURCE.index(
         '"The geometry consists of only fluid regions with no voids"'
     )
-    material_point = SOURCE.index(
-        "session.tui.material_point.create_material_point("
-    )
-    compute_regions = SOURCE.index(
-        "session.tui.objects.volumetric_regions.compute("
-    )
-    select_main = SOURCE.rindex(
-        "session.tui.objects.volumetric_regions.change_type("
+    select_fluid_object = SOURCE.index(
+        "utilities.set_object_cell_zone_type("
     )
     route_trace = SOURCE.index(
-        '"fluid_only_material_point_region_route_selected"'
+        '"fluid_only_object_cell_zone_type_route_selected"'
     )
     volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
     inventory = SOURCE.index("fluid_only_inventory = {")
     assert (
         describe
         < boundary_guard
-        < material_point
-        < compute_regions
-        < select_main
+        < select_fluid_object
         < route_trace
         < volume_mesh
         < inventory
@@ -189,17 +180,14 @@ def test_fluid_only_region_route_is_explicit_and_ordered() -> None:
         '"utilities.get_zone_type"',
         '"meshing_utilities.convert_zone_ids_to_name_strings"',
         '"non_flow_region_count": 0',
-        '"route": "FLUID_ONLY_MATERIAL_POINT_REGION_SELECTION"',
-        'MAIN_FLOW_MATERIAL_POINT_NAME = "ajm-main-flow"',
+        '"route": "FLUID_ONLY_OBJECT_CELL_ZONE_TYPE"',
         'utilities.get_objects(filter="*")',
         'not name.startswith("origin-")',
         'f"origin-{mesh_object_candidates[0]}" not in mesh_objects',
         "len(mesh_objects) != 2",
-        'utilities.get_regions(object_name=mesh_object_name, filter="*")',
-        'float(throat_query_points[0][0]) - THROAT_RADIUS_MM',
-        '"material_point_region_compute_observed"',
-        'mesh_object_name, ["*"], "dead"',
-        'mesh_object_name, [MAIN_FLOW_MATERIAL_POINT_NAME], "fluid"',
+        "utilities.set_object_cell_zone_type(",
+        'object_name=mesh_object_name, cell_zone_type="fluid"',
+        '"fluid_object_cell_zone_type_selected"',
         "setup_type=FLUID_ONLY_SETUP_TYPE",
         "create_regions_executed=False",
         "update_regions_executed=False",
@@ -210,6 +198,8 @@ def test_fluid_only_region_route_is_explicit_and_ordered() -> None:
         "workflow.update_regions",
         "number_of_flow_volumes",
         '"The geometry consists of both fluid and solid regions and/or voids"',
+        "session.tui.material_point",
+        "session.tui.objects.volumetric_regions",
     ):
         assert forbidden not in SOURCE
 
