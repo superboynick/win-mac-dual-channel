@@ -1946,6 +1946,8 @@ for invariant in (
     "session.tui.file.write_mesh(str(MESH_PATH))",
     "workflow.import_geometry.file_name = str(STAGED_NATIVE_PATH)",
     '"NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1078:{}"',
+    "session.tui.boundary.separate.sep_face_zone_by_region([inlet_name])",
+    '"POST_SURFACE_INLET_SPLIT_COUNT_NOT_4"',
     '"PREDECESSOR_NATIVE_EVIDENCE_INVALID"',
     '"exact_native_and_step_byte_staging"',
     '"ROUND_TRIP_CORROBORATION_NOT_MESH_SOURCE"',

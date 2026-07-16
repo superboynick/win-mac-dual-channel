@@ -649,6 +649,81 @@ def canonicalize_boundary_zones(
         session.tui.boundary.manage.name(current_names[0], target_names[0])
 
 
+def rebind_post_surface_canonical_records(
+    session: Any,
+    meshing_utilities: Any,
+    canonical_records: list[dict[str, Any]],
+    boundary_blueprint: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Split the remeshed inlet label and rebind ten canonical boundary zones."""
+    zone_ids_before = sorted(set(meshing_utilities.get_face_zones(filter="*")))
+    if len(zone_ids_before) != 7:
+        raise RuntimeError(
+            "POST_SURFACE_NATIVE_BOUNDARY_ZONE_COUNT_NOT_7:{}".format(
+                len(zone_ids_before)
+            )
+        )
+    points_by_role = {role: [] for role in BOUNDARY_ROLE_ORDER}
+    for record in boundary_blueprint:
+        points_by_role[record["role"]].append(record["probe_point_mm"])
+    role_zone_ids = {}
+    for role in BOUNDARY_ROLE_ORDER:
+        points = points_by_role[role] if role == "INLET" else points_by_role[role][:1]
+        role_zone_ids[role] = [
+            one_face_zone(meshing_utilities, point) for point in points
+        ]
+    if len(set(role_zone_ids["INLET"])) != 1:
+        raise RuntimeError("POST_SURFACE_NATIVE_INLET_ZONE_NOT_AGGREGATED")
+    representative_ids = {values[0] for values in role_zone_ids.values()}
+    if len(representative_ids) != 7 or representative_ids != set(zone_ids_before):
+        raise RuntimeError("POST_SURFACE_NATIVE_ROLE_ZONE_COVERAGE_INVALID")
+    inlet_name = zone_names(meshing_utilities, role_zone_ids["INLET"][:1])[0]
+    session.tui.boundary.separate.sep_face_zone_by_region([inlet_name])
+    inlet_zone_ids = [
+        one_face_zone(meshing_utilities, point)
+        for point in points_by_role["INLET"]
+    ]
+    if len(set(inlet_zone_ids)) != 4:
+        raise RuntimeError("POST_SURFACE_INLET_SPLIT_COUNT_NOT_4")
+    role_zone_ids["INLET"] = inlet_zone_ids
+    all_role_ids = [zone_id for values in role_zone_ids.values() for zone_id in values]
+    if len(all_role_ids) != 10 or len(set(all_role_ids)) != 10:
+        raise RuntimeError("POST_SURFACE_ROLE_ZONE_IDS_NOT_EXACT_10")
+    role_zone_names = {
+        role: zone_names(meshing_utilities, ids)
+        for role, ids in role_zone_ids.items()
+    }
+    canonicalize_boundary_zones(
+        session,
+        {
+            "role_zone_ids": role_zone_ids,
+            "role_zone_names": role_zone_names,
+        },
+    )
+    target_names = [
+        name for role in BOUNDARY_ROLE_ORDER
+        for name in CANONICAL_BOUNDARY_ZONE_NAMES[role]
+    ]
+    target_ids = list(
+        meshing_utilities.convert_zone_name_strings_to_ids(
+            zone_name_list=target_names
+        )
+    )
+    if len(target_ids) != 10 or len(set(target_ids)) != 10:
+        raise RuntimeError("POST_SURFACE_CANONICAL_NAME_TO_ID_INVALID")
+    target_to_id = dict(zip(target_names, target_ids))
+    rebound = [
+        {
+            "source_face_index": record["source_face_index"],
+            "role": record["role"],
+            "zone_id": target_to_id[record["zone_name"]],
+            "zone_name": record["zone_name"],
+        }
+        for record in canonical_records
+    ]
+    return rebound, validate_canonical_semantic_mapping(rebound, "POST_SURFACE")
+
+
 def validate_canonical_semantic_mapping(
     records: list[dict[str, Any]], stage: str
 ) -> dict[str, Any]:
@@ -1409,12 +1484,12 @@ try:
     result["assertions"]["surface_mesh"] = True
 
     post_surface_semantic_records, post_surface_semantic_summary = (
-        observe_semantic_zone_mapping(
-            utilities, boundary_blueprint, "POST_SURFACE"
+        rebind_post_surface_canonical_records(
+            session,
+            utilities,
+            canonical_semantic_records,
+            boundary_blueprint,
         )
-    )
-    post_surface_semantic_summary = validate_canonical_semantic_mapping(
-        post_surface_semantic_records, "POST_SURFACE"
     )
     semantic_zone_names = [
         record["zone_name"] for record in post_surface_semantic_records
