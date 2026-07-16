@@ -156,7 +156,7 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         '"boundary_zone_types_updated"',
         "workflow.create_regions()",
         "workflow.update_regions()",
-        '"MIXED_1_MAIN_11_VOID_UPDATE_REGIONS"',
+        '"MIXED_1_MAIN_12_VOID_UPDATE_REGIONS"',
         "workflow.create_volume_mesh_wtm",
         'volume_mesh.volume_fill = "poly-hexcore"',
         "volume_mesh.volume_fill_controls.hex_max_cell_length = VOLUME_MAX_SIZE_MM",
@@ -192,8 +192,8 @@ def test_mixed_region_route_is_explicit_and_ordered() -> None:
         '"workflow.update_regions.region_current_list"',
         '"workflow.update_regions.region_current_type_list"',
         '"workflow.update_regions.number_of_listed_regions"',
-        '"non_flow_region_count": 11',
-        '"route": "MIXED_1_MAIN_11_VOID_UPDATE_REGIONS"',
+        '"non_flow_region_count": 12',
+        '"route": "MIXED_1_MAIN_12_VOID_UPDATE_REGIONS"',
         '"voids_excluded": True',
     ):
         assert required in SOURCE
@@ -540,20 +540,27 @@ def test_post_surface_partition_region_and_local_sizing_negative_contracts() -> 
     assert len(set(zone_ids)) == 10
 
     region_names = ["fluid_continuous"] + [
-        f"dead{index}-membrane_bottom" for index in range(11)
+        f"dead{index}-membrane_bottom" for index in range(12)
     ]
-    region_types = ["fluid"] + ["dead"] * 11
+    region_types = ["fluid"] + ["dead"] * 12
     inventory = helpers["validate_mixed_region_state"](
-        region_names, region_types, 12
+        region_names, region_types, 13
     )
     assert inventory["main_flow_region_count"] == 1
-    assert inventory["non_flow_region_count"] == 11
+    assert inventory["non_flow_region_count"] == 12
     expect_runtime_error(
         helpers["validate_mixed_region_state"],
-        region_names + ["dead11-membrane_bottom"],
+        region_names[:-1],
+        region_types[:-1],
+        12,
+        marker="MIXED_REGION_STATE_NOT_EXACT_13",
+    )
+    expect_runtime_error(
+        helpers["validate_mixed_region_state"],
+        region_names + ["dead12-membrane_bottom"],
         region_types + ["dead"],
-        13,
-        marker="MIXED_REGION_STATE_NOT_EXACT_12",
+        14,
+        marker="MIXED_REGION_STATE_NOT_EXACT_13",
     )
 
     child_args = {
@@ -766,7 +773,7 @@ def test_mixed_region_inventory_is_observed_before_volume() -> None:
         "if len(cell_zone_ids) != 1:",
         "cell_zone_names = zone_names_one_way(utilities, cell_zone_ids)",
         "validate_mixed_region_state(",
-        '"MIXED_REGION_TYPES_NOT_1_FLUID_11_VOID"',
+        '"MIXED_REGION_TYPES_NOT_1_FLUID_12_VOID"',
         '"POST_VOLUME_MAIN_REGION_NAME_MISMATCH',
     ):
         assert required in SOURCE

@@ -25,7 +25,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "0c85b926c25d96f87d2208fc02d20a9ae0c9cbc0dbb1cc13f9bedb69a4b841ea"
+CONSUMER_SCRIPT_SHA256 = "e779323da1bd6d2801e1aeb5b38718317531d37806e554445455c3f3ccb135c8"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -365,7 +365,7 @@ def validate_region_inventory(inventory: Any) -> None:
             "workflow.update_regions.number_of_listed_regions",
         ]
         or not isinstance(regions, list)
-        or len(regions) != 12
+        or len(regions) != 13
         or not isinstance(approved, dict)
         or set(approved)
         != {
@@ -400,11 +400,11 @@ def validate_region_inventory(inventory: Any) -> None:
         names.append(region["name"])
         types.append(region["type"])
     if (
-        len(set(names)) != 12
+        len(set(names)) != 13
         or types.count("fluid") != 1
-        or sum(value in {"dead", "void"} for value in types) != 11
+        or sum(value in {"dead", "void"} for value in types) != 12
         or inventory.get("main_flow_region_count") != 1
-        or inventory.get("non_flow_region_count") != 11
+        or inventory.get("non_flow_region_count") != 12
         or inventory.get("main_flow_region_name") != names[types.index("fluid")]
         or "fluid_continuous" not in inventory["main_flow_region_name"].lower()
         or any(
@@ -843,16 +843,16 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         or evidence.get("actuator_gap_exclusion_evaluable") is not True
         or actuator_gap_excluded is not True
         or main_flow_count != 1
-        or non_flow_count != 11
+        or non_flow_count != 12
         or not isinstance(pre_inv, dict)
         or not isinstance(post_inv, dict)
         or not isinstance(region_trans, dict)
         or region_trans.get("main_flow_region_count") != 1
         or region_trans
         != {
-            "route": "MIXED_1_MAIN_11_VOID_UPDATE_REGIONS",
+            "route": "MIXED_1_MAIN_12_VOID_UPDATE_REGIONS",
             "main_flow_region_count": 1,
-            "non_flow_region_count": 11,
+            "non_flow_region_count": 12,
             "unchanged": True,
             "voids_excluded": True,
         }
@@ -882,9 +882,9 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         pre_inv != post_inv
         or region_trans
         != {
-            "route": "MIXED_1_MAIN_11_VOID_UPDATE_REGIONS",
+            "route": "MIXED_1_MAIN_12_VOID_UPDATE_REGIONS",
             "main_flow_region_count": 1,
-            "non_flow_region_count": 11,
+            "non_flow_region_count": 12,
             "unchanged": True,
             "voids_excluded": True,
         }

@@ -113,7 +113,7 @@ MIXED_REGION_SETUP_TYPE = (
     "The geometry consists of both fluid and solid regions and/or voids"
 )
 EXPECTED_MAIN_REGION_COUNT = 1
-EXPECTED_VOID_REGION_COUNT = 11
+EXPECTED_VOID_REGION_COUNT = 12
 BOUNDARY_ROLE_ORDER = (
     "INLET",
     "OUTLET",
@@ -795,18 +795,18 @@ def observe_parameter(parameter: Any) -> dict[str, Any]:
 def validate_mixed_region_state(
     names: Any, types: Any, listed_count: Any
 ) -> dict[str, Any]:
-    """Require one observed main-flow region and eleven excluded voids."""
+    """Require one observed main-flow region and twelve excluded voids."""
     if (
         not isinstance(names, list)
         or not isinstance(types, list)
-        or len(names) != 12
-        or len(types) != 12
-        or len(set(names)) != 12
+        or len(names) != 13
+        or len(types) != 13
+        or len(set(names)) != 13
         or type(listed_count) is not int
-        or listed_count != 12
+        or listed_count != 13
         or any(not isinstance(name, str) or not name for name in names)
     ):
-        raise RuntimeError("MIXED_REGION_STATE_NOT_EXACT_12")
+        raise RuntimeError("MIXED_REGION_STATE_NOT_EXACT_13")
     normalized_types = [str(value).strip().lower() for value in types]
     fluid_indices = [
         index for index, value in enumerate(normalized_types) if value == "fluid"
@@ -816,9 +816,9 @@ def validate_mixed_region_state(
         for index, value in enumerate(normalized_types)
         if value in {"dead", "void"}
     ]
-    if len(fluid_indices) != 1 or len(void_indices) != 11:
-        raise RuntimeError("MIXED_REGION_TYPES_NOT_1_FLUID_11_VOID")
-    if set(fluid_indices + void_indices) != set(range(12)):
+    if len(fluid_indices) != 1 or len(void_indices) != 12:
+        raise RuntimeError("MIXED_REGION_TYPES_NOT_1_FLUID_12_VOID")
+    if set(fluid_indices + void_indices) != set(range(13)):
         raise RuntimeError("MIXED_REGION_TYPE_UNEXPECTED")
     main_name = names[fluid_indices[0]]
     if "fluid_continuous" not in main_name.lower():
@@ -849,7 +849,7 @@ def validate_mixed_region_state(
         ],
         "regions": regions,
         "main_flow_region_count": 1,
-        "non_flow_region_count": 11,
+        "non_flow_region_count": 12,
         "main_flow_region_name": main_name,
         "approved_update_arguments": approved,
     }
@@ -1874,9 +1874,9 @@ try:
     if pre_update_region_inventory != post_update_region_inventory:
         raise RuntimeError("UPDATE_REGIONS_STATE_CHANGED_UNEXPECTEDLY")
     region_transition = {
-        "route": "MIXED_1_MAIN_11_VOID_UPDATE_REGIONS",
+        "route": "MIXED_1_MAIN_12_VOID_UPDATE_REGIONS",
         "main_flow_region_count": 1,
-        "non_flow_region_count": 11,
+        "non_flow_region_count": 12,
         "unchanged": True,
         "voids_excluded": True,
     }
@@ -2342,7 +2342,7 @@ try:
         and target_flow_volume_matches_predecessor
         and result["assertions"]["region_classification"]
         and region_transition["main_flow_region_count"] == 1
-        and region_transition["non_flow_region_count"] == 11
+        and region_transition["non_flow_region_count"] == 12
         and post_volume_role_resolution_ok
         and boundary_adjacency_ok
         and throat_face_adjacency_ok

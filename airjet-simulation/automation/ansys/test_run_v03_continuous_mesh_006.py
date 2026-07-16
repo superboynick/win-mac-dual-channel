@@ -60,8 +60,8 @@ def file_entry(name: str, index: int) -> dict:
 
 
 def valid_region_inventory() -> dict:
-    names = ["fluid_continuous"] + [f"dead{index}-membrane_bottom" for index in range(11)]
-    types = ["fluid"] + ["dead"] * 11
+    names = ["fluid_continuous"] + [f"dead{index}-membrane_bottom" for index in range(12)]
+    types = ["fluid"] + ["dead"] * 12
     return {
         "source_fields": [
             "workflow.update_regions.region_current_list",
@@ -79,7 +79,7 @@ def valid_region_inventory() -> dict:
             for name, region_type in zip(names, types)
         ],
         "main_flow_region_count": 1,
-        "non_flow_region_count": 11,
+        "non_flow_region_count": 12,
         "main_flow_region_name": "fluid_continuous",
         "approved_update_arguments": {
             "region_name_list": names,
@@ -253,14 +253,14 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "pre_update_region_inventory": valid_region_inventory(),
             "post_update_region_inventory": valid_region_inventory(),
             "region_transition": {
-                "route": "MIXED_1_MAIN_11_VOID_UPDATE_REGIONS",
+                "route": "MIXED_1_MAIN_12_VOID_UPDATE_REGIONS",
                 "main_flow_region_count": 1,
-                "non_flow_region_count": 11,
+                "non_flow_region_count": 12,
                 "unchanged": True,
                 "voids_excluded": True,
             },
             "main_flow_region_count": 1,
-            "non_flow_region_count": 11,
+            "non_flow_region_count": 12,
             "free_face_count": 0,
             "multi_face_count": 0,
             "min_orthogonal_quality": 0.12,
@@ -292,7 +292,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
 
 def test_consumer_report_accepts_exact_contract() -> None:
     assert runner.CONSUMER_SCRIPT_SHA256 == (
-        "0c85b926c25d96f87d2208fc02d20a9ae0c9cbc0dbb1cc13f9bedb69a4b841ea"
+        "e779323da1bd6d2801e1aeb5b38718317531d37806e554445455c3f3ccb135c8"
     )
     report, state, manifest = valid_report_state_manifest()
     assert runner.validate_consumer_report(manifest, state, HEAD) == report
@@ -547,7 +547,7 @@ def test_consumer_report_rejects_c5_gate_and_region_passthrough_drift() -> None:
                 "source_fields": [],
                 "regions": [],
                 "main_flow_region_count": 1,
-                "non_flow_region_count": 11,
+                "non_flow_region_count": 12,
                 "main_flow_region_name": "",
                 "approved_update_arguments": {},
                 "passthrough": True,
@@ -581,7 +581,7 @@ def test_consumer_report_rejects_c5_gate_and_region_passthrough_drift() -> None:
     rejects(
         lambda report, _state, _manifest: report["mesh_evidence"][
             "pre_update_region_inventory"
-        ].__setitem__("non_flow_region_count", 10),
+        ].__setitem__("non_flow_region_count", 11),
         "REGION_CLASSIFICATION_INVALID",
     )
     rejects(
