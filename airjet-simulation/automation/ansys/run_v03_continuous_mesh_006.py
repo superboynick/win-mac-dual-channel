@@ -25,7 +25,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "f01e8cc2f543aefa4add450a7cd0c1d32dfc307ff51ff2e792b858ca3fa42e78"
+CONSUMER_SCRIPT_SHA256 = "595f9fcf528e52c1d03a1c30bed6e3ff2dd0d229875c73dbc9d9d18bbc063572"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -42,6 +42,9 @@ CONSUMER_ASSERTIONS = {
     "surface_mesh",
     "flow_cell_zone_inventory",
     "volume_mesh",
+    "region_classification",
+    "throat_occupancy_full_972",
+    "actuator_gap_exclusion",
     "connected_fluid_cell_zone_graph",
     "target_flow_volume_matches_predecessor",
     "mesh_integrity",
@@ -182,11 +185,16 @@ def verify_predecessor_state(
     copied = state.get("predecessor_artifacts")
     if not isinstance(copied, list):
         raise RuntimeError("CONSUMER_PREDECESSOR_ARTIFACTS_NOT_LIST")
-    copied_map = {
-        item.get("relative_path"): item
-        for item in copied
-        if isinstance(item, dict)
-    }
+    if any(not isinstance(item, dict) for item in copied):
+        raise RuntimeError("CONSUMER_PREDECESSOR_ARTIFACTS_DUPLICATE_OR_INVALID")
+    copied_map: dict[str, dict[str, Any]] = {}
+    for item in copied:
+        relative = item.get("relative_path")
+        if not isinstance(relative, str) or relative in copied_map:
+            raise RuntimeError("CONSUMER_PREDECESSOR_ARTIFACTS_DUPLICATE_OR_INVALID")
+        copied_map[relative] = item
+    if len(copied) != len(PREDECESSOR_ARTIFACTS):
+        raise RuntimeError("CONSUMER_PREDECESSOR_ARTIFACT_SET_MISMATCH")
     if set(copied_map) != set(PREDECESSOR_ARTIFACTS):
         raise RuntimeError("CONSUMER_PREDECESSOR_ARTIFACT_SET_MISMATCH")
     frozen_map = manifest_map(stage1_manifest)
@@ -203,12 +211,149 @@ def verify_predecessor_state(
             )
 
 
+def validate_profile_contracts(contracts: Any) -> dict[str, str]:
+    required = {stage1.PROFILE_ID, CONSUMER_PROFILE_ID}
+    if (
+        not isinstance(contracts, dict)
+        or set(contracts) != required
+        or any(
+            not isinstance(contracts.get(profile_id), str)
+            or re.fullmatch(r"[0-9a-f]{64}", contracts[profile_id]) is None
+            for profile_id in required
+        )
+    ):
+        raise RuntimeError("BLOCKED_PROFILE_CONTRACT_HASHES_INVALID")
+    return contracts
+
+
+def validate_stage1_submit_identity(
+    state: Any, expected_head: str, expected_contract: str
+) -> None:
+    if (
+        not isinstance(state, dict)
+        or not isinstance(state.get("job_id"), str)
+        or not state["job_id"]
+        or state.get("case_id") != CASE_ID
+        or state.get("profile_id") != stage1.PROFILE_ID
+        or state.get("phase") != "RUNNING"
+        or state.get("engine") != "spaceclaim"
+        or state.get("git_head") != expected_head
+        or state.get("script_sha256") != stage1.PROFILE_SCRIPT_SHA256
+        or state.get("profile_contract_sha256") != expected_contract
+        or not isinstance(state.get("profile_dependency_manifest_sha256"), str)
+        or re.fullmatch(
+            r"[0-9a-f]{64}", state["profile_dependency_manifest_sha256"]
+        )
+        is None
+        or state.get("output_root_id") != "p1_cad_006"
+        or not isinstance(state.get("job_directory"), str)
+        or not state["job_directory"]
+        or state.get("license_arguments_added") is not False
+        or state.get("predecessor_job_id") is not None
+        or state.get("predecessor_artifacts") != []
+    ):
+        raise RuntimeError("STAGE1_SUBMIT_IDENTITY_MISMATCH")
+
+
+def validate_stage2_submit_identity(
+    state: Any,
+    expected_head: str,
+    expected_contract: str,
+    predecessor_job_id: str,
+) -> None:
+    if (
+        not isinstance(state, dict)
+        or not isinstance(state.get("job_id"), str)
+        or not state["job_id"]
+        or state.get("case_id") != CASE_ID
+        or state.get("profile_id") != CONSUMER_PROFILE_ID
+        or state.get("phase") != "RUNNING"
+        or state.get("engine") != "pyfluent"
+        or state.get("git_head") != expected_head
+        or state.get("script_sha256") != CONSUMER_SCRIPT_SHA256
+        or state.get("profile_contract_sha256") != expected_contract
+        or state.get("output_root_id") != "p1_cad_006"
+        or not isinstance(state.get("job_directory"), str)
+        or not state["job_directory"]
+        or state.get("license_arguments_added") is not False
+        or state.get("predecessor_job_id") != predecessor_job_id
+        or state.get("profile_dependency_manifest_sha256") is not None
+        or state.get("profile_dependency_artifacts") != []
+    ):
+        raise RuntimeError("STAGE2_SUBMIT_IDENTITY_MISMATCH")
+
+
 def positive_int(value: Any, upper: Optional[int] = None) -> bool:
     return (
         type(value) is int
         and value > 0
         and (upper is None or value <= upper)
     )
+
+
+def validate_region_inventory(inventory: Any) -> None:
+    expected = {
+        "source_fields",
+        "regions",
+        "main_flow_region_count",
+        "non_flow_region_count",
+        "main_flow_region_name",
+        "approved_update_arguments",
+    }
+    if not isinstance(inventory, dict) or set(inventory) != expected:
+        raise RuntimeError("CONSUMER_REGION_INVENTORY_SCHEMA_INVALID")
+    source_fields = inventory.get("source_fields")
+    regions = inventory.get("regions")
+    approved = inventory.get("approved_update_arguments")
+    if (
+        not isinstance(source_fields, list)
+        or not source_fields
+        or len(source_fields) != len(set(source_fields))
+        or any(not isinstance(item, str) or not item for item in source_fields)
+        or not set(source_fields).issubset(
+            {
+                "region_current_list/region_current_type_list",
+                "region_name_list/region_type_list",
+                "old_region_name_list/old_region_type_list",
+                "region_internals/region_internal_types",
+            }
+        )
+        or not isinstance(regions, list)
+        or len(regions) != 12
+        or not isinstance(approved, dict)
+    ):
+        raise RuntimeError("CONSUMER_REGION_INVENTORY_INVALID")
+    names: list[str] = []
+    types: list[str] = []
+    for region in regions:
+        if (
+            not isinstance(region, dict)
+            or set(region) != {"name", "type", "classification"}
+            or not isinstance(region.get("name"), str)
+            or not region["name"]
+            or region.get("type") not in {"fluid", "dead", "void", "excluded"}
+            or region.get("classification")
+            != ("MAIN_FLOW" if region.get("type") == "fluid" else "NON_FLOW")
+        ):
+            raise RuntimeError("CONSUMER_REGION_RECORD_INVALID")
+        names.append(region["name"])
+        types.append(region["type"])
+    if (
+        len(set(names)) != 12
+        or types.count("fluid") != 1
+        or sum(item in {"dead", "void", "excluded"} for item in types) != 11
+        or inventory.get("main_flow_region_count") != 1
+        or inventory.get("non_flow_region_count") != 11
+        or inventory.get("main_flow_region_name") != names[types.index("fluid")]
+        or approved
+        != {
+            "old_region_name_list": names,
+            "old_region_type_list": types,
+            "region_name_list": names,
+            "region_type_list": types,
+        }
+    ):
+        raise RuntimeError("CONSUMER_REGION_CLASSIFICATION_INVALID")
 
 
 def validate_connected_mesh_evidence(evidence: Any) -> None:
@@ -468,16 +613,19 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         or evidence.get("two_fluid_non_interior_count") != 0
         or evidence.get("throat_query_count") != 972
         or evidence.get("anchor_occupancy_ok") is not True
+        or evidence.get("anchor_zone_ids") != zone_ids
         or query_scope != "FULL_972"
         or executed_queries != 972
         or hit_count != 972
         or miss_count != 0
         or raw_none_count != 0
+        or evidence.get("throat_occupancy_first_miss_indices") != []
         or unique_owner is not True
         or all_in_flow is not True
         or actuator_gap_probe != 12
         or actuator_gap_hit != 0
         or actuator_gap_raw_none != 12
+        or evidence.get("actuator_gap_exclusion_evaluable") is not True
         or actuator_gap_excluded is not True
         or main_flow_count != 1
         or non_flow_count != 11
@@ -496,7 +644,8 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         or any(key not in zone_keys for key in ownership)
         or any(not positive_int(value) for value in ownership.values())
         or sum(ownership.values()) != hit_count
-        or not positive_int(evidence.get("throat_zone_count"), 972)
+        or ownership != {str(zone_ids[0]): 972}
+        or evidence.get("throat_zone_count") != 972
         or evidence.get("free_face_count") != 0
         or evidence.get("multi_face_count") != 0
         or isinstance(evidence.get("min_orthogonal_quality"), bool)
@@ -505,6 +654,20 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         or not 0.0 < float(evidence["min_orthogonal_quality"]) <= 1.0
     ):
         raise RuntimeError("CONSUMER_MESH_EVIDENCE_TOPOLOGY_INVALID")
+    validate_region_inventory(pre_inv)
+    validate_region_inventory(post_inv)
+    if (
+        pre_inv != post_inv
+        or region_trans
+        != {
+            "main_flow_region_count": 1,
+            "non_flow_region_count": 11,
+            "region_names_types_preserved": True,
+            "void_to_fluid_conversion": False,
+            "region_merge_or_omission": False,
+        }
+    ):
+        raise RuntimeError("CONSUMER_REGION_TRANSITION_INVALID")
 
 
 def validate_consumer_report(
@@ -770,18 +933,9 @@ async def run_submitted_stages(
     stage1_complete = False
     try:
         persist_result(result)
-        if (
-            not isinstance(first, dict)
-            or first.get("phase") != "RUNNING"
-            or first.get("engine") != "spaceclaim"
-            or first.get("git_head") != head
-            or first.get("script_sha256") != stage1.PROFILE_SCRIPT_SHA256
-            or first.get("profile_contract_sha256")
-            != contracts.get(stage1.PROFILE_ID)
-            or first.get("license_arguments_added") is not False
-            or first.get("predecessor_job_id") is not None
-        ):
-            raise RuntimeError("STAGE1_SUBMIT_IDENTITY_MISMATCH")
+        validate_stage1_submit_identity(
+            first, head, contracts[stage1.PROFILE_ID]
+        )
         stage1.validate_dependency_artifacts(
             first.get("profile_dependency_artifacts")
         )
@@ -852,20 +1006,12 @@ async def run_submitted_stages(
     stage2_complete = False
     try:
         persist_result(result)
-        if (
-            not isinstance(second, dict)
-            or second.get("phase") != "RUNNING"
-            or second.get("engine") != "pyfluent"
-            or second.get("git_head") != head
-            or second.get("script_sha256") != CONSUMER_SCRIPT_SHA256
-            or second.get("profile_contract_sha256")
-            != contracts.get(CONSUMER_PROFILE_ID)
-            or second.get("license_arguments_added") is not False
-            or second.get("predecessor_job_id") != first.get("job_id")
-            or second.get("profile_dependency_manifest_sha256") is not None
-            or second.get("profile_dependency_artifacts") != []
-        ):
-            raise RuntimeError("STAGE2_SUBMIT_IDENTITY_MISMATCH")
+        validate_stage2_submit_identity(
+            second,
+            head,
+            contracts[CONSUMER_PROFILE_ID],
+            first["job_id"],
+        )
         verify_predecessor_state(second, first_manifest)
         second = await wait_for_job(
             session, second, 7200, result["stage2"], result
@@ -958,7 +1104,9 @@ async def run_suite() -> int:
                         )
                     ):
                         raise RuntimeError("BLOCKED_INVENTORY_IDENTITY_OR_PROFILES")
-                    contracts = inventory.get("profile_contract_sha256") or {}
+                    contracts = validate_profile_contracts(
+                        inventory.get("profile_contract_sha256")
+                    )
 
                     await run_submitted_stages(
                         session, result, head, contracts

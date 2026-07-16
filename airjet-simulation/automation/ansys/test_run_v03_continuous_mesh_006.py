@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import asyncio
+import ast
 import copy
 import json
 import math
@@ -56,6 +57,31 @@ SCRIPT_HASH = runner.CONSUMER_SCRIPT_SHA256
 
 def file_entry(name: str, index: int) -> dict:
     return {"relative_path": name, "size": 100 + index, "sha256": f"{index + 1:064x}"}
+
+
+def valid_region_inventory() -> dict:
+    names = ["main-flow"] + [f"actuator-gap-{index:02d}" for index in range(11)]
+    types = ["fluid"] + ["void"] * 11
+    return {
+        "source_fields": ["region_current_list/region_current_type_list"],
+        "regions": [
+            {
+                "name": name,
+                "type": types[index],
+                "classification": "MAIN_FLOW" if index == 0 else "NON_FLOW",
+            }
+            for index, name in enumerate(names)
+        ],
+        "main_flow_region_count": 1,
+        "non_flow_region_count": 11,
+        "main_flow_region_name": "main-flow",
+        "approved_update_arguments": {
+            "old_region_name_list": names,
+            "old_region_type_list": types,
+            "region_name_list": names,
+            "region_type_list": types,
+        },
+    }
 
 
 def valid_report_state_manifest() -> tuple[dict, dict, dict]:
@@ -173,9 +199,15 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "actuator_gap_raw_none_count": 12,
             "actuator_gap_exclusion_evaluable": True,
             "actuator_gap_zones_excluded": True,
-            "pre_update_region_inventory": {"dummy": "pre"},
-            "post_update_region_inventory": {"dummy": "post"},
-            "region_transition": {"main_flow_region_count": 1, "non_flow_region_count": 11},
+            "pre_update_region_inventory": valid_region_inventory(),
+            "post_update_region_inventory": valid_region_inventory(),
+            "region_transition": {
+                "main_flow_region_count": 1,
+                "non_flow_region_count": 11,
+                "region_names_types_preserved": True,
+                "void_to_fluid_conversion": False,
+                "region_merge_or_omission": False,
+            },
             "main_flow_region_count": 1,
             "non_flow_region_count": 11,
             "free_face_count": 0,
@@ -209,10 +241,73 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
 
 def test_consumer_report_accepts_exact_contract() -> None:
     assert runner.CONSUMER_SCRIPT_SHA256 == (
-        "f01e8cc2f543aefa4add450a7cd0c1d32dfc307ff51ff2e792b858ca3fa42e78"
+        "595f9fcf528e52c1d03a1c30bed6e3ff2dd0d229875c73dbc9d9d18bbc063572"
     )
     report, state, manifest = valid_report_state_manifest()
     assert runner.validate_consumer_report(manifest, state, HEAD) == report
+
+
+def test_consumer_assertion_contract_includes_c5_hard_gates() -> None:
+    expected = {
+        "predecessor_identity",
+        "predecessor_immutable",
+        "exact_step_byte_staging",
+        "fluent_v261_meshing_health",
+        "watertight_step_import",
+        "boundary_roles_reconstructed",
+        "throat_roles_reconstructed_972",
+        "throat_local_sizing_contract",
+        "surface_mesh",
+        "flow_cell_zone_inventory",
+        "volume_mesh",
+        "region_classification",
+        "throat_occupancy_full_972",
+        "actuator_gap_exclusion",
+        "connected_fluid_cell_zone_graph",
+        "target_flow_volume_matches_predecessor",
+        "mesh_integrity",
+        "student_limit_guard",
+        "mesh_write_hash",
+        "claim_boundaries",
+    }
+    assert runner.CONSUMER_ASSERTIONS == expected
+    consumer = HERE / "approved" / "006" / "v03_pyfluent_watertight_mesh_consumer.py"
+    tree = ast.parse(consumer.read_text(encoding="utf-8"), filename=str(consumer))
+    assignments = [
+        ast.literal_eval(node.value)
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "ASSERTION_NAMES" for target in node.targets)
+    ]
+    assert len(assignments) == 1
+    assert set(assignments[0]) == expected
+
+
+def test_consumer_mesh_evidence_literal_keys_match_runner_fixture() -> None:
+    consumer = HERE / "approved" / "006" / "v03_pyfluent_watertight_mesh_consumer.py"
+    tree = ast.parse(consumer.read_text(encoding="utf-8"), filename=str(consumer))
+    observed: list[set[str]] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Dict):
+            continue
+        for target in node.targets:
+            if (
+                isinstance(target, ast.Subscript)
+                and isinstance(target.value, ast.Name)
+                and target.value.id == "result"
+                and isinstance(target.slice, ast.Constant)
+                and target.slice.value == "mesh_evidence"
+            ):
+                observed.append(
+                    {
+                        key.value
+                        for key in node.value.keys
+                        if isinstance(key, ast.Constant) and isinstance(key.value, str)
+                    }
+                )
+    assert len(observed) == 1
+    report, _state, _manifest = valid_report_state_manifest()
+    assert observed[0] == set(report["mesh_evidence"])
 
 
 def rejects(mutator, expected: str) -> None:
@@ -269,6 +364,54 @@ def test_consumer_report_rejects_wrong_target_or_fake_throat_graph() -> None:
     )
 
 
+def test_consumer_report_rejects_c5_gate_and_region_passthrough_drift() -> None:
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
+            "throat_occupancy_executed_query_count", 12
+        ),
+        "TOPOLOGY_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
+            "anchor_zone_ids", []
+        ),
+        "TOPOLOGY_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
+            "actuator_gap_exclusion_evaluable", False
+        ),
+        "TOPOLOGY_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
+            "throat_zone_count", 1
+        ),
+        "TOPOLOGY_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
+            "pre_update_region_inventory",
+            {
+                "source_fields": [],
+                "regions": [],
+                "main_flow_region_count": 1,
+                "non_flow_region_count": 11,
+                "main_flow_region_name": "",
+                "approved_update_arguments": {},
+                "passthrough": True,
+            },
+        ),
+        "REGION_INVENTORY_SCHEMA_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"][
+            "pre_update_region_inventory"
+        ].__setitem__("source_fields", ["untrusted_names/untrusted_types"]),
+        "REGION_INVENTORY_INVALID",
+    )
+
+
 def test_consumer_report_rejects_missing_or_hash_drifted_artifact() -> None:
     rejects(
         lambda report, _state, _manifest: report["artifacts"].pop(
@@ -314,6 +457,16 @@ def test_predecessor_state_rejects_missing_and_hash_drift() -> None:
         assert "FROZEN_MISMATCH" in str(exc)
     else:
         raise AssertionError("drifted predecessor accepted")
+    state, manifest = predecessor_fixture()
+    state["predecessor_artifacts"].append(
+        copy.deepcopy(state["predecessor_artifacts"][0])
+    )
+    try:
+        runner.verify_predecessor_state(state, manifest)
+    except RuntimeError as exc:
+        assert "PREDECESSOR_ARTIFACTS" in str(exc)
+    else:
+        raise AssertionError("duplicate predecessor accepted")
 
 
 def running_state(job_id: str, engine: str, profile_id: str, script_sha: str) -> dict:
@@ -324,7 +477,9 @@ def running_state(job_id: str, engine: str, profile_id: str, script_sha: str) ->
         "engine": engine,
         "script_sha256": script_sha,
         "profile_contract_sha256": PROFILE_CONTRACT,
-        "profile_dependency_manifest_sha256": None,
+        "profile_dependency_manifest_sha256": (
+            "d" * 64 if engine == "spaceclaim" else None
+        ),
         "profile_dependency_artifacts": [],
         "git_head": HEAD,
         "output_root_id": "p1_cad_006",
@@ -334,6 +489,69 @@ def running_state(job_id: str, engine: str, profile_id: str, script_sha: str) ->
         "predecessor_artifacts": [],
         "phase": "RUNNING",
     }
+
+
+def test_submit_identity_and_contract_hashes_fail_closed() -> None:
+    contracts = {
+        runner.stage1.PROFILE_ID: PROFILE_CONTRACT,
+        runner.CONSUMER_PROFILE_ID: "c" * 64,
+    }
+    assert runner.validate_profile_contracts(contracts) == contracts
+    for invalid in ({}, {runner.stage1.PROFILE_ID: None}, dict(contracts, extra="d" * 64)):
+        try:
+            runner.validate_profile_contracts(invalid)
+        except RuntimeError as exc:
+            assert "PROFILE_CONTRACT_HASHES_INVALID" in str(exc)
+        else:
+            raise AssertionError("invalid profile contract hashes accepted")
+
+    first = running_state(
+        "stage1-job", "spaceclaim", runner.stage1.PROFILE_ID,
+        runner.stage1.PROFILE_SCRIPT_SHA256,
+    )
+    runner.validate_stage1_submit_identity(first, HEAD, PROFILE_CONTRACT)
+    for name, value in (
+        ("job_id", ""),
+        ("case_id", "wrong-case"),
+        ("profile_id", "wrong-profile"),
+        ("output_root_id", "wrong-root"),
+        ("job_directory", ""),
+        ("profile_dependency_manifest_sha256", None),
+    ):
+        changed = copy.deepcopy(first)
+        changed[name] = value
+        try:
+            runner.validate_stage1_submit_identity(changed, HEAD, PROFILE_CONTRACT)
+        except RuntimeError as exc:
+            assert "STAGE1_SUBMIT_IDENTITY_MISMATCH" in str(exc)
+        else:
+            raise AssertionError(f"stage1 identity drift accepted: {name}")
+
+    second = running_state(
+        "stage2-job", "pyfluent", runner.CONSUMER_PROFILE_ID,
+        runner.CONSUMER_SCRIPT_SHA256,
+    )
+    second["profile_contract_sha256"] = "c" * 64
+    second["predecessor_job_id"] = "stage1-job"
+    runner.validate_stage2_submit_identity(second, HEAD, "c" * 64, "stage1-job")
+    for name, value in (
+        ("job_id", ""),
+        ("case_id", "wrong-case"),
+        ("profile_id", "wrong-profile"),
+        ("output_root_id", "wrong-root"),
+        ("job_directory", ""),
+        ("predecessor_job_id", "wrong-job"),
+    ):
+        changed = copy.deepcopy(second)
+        changed[name] = value
+        try:
+            runner.validate_stage2_submit_identity(
+                changed, HEAD, "c" * 64, "stage1-job"
+            )
+        except RuntimeError as exc:
+            assert "STAGE2_SUBMIT_IDENTITY_MISMATCH" in str(exc)
+        else:
+            raise AssertionError(f"stage2 identity drift accepted: {name}")
 
 
 def test_preflight_block_has_zero_stdio_submit_and_child_calls() -> None:
