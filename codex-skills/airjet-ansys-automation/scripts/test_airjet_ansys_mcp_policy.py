@@ -17,7 +17,19 @@ from unittest import mock
 
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
-REPO = Path(r"C:\Users\admin\win-mac-dual-channel") if sys.platform == "win32" else SKILL_ROOT.parents[1]
+
+
+def resolve_repo_root() -> Path:
+    for candidate in (SKILL_ROOT.parents[1], Path.cwd().resolve()):
+        if (
+            (candidate / "airjet-simulation" / "automation" / "ansys" / "profiles.json").is_file()
+            and (candidate / "codex-skills" / "airjet-ansys-automation").is_dir()
+        ):
+            return candidate
+    raise RuntimeError("AIRJET_REPO_ROOT_NOT_VALIDATED")
+
+
+REPO = resolve_repo_root()
 SERVER = SKILL_ROOT / "scripts" / "airjet_ansys_mcp.py"
 POLICY = REPO / "airjet-simulation" / "automation" / "ansys" / "profiles.json"
 APPROVED = REPO / "airjet-simulation" / "automation" / "ansys" / "approved"
@@ -1984,6 +1996,7 @@ for invariant in (
     '"actuator_gap_probe_count"',
     '"actuator_gap_hit_count"',
     '"actuator_gap_raw_none_count"',
+    '"actuator_gap_exclusion_evaluable"',
     '"actuator_gap_zones_excluded"',
     '"pre_update_region_inventory"',
     '"post_update_region_inventory"',
@@ -2011,6 +2024,8 @@ for invariant in (
     '"actuator_gap_hit_count": 0',
     '"actuator_gap_raw_none_count": ACTUATOR_GAP_PROBE_COUNT',
     '"actuator_gap_zones_excluded": True',
+    '"actuator_gap_exclusion_evaluable": actuator_gap_exclusion_evaluable',
+    '"throat_occupancy_first_miss_indices"',
     'REGION_INVENTORY_FIELD_PAIRS = (',
     '("region_current_list", "region_current_type_list")',
     "pre_update_region_inventory = parse_region_inventory(",
@@ -2021,6 +2036,15 @@ for invariant in (
 ):
     if invariant not in v03_mesh_source:
         fail("V03 C5 consumer lacks computed occupancy/region invariant: " + invariant)
+if "passthrough" in v03_mesh_source or "passthrough" in v03_mesh_runner_source:
+    fail("V03 C5 runtime reintroduced forbidden region passthrough")
+for invariant in (
+    'raise RuntimeError(f"{label}_REGION_INVENTORY_UNRESOLVED")',
+    'approved_update_arguments = pre_update_region_inventory[',
+    'region_transition = validate_region_transition(',
+):
+    if invariant not in v03_mesh_source:
+        fail("V03 C5 consumer lacks fail-closed region transition: " + invariant)
 
 v03_mesh_consumer_test_source = V03_MESH_CONSUMER_TEST.read_text(
     encoding="utf-8"
@@ -2085,6 +2109,9 @@ for guard_name in (
     "test_stage1_post_submit_failure_persists_partial_and_cancels",
     "test_stage2_post_submit_failure_preserves_stage1_and_cancels",
     "test_reached_terminal_malformed_manifest_is_fail_not_not_run",
+    "test_consumer_assertion_contract_includes_c5_hard_gates",
+    "test_consumer_mesh_evidence_literal_keys_match_runner_fixture",
+    "test_submit_identity_and_contract_hashes_fail_closed",
 ):
     if guard_name not in runner_guard_names:
         fail("V03 C5 runner cancellation regression guard missing: " + guard_name)
@@ -2099,6 +2126,10 @@ for invariant in (
     "finally:",
     "await cancel_submitted_job(session, result[\"stage1\"])",
     "await cancel_submitted_job(session, result[\"stage2\"])",
+    "validate_profile_contracts(",
+    "validate_stage1_submit_identity(",
+    "validate_stage2_submit_identity(",
+    "CONSUMER_PREDECESSOR_ARTIFACTS_DUPLICATE_OR_INVALID",
 ):
     if invariant not in v03_mesh_runner_source:
         fail("V03 C5 runner lacks partial/cancel invariant: " + invariant)
