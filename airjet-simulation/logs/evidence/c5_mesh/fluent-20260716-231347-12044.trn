@@ -10,3 +10,27 @@ Current Directory: "C:\Users\admin\win-mac-dual-channel\airjet-simulation\logs\e
 
 Build Time: Feb  2 2026 16:32:00 EST  Build Id: 10262  
  
+Connected License Server List:	<Non FlexNet Publisher License Server (FNPLS)>
+
+     --------------------------------------------------------------
+     This is a student version of ANSYS FLUENT. Usage of this product
+     license is limited to the terms and conditions specified in your ANSYS
+     license form, additional terms section.
+     --------------------------------------------------------------
+Host spawning Node 0 on machine "LAPTOP-LCCLM2HI" (win64).
+Host waiting for connection from Node 0 at 127.0.0.1:4613 
+
+Node 0 connecting to the Host ... connection established.
+
+-------------------------------------------------------------------------------------
+ID    Hostname         Core  O.S.         PID    CPU Model Name                     
+-------------------------------------------------------------------------------------
+n0    LAPTOP-LCCLM2HI  1/24  Windows-x64  28580  Intel(R) Core(TM) Ultra 9 275HX    
+host  LAPTOP-LCCLM2HI        Windows-x64  41284  Intel(R) Core(TM) Ultra 9 275HX    
+
+MPI Option Selected: intel
+-------------------------------------------------------------------------------------
+
+Cleanup script file is C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\logs\\evidence\\c5_mesh\\cleanup-fluent-LAPTOP-LCCLM2HI-41284.bat
+
+LAPTOP-LCCLM2HI is already loaded (29.4812).                       Process affinity not being set.
