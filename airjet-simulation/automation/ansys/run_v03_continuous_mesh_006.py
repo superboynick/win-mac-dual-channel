@@ -25,7 +25,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "cca6ad65262bd97ceb1ce4f4c0b29543d9101944d1039d751914b659c82b2c3a"
+CONSUMER_SCRIPT_SHA256 = "bb0725c83ee94ed5ba1a0a2e81c27f80afd8f189cf707d40f516f8c6dbf19d2d"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -240,18 +240,32 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         "external_baffle_count",
         "unresolved_all_face_adjacency_count",
         "two_fluid_non_interior_count",
+        "throat_occupancy_query_scope",
+        "throat_occupancy_executed_query_count",
         "throat_occupancy_hit_count",
         "throat_occupancy_miss_count",
         "throat_occupancy_raw_none_count",
+        "throat_occupancy_first_miss_indices",
         "throat_occupancy_zone_counts",
+        "throat_occupancy_unique_owner_per_query",
+        "throat_occupancy_all_hits_in_accepted_flow_zone",
         "throat_query_count",
-        "throat_occupancy_executed_query_count",
         "throat_zone_count",
         "expected_step_flow_volume_mm3",
         "meshed_cell_volume_mm3",
         "target_flow_volume_delta_mm3",
         "target_flow_volume_tolerance_mm3",
         "target_flow_volume_matches_predecessor",
+        "actuator_gap_probe_count",
+        "actuator_gap_hit_count",
+        "actuator_gap_raw_none_count",
+        "actuator_gap_exclusion_evaluable",
+        "actuator_gap_zones_excluded",
+        "pre_update_region_inventory",
+        "post_update_region_inventory",
+        "region_transition",
+        "main_flow_region_count",
+        "non_flow_region_count",
         "free_face_count",
         "multi_face_count",
         "min_orthogonal_quality",
@@ -433,6 +447,18 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
     hit_count = evidence.get("throat_occupancy_hit_count")
     miss_count = evidence.get("throat_occupancy_miss_count")
     raw_none_count = evidence.get("throat_occupancy_raw_none_count")
+    query_scope = evidence.get("throat_occupancy_query_scope")
+    unique_owner = evidence.get("throat_occupancy_unique_owner_per_query")
+    all_in_flow = evidence.get("throat_occupancy_all_hits_in_accepted_flow_zone")
+    actuator_gap_probe = evidence.get("actuator_gap_probe_count")
+    actuator_gap_hit = evidence.get("actuator_gap_hit_count")
+    actuator_gap_raw_none = evidence.get("actuator_gap_raw_none_count")
+    actuator_gap_excluded = evidence.get("actuator_gap_zones_excluded")
+    main_flow_count = evidence.get("main_flow_region_count")
+    non_flow_count = evidence.get("non_flow_region_count")
+    pre_inv = evidence.get("pre_update_region_inventory")
+    post_inv = evidence.get("post_update_region_inventory")
+    region_trans = evidence.get("region_transition")
     if (
         evidence.get("baffle_zone_count") != 0
         or evidence.get("embedded_baffle_zone_count") != 0
@@ -441,7 +467,25 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         or evidence.get("unresolved_all_face_adjacency_count") != 0
         or evidence.get("two_fluid_non_interior_count") != 0
         or evidence.get("throat_query_count") != 972
-        or executed_queries not in {12, 972}
+        or evidence.get("anchor_occupancy_ok") is not True
+        or query_scope != "FULL_972"
+        or executed_queries != 972
+        or hit_count != 972
+        or miss_count != 0
+        or raw_none_count != 0
+        or unique_owner is not True
+        or all_in_flow is not True
+        or actuator_gap_probe != 12
+        or actuator_gap_hit != 0
+        or actuator_gap_raw_none != 12
+        or actuator_gap_excluded is not True
+        or main_flow_count != 1
+        or non_flow_count != 11
+        or not isinstance(pre_inv, dict)
+        or not isinstance(post_inv, dict)
+        or not isinstance(region_trans, dict)
+        or region_trans.get("main_flow_region_count") != 1
+        or region_trans.get("non_flow_region_count") != 11
         or type(hit_count) is not int
         or type(miss_count) is not int
         or type(raw_none_count) is not int

@@ -144,26 +144,40 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
                 for index in range(972)
             },
             "throat_face_adjacency_ok": True,
-            "anchor_zone_ids": [],
-            "anchor_occupancy_ok": False,
+            "anchor_zone_ids": [1],
+            "anchor_occupancy_ok": True,
             "baffle_zone_count": 0,
             "embedded_baffle_zone_count": 0,
             "external_baffle_resolved": True,
             "external_baffle_count": 0,
             "unresolved_all_face_adjacency_count": 0,
             "two_fluid_non_interior_count": 0,
-            "throat_occupancy_hit_count": 0,
-            "throat_occupancy_miss_count": 12,
-            "throat_occupancy_raw_none_count": 12,
-            "throat_occupancy_zone_counts": {},
+            "throat_occupancy_hit_count": 972,
+            "throat_occupancy_miss_count": 0,
+            "throat_occupancy_raw_none_count": 0,
+            "throat_occupancy_zone_counts": {"1": 972},
             "throat_query_count": 972,
-            "throat_occupancy_executed_query_count": 12,
+            "throat_occupancy_executed_query_count": 972,
             "throat_zone_count": 972,
             "expected_step_flow_volume_mm3": 451.77324837529704,
             "meshed_cell_volume_mm3": 451.8,
             "target_flow_volume_delta_mm3": 0.02675162470294712,
             "target_flow_volume_tolerance_mm3": 1.0,
             "target_flow_volume_matches_predecessor": True,
+            "throat_occupancy_query_scope": "FULL_972",
+            "throat_occupancy_first_miss_indices": [],
+            "throat_occupancy_unique_owner_per_query": True,
+            "throat_occupancy_all_hits_in_accepted_flow_zone": True,
+            "actuator_gap_probe_count": 12,
+            "actuator_gap_hit_count": 0,
+            "actuator_gap_raw_none_count": 12,
+            "actuator_gap_exclusion_evaluable": True,
+            "actuator_gap_zones_excluded": True,
+            "pre_update_region_inventory": {"dummy": "pre"},
+            "post_update_region_inventory": {"dummy": "post"},
+            "region_transition": {"main_flow_region_count": 1, "non_flow_region_count": 11},
+            "main_flow_region_count": 1,
+            "non_flow_region_count": 11,
             "free_face_count": 0,
             "multi_face_count": 0,
             "min_orthogonal_quality": 0.12,
@@ -195,7 +209,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
 
 def test_consumer_report_accepts_exact_contract() -> None:
     assert runner.CONSUMER_SCRIPT_SHA256 == (
-        "cca6ad65262bd97ceb1ce4f4c0b29543d9101944d1039d751914b659c82b2c3a"
+        "bb0725c83ee94ed5ba1a0a2e81c27f80afd8f189cf707d40f516f8c6dbf19d2d"
     )
     report, state, manifest = valid_report_state_manifest()
     assert runner.validate_consumer_report(manifest, state, HEAD) == report
