@@ -312,7 +312,20 @@ print(f"SAVED: {mesh_path.stat().st_size} bytes")
 - 1 fluid zone + 11 voids：几何拓扑正确
 - min OQ 0.49：Student 许可下可生成可用网格
 
-### ❌ 几何合同违反
+### ❌ 0.15mm overlap 合同被证伪
+
+**此前合同声明已被推翻：** `0.15mm` perimeter Boolean overlap
+被假设为完全包含在冻结流体几何内、对 union volume 零影响
+(`perimeter_boolean_overlap_union_volume_delta_mm3=0.0`)。实测
+证据 (Windows Stage 1 `d837dbb`, commit `e8a98e0`) 明确证伪：
+
+- native 体积 delta = +0.102 mm³（容差 0.08 → FAIL）
+- STEP 体积 delta = +0.096 mm³（容差 0.03 → FAIL）
+- X 包络从 ±10.875 → ±10.9 mm（超差 +0.025 mm）
+
+**结论：此方案不能作为正式前置。** 后续 C5 实跑必须从合规
+Stage 1 producer（体积/包络全门通过）开始。
+
 
 | 参数 | 冻结值 | 0.15mm 实际 | 超差 |
 |---|---|---|---|
