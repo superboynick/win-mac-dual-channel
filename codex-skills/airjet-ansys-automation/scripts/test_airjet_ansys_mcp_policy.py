@@ -2033,11 +2033,26 @@ for invariant in (
     "region_transition = validate_region_transition(",
     '"main_flow_region_count": 1',
     '"non_flow_region_count": 11',
+    'actuator_gap_exclusion_evaluable = "error" not in actuator_gap_exclusion',
+    'actuator_gap_exclusion.get("actuator_gap_zones_excluded") is True',
+    'throat_occupancy_evaluable = "error" not in occupancy_contract',
+    'occupancy_contract.get("executed_queries") == THROAT_COUNT',
+    'occupancy_contract.get("hit_count") == THROAT_COUNT',
 ):
     if invariant not in v03_mesh_source:
         fail("V03 C5 consumer lacks computed occupancy/region invariant: " + invariant)
 if "passthrough" in v03_mesh_source or "passthrough" in v03_mesh_runner_source:
     fail("V03 C5 runtime reintroduced forbidden region passthrough")
+for forbidden in (
+    "actuator_gap_exclusion_evaluable = True",
+    "actuator_gap_zones_excluded = True",
+    'and result["assertions"]["actuator_gap_exclusion"]',
+    'and actuator_gap_exclusion["actuator_gap_zones_excluded"]',
+    'result["assertions"]["throat_occupancy_full_972"] = True',
+    'and result["assertions"]["throat_occupancy_full_972"]',
+):
+    if forbidden in v03_mesh_source:
+        fail("V03 C5 consumer contains false actuator-gap evidence: " + forbidden)
 for invariant in (
     'raise RuntimeError(f"{label}_REGION_INVENTORY_UNRESOLVED")',
     'approved_update_arguments = pre_update_region_inventory[',
@@ -2061,6 +2076,8 @@ consumer_guard_names = {
 for guard_name in (
     "test_full_972_occupancy_pure_contract",
     "test_actuator_gap_exclusion_pure_contract",
+    "test_actuator_gap_failure_stays_truthful_and_does_not_block_mesh_write",
+    "test_throat_occupancy_failure_stays_truthful_and_does_not_block_mesh_write",
     "test_region_inventory_and_transition_pure_contract",
 ):
     if guard_name not in consumer_guard_names:
@@ -2130,9 +2147,24 @@ for invariant in (
     "validate_stage1_submit_identity(",
     "validate_stage2_submit_identity(",
     "CONSUMER_PREDECESSOR_ARTIFACTS_DUPLICATE_OR_INVALID",
+    "BLOCKED_PROFILE_CONTRACT_HASHES_INVALID",
+    'if set(profile) != set(expected):',
+    'not 0.0 < float(evidence["min_orthogonal_quality"]) <= 1.0',
 ):
     if invariant not in v03_mesh_runner_source:
         fail("V03 C5 runner lacks partial/cancel invariant: " + invariant)
+if 'contracts[profile_id] == "0" * 64' not in v03_mesh_runner_source:
+    fail("V03 C5 runner does not reject zero profile-contract hashes")
+for forbidden in (
+    'result[pid] = "0" * 64',
+    'stage1.PROFILE_ID: "0" * 64',
+    "PROFILE_COUNT_WARNING",
+    "PROFILE_WARNING",
+    "BLOB_HASH_WARNING",
+    "INVENTORY_WARNING",
+):
+    if forbidden in v03_mesh_runner_source:
+        fail("V03 C5 runner contains forbidden profile-contract zero-hash fallback")
 for invariant in (
     'counts == {"stdio": 0, "submit": 0, "child": 0}',
     '["submit_job", "cancel_job"]',
@@ -2141,6 +2173,7 @@ for invariant in (
     'saved["stage2"]["capability_status"] == "FAIL"',
     'saved["stage2"]["capability_status"] == "NOT_RUN"',
     '["cancellation"]["confirmed_terminal"] is True',
+    "for invalid_quality in (-1.0, 0.0, 1.01):",
 ):
     if invariant not in v03_mesh_runner_test_source:
         fail("V03 C5 runner spy coverage missing: " + invariant)

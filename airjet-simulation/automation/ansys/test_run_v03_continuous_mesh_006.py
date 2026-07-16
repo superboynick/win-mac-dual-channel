@@ -212,7 +212,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "non_flow_region_count": 11,
             "free_face_count": 0,
             "multi_face_count": 0,
-            "min_orthogonal_quality": -1.0,
+            "min_orthogonal_quality": 0.12,
             "mesh_file": artifacts["v03_continuous_volume_mesh.msh.h5"],
         },
         "artifacts": artifacts,
@@ -241,7 +241,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
 
 def test_consumer_report_accepts_exact_contract() -> None:
     assert runner.CONSUMER_SCRIPT_SHA256 == (
-        "52350c6adbc04accd6dbbd54a3bccf99988a22b1a80d8d237df1b38098b6faf8"
+        "bdce5382245321722beb0d90e7c2a0dfc4e4338ee6a32bdb87f8dfee75b942c3"
     )
     report, state, manifest = valid_report_state_manifest()
     assert runner.validate_consumer_report(manifest, state, HEAD) == report
@@ -341,6 +341,13 @@ def test_consumer_report_rejects_student_and_quality_overclaim() -> None:
         ),
         "MESH_EVIDENCE",
     )
+    for invalid_quality in (-1.0, 0.0, 1.01):
+        rejects(
+            lambda report, _state, _manifest, value=invalid_quality: report[
+                "mesh_evidence"
+            ].__setitem__("min_orthogonal_quality", value),
+            "MESH_EVIDENCE",
+        )
 
 
 def test_consumer_report_rejects_wrong_target_or_fake_throat_graph() -> None:
@@ -496,11 +503,23 @@ def test_submit_identity_and_contract_hashes_fail_closed() -> None:
         runner.stage1.PROFILE_ID: PROFILE_CONTRACT,
         runner.CONSUMER_PROFILE_ID: "c" * 64,
     }
-    assert runner.validate_profile_contracts(contracts, HEAD) == contracts
-    for invalid in ({}, {runner.stage1.PROFILE_ID: None}, dict(contracts, extra="d" * 64)):
-        result = runner.validate_profile_contracts(invalid, HEAD)
-        assert isinstance(result, dict)
-        assert runner.CONSUMER_PROFILE_ID in result
+    assert runner.validate_profile_contracts(contracts) == contracts
+    inventory_contracts = dict(contracts)
+    inventory_contracts.update(
+        {"unrelated-profile-%02d" % index: "%x" % index * 64 for index in range(1, 19)}
+    )
+    assert runner.validate_profile_contracts(inventory_contracts) == contracts
+    for invalid in (
+        {},
+        {runner.stage1.PROFILE_ID: None},
+        dict(contracts, **{runner.CONSUMER_PROFILE_ID: "0" * 64}),
+    ):
+        try:
+            runner.validate_profile_contracts(invalid)
+        except RuntimeError as exc:
+            assert "PROFILE_CONTRACT_HASHES_INVALID" in str(exc)
+        else:
+            raise AssertionError("invalid profile contract hashes accepted")
 
     first = running_state(
         "stage1-job", "spaceclaim", runner.stage1.PROFILE_ID,

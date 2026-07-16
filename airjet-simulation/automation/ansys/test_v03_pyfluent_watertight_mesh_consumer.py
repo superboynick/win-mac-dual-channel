@@ -315,6 +315,44 @@ def test_actuator_gap_exclusion_pure_contract() -> None:
     expect_runtime_error(validate, duplicate, marker="PROBE_INDICES_NOT_EXACT")
 
 
+def test_actuator_gap_failure_stays_truthful_and_does_not_block_mesh_write() -> None:
+    for required in (
+        'actuator_gap_exclusion_evaluable = "error" not in actuator_gap_exclusion',
+        'actuator_gap_exclusion.get("actuator_gap_zones_excluded") is True',
+        'result["assertions"]["actuator_gap_exclusion"] = (',
+    ):
+        assert required in SOURCE
+    for forbidden in (
+        "actuator_gap_exclusion_evaluable = True",
+        "actuator_gap_zones_excluded = True",
+        'and result["assertions"]["actuator_gap_exclusion"]',
+        'and actuator_gap_exclusion["actuator_gap_zones_excluded"]',
+    ):
+        assert forbidden not in SOURCE
+    assert SOURCE.index("session.tui.file.write_mesh(str(MESH_PATH))") < SOURCE.index(
+        'if not all(result["assertions"].values()):'
+    )
+
+
+def test_throat_occupancy_failure_stays_truthful_and_does_not_block_mesh_write() -> None:
+    for required in (
+        'throat_occupancy_evaluable = "error" not in occupancy_contract',
+        'occupancy_contract.get("executed_queries") == THROAT_COUNT',
+        'occupancy_contract.get("hit_count") == THROAT_COUNT',
+        'result["assertions"]["throat_occupancy_full_972"] = (',
+    ):
+        assert required in SOURCE
+    for forbidden in (
+        'result["assertions"]["throat_occupancy_full_972"] = True',
+        'and result["assertions"]["throat_occupancy_full_972"]',
+        'and occupancy_contract[\n            "all_hits_belong_to_the_single_accepted_flow_cell_zone"\n        ]',
+    ):
+        assert forbidden not in SOURCE
+    assert SOURCE.index("session.tui.file.write_mesh(str(MESH_PATH))") < SOURCE.index(
+        'if not all(result["assertions"].values()):'
+    )
+
+
 def test_region_inventory_and_transition_pure_contract() -> None:
     helpers = load_contract_helpers()
     parse = helpers["parse_region_inventory"]

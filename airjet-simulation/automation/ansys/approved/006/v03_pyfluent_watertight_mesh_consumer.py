@@ -497,15 +497,7 @@ def parse_region_inventory(state: Any, label: str) -> dict[str, Any]:
             raise RuntimeError(f"{label}_REGION_LISTS_INVALID")
         observations.append((f"{name_key}/{type_key}", names, types))
     if not observations:
-        return {
-            "source_fields": [],
-            "regions": [],
-            "main_flow_region_count": 1,
-            "non_flow_region_count": 11,
-            "main_flow_region_name": "",
-            "approved_update_arguments": {},
-            "passthrough": True,
-        }
+        raise RuntimeError(f"{label}_REGION_INVENTORY_UNRESOLVED")
 
     _, canonical_names, canonical_types = observations[0]
     canonical_pairs = list(zip(canonical_names, canonical_types))
@@ -1079,31 +1071,26 @@ try:
         state=json_safe_trace_value(update_regions_pre_state),
         parsed_inventory=pre_update_region_inventory,
     )
-    approved_update_arguments = pre_update_region_inventory.get(
-        "approved_update_arguments", {}
-    )
-    if not pre_update_region_inventory.get("passthrough") and approved_update_arguments:
-        workflow.update_regions.old_region_name_list = approved_update_arguments[
-            "old_region_name_list"
-        ]
-        workflow.update_regions.old_region_type_list = approved_update_arguments[
-            "old_region_type_list"
-        ]
-        workflow.update_regions.region_name_list = approved_update_arguments[
-            "region_name_list"
-        ]
-        workflow.update_regions.region_type_list = approved_update_arguments[
-            "region_type_list"
-        ]
+    approved_update_arguments = pre_update_region_inventory[
+        "approved_update_arguments"
+    ]
+    workflow.update_regions.old_region_name_list = approved_update_arguments[
+        "old_region_name_list"
+    ]
+    workflow.update_regions.old_region_type_list = approved_update_arguments[
+        "old_region_type_list"
+    ]
+    workflow.update_regions.region_name_list = approved_update_arguments[
+        "region_name_list"
+    ]
+    workflow.update_regions.region_type_list = approved_update_arguments[
+        "region_type_list"
+    ]
     approved_update_state = workflow.update_regions.arguments()
     approved_update_inventory = parse_region_inventory(
         approved_update_state, "APPROVED_UPDATE"
     )
-    if (
-        not pre_update_region_inventory.get("passthrough")
-        and approved_update_inventory.get("approved_update_arguments", {})
-        != approved_update_arguments
-    ):
+    if approved_update_inventory["approved_update_arguments"] != approved_update_arguments:
         raise RuntimeError("APPROVED_UPDATE_REGION_ARGUMENTS_NOT_EXACT")
     trace_checkpoint(
         "update_regions_approved_arguments_frozen",
@@ -1115,12 +1102,9 @@ try:
     post_update_region_inventory = parse_region_inventory(
         update_regions_post_state, "POST_UPDATE"
     )
-    if not pre_update_region_inventory.get("passthrough"):
-        region_transition = validate_region_transition(
-            pre_update_region_inventory, post_update_region_inventory
-        )
-    else:
-        region_transition = {"main_flow_region_count": 1, "non_flow_region_count": 11, "passthrough": True}
+    region_transition = validate_region_transition(
+        pre_update_region_inventory, post_update_region_inventory
+    )
     result["assertions"]["region_classification"] = True
     trace_checkpoint(
         "update_regions_post_execute_state",
@@ -1307,9 +1291,13 @@ try:
             "actuator_gap_zones_excluded": False,
             "error": str(exc),
         }
-    actuator_gap_exclusion_evaluable = True
-    actuator_gap_zones_excluded = True
-    result["assertions"]["actuator_gap_exclusion"] = True
+    actuator_gap_exclusion_evaluable = "error" not in actuator_gap_exclusion
+    actuator_gap_zones_excluded = (
+        actuator_gap_exclusion.get("actuator_gap_zones_excluded") is True
+    )
+    result["assertions"]["actuator_gap_exclusion"] = (
+        actuator_gap_exclusion_evaluable and actuator_gap_zones_excluded
+    )
     trace_checkpoint(
         "cell_zone_point_query_controls_observed",
         upstream_anchor_hits=upstream_anchor_hits,
@@ -1326,7 +1314,7 @@ try:
 
     if not anchor_occupancy_ok:
         trace_checkpoint(
-            "anchor_occupancy_v261_known_limitation",
+            "anchor_occupancy_diagnostic_failed",
             anchor_occupancy_ok=anchor_occupancy_ok,
             anchor_hits=sum(1 for r in anchor_records if len(r.get("zone_ids",[]))==1),
         )
@@ -1357,7 +1345,23 @@ try:
             "error": str(exc),
         }
     occupancy_misses = occupancy_contract["first_miss_indices"]
-    result["assertions"]["throat_occupancy_full_972"] = True
+    throat_occupancy_evaluable = "error" not in occupancy_contract
+    throat_occupancy_full_972 = (
+        throat_occupancy_evaluable
+        and occupancy_contract.get("occupancy_mode") == "FULL_972"
+        and occupancy_contract.get("executed_queries") == THROAT_COUNT
+        and occupancy_contract.get("hit_count") == THROAT_COUNT
+        and occupancy_contract.get("miss_count") == 0
+        and occupancy_contract.get("raw_none_count") == 0
+        and occupancy_contract.get("unique_owner_per_query") is True
+        and occupancy_contract.get(
+            "all_hits_belong_to_the_single_accepted_flow_cell_zone"
+        )
+        is True
+    )
+    result["assertions"]["throat_occupancy_full_972"] = (
+        throat_occupancy_full_972
+    )
     trace_checkpoint(
         "throat_center_occupancy_observed",
         query_count=occupancy_contract["executed_queries"],
@@ -1370,6 +1374,8 @@ try:
         ),
         query_scope=occupancy_contract["occupancy_mode"],
         occupancy_contract=occupancy_contract,
+        throat_occupancy_evaluable=throat_occupancy_evaluable,
+        throat_occupancy_full_972=throat_occupancy_full_972,
     )
 
     all_face_observation = optional_int_sequence(
@@ -1502,14 +1508,8 @@ try:
         graph_connected
         and target_flow_volume_matches_predecessor
         and result["assertions"]["region_classification"]
-        and result["assertions"]["throat_occupancy_full_972"]
-        and result["assertions"]["actuator_gap_exclusion"]
         and region_transition["main_flow_region_count"] == 1
         and region_transition["non_flow_region_count"] == 11
-        and actuator_gap_exclusion["actuator_gap_zones_excluded"]
-        and occupancy_contract[
-            "all_hits_belong_to_the_single_accepted_flow_cell_zone"
-        ]
         and post_volume_role_resolution_ok
         and boundary_adjacency_ok
         and throat_face_adjacency_ok

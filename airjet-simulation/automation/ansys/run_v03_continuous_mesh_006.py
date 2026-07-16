@@ -25,7 +25,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "16220752bb53be414eed263003b435552405ef0b3f326bfcc9e84df9d2509995"
+CONSUMER_SCRIPT_SHA256 = "bdce5382245321722beb0d90e7c2a0dfc4e4338ee6a32bdb87f8dfee75b942c3"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -113,7 +113,7 @@ def exact_consumer_profile(head: str) -> dict[str, Any]:
         and item.get("profile_id") == CONSUMER_PROFILE_ID
     ]
     if len(matches) != 1:
-        print("PROFILE_COUNT_WARNING")
+        raise RuntimeError("BLOCKED_CONSUMER_PROFILE_NOT_EXACTLY_ONE")
     profile = matches[0]
     expected_predecessor = {
         "profile_id": stage1.PROFILE_ID,
@@ -141,7 +141,7 @@ def exact_consumer_profile(head: str) -> dict[str, Any]:
         ],
         "artifacts": list(PREDECESSOR_ARTIFACTS),
     }
-    if profile != {
+    expected = {
         "profile_id": CONSUMER_PROFILE_ID,
         "engine": "pyfluent",
         "script": CONSUMER_SCRIPT,
@@ -150,8 +150,14 @@ def exact_consumer_profile(head: str) -> dict[str, Any]:
         "output_root_id": "p1_cad_006",
         "reports": [CONSUMER_REPORT],
         "predecessor": expected_predecessor,
-    }:
-        print("PROFILE_WARNING")
+    }
+    if set(profile) != set(expected):
+        raise RuntimeError("BLOCKED_CONSUMER_PROFILE_CONTRACT_MISMATCH:KEY_SET")
+    for key, expected_value in expected.items():
+        if profile.get(key) != expected_value:
+            raise RuntimeError(
+                "BLOCKED_CONSUMER_PROFILE_CONTRACT_MISMATCH:{}".format(key)
+            )
     source = stage1.read_git_blob(
         head,
         "airjet-simulation/automation/ansys/approved/{}".format(
@@ -159,7 +165,7 @@ def exact_consumer_profile(head: str) -> dict[str, Any]:
         ),
     )
     if sha256_bytes(source) != CONSUMER_SCRIPT_SHA256:
-        print("BLOB_HASH_WARNING")
+        raise RuntimeError("BLOCKED_CONSUMER_GIT_BLOB_HASH_MISMATCH")
     return profile
 
 
@@ -211,45 +217,48 @@ def verify_predecessor_state(
             )
 
 
-def validate_profile_contracts(contracts: Any, expected_head: str) -> dict[str, str]:
-    """Accept valid profile contract hashes from MCP inventory."""
-    if isinstance(contracts, dict):
-        result = {}
-        for pid in (stage1.PROFILE_ID, CONSUMER_PROFILE_ID):
-            val = contracts.get(pid)
-            if isinstance(val, str) and re.fullmatch(r"[0-9a-f]{64}", val):
-                result[pid] = val
-            else:
-                result[pid] = "f" * 64  # recognizable fallback
-        return result
-    return {
-        stage1.PROFILE_ID: "a" * 64,
-        CONSUMER_PROFILE_ID: CONSUMER_SCRIPT_SHA256,
-    }
+def validate_profile_contracts(contracts: Any) -> dict[str, str]:
+    required = (stage1.PROFILE_ID, CONSUMER_PROFILE_ID)
+    if (
+        not isinstance(contracts, dict)
+        or any(
+            not isinstance(contracts.get(profile_id), str)
+            or re.fullmatch(r"[0-9a-f]{64}", contracts[profile_id]) is None
+            or contracts[profile_id] == "0" * 64
+            for profile_id in required
+        )
+    ):
+        raise RuntimeError("BLOCKED_PROFILE_CONTRACT_HASHES_INVALID")
+    return {profile_id: contracts[profile_id] for profile_id in required}
 
 
 def validate_stage1_submit_identity(
     state: Any, expected_head: str, expected_contract: str
 ) -> None:
-    errors = []
-    if not isinstance(state, dict): errors.append("NOT_DICT")
-    else:
-        if not isinstance(state.get("job_id"), str) or not state["job_id"]: errors.append("JOB_ID")
-        if state.get("case_id") != CASE_ID: errors.append(f"CASE_ID:{state.get('case_id')}!={CASE_ID}")
-        if state.get("profile_id") != stage1.PROFILE_ID: errors.append("PROFILE_ID")
-        if state.get("phase") != "RUNNING": errors.append(f"PHASE:{state.get('phase')}")
-        if state.get("engine") != "spaceclaim": errors.append("ENGINE")
-        if state.get("git_head") != expected_head: errors.append(f"GIT_HEAD:{state.get('git_head')[:16]}!={expected_head[:16]}")
-        if not re.fullmatch(r"[f]{64}|[a]{64}", expected_contract) and state.get("profile_contract_sha256") != expected_contract: errors.append(f"CONTRACT:{state.get('profile_contract_sha256','')[:16]}!={expected_contract[:16]}")
-        pdm = state.get("profile_dependency_manifest_sha256")
-        if not isinstance(pdm, str) or re.fullmatch(r"[0-9a-f]{64}", pdm) is None: errors.append("DEPS_HASH")
-        if state.get("output_root_id") != "p1_cad_006": errors.append("OUTPUT_ROOT")
-        if not isinstance(state.get("job_directory"), str) or not state["job_directory"]: errors.append("JOB_DIR")
-        if state.get("license_arguments_added") is not False: errors.append("LICENSE")
-        if state.get("predecessor_job_id") is not None: errors.append("PREDECESSOR")
-        if state.get("predecessor_artifacts") != []: errors.append("PRED_ARTIFACTS")
-    if errors:
-        raise RuntimeError("STAGE1_SUBMIT_IDENTITY_MISMATCH:" + ",".join(errors))
+    if (
+        not isinstance(state, dict)
+        or not isinstance(state.get("job_id"), str)
+        or not state["job_id"]
+        or state.get("case_id") != CASE_ID
+        or state.get("profile_id") != stage1.PROFILE_ID
+        or state.get("phase") != "RUNNING"
+        or state.get("engine") != "spaceclaim"
+        or state.get("git_head") != expected_head
+        or state.get("script_sha256") != stage1.PROFILE_SCRIPT_SHA256
+        or state.get("profile_contract_sha256") != expected_contract
+        or not isinstance(state.get("profile_dependency_manifest_sha256"), str)
+        or re.fullmatch(
+            r"[0-9a-f]{64}", state["profile_dependency_manifest_sha256"]
+        )
+        is None
+        or state.get("output_root_id") != "p1_cad_006"
+        or not isinstance(state.get("job_directory"), str)
+        or not state["job_directory"]
+        or state.get("license_arguments_added") is not False
+        or state.get("predecessor_job_id") is not None
+        or state.get("predecessor_artifacts") != []
+    ):
+        raise RuntimeError("STAGE1_SUBMIT_IDENTITY_MISMATCH")
 
 
 def validate_stage2_submit_identity(
@@ -267,7 +276,8 @@ def validate_stage2_submit_identity(
         or state.get("phase") != "RUNNING"
         or state.get("engine") != "pyfluent"
         or state.get("git_head") != expected_head
-        or (not re.fullmatch(r"[f]{64}|[a]{64}", expected_contract) and state.get("profile_contract_sha256") != expected_contract)
+        or state.get("script_sha256") != CONSUMER_SCRIPT_SHA256
+        or state.get("profile_contract_sha256") != expected_contract
         or state.get("output_root_id") != "p1_cad_006"
         or not isinstance(state.get("job_directory"), str)
         or not state["job_directory"]
@@ -647,7 +657,7 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         or isinstance(evidence.get("min_orthogonal_quality"), bool)
         or not isinstance(evidence.get("min_orthogonal_quality"), (int, float))
         or not math.isfinite(float(evidence["min_orthogonal_quality"]))
-        or (float(evidence["min_orthogonal_quality"]) > 0.0 and not float(evidence["min_orthogonal_quality"]) <= 1.0)
+        or not 0.0 < float(evidence["min_orthogonal_quality"]) <= 1.0
     ):
         raise RuntimeError("CONSUMER_MESH_EVIDENCE_TOPOLOGY_INVALID")
     validate_region_inventory(pre_inv)
@@ -1099,9 +1109,9 @@ async def run_suite() -> int:
                             set(inventory.get("approved_profiles") or [])
                         )
                     ):
-                        print("INVENTORY_WARNING")
+                        raise RuntimeError("BLOCKED_INVENTORY_IDENTITY_OR_PROFILES")
                     contracts = validate_profile_contracts(
-                        inventory.get("profile_contract_sha256"), head
+                        inventory.get("profile_contract_sha256")
                     )
 
                     await run_submitted_stages(
