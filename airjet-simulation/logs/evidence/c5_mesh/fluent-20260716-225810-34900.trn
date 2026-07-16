@@ -265,3 +265,8 @@ Check for leaks and self-intersections in the mesh, if these are not expected.
 ---- Warning--- One or more zones (ajm006_v03_fluid_continuous:1) are not part of a volumetric region.
 
 ---------------- Regions Updated
+Writing "C:\Users\admin\win-mac-dual-channel\airjet-simulation\logs\evidence\c5_mesh\FM_LAPTOP-LCCLM2HI_34900\TaskObject11.msh.h5" ...
+writing 109 node zones
+writing 108 edge zones 
+writing 119 face zones 
+writing node curvature data
