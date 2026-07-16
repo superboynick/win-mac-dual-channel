@@ -241,6 +241,7 @@ def load_semantic_helpers() -> dict[str, Any]:
         "canonical_boundary_update_contract",
         "validate_mixed_region_state",
         "validate_local_sizing_child",
+        "workflow_task_identity",
         "semantic_zone_type",
         "validate_final_boundary_semantics",
     }
@@ -571,6 +572,23 @@ def test_post_surface_partition_region_and_local_sizing_negative_contracts() -> 
         object(), ["existing"], ["existing", "new"], "new", child_args,
         ["ajm_throat_wall"],
         marker="LOCAL_SIZING_ADD_CHILD_NOT_TRUE",
+    )
+
+    class IntegerIdTask:
+        def get_id(self):
+            return 17
+
+    class NameFallbackTask:
+        def get_id(self):
+            return None
+
+        def name(self):
+            return "local-sizing-child"
+
+    assert helpers["workflow_task_identity"](IntegerIdTask()) == "id:17"
+    assert (
+        helpers["workflow_task_identity"](NameFallbackTask())
+        == "name:local-sizing-child"
     )
 
 

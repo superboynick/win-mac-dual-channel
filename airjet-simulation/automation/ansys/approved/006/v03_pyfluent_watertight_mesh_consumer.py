@@ -896,11 +896,16 @@ def validate_local_sizing_child(
 
 
 def workflow_task_identity(task: Any) -> str:
-    get_id = getattr(task, "get_id", None)
-    value = get_id() if callable(get_id) else None
-    if not isinstance(value, str) or not value:
-        raise RuntimeError("WORKFLOW_TASK_IDENTITY_UNAVAILABLE")
-    return value
+    for label, method_name in (("id", "get_id"), ("name", "name")):
+        method = getattr(task, method_name, None)
+        if not callable(method):
+            continue
+        value = method()
+        if isinstance(value, str) and value:
+            return "{}:{}".format(label, value)
+        if type(value) is int and value > 0:
+            return "{}:{}".format(label, value)
+    raise RuntimeError("WORKFLOW_TASK_IDENTITY_UNAVAILABLE")
 
 
 def validate_canonical_semantic_mapping(
