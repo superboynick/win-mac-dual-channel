@@ -11,4 +11,5 @@ __pycache__/
 /airjet-simulation/logs/evidence/c5_mesh/*
 !/airjet-simulation/logs/evidence/c5_mesh/README.md
 /save_mesh*.py
+/solve_cfd*.py
 /pyfluent_watchdog.*

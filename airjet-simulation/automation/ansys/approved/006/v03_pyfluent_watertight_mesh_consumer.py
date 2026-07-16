@@ -1697,7 +1697,7 @@ try:
     )
 
     local = workflow.add_local_sizing_wtm
-    children_before = list(local.tasks())
+    children_before = list(local.children())
     child_ids_before = [workflow_task_identity(task) for task in children_before]
     local.add_child = "yes"
     local.boi_control_name = "throat-face-size-0p075mm"
@@ -1706,7 +1706,7 @@ try:
     local.boi_face_zone_list = throat_zone_names
     local.boi_size = THROAT_LOCAL_SIZE_MM
     added = local.add_child_and_update(defer_update=False)
-    children_after = list(local.tasks())
+    children_after = list(local.children())
     child_ids_after = [workflow_task_identity(task) for task in children_after]
     child = local.last_child()
     if child is None:
