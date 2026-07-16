@@ -149,3 +149,183 @@ Importing one mesh object per program-controlled and one zone per body ...
     writing size function background grid file 'C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\logs\\evidence\\c5_mesh\\FM_LAPTOP-LCCLM2HI_20840\\product_continuous_fluid.sf' ...
     Vertices already exist
     initializing size function background grid done in 0.703 [s]
+    tessellating 106 faces done in 11.892 [s]
+    removing named collections of entities ...
+    removed named collections:  'Color:143.175.143'
+        Data information
+            Meshing model
+                Attributes:
+                    'LengthUnit': '[mm]'
+                Entity summary:
+                    Component: 2
+                    Body     : 1
+                    Shell    : 13
+                    Face     : 106
+                    Loop     : 2052
+                    Edge     : 2172
+                    Vertex   : 2096
+                    Surface  : 106
+                    Curve    : 2172
+                Tessellation summary:
+                    Face facets  : 944464
+                    Edge segments: 38669
+                Bounding box:
+                    (-10.875, -17.75, 1.267500042915344) x (10.875, 20.75, 2.799999952316284)
+                Assembly component hierarchy:
+                    'D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-5e7fabb3eec0\\product_continuous_fluid.step'
+                      'product_continuous_fluid'
+    
+    
+    exporting FLTG data to file 'C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\logs\\evidence\\c5_mesh\\FM_LAPTOP-LCCLM2HI_20840\\out1784213809.88052620840.tgf' ...
+    writing face-based mesh file 'C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\logs\\evidence\\c5_mesh\\FM_LAPTOP-LCCLM2HI_20840\\out1784213809.88052620840.tgf' ...
+    ======== Exported Data ========
+    Entity summary:
+        Object       : 1
+        Object region: 1
+        Zone         : 1
+    
+    running conversion done.
+    running ANSYS TGrid CADToTGridConverter done.
+    ran ANSYS TGrid CADToTGridConverter in 13.889 [s]
+
+Reading "C:\Users\admin\win-mac-dual-channel\airjet-simulation\logs\evidence\c5_mesh\FM_LAPTOP-LCCLM2HI_20840/out1784213809.88052620840.tgf"...
+
+nodes: 485414
+faces: 944464
+cells: 0
+appending mesh...
+done.
+
+Reading "C:\Users\admin\win-mac-dual-channel\airjet-simulation\logs\evidence\c5_mesh\FM_LAPTOP-LCCLM2HI_20840\product_continuous_fluid.sf"...
+
+ANSYS(R) TGLib(TM) 3D, revision 24.1.0
+ Read 373143 vertices
+0 faces marked.
+
+    computing regions...
+
+Warning: 1 external baffles identified.
+Check for leaks and self-intersections in the mesh, if these are not expected.
+done
+
+         region-name    number of baffles zone ids of baffles
+-------------------- -------------------- --------------------
+    external baffles                    1                (323)
+
+
+
+------------------------------------- --------------------- -------------------- ---------------- ----------
+                                 name skewed-cells (> 0.80)    averaged-skewness maximum-skewness face count
+------------------------------------- --------------------- -------------------- ---------------- ----------
+
+          ajm006_v03_fluid_continuous                     0          0.026783202       0.40892449      28172
+  dead0-ajm006_v03_fluid_continuous:1                     0          0.026519463        0.4414614      27870
+  dead1-ajm006_v03_fluid_continuous:2                     0           0.02614965       0.42566086      28250
+  dead2-ajm006_v03_fluid_continuous:3                     0          0.027025168       0.52331243      27880
+  dead3-ajm006_v03_fluid_continuous:4                     0          0.026348275       0.37843348      27494
+  dead4-ajm006_v03_fluid_continuous:5                     0          0.027136396       0.44245093      27846
+  dead5-ajm006_v03_fluid_continuous:6                     0           0.02669456       0.44811837      27848
+  dead6-ajm006_v03_fluid_continuous:7                     0          0.027456896       0.47587385      27416
+  dead7-ajm006_v03_fluid_continuous:8                     0          0.026832282        0.4230587      27838
+  dead8-ajm006_v03_fluid_continuous:9                     0          0.027319664       0.46676331      27938
+ dead9-ajm006_v03_fluid_continuous:10                     0          0.026688791       0.44036382      27810
+dead10-ajm006_v03_fluid_continuous:11                     0          0.027031459       0.43743811      27932
+------------------------------------- --------------------- -------------------- ---------------- ----------
+                                 name skewed-cells (> 0.80)    averaged-skewness maximum-skewness face count
+------------------------------------- --------------------- -------------------- ---------------- ----------
+
+product_continuous_fluid-ajm006_v03_fluid_continuous                     0          0.026831181       0.52331243     334294
+
+---------------- After Surface mesh, the model consists of 1 fluid/solid regions and 11 voids.
+
+---------------- Surface Meshing of product_continuous_fluid complete in  0.43 minutes, with a maximum skewness of  0.54. 
+
+
+---------------- Describe Geometry task complete in  0.00 minutes.
+
+---------------- Boundary Conditions Updated
+Writing "C:\Users\admin\win-mac-dual-channel\airjet-simulation\logs\evidence\c5_mesh\FM_LAPTOP-LCCLM2HI_20840\TaskObject8.msh.h5" ...
+writing 109 node zones
+writing 108 edge zones 
+writing 119 face zones 
+writing node curvature data
+done.
+    updating regions...
+
+Warning: 1 external baffles identified.
+Check for leaks and self-intersections in the mesh, if these are not expected.
+
+         region-name    number of baffles zone ids of baffles
+-------------------- -------------------- --------------------
+    external baffles                    1                (323)
+
+    done.
+---------------- Region identification of product_continuous_fluid-ajm006_v03_fluid_continuous complete in  0.04 minutes. All Regions are displayed. 
+
+---- Warning--- One or more zones (ajm006_v03_fluid_continuous:1) are not part of a volumetric region.
+
+---------------- Regions Updated
+Writing "C:\Users\admin\win-mac-dual-channel\airjet-simulation\logs\evidence\c5_mesh\FM_LAPTOP-LCCLM2HI_20840\TaskObject11.msh.h5" ...
+writing 109 node zones
+writing 108 edge zones 
+writing 119 face zones 
+writing node curvature data
+done.
+    updating regions...
+    done.
+checking object "product_continuous_fluid-ajm006_v03_fluid_continuous"...
+    skipping validating regions of mesh object "product_continuous_fluid-ajm006_v03_fluid_continuous"...done.
+auto meshing object product_continuous_fluid-ajm006_v03_fluid_continuous...
+
+Identifying Topology...
+
+The octree hexcore cells will be refined using local surface mesh sizes and body of influence (boi) size controls, if there are any defined.
+Generating Pyramids...
+
+Generating initial mesh...
+delete dead zones.
+
+Refining mesh...
+
+Create polyhedra ...
+
+delete virtual and dead zones.
+
+Merging zones...
+
+Cleaning up dead entities...
+
+
+Merging Domains...
+done.
+
+                     name       id cells (quality < 0.05)  minimum quality cell count
+------------------------- -------- ---------------------- ---------------- ----------
+ajm006_v03_fluid_continuous      482                      0       0.52909493      34883
+
+                     name       id cells (quality < 0.05)  minimum quality cell count
+------------------------- -------- ---------------------- ---------------- ----------
+          Overall Summary     none                      0       0.52909493      34883
+
+Total Number of Cell Zones : 1
+
+[Quality Measure : Orthogonal Quality]
+
+---------------- Volume mesh creation completed in :  0.07 minutes
+
+---------------- 34883 cells were created in :  0.08 minutes
+
+---------------- The mesh has a minimum Orthogonal Quality of:  0.53 
+
+---------------- The volume meshing of product_continuous_fluid-ajm006_v03_fluid_continuous is complete.
+
+Writing "C:\Users\admin\win-mac-dual-channel\airjet-simulation\logs\evidence\c5_mesh\v03_mesh.msh.h5" ...
+writing 3 node zones
+writing 2 edge zones 
+writing 2 face zones 
+writing 1 cell zones 
+writing boundary layer flags
+writing node curvature data
+done.Copying the required intermediate mesh files into C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\logs\\evidence\\c5_mesh\\v03_mesh_workflow_files
+Done.
+Shutting down Server...
