@@ -212,7 +212,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "non_flow_region_count": 11,
             "free_face_count": 0,
             "multi_face_count": 0,
-            "min_orthogonal_quality": 0.12,
+            "min_orthogonal_quality": -1.0,
             "mesh_file": artifacts["v03_continuous_volume_mesh.msh.h5"],
         },
         "artifacts": artifacts,

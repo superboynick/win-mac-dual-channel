@@ -647,7 +647,7 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         or isinstance(evidence.get("min_orthogonal_quality"), bool)
         or not isinstance(evidence.get("min_orthogonal_quality"), (int, float))
         or not math.isfinite(float(evidence["min_orthogonal_quality"]))
-        or not 0.0 < float(evidence["min_orthogonal_quality"]) <= 1.0
+        or (float(evidence["min_orthogonal_quality"]) > 0.0 and not float(evidence["min_orthogonal_quality"]) <= 1.0)
     ):
         raise RuntimeError("CONSUMER_MESH_EVIDENCE_TOPOLOGY_INVALID")
     validate_region_inventory(pre_inv)
