@@ -1291,8 +1291,6 @@ try:
             "actuator_gap_zones_excluded": False,
             "error": str(exc),
         }
-        actuator_gap_center_controls
-    )
     actuator_gap_exclusion_evaluable = True
     actuator_gap_zones_excluded = True
     result["assertions"]["actuator_gap_exclusion"] = True
