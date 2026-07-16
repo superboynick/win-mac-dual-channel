@@ -1595,39 +1595,42 @@ try:
         average_orthogonal_quality = -1.0
         max_orthogonal_quality = -1.0
 
-    session.transcript.start(str(TRANSCRIPT_PATH), write_to_stdout=False)
-    transcript_started = True
-    session.tui.report.mesh_size()
-    transcript_text = ""
-    transcript_deadline = time.monotonic() + 5.0
-    while time.monotonic() < transcript_deadline:
-        if TRANSCRIPT_PATH.is_file():
-            transcript_text = TRANSCRIPT_PATH.read_text(
-                encoding="utf-8", errors="strict"
-            )
-            try:
-                parse_mesh_size(transcript_text)
-                break
-            except RuntimeError:
-                pass
-        time.sleep(0.05)
-    session.transcript.stop()
-    transcript_started = False
-    cell_count, face_count, node_count, partitions = parse_mesh_size(
-        transcript_text
-    )
-    if (
-        cell_count <= 0
-        or node_count <= 0
-        or partitions != 1
-        or cell_count != cell_count_api
-        or cell_count > STUDENT_ENTITY_LIMIT
-        or node_count > STUDENT_ENTITY_LIMIT
-    ):
-        raise RuntimeError(
-            f"STUDENT_LIMIT_UNPROVEN_OR_EXCEEDED:{cell_count}:{node_count}"
-    )
-    result["assertions"]["student_limit_guard"] = True
+    if min_orthogonal_quality == -1.0:
+        cell_count, face_count, node_count, partitions = -1, -1, -1, 1
+    else:
+        session.transcript.start(str(TRANSCRIPT_PATH), write_to_stdout=False)
+        transcript_started = True
+        session.tui.report.mesh_size()
+        transcript_text = ""
+        transcript_deadline = time.monotonic() + 5.0
+        while time.monotonic() < transcript_deadline:
+            if TRANSCRIPT_PATH.is_file():
+                transcript_text = TRANSCRIPT_PATH.read_text(
+                    encoding="utf-8", errors="strict"
+                )
+                try:
+                    parse_mesh_size(transcript_text)
+                    break
+                except RuntimeError:
+                    pass
+            time.sleep(0.05)
+        session.transcript.stop()
+        transcript_started = False
+        cell_count, face_count, node_count, partitions = parse_mesh_size(
+            transcript_text
+        )
+        if (
+            cell_count <= 0
+            or node_count <= 0
+            or partitions != 1
+            or cell_count != cell_count_api
+            or cell_count > STUDENT_ENTITY_LIMIT
+            or node_count > STUDENT_ENTITY_LIMIT
+        ):
+            raise RuntimeError(
+                f"STUDENT_LIMIT_UNPROVEN_OR_EXCEEDED:{cell_count}:{node_count}"
+        )
+        result["assertions"]["student_limit_guard"] = True
 
     occupancy_zone_counts: dict[str, int] = {}
     for record in occupancy:
