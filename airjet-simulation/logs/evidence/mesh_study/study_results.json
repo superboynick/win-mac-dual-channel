@@ -1,0 +1,19 @@
+{
+  "coarse": {
+    "size": 2800040,
+    "status": "PASS",
+    "sizes": {
+      "surf_min": 0.1,
+      "surf_max": 1.0,
+      "vol": 1.0
+    }
+  },
+  "medium": {
+    "status": "FAIL",
+    "error": "\nFluent Launch command: \"D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261\\fluent\\ntbin\\win64\\fluent.exe\" 3ddp -py -g -driver null -meshing -sifile=C:\\Users\\admin\\AppData\\Local\\Temp\\serverinfo-21_3c8i0.txt -nm -command=\"(set-session-idle-timeoutPLF+3)\""
+  },
+  "fine": {
+    "status": "FAIL",
+    "error": "\nFluent Launch command: \"D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261\\fluent\\ntbin\\win64\\fluent.exe\" 3ddp -py -g -driver null -meshing -sifile=C:\\Users\\admin\\AppData\\Local\\Temp\\serverinfo-5os1qul3.txt -nm -command=\"(set-session-idle-timeoutPLF+3)\""
+  }
+}
