@@ -158,6 +158,20 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "post_volume_inlet_zone_count": 4,
             "post_volume_outlet_zone_count": 1,
             "post_volume_throat_zone_count": 972,
+            "source_boundary_face_count": 1078,
+            "source_boundary_role_counts": copy.deepcopy(
+                runner.BOUNDARY_ROLE_COUNTS
+            ),
+            "pre_volume_semantic_zone_count": 1078,
+            "pre_volume_unique_mapping_ok": True,
+            "post_volume_boundary_role_counts": copy.deepcopy(
+                runner.BOUNDARY_ROLE_COUNTS
+            ),
+            "post_volume_semantic_zone_count": 1078,
+            "post_volume_boundary_coverage_count": 1078,
+            "post_volume_unique_mapping_ok": True,
+            "post_volume_generic_boundary_collapse": False,
+            "post_volume_single_fluid_adjacency_ok": True,
             "throat_face_adjacency": {
                 str(200 + index): {
                     "label": "THROAT_FACE_ADJACENCY",
@@ -237,7 +251,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
 
 def test_consumer_report_accepts_exact_contract() -> None:
     assert runner.CONSUMER_SCRIPT_SHA256 == (
-        "9bef90348a5cd430d430471c2bb8407caae875beb97913e52c9f92409e66d445"
+        "c8b829d425a2df3a0c338141f287448f4ac224c2fabcd5a93b8e7fe28426774f"
     )
     report, state, manifest = valid_report_state_manifest()
     assert runner.validate_consumer_report(manifest, state, HEAD) == report
@@ -252,6 +266,7 @@ def test_consumer_assertion_contract_includes_c5_hard_gates() -> None:
         "watertight_step_import",
         "boundary_roles_reconstructed",
         "throat_roles_reconstructed_972",
+        "boundary_semantics_preserved_1078",
         "throat_local_sizing_contract",
         "surface_mesh",
         "flow_cell_zone_inventory",
@@ -364,6 +379,69 @@ def test_consumer_report_rejects_wrong_target_or_fake_throat_graph() -> None:
             "min_orthogonal_quality", math.nan
         ),
         "MESH_EVIDENCE",
+    )
+
+
+def test_consumer_report_rejects_incomplete_c7_boundary_semantics() -> None:
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
+            "source_boundary_face_count", 1078.0
+        ),
+        "BOUNDARY_SEMANTICS_1078_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"][
+            "source_boundary_role_counts"
+        ].__setitem__("HEAT_WALL", True),
+        "BOUNDARY_SEMANTICS_1078_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
+            "pre_volume_semantic_zone_count", 1002
+        ),
+        "BOUNDARY_SEMANTICS_1078_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
+            "pre_volume_unique_mapping_ok", 1
+        ),
+        "BOUNDARY_SEMANTICS_1078_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"][
+            "post_volume_boundary_role_counts"
+        ].__setitem__("MEMBRANE_TOP", 11),
+        "BOUNDARY_SEMANTICS_1078_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
+            "post_volume_semantic_zone_count", 1
+        ),
+        "BOUNDARY_SEMANTICS_1078_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
+            "post_volume_boundary_coverage_count", 1077
+        ),
+        "BOUNDARY_SEMANTICS_1078_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
+            "post_volume_unique_mapping_ok", False
+        ),
+        "BOUNDARY_SEMANTICS_1078_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
+            "post_volume_generic_boundary_collapse", True
+        ),
+        "BOUNDARY_SEMANTICS_1078_INVALID",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
+            "post_volume_single_fluid_adjacency_ok", False
+        ),
+        "BOUNDARY_SEMANTICS_1078_INVALID",
     )
 
 

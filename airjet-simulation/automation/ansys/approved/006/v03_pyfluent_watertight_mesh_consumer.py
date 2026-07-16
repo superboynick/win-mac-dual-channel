@@ -78,6 +78,7 @@ ASSERTION_NAMES = (
     "fluent_v261_meshing_health",
     "watertight_step_import",
     "boundary_roles_reconstructed",
+    "boundary_semantics_preserved_1078",
     "throat_roles_reconstructed_972",
     "throat_local_sizing_contract",
     "surface_mesh",
@@ -106,6 +107,25 @@ TARGET_FLOW_VOLUME_MESH_TOLERANCE_MM3 = 1.0
 ACTUATOR_GAP_CENTER_Z_MM = 1.795
 ACTUATOR_GAP_PROBE_COUNT = 12
 FLUID_ONLY_SETUP_TYPE = "The geometry consists of only fluid regions with no voids"
+BOUNDARY_ROLE_ORDER = (
+    "INLET",
+    "OUTLET",
+    "HEAT_WALL",
+    "MEMBRANE_TOP",
+    "MEMBRANE_BOTTOM",
+    "ORIFICE_THROAT_WALL",
+    "WALL_CONTINUOUS_UNCLASSIFIED",
+)
+EXPECTED_BOUNDARY_ROLE_COUNTS = {
+    "INLET": 4,
+    "OUTLET": 1,
+    "HEAT_WALL": 1,
+    "MEMBRANE_TOP": 12,
+    "MEMBRANE_BOTTOM": 12,
+    "ORIFICE_THROAT_WALL": THROAT_COUNT,
+    "WALL_CONTINUOUS_UNCLASSIFIED": 76,
+}
+SOURCE_BOUNDARY_FACE_COUNT = sum(EXPECTED_BOUNDARY_ROLE_COUNTS.values())
 
 
 def sha256_file(path: Path) -> str:
@@ -312,6 +332,210 @@ def throat_points(inventory: dict[str, Any]) -> list[list[float]]:
     if len(points) != THROAT_COUNT or len(xy_keys) != THROAT_COUNT:
         raise RuntimeError("THROAT_CENTER_SET_NOT_972_UNIQUE")
     return points
+
+
+def build_boundary_role_blueprint(
+    inventory: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Build the exact C7 source-face contract without trusting group totals."""
+    faces = inventory.get("continuous_faces")
+    expected_keys = {
+        "area_mm2",
+        "bbox_max_mm",
+        "bbox_min_mm",
+        "body_name",
+        "center_mm",
+        "classification",
+        "edge_count",
+    }
+    if not isinstance(faces, list) or len(faces) != SOURCE_BOUNDARY_FACE_COUNT:
+        raise RuntimeError("SOURCE_BOUNDARY_FACE_COUNT_NOT_1078")
+    records = []
+    fingerprints = set()
+    counts = {role: 0 for role in BOUNDARY_ROLE_ORDER}
+    for source_face_index, face in enumerate(faces):
+        if not isinstance(face, dict) or set(face) != expected_keys:
+            raise RuntimeError("SOURCE_BOUNDARY_FACE_SCHEMA_INVALID")
+        role = face.get("classification")
+        center = face.get("center_mm")
+        bbox_min = face.get("bbox_min_mm")
+        bbox_max = face.get("bbox_max_mm")
+        area = face.get("area_mm2")
+        edge_count = face.get("edge_count")
+        if role not in counts:
+            raise RuntimeError("SOURCE_BOUNDARY_ROLE_INVALID")
+        vectors = (center, bbox_min, bbox_max)
+        if any(
+            not isinstance(vector, list)
+            or len(vector) != 3
+            or any(
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                for value in vector
+            )
+            for vector in vectors
+        ):
+            raise RuntimeError("SOURCE_BOUNDARY_VECTOR_INVALID")
+        if any(float(bbox_min[i]) > float(bbox_max[i]) for i in range(3)):
+            raise RuntimeError("SOURCE_BOUNDARY_BBOX_INVALID")
+        if (
+            not isinstance(face.get("body_name"), str)
+            or not face["body_name"]
+            or isinstance(area, bool)
+            or not isinstance(area, (int, float))
+            or not math.isfinite(float(area))
+            or float(area) <= 0.0
+            or type(edge_count) is not int
+            or edge_count <= 0
+        ):
+            raise RuntimeError("SOURCE_BOUNDARY_SCALAR_INVALID")
+        fingerprint = (
+            role,
+            tuple(round(float(value), 12) for value in center),
+            tuple(round(float(value), 12) for value in bbox_min),
+            tuple(round(float(value), 12) for value in bbox_max),
+            round(float(area), 12),
+            edge_count,
+        )
+        if fingerprint in fingerprints:
+            raise RuntimeError("SOURCE_BOUNDARY_FINGERPRINT_DUPLICATE")
+        fingerprints.add(fingerprint)
+        counts[role] += 1
+        probe_point = [float(value) for value in center]
+        if role == "ORIFICE_THROAT_WALL":
+            probe_point[0] += THROAT_RADIUS_MM
+        records.append(
+            {
+                "source_face_index": source_face_index,
+                "role": role,
+                "probe_point_mm": probe_point,
+            }
+        )
+    if counts != EXPECTED_BOUNDARY_ROLE_COUNTS:
+        raise RuntimeError(f"SOURCE_BOUNDARY_ROLE_COUNTS_INVALID:{counts}")
+    return records
+
+
+def validate_semantic_zone_mapping(
+    records: list[dict[str, Any]], stage: str
+) -> dict[str, Any]:
+    """Reject missing, overlapping, or many-source-to-one semantic mappings."""
+    expected_keys = {"source_face_index", "role", "zone_id", "zone_name"}
+    if not isinstance(records, list) or len(records) != SOURCE_BOUNDARY_FACE_COUNT:
+        raise RuntimeError(f"{stage}_SEMANTIC_MAPPING_COUNT_NOT_1078")
+    counts = {role: 0 for role in BOUNDARY_ROLE_ORDER}
+    indices = []
+    zone_ids = []
+    zone_names_seen = set()
+    role_zone_ids = {role: [] for role in BOUNDARY_ROLE_ORDER}
+    role_zone_names = {role: [] for role in BOUNDARY_ROLE_ORDER}
+    for record in records:
+        if not isinstance(record, dict) or set(record) != expected_keys:
+            raise RuntimeError(f"{stage}_SEMANTIC_MAPPING_SCHEMA_INVALID")
+        index = record.get("source_face_index")
+        role = record.get("role")
+        zone_id = record.get("zone_id")
+        zone_name = record.get("zone_name")
+        if (
+            type(index) is not int
+            or role not in counts
+            or type(zone_id) is not int
+            or zone_id <= 0
+            or not isinstance(zone_name, str)
+            or not zone_name
+        ):
+            raise RuntimeError(f"{stage}_SEMANTIC_MAPPING_VALUE_INVALID")
+        indices.append(index)
+        zone_ids.append(zone_id)
+        if zone_name in zone_names_seen:
+            raise RuntimeError(f"{stage}_SEMANTIC_ZONE_NAME_DUPLICATE")
+        zone_names_seen.add(zone_name)
+        counts[role] += 1
+        role_zone_ids[role].append(zone_id)
+        role_zone_names[role].append(zone_name)
+    if indices != list(range(SOURCE_BOUNDARY_FACE_COUNT)):
+        raise RuntimeError(f"{stage}_SEMANTIC_SOURCE_COVERAGE_INVALID")
+    if counts != EXPECTED_BOUNDARY_ROLE_COUNTS:
+        raise RuntimeError(f"{stage}_SEMANTIC_ROLE_COUNTS_INVALID:{counts}")
+    if len(set(zone_ids)) != SOURCE_BOUNDARY_FACE_COUNT:
+        raise RuntimeError(f"{stage}_GENERIC_BOUNDARY_COLLAPSE")
+    return {
+        "role_counts": counts,
+        "role_zone_ids": role_zone_ids,
+        "role_zone_names": role_zone_names,
+        "semantic_zone_count": len(zone_ids),
+        "unique_mapping_ok": True,
+    }
+
+
+def observe_semantic_zone_mapping(
+    meshing_utilities: Any, blueprint: list[dict[str, Any]], stage: str
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    zone_ids = [
+        one_face_zone(meshing_utilities, record["probe_point_mm"])
+        for record in blueprint
+    ]
+    names = zone_names(meshing_utilities, zone_ids)
+    records = [
+        {
+            "source_face_index": blueprint[index]["source_face_index"],
+            "role": blueprint[index]["role"],
+            "zone_id": zone_ids[index],
+            "zone_name": names[index],
+        }
+        for index in range(len(blueprint))
+    ]
+    return records, validate_semantic_zone_mapping(records, stage)
+
+
+def semantic_zone_type(role: str) -> str:
+    if role == "INLET":
+        return "velocity-inlet"
+    if role == "OUTLET":
+        return "pressure-outlet"
+    if role in EXPECTED_BOUNDARY_ROLE_COUNTS:
+        return "wall"
+    raise RuntimeError("SEMANTIC_BOUNDARY_ROLE_TYPE_INVALID")
+
+
+def validate_final_boundary_semantics(
+    records: list[dict[str, Any]],
+    boundary_zone_ids: list[int],
+    zone_types: dict[int, str],
+    adjacency: dict[int, list[int]],
+    cell_zone_ids: list[int],
+) -> dict[str, Any]:
+    summary = validate_semantic_zone_mapping(records, "POST_VOLUME")
+    semantic_zone_ids = sorted(
+        zone_id
+        for role_ids in summary["role_zone_ids"].values()
+        for zone_id in role_ids
+    )
+    if len(cell_zone_ids) != 1:
+        raise RuntimeError("POST_VOLUME_SEMANTIC_FLUID_ZONE_NOT_UNIQUE")
+    if boundary_zone_ids != semantic_zone_ids:
+        raise RuntimeError("POST_VOLUME_SEMANTIC_BOUNDARY_COVERAGE_INVALID")
+    if set(zone_types) != set(semantic_zone_ids) or set(adjacency) != set(
+        semantic_zone_ids
+    ):
+        raise RuntimeError("POST_VOLUME_SEMANTIC_OBSERVATION_KEYS_INVALID")
+    expected_type_by_id = {
+        record["zone_id"]: semantic_zone_type(record["role"])
+        for record in records
+    }
+    if zone_types != expected_type_by_id:
+        raise RuntimeError("POST_VOLUME_SEMANTIC_ZONE_TYPES_INVALID")
+    if any(adjacency[zone_id] != cell_zone_ids for zone_id in semantic_zone_ids):
+        raise RuntimeError("POST_VOLUME_SEMANTIC_SINGLE_FLUID_ADJACENCY_INVALID")
+    return {
+        "role_counts": summary["role_counts"],
+        "semantic_zone_count": SOURCE_BOUNDARY_FACE_COUNT,
+        "boundary_coverage_count": len(boundary_zone_ids),
+        "unique_mapping_ok": True,
+        "generic_boundary_collapse": False,
+        "single_fluid_adjacency_ok": True,
+    }
 
 
 def one_face_zone(meshing_utilities: Any, point: list[float]) -> int:
@@ -800,6 +1024,8 @@ try:
     inlet_points = role_points(inventory, "INLET")
     outlet_points = role_points(inventory, "OUTLET")
     throat_query_points = throat_points(inventory)
+    boundary_blueprint = build_boundary_role_blueprint(inventory)
+    source_boundary_role_counts = dict(EXPECTED_BOUNDARY_ROLE_COUNTS)
     step_reimport_summary = (
         (producer.get("geometry") or {}).get("step_reimport_summary") or {}
     )
@@ -887,11 +1113,20 @@ try:
         "import_face_zone_inventory_completed",
         face_zone_count=len(imported_face_zone_ids),
     )
-    inlet_zone_ids = [one_face_zone(utilities, point) for point in inlet_points]
-    outlet_zone_ids = [one_face_zone(utilities, point) for point in outlet_points]
-    throat_zone_hits = [
-        one_face_zone(utilities, point) for point in throat_query_points
-    ]
+    pre_surface_semantic_records, pre_surface_semantic_summary = (
+        observe_semantic_zone_mapping(
+            utilities, boundary_blueprint, "PRE_SURFACE"
+        )
+    )
+    inlet_zone_ids = list(
+        pre_surface_semantic_summary["role_zone_ids"]["INLET"]
+    )
+    outlet_zone_ids = list(
+        pre_surface_semantic_summary["role_zone_ids"]["OUTLET"]
+    )
+    throat_zone_hits = list(
+        pre_surface_semantic_summary["role_zone_ids"]["ORIFICE_THROAT_WALL"]
+    )
     trace_checkpoint(
         "boundary_zone_queries_completed",
         inlet_zone_hits=inlet_zone_ids,
@@ -915,6 +1150,8 @@ try:
     result["assertions"]["boundary_roles_reconstructed"] = True
     if len(throat_zone_hits) != THROAT_COUNT:
         raise RuntimeError("THROAT_ZONE_HIT_COUNT_NOT_972")
+    if len(throat_zone_ids) != THROAT_COUNT:
+        raise RuntimeError("THROAT_ZONE_UNIQUE_COUNT_NOT_972")
     result["assertions"]["throat_roles_reconstructed_972"] = True
     imported_face_zone_names = zone_names_one_way(
         utilities, imported_face_zone_ids
@@ -947,6 +1184,23 @@ try:
     surface()
     result["assertions"]["surface_mesh"] = True
 
+    post_surface_semantic_records, post_surface_semantic_summary = (
+        observe_semantic_zone_mapping(
+            utilities, boundary_blueprint, "POST_SURFACE"
+        )
+    )
+    semantic_zone_names = [
+        record["zone_name"] for record in post_surface_semantic_records
+    ]
+    semantic_zone_types = [
+        semantic_zone_type(record["role"])
+        for record in post_surface_semantic_records
+    ]
+    semantic_old_zone_types = [
+        utilities.get_zone_type(zone_id=record["zone_id"])
+        for record in post_surface_semantic_records
+    ]
+
     workflow.describe_geometry.update_child_tasks(setup_type_changed=False)
     workflow.describe_geometry.setup_type = FLUID_ONLY_SETUP_TYPE
     workflow.describe_geometry.update_child_tasks(setup_type_changed=True)
@@ -961,36 +1215,26 @@ try:
     )
     workflow.describe_geometry()
 
-    workflow.update_boundaries.boundary_zone_list = (
-        inlet_zone_names + outlet_zone_names
-    )
-    workflow.update_boundaries.boundary_zone_type_list = (
-        ["velocity-inlet"] * len(inlet_zone_names) + ["pressure-outlet"]
-    )
-    workflow.update_boundaries.old_boundary_zone_list = (
-        inlet_zone_names + outlet_zone_names
-    )
-    workflow.update_boundaries.old_boundary_zone_type_list = (
-        ["wall"] * (len(inlet_zone_names) + len(outlet_zone_names))
-    )
+    workflow.update_boundaries.boundary_zone_list = semantic_zone_names
+    workflow.update_boundaries.boundary_zone_type_list = semantic_zone_types
+    workflow.update_boundaries.old_boundary_zone_list = semantic_zone_names
+    workflow.update_boundaries.old_boundary_zone_type_list = semantic_old_zone_types
     workflow.update_boundaries()
     observed_boundary_types = dict(
-        (zone_id, utilities.get_zone_type(zone_id=zone_id))
-        for zone_id in inlet_zone_ids + outlet_zone_ids
+        (record["zone_id"], utilities.get_zone_type(zone_id=record["zone_id"]))
+        for record in post_surface_semantic_records
     )
     trace_checkpoint(
         "boundary_zone_types_updated",
         observed_types=observed_boundary_types,
     )
     if any(
-        observed_boundary_types[zone_id] != "velocity-inlet"
-        for zone_id in inlet_zone_ids
-    ) or any(
-        observed_boundary_types[zone_id] != "pressure-outlet"
-        for zone_id in outlet_zone_ids
+        observed_boundary_types[record["zone_id"]]
+        != semantic_zone_type(record["role"])
+        for record in post_surface_semantic_records
     ):
         raise RuntimeError(
-            "BOUNDARY_ZONE_TYPES_NOT_4_VELOCITY_1_PRESSURE:{}".format(
+            "BOUNDARY_SEMANTIC_ZONE_TYPES_NOT_EXACT:{}".format(
                 observed_boundary_types
             )
         )
@@ -1343,6 +1587,17 @@ try:
 
     all_face_names = zone_names_one_way(utilities, all_face_zone_ids)
     all_face_name_by_id = dict(zip(all_face_zone_ids, all_face_names))
+    post_volume_semantic_records, post_volume_semantic_summary = (
+        observe_semantic_zone_mapping(
+            utilities, boundary_blueprint, "POST_VOLUME"
+        )
+    )
+    post_volume_semantic_role_ids = post_volume_semantic_summary[
+        "role_zone_ids"
+    ]
+    post_volume_semantic_role_names = post_volume_semantic_summary[
+        "role_zone_names"
+    ]
     post_volume_inlet_observation = optional_int_sequence(
         utilities.get_zones(type_name="velocity-inlet"),
         "POST_VOLUME_INLET",
@@ -1351,25 +1606,32 @@ try:
         utilities.get_zones(type_name="pressure-outlet"),
         "POST_VOLUME_OUTLET",
     )
-    post_volume_inlet_zone_ids = post_volume_inlet_observation["values"]
-    post_volume_outlet_zone_ids = post_volume_outlet_observation["values"]
+    post_volume_inlet_zone_ids = sorted(
+        post_volume_semantic_role_ids["INLET"]
+    )
+    post_volume_outlet_zone_ids = sorted(
+        post_volume_semantic_role_ids["OUTLET"]
+    )
     post_volume_throat_zone_ids = sorted(
-        face_zone_id
-        for face_zone_id, name in all_face_name_by_id.items()
-        if name in set(throat_zone_names)
+        post_volume_semantic_role_ids["ORIFICE_THROAT_WALL"]
     )
     post_volume_role_resolution_ok = (
         not post_volume_inlet_observation["raw_none"]
         and not post_volume_outlet_observation["raw_none"]
+        and sorted(post_volume_inlet_observation["values"])
+        == post_volume_inlet_zone_ids
+        and sorted(post_volume_outlet_observation["values"])
+        == post_volume_outlet_zone_ids
         and len(post_volume_inlet_zone_ids) == 4
         and len(post_volume_outlet_zone_ids) == 1
         and not set(post_volume_inlet_zone_ids) & set(post_volume_outlet_zone_ids)
         and len(post_volume_throat_zone_ids) == THROAT_COUNT
-        and {
-            all_face_name_by_id[face_zone_id]
-            for face_zone_id in post_volume_throat_zone_ids
-        }
-        == set(throat_zone_names)
+        and post_volume_semantic_summary["semantic_zone_count"]
+        == SOURCE_BOUNDARY_FACE_COUNT
+        and post_volume_semantic_summary["role_counts"]
+        == EXPECTED_BOUNDARY_ROLE_COUNTS
+        and [record["zone_name"] for record in post_surface_semantic_records]
+        == [record["zone_name"] for record in post_volume_semantic_records]
     )
     trace_checkpoint(
         "post_volume_role_resolution_observed",
@@ -1377,6 +1639,8 @@ try:
         outlet_observation=post_volume_outlet_observation,
         throat_zone_names=throat_zone_names,
         throat_zone_ids=post_volume_throat_zone_ids,
+        semantic_role_zone_ids=post_volume_semantic_role_ids,
+        semantic_role_zone_names=post_volume_semantic_role_names,
         all_face_name_by_id=all_face_name_by_id,
         resolution_ok=post_volume_role_resolution_ok,
     )
@@ -1420,6 +1684,32 @@ try:
         and set(record["adjacent_cell_zone_ids"]).issubset(set(cell_zone_ids))
         and record["face_zone_id"] not in interior_face_zone_set
     ]
+    boundary_zone_ids = sorted(
+        record["face_zone_id"]
+        for record in all_face_adjacency_records
+        if len(record["adjacent_cell_zone_ids"]) == 1
+        and record["adjacent_cell_zone_ids"][0] in set(cell_zone_ids)
+    )
+    semantic_zone_id_set = {
+        record["zone_id"] for record in post_volume_semantic_records
+    }
+    semantic_zone_types = {
+        record["zone_id"]: utilities.get_zone_type(zone_id=record["zone_id"])
+        for record in post_volume_semantic_records
+    }
+    semantic_zone_adjacency = {
+        record["face_zone_id"]: record["adjacent_cell_zone_ids"]
+        for record in all_face_adjacency_records
+        if record["face_zone_id"] in semantic_zone_id_set
+    }
+    final_boundary_semantics = validate_final_boundary_semantics(
+        post_volume_semantic_records,
+        boundary_zone_ids,
+        semantic_zone_types,
+        semantic_zone_adjacency,
+        cell_zone_ids,
+    )
+    result["assertions"]["boundary_semantics_preserved_1078"] = True
 
     launch_transcripts = sorted(JOB_DIR.glob("fluent-*.trn"))
     launch_transcript_text = (
@@ -1577,6 +1867,16 @@ try:
         "step_sha256": step_hash,
         "staged_step_sha256_before": staged_hash_before,
         "staged_step_sha256_after": sha256_file(STAGED_STEP_PATH),
+        "source_boundary_blueprint": boundary_blueprint,
+        "source_boundary_face_count": SOURCE_BOUNDARY_FACE_COUNT,
+        "source_boundary_role_counts": source_boundary_role_counts,
+        "pre_surface_semantic_records": pre_surface_semantic_records,
+        "pre_surface_semantic_summary": pre_surface_semantic_summary,
+        "post_surface_semantic_records": post_surface_semantic_records,
+        "post_surface_semantic_summary": post_surface_semantic_summary,
+        "post_volume_semantic_records": post_volume_semantic_records,
+        "post_volume_semantic_summary": post_volume_semantic_summary,
+        "final_boundary_semantics": final_boundary_semantics,
         "inlet_zone_ids": inlet_zone_ids,
         "inlet_zone_names": inlet_zone_names,
         "outlet_zone_ids": outlet_zone_ids,
@@ -1765,6 +2065,32 @@ try:
     result["mesh_evidence"] = {
         "cell_count": cell_count,
         "node_count": node_count,
+        "source_boundary_face_count": SOURCE_BOUNDARY_FACE_COUNT,
+        "source_boundary_role_counts": source_boundary_role_counts,
+        "pre_volume_semantic_zone_count": post_surface_semantic_summary[
+            "semantic_zone_count"
+        ],
+        "pre_volume_unique_mapping_ok": post_surface_semantic_summary[
+            "unique_mapping_ok"
+        ],
+        "post_volume_boundary_role_counts": final_boundary_semantics[
+            "role_counts"
+        ],
+        "post_volume_semantic_zone_count": final_boundary_semantics[
+            "semantic_zone_count"
+        ],
+        "post_volume_boundary_coverage_count": final_boundary_semantics[
+            "boundary_coverage_count"
+        ],
+        "post_volume_unique_mapping_ok": final_boundary_semantics[
+            "unique_mapping_ok"
+        ],
+        "post_volume_generic_boundary_collapse": final_boundary_semantics[
+            "generic_boundary_collapse"
+        ],
+        "post_volume_single_fluid_adjacency_ok": final_boundary_semantics[
+            "single_fluid_adjacency_ok"
+        ],
         "cell_zone_count": len(cell_zone_ids),
         "cell_zone_ids": cell_zone_ids,
         "cell_zone_types": {

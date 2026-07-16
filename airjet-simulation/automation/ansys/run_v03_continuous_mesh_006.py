@@ -25,7 +25,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "9bef90348a5cd430d430471c2bb8407caae875beb97913e52c9f92409e66d445"
+CONSUMER_SCRIPT_SHA256 = "c8b829d425a2df3a0c338141f287448f4ac224c2fabcd5a93b8e7fe28426774f"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -38,6 +38,7 @@ CONSUMER_ASSERTIONS = {
     "watertight_step_import",
     "boundary_roles_reconstructed",
     "throat_roles_reconstructed_972",
+    "boundary_semantics_preserved_1078",
     "throat_local_sizing_contract",
     "surface_mesh",
     "flow_cell_zone_inventory",
@@ -52,6 +53,16 @@ CONSUMER_ASSERTIONS = {
     "mesh_write_hash",
     "claim_boundaries",
 }
+BOUNDARY_ROLE_COUNTS = {
+    "INLET": 4,
+    "OUTLET": 1,
+    "HEAT_WALL": 1,
+    "MEMBRANE_TOP": 12,
+    "MEMBRANE_BOTTOM": 12,
+    "ORIFICE_THROAT_WALL": 972,
+    "WALL_CONTINUOUS_UNCLASSIFIED": 76,
+}
+BOUNDARY_FACE_COUNT = 1078
 PREDECESSOR_ARTIFACTS = (
     "v03_continuous_fluid_producer.json",
     "product_continuous_fluid.step",
@@ -368,6 +379,16 @@ def validate_region_inventory(inventory: Any) -> None:
         raise RuntimeError("CONSUMER_REGION_CLASSIFICATION_INVALID")
 
 
+def exact_boundary_role_counts(value: Any) -> bool:
+    return (
+        isinstance(value, dict)
+        and set(value) == set(BOUNDARY_ROLE_COUNTS)
+        and all(type(count) is int for count in value.values())
+        and value == BOUNDARY_ROLE_COUNTS
+        and sum(value.values()) == BOUNDARY_FACE_COUNT
+    )
+
+
 def validate_connected_mesh_evidence(evidence: Any) -> None:
     expected_keys = {
         "cell_count",
@@ -387,6 +408,16 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         "post_volume_inlet_zone_count",
         "post_volume_outlet_zone_count",
         "post_volume_throat_zone_count",
+        "source_boundary_face_count",
+        "source_boundary_role_counts",
+        "pre_volume_semantic_zone_count",
+        "pre_volume_unique_mapping_ok",
+        "post_volume_boundary_role_counts",
+        "post_volume_semantic_zone_count",
+        "post_volume_boundary_coverage_count",
+        "post_volume_unique_mapping_ok",
+        "post_volume_generic_boundary_collapse",
+        "post_volume_single_fluid_adjacency_ok",
         "throat_face_adjacency",
         "throat_face_adjacency_ok",
         "anchor_zone_ids",
@@ -430,6 +461,29 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
     }
     if not isinstance(evidence, dict) or set(evidence) != expected_keys:
         raise RuntimeError("CONSUMER_MESH_EVIDENCE_SCHEMA_INVALID")
+    if (
+        type(evidence.get("source_boundary_face_count")) is not int
+        or evidence["source_boundary_face_count"] != BOUNDARY_FACE_COUNT
+        or not exact_boundary_role_counts(
+            evidence.get("source_boundary_role_counts")
+        )
+        or type(evidence.get("pre_volume_semantic_zone_count")) is not int
+        or evidence["pre_volume_semantic_zone_count"] != BOUNDARY_FACE_COUNT
+        or evidence.get("pre_volume_unique_mapping_ok") is not True
+        or not exact_boundary_role_counts(
+            evidence.get("post_volume_boundary_role_counts")
+        )
+        or type(evidence.get("post_volume_semantic_zone_count")) is not int
+        or evidence["post_volume_semantic_zone_count"] != BOUNDARY_FACE_COUNT
+        or type(evidence.get("post_volume_boundary_coverage_count")) is not int
+        or evidence["post_volume_boundary_coverage_count"]
+        != BOUNDARY_FACE_COUNT
+        or evidence.get("post_volume_unique_mapping_ok") is not True
+        or evidence.get("post_volume_generic_boundary_collapse") is not False
+        or evidence.get("post_volume_single_fluid_adjacency_ok") is not True
+        or sum(BOUNDARY_ROLE_COUNTS.values()) != BOUNDARY_FACE_COUNT
+    ):
+        raise RuntimeError("CONSUMER_BOUNDARY_SEMANTICS_1078_INVALID")
     if (
         (evidence.get("cell_count") != -1 and not positive_int(evidence.get("cell_count"), 1_000_000))
         or (evidence.get("node_count") != -1 and not positive_int(evidence.get("node_count"), 1_000_000))

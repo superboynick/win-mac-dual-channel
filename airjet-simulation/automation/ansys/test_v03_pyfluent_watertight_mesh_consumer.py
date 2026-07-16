@@ -49,7 +49,8 @@ def test_exact_profile_and_assertion_contract() -> None:
     }
     assert len(values["PRODUCER_ASSERTIONS"]) == 17
     assertions = values["ASSERTION_NAMES"]
-    assert len(assertions) == 20 and len(set(assertions)) == 20
+    assert len(assertions) == 21 and len(set(assertions)) == 21
+    assert "boundary_semantics_preserved_1078" in assertions
     assert values["STUDENT_ENTITY_LIMIT"] == 1_000_000
     assert values["THROAT_COUNT"] == 972
     assert values["SURFACE_MIN_SIZE_MM"] == 0.05
@@ -156,7 +157,7 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
 
 
 def test_fluid_only_region_route_is_explicit_and_ordered() -> None:
-    boundary_guard = SOURCE.index("BOUNDARY_ZONE_TYPES_NOT_4_VELOCITY_1_PRESSURE")
+    boundary_guard = SOURCE.index("BOUNDARY_SEMANTIC_ZONE_TYPES_NOT_EXACT")
     describe = SOURCE.index(
         '"The geometry consists of only fluid regions with no voids"'
     )
@@ -230,6 +231,215 @@ def load_contract_helpers() -> dict[str, Any]:
         namespace,
     )
     return namespace
+
+
+def load_semantic_helpers() -> dict[str, Any]:
+    helper_names = {
+        "build_boundary_role_blueprint",
+        "validate_semantic_zone_mapping",
+        "semantic_zone_type",
+        "validate_final_boundary_semantics",
+    }
+    nodes = [
+        node
+        for node in TREE.body
+        if isinstance(node, ast.FunctionDef) and node.name in helper_names
+    ]
+    assert {node.name for node in nodes} == helper_names
+    role_counts = {
+        "INLET": 4,
+        "OUTLET": 1,
+        "HEAT_WALL": 1,
+        "MEMBRANE_TOP": 12,
+        "MEMBRANE_BOTTOM": 12,
+        "ORIFICE_THROAT_WALL": 972,
+        "WALL_CONTINUOUS_UNCLASSIFIED": 76,
+    }
+    namespace = {
+        "Any": Any,
+        "math": __import__("math"),
+        "THROAT_RADIUS_MM": 0.125,
+        "BOUNDARY_ROLE_ORDER": tuple(role_counts),
+        "EXPECTED_BOUNDARY_ROLE_COUNTS": role_counts,
+        "SOURCE_BOUNDARY_FACE_COUNT": 1078,
+    }
+    module = ast.Module(body=nodes, type_ignores=[])
+    exec(
+        compile(ast.fix_missing_locations(module), str(SOURCE_PATH), "exec"),
+        namespace,
+    )
+    return namespace
+
+
+def semantic_source_fixture() -> dict[str, Any]:
+    role_counts = {
+        "INLET": 4,
+        "OUTLET": 1,
+        "HEAT_WALL": 1,
+        "MEMBRANE_TOP": 12,
+        "MEMBRANE_BOTTOM": 12,
+        "ORIFICE_THROAT_WALL": 972,
+        "WALL_CONTINUOUS_UNCLASSIFIED": 76,
+    }
+    faces = []
+    index = 0
+    for role, count in role_counts.items():
+        for _ in range(count):
+            x = float(index + 1)
+            faces.append(
+                {
+                    "area_mm2": x,
+                    "bbox_max_mm": [x + 0.25, 1.0, 1.0],
+                    "bbox_min_mm": [x - 0.25, 0.0, 0.0],
+                    "body_name": "AJM006_V03_FLUID_CONTINUOUS",
+                    "center_mm": [x, 0.5, 0.5],
+                    "classification": role,
+                    "edge_count": 4,
+                }
+            )
+            index += 1
+    return {"continuous_faces": faces}
+
+
+def semantic_mapping_fixture(blueprint: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "source_face_index": record["source_face_index"],
+            "role": record["role"],
+            "zone_id": record["source_face_index"] + 1,
+            "zone_name": "ajm_semantic_{:04d}".format(record["source_face_index"]),
+        }
+        for record in blueprint
+    ]
+
+
+def test_c7_source_blueprint_and_unique_mapping_contract() -> None:
+    helpers = load_semantic_helpers()
+    source = semantic_source_fixture()
+    blueprint = helpers["build_boundary_role_blueprint"](source)
+    assert len(blueprint) == 1078
+    assert blueprint[30]["role"] == "ORIFICE_THROAT_WALL"
+    assert blueprint[30]["probe_point_mm"][0] == 31.125
+    mapping = semantic_mapping_fixture(blueprint)
+    summary = helpers["validate_semantic_zone_mapping"](mapping, "TEST")
+    assert summary["semantic_zone_count"] == 1078
+    assert summary["unique_mapping_ok"] is True
+    assert summary["role_counts"]["ORIFICE_THROAT_WALL"] == 972
+
+    missing = copy.deepcopy(source)
+    missing["continuous_faces"].pop()
+    expect_runtime_error(
+        helpers["build_boundary_role_blueprint"],
+        missing,
+        marker="SOURCE_BOUNDARY_FACE_COUNT_NOT_1078",
+    )
+    wrong_role = copy.deepcopy(source)
+    wrong_role["continuous_faces"][0]["classification"] = "GENERIC_WALL"
+    expect_runtime_error(
+        helpers["build_boundary_role_blueprint"],
+        wrong_role,
+        marker="SOURCE_BOUNDARY_ROLE_INVALID",
+    )
+    duplicate = copy.deepcopy(source)
+    duplicate["continuous_faces"][1] = copy.deepcopy(
+        duplicate["continuous_faces"][0]
+    )
+    expect_runtime_error(
+        helpers["build_boundary_role_blueprint"],
+        duplicate,
+        marker="SOURCE_BOUNDARY_FINGERPRINT_DUPLICATE",
+    )
+
+    collapsed = copy.deepcopy(mapping)
+    collapsed[-1]["zone_id"] = collapsed[0]["zone_id"]
+    expect_runtime_error(
+        helpers["validate_semantic_zone_mapping"],
+        collapsed,
+        "TEST",
+        marker="TEST_GENERIC_BOUNDARY_COLLAPSE",
+    )
+    duplicate_name = copy.deepcopy(mapping)
+    duplicate_name[-1]["zone_name"] = duplicate_name[0]["zone_name"]
+    expect_runtime_error(
+        helpers["validate_semantic_zone_mapping"],
+        duplicate_name,
+        "TEST",
+        marker="TEST_SEMANTIC_ZONE_NAME_DUPLICATE",
+    )
+
+
+def test_c7_final_boundary_coverage_and_single_fluid_adjacency() -> None:
+    helpers = load_semantic_helpers()
+    blueprint = helpers["build_boundary_role_blueprint"](
+        semantic_source_fixture()
+    )
+    mapping = semantic_mapping_fixture(blueprint)
+    boundary_ids = list(range(1, 1079))
+    zone_types = {
+        record["zone_id"]: helpers["semantic_zone_type"](record["role"])
+        for record in mapping
+    }
+    adjacency = {zone_id: [2001] for zone_id in boundary_ids}
+    summary = helpers["validate_final_boundary_semantics"](
+        mapping, boundary_ids, zone_types, adjacency, [2001]
+    )
+    assert summary == {
+        "role_counts": {
+            "INLET": 4,
+            "OUTLET": 1,
+            "HEAT_WALL": 1,
+            "MEMBRANE_TOP": 12,
+            "MEMBRANE_BOTTOM": 12,
+            "ORIFICE_THROAT_WALL": 972,
+            "WALL_CONTINUOUS_UNCLASSIFIED": 76,
+        },
+        "semantic_zone_count": 1078,
+        "boundary_coverage_count": 1078,
+        "unique_mapping_ok": True,
+        "generic_boundary_collapse": False,
+        "single_fluid_adjacency_ok": True,
+    }
+    expect_runtime_error(
+        helpers["validate_final_boundary_semantics"],
+        mapping,
+        boundary_ids[:-1],
+        zone_types,
+        adjacency,
+        [2001],
+        marker="POST_VOLUME_SEMANTIC_BOUNDARY_COVERAGE_INVALID",
+    )
+    wrong_adjacency = copy.deepcopy(adjacency)
+    wrong_adjacency[1] = [2001, 2002]
+    expect_runtime_error(
+        helpers["validate_final_boundary_semantics"],
+        mapping,
+        boundary_ids,
+        zone_types,
+        wrong_adjacency,
+        [2001],
+        marker="POST_VOLUME_SEMANTIC_SINGLE_FLUID_ADJACENCY_INVALID",
+    )
+
+
+def test_c7_runtime_integration_and_compact_evidence_fields_are_pinned() -> None:
+    for required in (
+        "build_boundary_role_blueprint(inventory)",
+        'observe_semantic_zone_mapping(\n            utilities, boundary_blueprint, "PRE_SURFACE"',
+        'observe_semantic_zone_mapping(\n            utilities, boundary_blueprint, "POST_SURFACE"',
+        'observe_semantic_zone_mapping(\n            utilities, boundary_blueprint, "POST_VOLUME"',
+        'result["assertions"]["boundary_semantics_preserved_1078"] = True',
+        '"source_boundary_face_count": SOURCE_BOUNDARY_FACE_COUNT',
+        '"source_boundary_role_counts": source_boundary_role_counts',
+        '"pre_volume_semantic_zone_count"',
+        '"pre_volume_unique_mapping_ok"',
+        '"post_volume_boundary_role_counts"',
+        '"post_volume_semantic_zone_count"',
+        '"post_volume_boundary_coverage_count"',
+        '"post_volume_unique_mapping_ok"',
+        '"post_volume_generic_boundary_collapse"',
+        '"post_volume_single_fluid_adjacency_ok"',
+    ):
+        assert required in SOURCE
 
 
 def expect_runtime_error(function, *args, marker: str) -> None:

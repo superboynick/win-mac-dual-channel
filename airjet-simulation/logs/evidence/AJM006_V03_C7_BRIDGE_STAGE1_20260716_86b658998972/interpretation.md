@@ -20,10 +20,14 @@ region plus eleven voids, retained one cell zone named
 `ajm006_v03_fluid_continuous`, and generated 34,883 cells with minimum
 orthogonal quality 0.52909493. The mesh has SHA256
 `9ecc0b2883e91a3fc1cd850edd825fdad3de19f880214e4493c61559891e7ce0` and
-8,209,258 bytes. Independent HDF5 inspection found 38,593 nodes and bounds
-`X=[-10.875,10.875]`, `Y=[-17.75,20.75]`,
-`Z=[1.2675000429,2.7999999523] mm`, proving that the retained zone is the
-frozen full-product main-flow domain rather than an actuator-gap cavity.
+8,209,258 bytes. The first bbox check incorrectly included unused CAD and
+curvature node zones. A corrected HDF5 gate followed final face connectivity
+to the nodes actually used by the cell zone and found 202,480 used-node
+references with bounds `X=[-10.75,-3.75]`, `Y=[-14.375,-7.375]`,
+`Z=[1.6575,1.9325] mm`. Those bounds identify one actuator-gap tile, not the
+frozen full-product main-flow domain. The final HDF5 also contains only one
+interior and one generic wall face zone. Therefore the WTM result is
+`REGION_SELECTION_FAIL_ACTUATOR_GAP` and `BOUNDARY_SEMANTICS_COLLAPSED`.
 
-This is preliminary geometry and mesh-route evidence only. No solver,
+Only the preliminary Stage 1 geometry passed. The WTM route failed. No solver,
 physics, calibration, formal 006 completion, or P1-P6 Gate was run or passed.
