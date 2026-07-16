@@ -259,3 +259,9 @@ Check for leaks and self-intersections in the mesh, if these are not expected.
 -------------------- -------------------- --------------------
     external baffles                    1                (323)
 
+    done.
+---------------- Region identification of product_continuous_fluid-ajm006_v03_fluid_continuous complete in  0.04 minutes. All Regions are displayed. 
+
+---- Warning--- One or more zones (ajm006_v03_fluid_continuous:1) are not part of a volumetric region.
+
+---------------- Regions Updated
