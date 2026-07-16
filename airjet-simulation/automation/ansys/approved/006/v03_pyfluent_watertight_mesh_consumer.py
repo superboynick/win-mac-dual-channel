@@ -987,13 +987,18 @@ try:
         )
 
     mesh_objects = list(utilities.get_objects(filter="*"))
+    mesh_object_candidates = [
+        name
+        for name in mesh_objects
+        if isinstance(name, str) and name and not name.startswith("origin-")
+    ]
     if (
-        len(mesh_objects) != 1
-        or not isinstance(mesh_objects[0], str)
-        or not mesh_objects[0]
+        len(mesh_object_candidates) != 1
+        or f"origin-{mesh_object_candidates[0]}" not in mesh_objects
+        or len(mesh_objects) != 2
     ):
         raise RuntimeError(f"MATERIAL_POINT_MESH_OBJECT_NOT_UNIQUE:{mesh_objects}")
-    mesh_object_name = mesh_objects[0]
+    mesh_object_name = mesh_object_candidates[0]
     main_flow_seed_point = [
         float(inlet_points[0][0]),
         float(inlet_points[0][1]),

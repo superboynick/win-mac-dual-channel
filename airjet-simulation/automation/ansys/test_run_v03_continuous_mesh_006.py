@@ -237,7 +237,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
 
 def test_consumer_report_accepts_exact_contract() -> None:
     assert runner.CONSUMER_SCRIPT_SHA256 == (
-        "5db1988d7178ab142880e5d83a0579ef787de0f20031ec89679cf37b43623b46"
+        "d24e466c04ff65f16a2cf71c9d93c6f5c4d39b0877bbc4a8bb73fce281afd2ec"
     )
     report, state, manifest = valid_report_state_manifest()
     assert runner.validate_consumer_report(manifest, state, HEAD) == report
