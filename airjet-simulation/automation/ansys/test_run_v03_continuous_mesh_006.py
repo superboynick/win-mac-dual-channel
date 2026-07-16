@@ -199,7 +199,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "pre_update_region_inventory": valid_region_inventory(),
             "post_update_region_inventory": valid_region_inventory(),
             "region_transition": {
-                "route": "FLUID_ONLY_NO_VOID_NO_REGION_EXTRACTION",
+                "route": "FLUID_ONLY_MATERIAL_POINT_REGION_SELECTION",
                 "main_flow_region_count": 1,
                 "non_flow_region_count": 0,
                 "unchanged": True,
@@ -237,7 +237,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
 
 def test_consumer_report_accepts_exact_contract() -> None:
     assert runner.CONSUMER_SCRIPT_SHA256 == (
-        "b21365f1b7741a43e9363b9dde1d5b044fbb604678a421362da18ddbeed0ce47"
+        "5db1988d7178ab142880e5d83a0579ef787de0f20031ec89679cf37b43623b46"
     )
     report, state, manifest = valid_report_state_manifest()
     assert runner.validate_consumer_report(manifest, state, HEAD) == report

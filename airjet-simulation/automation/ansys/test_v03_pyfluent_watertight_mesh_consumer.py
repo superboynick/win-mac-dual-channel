@@ -132,7 +132,10 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.update_boundaries.old_boundary_zone_list",
         "workflow.update_boundaries.old_boundary_zone_type_list",
         '"boundary_zone_types_updated"',
-        '"fluid_only_no_void_region_route_selected"',
+        "session.tui.material_point.create_material_point(",
+        "session.tui.objects.volumetric_regions.compute(",
+        "session.tui.objects.volumetric_regions.change_type(",
+        '"fluid_only_material_point_region_route_selected"',
         "workflow.create_volume_mesh_wtm",
         'volume_mesh.volume_fill = "poly-hexcore"',
         "volume_mesh.volume_fill_controls.hex_max_cell_length = VOLUME_MAX_SIZE_MM",
@@ -156,17 +159,42 @@ def test_fluid_only_region_route_is_explicit_and_ordered() -> None:
     describe = SOURCE.index(
         '"The geometry consists of only fluid regions with no voids"'
     )
-    route_trace = SOURCE.index('"fluid_only_no_void_region_route_selected"')
+    material_point = SOURCE.index(
+        "session.tui.material_point.create_material_point("
+    )
+    compute_regions = SOURCE.index(
+        "session.tui.objects.volumetric_regions.compute("
+    )
+    select_main = SOURCE.rindex(
+        "session.tui.objects.volumetric_regions.change_type("
+    )
+    route_trace = SOURCE.index(
+        '"fluid_only_material_point_region_route_selected"'
+    )
     volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
     inventory = SOURCE.index("fluid_only_inventory = {")
-    assert describe < boundary_guard < route_trace < volume_mesh < inventory
+    assert (
+        describe
+        < boundary_guard
+        < material_point
+        < compute_regions
+        < select_main
+        < route_trace
+        < volume_mesh
+        < inventory
+    )
     for required in (
         '"workflow.describe_geometry.setup_type"',
         '"utilities.get_cell_zones"',
         '"utilities.get_zone_type"',
         '"meshing_utilities.convert_zone_ids_to_name_strings"',
         '"non_flow_region_count": 0',
-        '"route": "FLUID_ONLY_NO_VOID_NO_REGION_EXTRACTION"',
+        '"route": "FLUID_ONLY_MATERIAL_POINT_REGION_SELECTION"',
+        'MAIN_FLOW_MATERIAL_POINT_NAME = "ajm-main-flow"',
+        'utilities.get_objects(filter="*")',
+        'utilities.get_regions(object_name=mesh_object_name, filter="*")',
+        'mesh_object_name, ["*"], "dead"',
+        'mesh_object_name, [MAIN_FLOW_MATERIAL_POINT_NAME], "fluid"',
         "setup_type=FLUID_ONLY_SETUP_TYPE",
         "create_regions_executed=False",
         "update_regions_executed=False",

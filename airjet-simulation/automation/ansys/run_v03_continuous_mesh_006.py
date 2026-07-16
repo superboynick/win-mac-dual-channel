@@ -25,7 +25,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "b21365f1b7741a43e9363b9dde1d5b044fbb604678a421362da18ddbeed0ce47"
+CONSUMER_SCRIPT_SHA256 = "5db1988d7178ab142880e5d83a0579ef787de0f20031ec89679cf37b43623b46"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -647,7 +647,7 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         or region_trans.get("main_flow_region_count") != 1
         or region_trans
         != {
-            "route": "FLUID_ONLY_NO_VOID_NO_REGION_EXTRACTION",
+            "route": "FLUID_ONLY_MATERIAL_POINT_REGION_SELECTION",
             "main_flow_region_count": 1,
             "non_flow_region_count": 0,
             "unchanged": True,
@@ -678,7 +678,7 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         pre_inv != post_inv
         or region_trans
         != {
-            "route": "FLUID_ONLY_NO_VOID_NO_REGION_EXTRACTION",
+            "route": "FLUID_ONLY_MATERIAL_POINT_REGION_SELECTION",
             "main_flow_region_count": 1,
             "non_flow_region_count": 0,
             "unchanged": True,
