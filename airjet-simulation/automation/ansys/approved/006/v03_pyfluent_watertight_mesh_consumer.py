@@ -1548,6 +1548,7 @@ try:
         unresolved_all_face_adjacency=unresolved_all_face_adjacency,
         two_fluid_non_interior=two_fluid_non_interior,
     )
+    integrity_unavailable = False
     try:
         free_faces = int(
             utilities.get_free_faces_count(face_zone_id_list=all_face_zone_ids)
@@ -1594,6 +1595,7 @@ try:
         min_orthogonal_quality = -1.0
         average_orthogonal_quality = -1.0
         max_orthogonal_quality = -1.0
+        integrity_unavailable = True
 
     session.transcript.start(str(TRANSCRIPT_PATH), write_to_stdout=False)
     transcript_started = True
@@ -1627,6 +1629,7 @@ try:
         raise RuntimeError(
             f"STUDENT_LIMIT_UNPROVEN_OR_EXCEEDED:{cell_count}:{node_count}"
     )
+
     result["assertions"]["student_limit_guard"] = True
 
     occupancy_zone_counts: dict[str, int] = {}
