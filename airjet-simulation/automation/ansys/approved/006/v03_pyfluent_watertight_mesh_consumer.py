@@ -41,12 +41,14 @@ FLUENT_EXE = Path(
 )
 STAGING_DIR = JOB_DIR / "input" / "staging"
 STAGED_STEP_PATH = STAGING_DIR / "product_continuous_fluid.step"
+STAGED_NATIVE_PATH = STAGING_DIR / "product_continuous_fluid.scdocx"
 
 PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 PREDECESSOR_PROFILE_ID = "ajm006-spaceclaim-v03-continuous-throat-pilot-v1"
 PREDECESSOR_REPORT = "v03_continuous_fluid_producer.json"
 PREDECESSOR_ARTIFACTS = {
     "v03_continuous_fluid_producer.json",
+    "product_continuous_fluid.scdocx",
     "product_continuous_fluid.step",
     "v03_step_reimport.json",
     "v03_throat_inventory.json",
@@ -74,9 +76,9 @@ PRODUCER_ASSERTIONS = {
 ASSERTION_NAMES = (
     "predecessor_identity",
     "predecessor_immutable",
-    "exact_step_byte_staging",
+    "exact_native_and_step_byte_staging",
     "fluent_v261_meshing_health",
-    "watertight_step_import",
+    "watertight_native_import",
     "boundary_roles_reconstructed",
     "boundary_semantics_preserved_1078",
     "throat_roles_reconstructed_972",
@@ -298,7 +300,14 @@ def validate_predecessor() -> tuple[
     ):
         raise RuntimeError("PREDECESSOR_ASSERTIONS_NOT_EXACT_PASS")
     producer_step = (producer.get("files") or {}).get("continuous_step") or {}
+    producer_native = (producer.get("files") or {}).get("continuous_native") or {}
     step_path = PREDECESSOR_DIR / "product_continuous_fluid.step"
+    native_path = PREDECESSOR_DIR / "product_continuous_fluid.scdocx"
+    native_summary = (producer.get("geometry") or {}).get("native_reopen_summary") or {}
+    native_fingerprint = native_summary.get("body_fingerprint") or {}
+    native_throat_inventory = (
+        (producer.get("geometry") or {}).get("native_throat_inventory") or {}
+    )
     if (
         producer_step.get("sha256") != sha256_file(step_path)
         or producer_step.get("size") != step_path.stat().st_size
@@ -311,6 +320,18 @@ def validate_predecessor() -> tuple[
         != THROAT_COUNT
     ):
         raise RuntimeError("PREDECESSOR_STEP_EVIDENCE_INVALID")
+    if (
+        producer_native.get("sha256") != sha256_file(native_path)
+        or producer_native.get("size") != native_path.stat().st_size
+        or native_summary.get("body_count") != 1
+        or native_summary.get("open_success") is not True
+        or native_fingerprint.get("face_count") != SOURCE_BOUNDARY_FACE_COUNT
+        or native_fingerprint.get("is_closed") is not True
+        or native_fingerprint.get("is_manifold") is not True
+        or native_throat_inventory.get("candidate_face_count") != THROAT_COUNT
+        or native_throat_inventory.get("pass") is not True
+    ):
+        raise RuntimeError("PREDECESSOR_NATIVE_EVIDENCE_INVALID")
     return manifest, producer, inventory, snapshot
 
 
@@ -1065,6 +1086,7 @@ result: dict[str, Any] = {
         "throat_local_size_mm": THROAT_LOCAL_SIZE_MM,
         "volume_max_size_mm": VOLUME_MAX_SIZE_MM,
         "resolution_class": "STUDENT_COARSE_MAIN_FLOW_REGION_C5",
+        "cad_import_source": "NATIVE_SCDOCX_BOUND_TO_SIGNED_PREDECESSOR",
         "cad_one_zone_per": "face",
         "wall_to_internal": False,
         "max_expected_flow_cell_zones": MAX_EXPECTED_FLOW_CELL_ZONES,
@@ -1095,6 +1117,7 @@ try:
 
     STAGING_DIR.mkdir(parents=True, exist_ok=False)
     source_step = PREDECESSOR_DIR / "product_continuous_fluid.step"
+    source_native = PREDECESSOR_DIR / "product_continuous_fluid.scdocx"
     trace_checkpoint("step_copy_started", source_size=source_step.stat().st_size)
     shutil.copyfile(source_step, STAGED_STEP_PATH)
     trace_checkpoint("step_copy_completed", staged_size=STAGED_STEP_PATH.stat().st_size)
@@ -1109,25 +1132,39 @@ try:
         or STAGED_STEP_PATH.stat().st_size != source_step.stat().st_size
     ):
         raise RuntimeError("STAGED_STEP_NOT_BYTE_IDENTICAL")
-    result["assertions"]["exact_step_byte_staging"] = True
+    trace_checkpoint("native_copy_started", source_size=source_native.stat().st_size)
+    shutil.copyfile(source_native, STAGED_NATIVE_PATH)
+    native_hash = sha256_file(source_native)
+    staged_native_hash_before = sha256_file(STAGED_NATIVE_PATH)
+    if (
+        staged_native_hash_before != native_hash
+        or STAGED_NATIVE_PATH.stat().st_size != source_native.stat().st_size
+    ):
+        raise RuntimeError("STAGED_NATIVE_NOT_BYTE_IDENTICAL")
+    trace_checkpoint(
+        "native_copy_completed",
+        staged_size=STAGED_NATIVE_PATH.stat().st_size,
+        sha256=staged_native_hash_before,
+    )
+    result["assertions"]["exact_native_and_step_byte_staging"] = True
 
     inlet_points = role_points(inventory, "INLET")
     outlet_points = role_points(inventory, "OUTLET")
     throat_query_points = throat_points(inventory)
     boundary_blueprint = build_boundary_role_blueprint(inventory)
     source_boundary_role_counts = dict(EXPECTED_BOUNDARY_ROLE_COUNTS)
-    step_reimport_summary = (
-        (producer.get("geometry") or {}).get("step_reimport_summary") or {}
+    native_reopen_summary = (
+        (producer.get("geometry") or {}).get("native_reopen_summary") or {}
     )
-    step_body_fingerprint = step_reimport_summary.get("body_fingerprint") or {}
-    expected_target_flow_volume_mm3 = step_body_fingerprint.get("volume_mm3")
+    native_body_fingerprint = native_reopen_summary.get("body_fingerprint") or {}
+    expected_target_flow_volume_mm3 = native_body_fingerprint.get("volume_mm3")
     if (
         isinstance(expected_target_flow_volume_mm3, bool)
         or not isinstance(expected_target_flow_volume_mm3, (int, float))
         or not math.isfinite(float(expected_target_flow_volume_mm3))
         or float(expected_target_flow_volume_mm3) <= 0.0
     ):
-        raise RuntimeError("PREDECESSOR_STEP_FLOW_VOLUME_INVALID")
+        raise RuntimeError("PREDECESSOR_NATIVE_FLOW_VOLUME_INVALID")
     expected_target_flow_volume_mm3 = float(expected_target_flow_volume_mm3)
     actuator_gap_center_points = []
     for cell_index in range(12):
@@ -1191,18 +1228,25 @@ try:
     trace_checkpoint("fluent_launch_completed")
     result["assertions"]["fluent_v261_meshing_health"] = True
     workflow = session.watertight()
-    workflow.import_geometry.file_name = str(STAGED_STEP_PATH)
+    workflow.import_geometry.file_name = str(STAGED_NATIVE_PATH)
     workflow.import_geometry.length_unit = "mm"
     workflow.import_geometry.cad_import_options.one_zone_per = "face"
     workflow.import_geometry()
-    result["assertions"]["watertight_step_import"] = True
+    result["assertions"]["watertight_native_import"] = True
 
     utilities = session.meshing_utilities
     imported_face_zone_ids = list(utilities.get_face_zones(filter="*"))
     trace_checkpoint(
         "import_face_zone_inventory_completed",
         face_zone_count=len(imported_face_zone_ids),
+        import_source="NATIVE_SCDOCX_BOUND_TO_SIGNED_PREDECESSOR",
     )
+    if len(imported_face_zone_ids) != SOURCE_BOUNDARY_FACE_COUNT:
+        raise RuntimeError(
+            "NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1078:{}".format(
+                len(imported_face_zone_ids)
+            )
+        )
     pre_surface_semantic_records, pre_surface_semantic_summary = (
         observe_semantic_zone_mapping(
             utilities, boundary_blueprint, "PRE_SURFACE"
@@ -1976,6 +2020,9 @@ try:
         "step_sha256": step_hash,
         "staged_step_sha256_before": staged_hash_before,
         "staged_step_sha256_after": sha256_file(STAGED_STEP_PATH),
+        "native_sha256": native_hash,
+        "staged_native_sha256_before": staged_native_hash_before,
+        "staged_native_sha256_after": sha256_file(STAGED_NATIVE_PATH),
         "source_boundary_blueprint": boundary_blueprint,
         "source_boundary_face_count": SOURCE_BOUNDARY_FACE_COUNT,
         "source_boundary_role_counts": source_boundary_role_counts,
@@ -2117,8 +2164,17 @@ try:
     staged_step_immutable = (
         step_hash == staged_hash_before == sha256_file(STAGED_STEP_PATH)
     )
-    if not predecessor_immutable or not staged_step_immutable:
-        raise RuntimeError("PREDECESSOR_OR_STAGED_STEP_MUTATED")
+    staged_native_immutable = (
+        native_hash
+        == staged_native_hash_before
+        == sha256_file(STAGED_NATIVE_PATH)
+    )
+    if (
+        not predecessor_immutable
+        or not staged_step_immutable
+        or not staged_native_immutable
+    ):
+        raise RuntimeError("PREDECESSOR_OR_STAGED_GEOMETRY_MUTATED")
     result["assertions"]["predecessor_immutable"] = True
 
     verification = {
@@ -2128,12 +2184,20 @@ try:
         "predecessor_snapshot_after": predecessor_snapshot_after,
         "predecessor_immutable": predecessor_immutable,
         "source_step_sha256": step_hash,
+        "source_native_sha256": native_hash,
         "producer_step_sha256": (producer.get("files") or {})[
             "continuous_step"
         ]["sha256"],
+        "producer_native_sha256": (producer.get("files") or {})[
+            "continuous_native"
+        ]["sha256"],
         "staged_step_sha256_before": staged_hash_before,
         "staged_step_sha256_after": sha256_file(STAGED_STEP_PATH),
-        "exact_step_byte_staging": staged_step_immutable,
+        "staged_native_sha256_before": staged_native_hash_before,
+        "staged_native_sha256_after": sha256_file(STAGED_NATIVE_PATH),
+        "exact_native_and_step_byte_staging": (
+            staged_step_immutable and staged_native_immutable
+        ),
     }
     write_json(VERIFICATION_PATH, verification)
     source_chain = {
@@ -2145,6 +2209,7 @@ try:
         "predecessor_job_id": manifest.get("predecessor_job_id"),
         "predecessor_profile_id": manifest.get("predecessor_profile_id"),
         "source_step_sha256": step_hash,
+        "source_native_sha256": native_hash,
         "mesh_sha256": sha256_file(MESH_PATH),
     }
     write_json(SOURCE_CHAIN_PATH, source_chain)

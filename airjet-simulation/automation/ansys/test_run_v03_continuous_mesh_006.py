@@ -146,6 +146,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "throat_local_size_mm": 0.075,
             "volume_max_size_mm": 0.75,
             "resolution_class": "STUDENT_COARSE_MAIN_FLOW_REGION_C5",
+            "cad_import_source": "NATIVE_SCDOCX_BOUND_TO_SIGNED_PREDECESSOR",
             "cad_one_zone_per": "face",
             "wall_to_internal": False,
             "max_expected_flow_cell_zones": 1,
@@ -268,7 +269,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
 
 def test_consumer_report_accepts_exact_contract() -> None:
     assert runner.CONSUMER_SCRIPT_SHA256 == (
-        "0b70e4e71e7133aac7a8d709c479ca38f28319c3b2b7cbc3ec5620cbee826995"
+        "7bcc393d129f2780df51d0e91353ea1f22d67307f4659d71a14298c4ccdbd117"
     )
     report, state, manifest = valid_report_state_manifest()
     assert runner.validate_consumer_report(manifest, state, HEAD) == report
@@ -278,9 +279,9 @@ def test_consumer_assertion_contract_includes_c5_hard_gates() -> None:
     expected = {
         "predecessor_identity",
         "predecessor_immutable",
-        "exact_step_byte_staging",
+        "exact_native_and_step_byte_staging",
         "fluent_v261_meshing_health",
-        "watertight_step_import",
+        "watertight_native_import",
         "boundary_roles_reconstructed",
         "throat_roles_reconstructed_972",
         "boundary_semantics_preserved_1078",
@@ -579,7 +580,7 @@ def predecessor_fixture() -> tuple[dict, dict]:
     return {"predecessor_artifacts": copy.deepcopy(files)}, {"files": files}
 
 
-def test_predecessor_state_accepts_frozen_exact_five() -> None:
+def test_predecessor_state_accepts_frozen_exact_six() -> None:
     state, manifest = predecessor_fixture()
     runner.verify_predecessor_state(state, manifest)
 

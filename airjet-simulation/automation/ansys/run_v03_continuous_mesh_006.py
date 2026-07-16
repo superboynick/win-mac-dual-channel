@@ -25,7 +25,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "0b70e4e71e7133aac7a8d709c479ca38f28319c3b2b7cbc3ec5620cbee826995"
+CONSUMER_SCRIPT_SHA256 = "7bcc393d129f2780df51d0e91353ea1f22d67307f4659d71a14298c4ccdbd117"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -33,9 +33,9 @@ MCP_GIT_PATH = "codex-skills/airjet-ansys-automation/scripts/airjet_ansys_mcp.py
 CONSUMER_ASSERTIONS = {
     "predecessor_identity",
     "predecessor_immutable",
-    "exact_step_byte_staging",
+    "exact_native_and_step_byte_staging",
     "fluent_v261_meshing_health",
-    "watertight_step_import",
+    "watertight_native_import",
     "boundary_roles_reconstructed",
     "throat_roles_reconstructed_972",
     "boundary_semantics_preserved_1078",
@@ -77,6 +77,7 @@ CANONICAL_BOUNDARY_SPEC = {
 }
 PREDECESSOR_ARTIFACTS = (
     "v03_continuous_fluid_producer.json",
+    "product_continuous_fluid.scdocx",
     "product_continuous_fluid.step",
     "v03_step_reimport.json",
     "v03_throat_inventory.json",
@@ -878,6 +879,7 @@ def validate_consumer_report(
         "throat_local_size_mm": 0.075,
         "volume_max_size_mm": 0.75,
         "resolution_class": "STUDENT_COARSE_MAIN_FLOW_REGION_C5",
+        "cad_import_source": "NATIVE_SCDOCX_BOUND_TO_SIGNED_PREDECESSOR",
         "cad_one_zone_per": "face",
         "wall_to_internal": False,
         "max_expected_flow_cell_zones": 1,

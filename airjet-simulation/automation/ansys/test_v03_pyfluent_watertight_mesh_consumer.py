@@ -42,6 +42,7 @@ def test_exact_profile_and_assertion_contract() -> None:
     )
     assert values["PREDECESSOR_ARTIFACTS"] == {
         "v03_continuous_fluid_producer.json",
+        "product_continuous_fluid.scdocx",
         "product_continuous_fluid.step",
         "v03_step_reimport.json",
         "v03_throat_inventory.json",
@@ -113,6 +114,9 @@ def test_exact_byte_predecessor_and_role_reconstruction() -> None:
 def test_official_v261_watertight_calls_are_pinned() -> None:
     for required in (
         "workflow.import_geometry.file_name",
+        "workflow.import_geometry.file_name = str(STAGED_NATIVE_PATH)",
+        '"NATIVE_SCDOCX_BOUND_TO_SIGNED_PREDECESSOR"',
+        '"NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1078:{}"',
         'workflow.import_geometry.length_unit = "mm"',
         'workflow.import_geometry.cad_import_options.one_zone_per = "face"',
         'imported_face_zone_ids = list(utilities.get_face_zones(filter="*"))',

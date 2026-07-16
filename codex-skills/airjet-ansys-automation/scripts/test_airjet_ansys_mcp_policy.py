@@ -1922,6 +1922,7 @@ if (
     or v03_mesh_profile["predecessor"].get("artifacts")
     != [
         "v03_continuous_fluid_producer.json",
+        "product_continuous_fluid.scdocx",
         "product_continuous_fluid.step",
         "v03_step_reimport.json",
         "v03_throat_inventory.json",
@@ -1942,6 +1943,8 @@ for invariant in (
     "STUDENT_ENTITY_LIMIT = 1_000_000",
     "session.tui.report.mesh_size()",
     "session.tui.file.write_mesh(str(MESH_PATH))",
+    "workflow.import_geometry.file_name = str(STAGED_NATIVE_PATH)",
+    '"NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1078:{}"',
     '"physics": "NOT_RUN"',
     '"solver_iterations": 0',
 ):
