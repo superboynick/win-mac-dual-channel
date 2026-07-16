@@ -109,7 +109,11 @@ VOLUME_MAX_SIZE_MM = 0.75
 TARGET_FLOW_VOLUME_MESH_TOLERANCE_MM3 = 1.0
 ACTUATOR_GAP_CENTER_Z_MM = 1.795
 ACTUATOR_GAP_PROBE_COUNT = 12
-FLUID_ONLY_SETUP_TYPE = "The geometry consists of only fluid regions with no voids"
+MIXED_REGION_SETUP_TYPE = (
+    "The geometry consists of both fluid and solid regions and/or voids"
+)
+EXPECTED_MAIN_REGION_COUNT = 1
+EXPECTED_VOID_REGION_COUNT = 11
 BOUNDARY_ROLE_ORDER = (
     "INLET",
     "OUTLET",
@@ -649,6 +653,41 @@ def canonicalize_boundary_zones(
         session.tui.boundary.manage.name(current_names[0], target_names[0])
 
 
+def validate_post_surface_role_partition(
+    role_zone_ids: dict[str, list[int]],
+    inlet_counts: tuple[int, ...] = (1, 4),
+) -> dict[str, list[int]]:
+    """Validate complete role coverage before any destructive zone merge."""
+    if not isinstance(role_zone_ids, dict) or set(role_zone_ids) != set(
+        BOUNDARY_ROLE_ORDER
+    ):
+        raise RuntimeError("POST_SURFACE_ROLE_PARTITION_SCHEMA_INVALID")
+    normalized = {}
+    owner_by_zone = {}
+    for role in BOUNDARY_ROLE_ORDER:
+        values = role_zone_ids.get(role)
+        if (
+            not isinstance(values, list)
+            or not values
+            or any(type(value) is not int or value <= 0 for value in values)
+        ):
+            raise RuntimeError("POST_SURFACE_ROLE_PARTITION_VALUE_INVALID")
+        unique = sorted(set(values))
+        if role == "INLET" and len(unique) not in inlet_counts:
+            raise RuntimeError("POST_SURFACE_INLET_ZONE_CARDINALITY_INVALID")
+        for zone_id in unique:
+            previous = owner_by_zone.get(zone_id)
+            if previous is not None and previous != role:
+                raise RuntimeError(
+                    "POST_SURFACE_ZONE_CROSSES_ROLES:{}:{}:{}".format(
+                        zone_id, previous, role
+                    )
+                )
+            owner_by_zone[zone_id] = role
+        normalized[role] = unique
+    return normalized
+
+
 def rebind_post_surface_canonical_records(
     session: Any,
     meshing_utilities: Any,
@@ -663,67 +702,205 @@ def rebind_post_surface_canonical_records(
                 len(zone_ids_before)
             )
         )
-    points_by_role = {role: [] for role in BOUNDARY_ROLE_ORDER}
-    for record in boundary_blueprint:
-        points_by_role[record["role"]].append(record["probe_point_mm"])
-    role_zone_ids = {}
-    for role in BOUNDARY_ROLE_ORDER:
-        points = points_by_role[role] if role == "INLET" else points_by_role[role][:1]
-        role_zone_ids[role] = [
-            one_face_zone(meshing_utilities, point) for point in points
-        ]
-    if len(set(role_zone_ids["INLET"])) != 1:
-        raise RuntimeError("POST_SURFACE_NATIVE_INLET_ZONE_NOT_AGGREGATED")
-    representative_ids = {values[0] for values in role_zone_ids.values()}
-    if len(representative_ids) != 7 or not representative_ids.issubset(
-        set(zone_ids_before)
-    ):
+    if len(canonical_records) != SOURCE_BOUNDARY_FACE_COUNT:
+        raise RuntimeError("POST_SURFACE_CANONICAL_SOURCE_NOT_1078")
+    observed_records, observed_summary = observe_semantic_zone_mapping(
+        meshing_utilities, boundary_blueprint, "POST_SURFACE_NATIVE"
+    )
+    role_zone_ids = validate_post_surface_role_partition(
+        observed_summary["role_zone_ids"]
+    )
+    if set(
+        zone_id for values in role_zone_ids.values() for zone_id in values
+    ) != set(zone_ids_before):
         raise RuntimeError("POST_SURFACE_NATIVE_ROLE_ZONE_COVERAGE_INVALID")
-    inlet_name = zone_names(meshing_utilities, role_zone_ids["INLET"][:1])[0]
-    session.tui.boundary.separate.sep_face_zone_by_region([inlet_name])
-    inlet_zone_ids = [
-        one_face_zone(meshing_utilities, point)
-        for point in points_by_role["INLET"]
-    ]
-    if len(set(inlet_zone_ids)) != 4:
+    if len(role_zone_ids["INLET"]) == 1:
+        inlet_name = zone_names(
+            meshing_utilities, role_zone_ids["INLET"]
+        )[0]
+        session.tui.boundary.separate.sep_face_zone_by_region([inlet_name])
+        observed_records, observed_summary = observe_semantic_zone_mapping(
+            meshing_utilities, boundary_blueprint, "POST_SURFACE_INLET_SPLIT"
+        )
+        role_zone_ids = validate_post_surface_role_partition(
+            observed_summary["role_zone_ids"], inlet_counts=(4,)
+        )
+    elif len(role_zone_ids["INLET"]) != 4:
         raise RuntimeError("POST_SURFACE_INLET_SPLIT_COUNT_NOT_4")
-    role_zone_ids["INLET"] = inlet_zone_ids
-    all_role_ids = [zone_id for values in role_zone_ids.values() for zone_id in values]
-    if len(all_role_ids) != 10 or len(set(all_role_ids)) != 10:
-        raise RuntimeError("POST_SURFACE_ROLE_ZONE_IDS_NOT_EXACT_10")
     role_zone_names = {
         role: zone_names(meshing_utilities, ids)
         for role, ids in role_zone_ids.items()
     }
+    for role in BOUNDARY_ROLE_ORDER:
+        if role != "INLET" and len(role_zone_names[role]) > 1:
+            session.tui.boundary.manage.merge(role_zone_names[role])
+    merged_records, merged_summary = observe_semantic_zone_mapping(
+        meshing_utilities, boundary_blueprint, "POST_SURFACE_MERGED"
+    )
+    merged_role_ids = validate_post_surface_role_partition(
+        merged_summary["role_zone_ids"], inlet_counts=(4,)
+    )
+    if any(
+        len(ids) != (4 if role == "INLET" else 1)
+        for role, ids in merged_role_ids.items()
+    ):
+        raise RuntimeError("POST_SURFACE_ROLE_MERGE_NOT_4_PLUS_SIX")
+    role_zone_names = {
+        role: zone_names(meshing_utilities, ids)
+        for role, ids in merged_role_ids.items()
+    }
     canonicalize_boundary_zones(
         session,
         {
-            "role_zone_ids": role_zone_ids,
+            "role_zone_ids": merged_role_ids,
             "role_zone_names": role_zone_names,
         },
     )
-    target_names = [
-        name for role in BOUNDARY_ROLE_ORDER
-        for name in CANONICAL_BOUNDARY_ZONE_NAMES[role]
-    ]
-    target_ids = list(
-        meshing_utilities.convert_zone_name_strings_to_ids(
-            zone_name_list=target_names
-        )
+    rebound, rebound_summary = observe_semantic_zone_mapping(
+        meshing_utilities, boundary_blueprint, "POST_SURFACE_CANONICAL"
     )
-    if len(target_ids) != 10 or len(set(target_ids)) != 10:
-        raise RuntimeError("POST_SURFACE_CANONICAL_NAME_TO_ID_INVALID")
-    target_to_id = dict(zip(target_names, target_ids))
-    rebound = [
-        {
-            "source_face_index": record["source_face_index"],
-            "role": record["role"],
-            "zone_id": target_to_id[record["zone_name"]],
-            "zone_name": record["zone_name"],
+    validated = validate_canonical_semantic_mapping(
+        rebound, "POST_SURFACE_CANONICAL"
+    )
+    global_zone_ids_after = sorted(
+        set(meshing_utilities.get_face_zones(filter="*"))
+    )
+    canonical_zone_ids = sorted(
+        zone_id
+        for ids in validated["role_zone_ids"].values()
+        for zone_id in ids
+    )
+    if global_zone_ids_after != canonical_zone_ids:
+        raise RuntimeError("POST_SURFACE_GLOBAL_FACE_ZONES_NOT_CANONICAL_10")
+    return rebound, validated
+
+
+def observe_parameter(parameter: Any) -> dict[str, Any]:
+    """Read one generated workflow parameter without mutating it."""
+    try:
+        value = parameter()
+    except Exception as exc:
+        return {
+            "read_ok": False,
+            "error_type": type(exc).__name__,
+            "error": str(exc),
         }
-        for record in canonical_records
+    return {
+        "read_ok": True,
+        "python_type": type(value).__name__,
+        "value": json_safe_trace_value(value),
+    }
+
+
+def validate_mixed_region_state(
+    names: Any, types: Any, listed_count: Any
+) -> dict[str, Any]:
+    """Require one observed main-flow region and eleven excluded voids."""
+    if (
+        not isinstance(names, list)
+        or not isinstance(types, list)
+        or len(names) != 12
+        or len(types) != 12
+        or len(set(names)) != 12
+        or type(listed_count) is not int
+        or listed_count != 12
+        or any(not isinstance(name, str) or not name for name in names)
+    ):
+        raise RuntimeError("MIXED_REGION_STATE_NOT_EXACT_12")
+    normalized_types = [str(value).strip().lower() for value in types]
+    fluid_indices = [
+        index for index, value in enumerate(normalized_types) if value == "fluid"
     ]
-    return rebound, validate_canonical_semantic_mapping(rebound, "POST_SURFACE")
+    void_indices = [
+        index
+        for index, value in enumerate(normalized_types)
+        if value in {"dead", "void"}
+    ]
+    if len(fluid_indices) != 1 or len(void_indices) != 11:
+        raise RuntimeError("MIXED_REGION_TYPES_NOT_1_FLUID_11_VOID")
+    if set(fluid_indices + void_indices) != set(range(12)):
+        raise RuntimeError("MIXED_REGION_TYPE_UNEXPECTED")
+    main_name = names[fluid_indices[0]]
+    if "fluid_continuous" not in main_name.lower():
+        raise RuntimeError("MIXED_MAIN_REGION_NAME_INVALID")
+    if any(not names[index].lower().startswith("dead") for index in void_indices):
+        raise RuntimeError("MIXED_VOID_REGION_NAME_INVALID")
+    regions = []
+    for index, name in enumerate(names):
+        is_main = index == fluid_indices[0]
+        regions.append(
+            {
+                "name": name,
+                "type": "fluid" if is_main else normalized_types[index],
+                "classification": "MAIN_FLOW" if is_main else "NON_FLOW_VOID",
+            }
+        )
+    approved = {
+        "region_name_list": list(names),
+        "region_type_list": list(normalized_types),
+        "old_region_name_list": list(names),
+        "old_region_type_list": list(normalized_types),
+    }
+    return {
+        "source_fields": [
+            "workflow.update_regions.region_current_list",
+            "workflow.update_regions.region_current_type_list",
+            "workflow.update_regions.number_of_listed_regions",
+        ],
+        "regions": regions,
+        "main_flow_region_count": 1,
+        "non_flow_region_count": 11,
+        "main_flow_region_name": main_name,
+        "approved_update_arguments": approved,
+    }
+
+
+def validate_local_sizing_child(
+    added: Any,
+    child_ids_before: Any,
+    child_ids_after: Any,
+    last_child_id: Any,
+    child_arguments: Any,
+    throat_zone_names: list[str],
+) -> None:
+    if added is not True:
+        raise RuntimeError("LOCAL_SIZING_ADD_CHILD_NOT_TRUE")
+    if (
+        not isinstance(child_ids_before, list)
+        or not isinstance(child_ids_after, list)
+        or len(set(child_ids_before)) != len(child_ids_before)
+        or len(set(child_ids_after)) != len(child_ids_after)
+        or len(child_ids_after) != len(child_ids_before) + 1
+        or len(set(child_ids_after) - set(child_ids_before)) != 1
+        or last_child_id not in set(child_ids_after) - set(child_ids_before)
+    ):
+        raise RuntimeError("LOCAL_SIZING_CHILD_COUNT_NOT_PLUS_ONE")
+    if not isinstance(child_arguments, dict):
+        raise RuntimeError("LOCAL_SIZING_CHILD_ARGUMENTS_NOT_OBJECT")
+    expected = {
+        "boi_control_name": "throat-face-size-0p075mm",
+        "boi_execution": "Face Size",
+        "boi_zoneor_label": "zone",
+        "boi_face_zone_list": throat_zone_names,
+        "boi_size": THROAT_LOCAL_SIZE_MM,
+    }
+    if any(child_arguments.get(key) != value for key, value in expected.items()):
+        raise RuntimeError("LOCAL_SIZING_CHILD_ARGUMENTS_MISMATCH")
+    diagnostic_keys = {
+        str(key).lower()
+        for key in child_arguments
+        if any(token in str(key).lower() for token in ("error", "warning", "illegal"))
+    }
+    if diagnostic_keys:
+        raise RuntimeError("LOCAL_SIZING_CHILD_DIAGNOSTIC_KEYS_PRESENT")
+
+
+def workflow_task_identity(task: Any) -> str:
+    get_id = getattr(task, "get_id", None)
+    value = get_id() if callable(get_id) else None
+    if not isinstance(value, str) or not value:
+        raise RuntimeError("WORKFLOW_TASK_IDENTITY_UNAVAILABLE")
+    return value
 
 
 def validate_canonical_semantic_mapping(
@@ -745,6 +922,35 @@ def semantic_zone_type(role: str) -> str:
     if role in EXPECTED_BOUNDARY_ROLE_COUNTS:
         return "wall"
     raise RuntimeError("SEMANTIC_BOUNDARY_ROLE_TYPE_INVALID")
+
+
+def canonical_boundary_update_contract(
+    records: list[dict[str, Any]],
+) -> tuple[list[str], list[str], list[int]]:
+    """Return exactly ten unique zone/type updates from 1078 source records."""
+    summary = validate_canonical_semantic_mapping(
+        records, "BOUNDARY_UPDATE_CANONICAL"
+    )
+    names = []
+    types = []
+    ordered_ids = []
+    seen_ids = set()
+    for role in BOUNDARY_ROLE_ORDER:
+        expected_names = CANONICAL_BOUNDARY_ZONE_NAMES[role]
+        zone_ids = summary["role_zone_ids"][role]
+        role_names = summary["role_zone_names"][role]
+        if role_names != expected_names or len(zone_ids) != len(expected_names):
+            raise RuntimeError("BOUNDARY_UPDATE_ROLE_CARDINALITY_INVALID")
+        for zone_id, name in zip(zone_ids, role_names):
+            if zone_id in seen_ids:
+                raise RuntimeError("BOUNDARY_UPDATE_ZONE_ID_DUPLICATE")
+            seen_ids.add(zone_id)
+            ordered_ids.append(zone_id)
+            names.append(name)
+            types.append(semantic_zone_type(role))
+    if len(names) != 10 or len(set(names)) != 10 or len(seen_ids) != 10:
+        raise RuntimeError("BOUNDARY_UPDATE_NOT_EXACT_10")
+    return names, types, ordered_ids
 
 
 def validate_final_boundary_semantics(
@@ -1406,7 +1612,32 @@ try:
             utilities, boundary_blueprint, "PRE_SURFACE"
         )
     )
-    canonicalize_boundary_zones(session, pre_surface_semantic_summary)
+    pre_surface_mapped_zone_ids = [
+        record["zone_id"] for record in pre_surface_semantic_records
+    ]
+    if (
+        len(set(pre_surface_mapped_zone_ids)) != SOURCE_BOUNDARY_FACE_COUNT
+        or sorted(pre_surface_mapped_zone_ids) != sorted(imported_face_zone_ids)
+    ):
+        raise RuntimeError("PRE_SURFACE_MAPPED_ZONES_NOT_EXACT_IMPORTED_1078")
+    for role in BOUNDARY_ROLE_ORDER:
+        current_names = pre_surface_semantic_summary["role_zone_names"][role]
+        if role != "INLET" and len(current_names) > 1:
+            session.tui.boundary.manage.merge(current_names)
+    pre_surface_merged_records, pre_surface_merged_summary = (
+        observe_semantic_zone_mapping(
+            utilities, boundary_blueprint, "PRE_SURFACE_MERGED"
+        )
+    )
+    pre_surface_merged_ids = validate_post_surface_role_partition(
+        pre_surface_merged_summary["role_zone_ids"], inlet_counts=(4,)
+    )
+    if any(
+        len(ids) != (4 if role == "INLET" else 1)
+        for role, ids in pre_surface_merged_ids.items()
+    ):
+        raise RuntimeError("PRE_SURFACE_ROLE_MERGE_NOT_4_PLUS_SIX")
+    canonicalize_boundary_zones(session, pre_surface_merged_summary)
     canonical_semantic_records, canonical_semantic_summary = (
         observe_semantic_zone_mapping(
             utilities, boundary_blueprint, "PRE_SURFACE_CANONICAL"
@@ -1466,17 +1697,51 @@ try:
     )
 
     local = workflow.add_local_sizing_wtm
-    child = local.add_child_and_update(
-        state={
-            "boi_control_name": "throat-face-size-0p075mm",
-            "boi_zoneor_label": "zone",
-            "boi_face_zone_list": throat_zone_names,
-            "boi_size": THROAT_LOCAL_SIZE_MM,
-        },
-        defer_update=False,
-    )
+    children_before = list(local.tasks())
+    child_ids_before = [workflow_task_identity(task) for task in children_before]
+    local.add_child = "yes"
+    local.boi_control_name = "throat-face-size-0p075mm"
+    local.boi_execution = "Face Size"
+    local.boi_zoneor_label = "zone"
+    local.boi_face_zone_list = throat_zone_names
+    local.boi_size = THROAT_LOCAL_SIZE_MM
+    added = local.add_child_and_update(defer_update=False)
+    children_after = list(local.tasks())
+    child_ids_after = [workflow_task_identity(task) for task in children_after]
+    child = local.last_child()
     if child is None:
-        raise RuntimeError("LOCAL_SIZING_CHILD_NOT_CREATED")
+        raise RuntimeError("LOCAL_SIZING_LAST_CHILD_NOT_CREATED")
+    child_arguments = child.arguments()
+    last_child_id = workflow_task_identity(child)
+    validate_local_sizing_child(
+        added,
+        child_ids_before,
+        child_ids_after,
+        last_child_id,
+        child_arguments,
+        throat_zone_names,
+    )
+    local_sizing_observation = {
+        "claim_scope": "CONFIGURED_NOT_POST_MESH_SIZE_MEASURED",
+        "added": added,
+        "child_ids_before": child_ids_before,
+        "child_ids_after": child_ids_after,
+        "last_child_id": last_child_id,
+        "arguments": {
+            "boi_control_name": child_arguments["boi_control_name"],
+            "boi_execution": child_arguments["boi_execution"],
+            "boi_zoneor_label": child_arguments["boi_zoneor_label"],
+            "boi_face_zone_list": child_arguments["boi_face_zone_list"],
+            "boi_size": child_arguments["boi_size"],
+        },
+    }
+    trace_checkpoint(
+        "local_sizing_child_verified",
+        child_ids_before=child_ids_before,
+        child_ids_after=child_ids_after,
+        last_child_id=last_child_id,
+        child_arguments=json_safe_trace_value(child_arguments),
+    )
     result["assertions"]["throat_local_sizing_contract"] = True
 
     surface = workflow.create_surface_mesh
@@ -1493,20 +1758,16 @@ try:
             boundary_blueprint,
         )
     )
-    semantic_zone_names = [
-        record["zone_name"] for record in post_surface_semantic_records
-    ]
-    semantic_zone_types = [
-        semantic_zone_type(record["role"])
-        for record in post_surface_semantic_records
-    ]
+    semantic_zone_names, semantic_zone_types, semantic_zone_ids = (
+        canonical_boundary_update_contract(post_surface_semantic_records)
+    )
     semantic_old_zone_types = [
-        utilities.get_zone_type(zone_id=record["zone_id"])
-        for record in post_surface_semantic_records
+        utilities.get_zone_type(zone_id=zone_id)
+        for zone_id in semantic_zone_ids
     ]
 
     workflow.describe_geometry.update_child_tasks(setup_type_changed=False)
-    workflow.describe_geometry.setup_type = FLUID_ONLY_SETUP_TYPE
+    workflow.describe_geometry.setup_type = MIXED_REGION_SETUP_TYPE
     workflow.describe_geometry.update_child_tasks(setup_type_changed=True)
     workflow.describe_geometry.wall_to_internal = False
     workflow.describe_geometry.invoke_share_topology = "No"
@@ -1525,17 +1786,16 @@ try:
     workflow.update_boundaries.old_boundary_zone_type_list = semantic_old_zone_types
     workflow.update_boundaries()
     observed_boundary_types = dict(
-        (record["zone_id"], utilities.get_zone_type(zone_id=record["zone_id"]))
-        for record in post_surface_semantic_records
+        (zone_id, utilities.get_zone_type(zone_id=zone_id))
+        for zone_id in semantic_zone_ids
     )
     trace_checkpoint(
         "boundary_zone_types_updated",
         observed_types=observed_boundary_types,
     )
     if any(
-        observed_boundary_types[record["zone_id"]]
-        != semantic_zone_type(record["role"])
-        for record in post_surface_semantic_records
+        observed_boundary_types[zone_id] != expected_type
+        for zone_id, expected_type in zip(semantic_zone_ids, semantic_zone_types)
     ):
         raise RuntimeError(
             "BOUNDARY_SEMANTIC_ZONE_TYPES_NOT_EXACT:{}".format(
@@ -1543,32 +1803,84 @@ try:
             )
         )
 
-    mesh_objects = list(utilities.get_objects(filter="*"))
-    mesh_object_candidates = [
-        name
-        for name in mesh_objects
-        if isinstance(name, str) and name and not name.startswith("origin-")
-    ]
-    if (
-        len(mesh_object_candidates) != 1
-        or f"origin-{mesh_object_candidates[0]}" not in mesh_objects
-        or len(mesh_objects) != 2
+    create_regions_pre_state = workflow.create_regions.arguments()
+    trace_checkpoint(
+        "create_regions_pre_execute_state",
+        python_type=type(create_regions_pre_state).__name__,
+        state=json_safe_trace_value(create_regions_pre_state),
+    )
+    workflow.create_regions()
+    direct_region_state = {
+        name: observe_parameter(getattr(workflow.update_regions, name))
+        for name in (
+            "region_current_list",
+            "region_current_type_list",
+            "number_of_listed_regions",
+        )
+    }
+    trace_checkpoint(
+        "update_regions_direct_parameter_state",
+        state=direct_region_state,
+    )
+    if any(
+        observation.get("read_ok") is not True
+        for observation in direct_region_state.values()
     ):
-        raise RuntimeError(f"FLUID_MESH_OBJECT_NOT_UNIQUE:{mesh_objects}")
-    mesh_object_name = mesh_object_candidates[0]
-    utilities.set_object_cell_zone_type(
-        object_name=mesh_object_name, cell_zone_type="fluid"
+        raise RuntimeError("UPDATE_REGIONS_DIRECT_STATE_UNREADABLE")
+    pre_update_region_inventory = validate_mixed_region_state(
+        direct_region_state["region_current_list"]["value"],
+        direct_region_state["region_current_type_list"]["value"],
+        direct_region_state["number_of_listed_regions"]["value"],
     )
-    trace_checkpoint(
-        "fluid_object_cell_zone_type_selected",
-        mesh_object_name=mesh_object_name,
-        selected_cell_zone_type="fluid",
+    approved_update_arguments = pre_update_region_inventory[
+        "approved_update_arguments"
+    ]
+    workflow.update_regions.region_name_list = approved_update_arguments[
+        "region_name_list"
+    ]
+    workflow.update_regions.region_type_list = approved_update_arguments[
+        "region_type_list"
+    ]
+    workflow.update_regions.old_region_name_list = approved_update_arguments[
+        "old_region_name_list"
+    ]
+    workflow.update_regions.old_region_type_list = approved_update_arguments[
+        "old_region_type_list"
+    ]
+    workflow.update_regions()
+    post_region_state = {
+        name: observe_parameter(getattr(workflow.update_regions, name))
+        for name in (
+            "region_current_list",
+            "region_current_type_list",
+            "number_of_listed_regions",
+        )
+    }
+    if any(
+        observation.get("read_ok") is not True
+        for observation in post_region_state.values()
+    ):
+        raise RuntimeError("UPDATE_REGIONS_POST_STATE_UNREADABLE")
+    post_update_region_inventory = validate_mixed_region_state(
+        post_region_state["region_current_list"]["value"],
+        post_region_state["region_current_type_list"]["value"],
+        post_region_state["number_of_listed_regions"]["value"],
     )
+    if pre_update_region_inventory != post_update_region_inventory:
+        raise RuntimeError("UPDATE_REGIONS_STATE_CHANGED_UNEXPECTEDLY")
+    region_transition = {
+        "route": "MIXED_1_MAIN_11_VOID_UPDATE_REGIONS",
+        "main_flow_region_count": 1,
+        "non_flow_region_count": 11,
+        "unchanged": True,
+        "voids_excluded": True,
+    }
+    result["assertions"]["region_classification"] = True
     trace_checkpoint(
-        "fluid_only_object_cell_zone_type_route_selected",
-        setup_type=FLUID_ONLY_SETUP_TYPE,
-        create_regions_executed=False,
-        update_regions_executed=False,
+        "mixed_region_inventory_verified",
+        pre_update=pre_update_region_inventory,
+        post_update=post_update_region_inventory,
+        transition=region_transition,
     )
     volume_mesh = workflow.create_volume_mesh_wtm
     volume_mesh.volume_fill = "poly-hexcore"
@@ -1596,41 +1908,15 @@ try:
     if any(value != "fluid" for value in cell_zone_types.values()):
         raise RuntimeError(f"NON_FLUID_CELL_ZONE_PRESENT:{cell_zone_types}")
     if len(cell_zone_ids) != 1:
-        raise RuntimeError(f"FLUID_ONLY_CELL_ZONE_NOT_UNIQUE:{cell_zone_ids}")
+        raise RuntimeError(f"MAIN_FLOW_CELL_ZONE_NOT_UNIQUE:{cell_zone_ids}")
     cell_zone_names = zone_names_one_way(utilities, cell_zone_ids)
-    fluid_only_inventory = {
-        "source_fields": [
-            "workflow.describe_geometry.setup_type",
-            "utilities.get_cell_zones",
-            "utilities.get_zone_type",
-            "meshing_utilities.convert_zone_ids_to_name_strings",
-        ],
-        "regions": [
-            {
-                "name": cell_zone_names[0],
-                "type": "fluid",
-                "classification": "MAIN_FLOW",
-            }
-        ],
-        "main_flow_region_count": 1,
-        "non_flow_region_count": 0,
-        "main_flow_region_name": cell_zone_names[0],
-        "approved_update_arguments": {},
-    }
-    pre_update_region_inventory = copy.deepcopy(fluid_only_inventory)
-    post_update_region_inventory = copy.deepcopy(fluid_only_inventory)
-    region_transition = {
-        "route": "REVERSED_BOUNDARY_FLUID_OBJECT",
-        "main_flow_region_count": 1,
-        "non_flow_region_count": 0,
-        "unchanged": True,
-    }
-    result["assertions"]["region_classification"] = True
-    trace_checkpoint(
-        "fluid_only_region_inventory_observed",
-        inventory=fluid_only_inventory,
-        transition=region_transition,
-    )
+    if cell_zone_names != [pre_update_region_inventory["main_flow_region_name"]]:
+        raise RuntimeError(
+            "POST_VOLUME_MAIN_REGION_NAME_MISMATCH:{}:{}".format(
+                cell_zone_names,
+                pre_update_region_inventory["main_flow_region_name"],
+            )
+        )
     cell_count_api = utilities.get_cell_zone_count(
         cell_zone_id_list=cell_zone_ids
     )
@@ -2051,7 +2337,7 @@ try:
         and target_flow_volume_matches_predecessor
         and result["assertions"]["region_classification"]
         and region_transition["main_flow_region_count"] == 1
-        and region_transition["non_flow_region_count"] == 0
+        and region_transition["non_flow_region_count"] == 11
         and post_volume_role_resolution_ok
         and boundary_adjacency_ok
         and throat_face_adjacency_ok
@@ -2425,6 +2711,7 @@ try:
         "post_volume_canonical_boundary_inventory": final_boundary_semantics[
             "canonical_inventory"
         ],
+        "throat_local_sizing_observation": local_sizing_observation,
         "cell_zone_count": len(cell_zone_ids),
         "cell_zone_ids": cell_zone_ids,
         "cell_zone_types": {

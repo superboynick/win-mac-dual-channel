@@ -60,24 +60,33 @@ def file_entry(name: str, index: int) -> dict:
 
 
 def valid_region_inventory() -> dict:
+    names = ["fluid_continuous"] + [f"dead{index}-membrane_bottom" for index in range(11)]
+    types = ["fluid"] + ["dead"] * 11
     return {
         "source_fields": [
-            "workflow.describe_geometry.setup_type",
-            "utilities.get_cell_zones",
-            "utilities.get_zone_type",
-            "meshing_utilities.convert_zone_ids_to_name_strings",
+            "workflow.update_regions.region_current_list",
+            "workflow.update_regions.region_current_type_list",
+            "workflow.update_regions.number_of_listed_regions",
         ],
         "regions": [
             {
-                "name": "main-flow",
-                "type": "fluid",
-                "classification": "MAIN_FLOW",
+                "name": name,
+                "type": region_type,
+                "classification": (
+                    "MAIN_FLOW" if region_type == "fluid" else "NON_FLOW_VOID"
+                ),
             }
+            for name, region_type in zip(names, types)
         ],
         "main_flow_region_count": 1,
-        "non_flow_region_count": 0,
-        "main_flow_region_name": "main-flow",
-        "approved_update_arguments": {},
+        "non_flow_region_count": 11,
+        "main_flow_region_name": "fluid_continuous",
+        "approved_update_arguments": {
+            "region_name_list": names,
+            "region_type_list": types,
+            "old_region_name_list": names,
+            "old_region_type_list": types,
+        },
     }
 
 
@@ -167,7 +176,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "interior_face_records": [],
             "reached_cell_zone_ids": [1],
             "boundary_face_adjacency": {
-                "100": [1], "101": [1], "102": [1], "103": [1], "104": [1]
+                "1000": [1], "1001": [1], "1002": [1], "1003": [1], "1004": [1]
             },
             "boundary_adjacency_ok": True,
             "post_volume_role_resolution_ok": True,
@@ -190,8 +199,22 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "post_volume_canonical_boundary_inventory": (
                 valid_canonical_boundary_inventory()
             ),
+            "throat_local_sizing_observation": {
+                "claim_scope": "CONFIGURED_NOT_POST_MESH_SIZE_MEASURED",
+                "added": True,
+                "child_ids_before": [],
+                "child_ids_after": ["local-sizing-task-1"],
+                "last_child_id": "local-sizing-task-1",
+                "arguments": {
+                    "boi_control_name": "throat-face-size-0p075mm",
+                    "boi_execution": "Face Size",
+                    "boi_zoneor_label": "zone",
+                    "boi_face_zone_list": ["ajm_throat_wall"],
+                    "boi_size": 0.075,
+                },
+            },
             "throat_face_adjacency": {
-                "200": {
+                "1008": {
                     "label": "THROAT_FACE_ADJACENCY",
                     "raw_none": False,
                     "values": [1],
@@ -230,13 +253,14 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
             "pre_update_region_inventory": valid_region_inventory(),
             "post_update_region_inventory": valid_region_inventory(),
             "region_transition": {
-                "route": "REVERSED_BOUNDARY_FLUID_OBJECT",
+                "route": "MIXED_1_MAIN_11_VOID_UPDATE_REGIONS",
                 "main_flow_region_count": 1,
-                "non_flow_region_count": 0,
+                "non_flow_region_count": 11,
                 "unchanged": True,
+                "voids_excluded": True,
             },
             "main_flow_region_count": 1,
-            "non_flow_region_count": 0,
+            "non_flow_region_count": 11,
             "free_face_count": 0,
             "multi_face_count": 0,
             "min_orthogonal_quality": 0.12,
@@ -268,7 +292,7 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
 
 def test_consumer_report_accepts_exact_contract() -> None:
     assert runner.CONSUMER_SCRIPT_SHA256 == (
-        "cee1acd06b3414a274c57aa92978b6f4beaf3c239c8fb904e31ca5ca5b2ea5cc"
+        "773c62d81d42aef0f76a9650ad0b58e3a28bfaeb34e17ff351f11df320f316ac"
     )
     report, state, manifest = valid_report_state_manifest()
     assert runner.validate_consumer_report(manifest, state, HEAD) == report
@@ -365,6 +389,12 @@ def test_consumer_report_rejects_claim_and_truthy_assertion() -> None:
 def test_consumer_report_rejects_student_and_quality_overclaim() -> None:
     rejects(
         lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
+            "node_count", -1
+        ),
+        "MESH_EVIDENCE",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"].__setitem__(
             "node_count", 1_000_001
         ),
         "MESH_EVIDENCE",
@@ -388,7 +418,7 @@ def test_consumer_report_rejects_wrong_target_or_fake_throat_graph() -> None:
     rejects(
         lambda report, _state, _manifest: report["mesh_evidence"][
             "throat_face_adjacency"
-        ]["200"].__setitem__("values", []),
+        ]["1008"].__setitem__("values", []),
         "THROAT_GRAPH_INVALID",
     )
     rejects(
@@ -396,6 +426,12 @@ def test_consumer_report_rejects_wrong_target_or_fake_throat_graph() -> None:
             "min_orthogonal_quality", math.nan
         ),
         "MESH_EVIDENCE",
+    )
+    rejects(
+        lambda report, _state, _manifest: report["mesh_evidence"][
+            "throat_local_sizing_observation"
+        ]["arguments"].__setitem__("boi_execution", "Body Size"),
+        "LOCAL_SIZING_OBSERVATION_INVALID",
     )
 
 
@@ -545,7 +581,7 @@ def test_consumer_report_rejects_c5_gate_and_region_passthrough_drift() -> None:
     rejects(
         lambda report, _state, _manifest: report["mesh_evidence"][
             "pre_update_region_inventory"
-        ].__setitem__("non_flow_region_count", 11),
+        ].__setitem__("non_flow_region_count", 10),
         "REGION_CLASSIFICATION_INVALID",
     )
     rejects(
@@ -569,6 +605,16 @@ def test_consumer_report_rejects_missing_or_hash_drifted_artifact() -> None:
         ),
         "ARTIFACT_INVALID",
     )
+
+    def set_negative_artifact_size(report, _state, manifest) -> None:
+        relative = "v03_pyfluent_transcript.txt"
+        report["artifacts"][relative]["size"] = -1
+        for entry in manifest["files"]:
+            if entry.get("relative_path") == relative:
+                entry["size"] = -1
+                break
+
+    rejects(set_negative_artifact_size, "ARTIFACT_INVALID")
 
 
 def predecessor_fixture() -> tuple[dict, dict]:
@@ -789,6 +835,118 @@ def test_preflight_block_has_zero_stdio_submit_and_child_calls() -> None:
     assert counts == {"stdio": 0, "submit": 0, "child": 0}
     assert saved["stage1"]["capability_status"] == "NOT_RUN"
     assert saved["stage2"]["capability_status"] == "NOT_RUN"
+
+
+def test_stage1_submit_exception_is_fail_not_not_run() -> None:
+    calls = []
+    old_result_path = runner.RESULT_PATH
+    old_call_json = runner.stage1.call_json
+    with TemporaryDirectory() as root:
+        runner.RESULT_PATH = Path(root) / "partial.json"
+
+        async def fake_call(_session, name, arguments=None, **_kwargs):
+            calls.append((name, arguments))
+            raise RuntimeError("submit transport lost")
+
+        try:
+            runner.stage1.call_json = fake_call
+            result = runner.new_result()
+            try:
+                asyncio.run(runner.run_submitted_stages(
+                    object(), result, HEAD,
+                    {runner.stage1.PROFILE_ID: PROFILE_CONTRACT},
+                ))
+            except RuntimeError as exc:
+                assert "submit transport lost" in str(exc)
+            else:
+                raise AssertionError("stage1 submit exception accepted")
+            saved = json.loads(runner.RESULT_PATH.read_text(encoding="utf-8"))
+        finally:
+            runner.RESULT_PATH = old_result_path
+            runner.stage1.call_json = old_call_json
+    assert [name for name, _ in calls] == ["submit_job"]
+    assert saved["stage1"]["submit_attempted"] is True
+    assert saved["stage1"]["submitted"] is False
+    assert saved["stage1"]["capability_status"] == "FAIL"
+    assert saved["stage1"]["submit_result"] == "UNAVAILABLE"
+    assert saved["stage2"]["submit_attempted"] is False
+    assert saved["stage2"]["capability_status"] == "NOT_RUN"
+
+
+def test_stage2_submit_exception_preserves_stage1_and_is_fail() -> None:
+    calls = []
+    old_result_path = runner.RESULT_PATH
+    old_call_json = runner.stage1.call_json
+    old_wait = runner.wait_for_job
+    old_dependency = runner.stage1.validate_dependency_artifacts
+    old_report = runner.stage1.validate_producer_report
+    with TemporaryDirectory() as root:
+        runner.RESULT_PATH = Path(root) / "partial.json"
+        first_running = running_state(
+            "stage1-job", "spaceclaim", runner.stage1.PROFILE_ID,
+            runner.stage1.PROFILE_SCRIPT_SHA256,
+        )
+        first_running["profile_contract_sha256"] = PROFILE_CONTRACT
+        first_manifest = {
+            "job_id": "stage1-job",
+            "phase": "PROCESS_EXITED_0",
+            "files": [],
+        }
+
+        async def fake_wait(_session, state, _timeout, stage_result, suite_result):
+            terminal = dict(state)
+            terminal["phase"] = "PROCESS_EXITED_0"
+            stage_result["job_state"] = terminal
+            stage_result["reached_terminal"] = True
+            stage_result["cancellation_required"] = False
+            runner.persist_result(suite_result)
+            return terminal
+
+        async def fake_call(_session, name, arguments=None, **_kwargs):
+            calls.append((name, arguments))
+            if name == "submit_job" and arguments["profile_id"] == runner.stage1.PROFILE_ID:
+                return copy.deepcopy(first_running)
+            if name == "artifact_manifest":
+                return copy.deepcopy(first_manifest)
+            if name == "submit_job":
+                raise RuntimeError("consumer submit transport lost")
+            raise AssertionError("unexpected MCP call {}".format(name))
+
+        try:
+            runner.stage1.call_json = fake_call
+            runner.wait_for_job = fake_wait
+            runner.stage1.validate_dependency_artifacts = lambda _value: None
+            runner.stage1.validate_producer_report = (
+                lambda _manifest, _state, _head: {"status": "PASS"}
+            )
+            result = runner.new_result()
+            try:
+                asyncio.run(runner.run_submitted_stages(
+                    object(), result, HEAD,
+                    {
+                        runner.stage1.PROFILE_ID: PROFILE_CONTRACT,
+                        runner.CONSUMER_PROFILE_ID: PROFILE_CONTRACT,
+                    },
+                ))
+            except RuntimeError as exc:
+                assert "consumer submit transport lost" in str(exc)
+            else:
+                raise AssertionError("stage2 submit exception accepted")
+            saved = json.loads(runner.RESULT_PATH.read_text(encoding="utf-8"))
+        finally:
+            runner.RESULT_PATH = old_result_path
+            runner.stage1.call_json = old_call_json
+            runner.wait_for_job = old_wait
+            runner.stage1.validate_dependency_artifacts = old_dependency
+            runner.stage1.validate_producer_report = old_report
+    assert [name for name, _ in calls] == [
+        "submit_job", "artifact_manifest", "submit_job"
+    ]
+    assert saved["stage1"]["capability_status"] == "PASS"
+    assert saved["stage2"]["submit_attempted"] is True
+    assert saved["stage2"]["submitted"] is False
+    assert saved["stage2"]["capability_status"] == "FAIL"
+    assert saved["stage2"]["submit_result"] == "UNAVAILABLE"
 
 
 def test_stage1_post_submit_failure_persists_partial_and_cancels() -> None:

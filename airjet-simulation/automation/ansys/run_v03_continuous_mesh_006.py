@@ -25,7 +25,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "cee1acd06b3414a274c57aa92978b6f4beaf3c239c8fb904e31ca5ca5b2ea5cc"
+CONSUMER_SCRIPT_SHA256 = "773c62d81d42aef0f76a9650ad0b58e3a28bfaeb34e17ff351f11df320f316ac"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -114,11 +114,13 @@ def new_result() -> dict[str, Any]:
         "preflight": None,
         "inventory": None,
         "stage1": {
+            "submit_attempted": False,
             "submitted": False,
             "reached_terminal": False,
             "capability_status": "NOT_RUN",
         },
         "stage2": {
+            "submit_attempted": False,
             "submitted": False,
             "reached_terminal": False,
             "capability_status": "NOT_RUN",
@@ -358,14 +360,20 @@ def validate_region_inventory(inventory: Any) -> None:
         or any(not isinstance(item, str) or not item for item in source_fields)
         or source_fields
         != [
-            "workflow.describe_geometry.setup_type",
-            "utilities.get_cell_zones",
-            "utilities.get_zone_type",
-            "meshing_utilities.convert_zone_ids_to_name_strings",
+            "workflow.update_regions.region_current_list",
+            "workflow.update_regions.region_current_type_list",
+            "workflow.update_regions.number_of_listed_regions",
         ]
         or not isinstance(regions, list)
-        or len(regions) != 1
+        or len(regions) != 12
         or not isinstance(approved, dict)
+        or set(approved)
+        != {
+            "region_name_list",
+            "region_type_list",
+            "old_region_name_list",
+            "old_region_type_list",
+        }
     ):
         raise RuntimeError("CONSUMER_REGION_INVENTORY_INVALID")
     names: list[str] = []
@@ -376,19 +384,38 @@ def validate_region_inventory(inventory: Any) -> None:
             or set(region) != {"name", "type", "classification"}
             or not isinstance(region.get("name"), str)
             or not region["name"]
-            or region.get("type") != "fluid"
-            or region.get("classification") != "MAIN_FLOW"
+            or region.get("type") not in {"fluid", "dead", "void"}
+            or region.get("classification")
+            not in {"MAIN_FLOW", "NON_FLOW_VOID"}
+            or (
+                region.get("type") == "fluid"
+                and region.get("classification") != "MAIN_FLOW"
+            )
+            or (
+                region.get("type") in {"dead", "void"}
+                and region.get("classification") != "NON_FLOW_VOID"
+            )
         ):
             raise RuntimeError("CONSUMER_REGION_RECORD_INVALID")
         names.append(region["name"])
         types.append(region["type"])
     if (
-        len(set(names)) != 1
+        len(set(names)) != 12
         or types.count("fluid") != 1
+        or sum(value in {"dead", "void"} for value in types) != 11
         or inventory.get("main_flow_region_count") != 1
-        or inventory.get("non_flow_region_count") != 0
+        or inventory.get("non_flow_region_count") != 11
         or inventory.get("main_flow_region_name") != names[types.index("fluid")]
-        or approved != {}
+        or "fluid_continuous" not in inventory["main_flow_region_name"].lower()
+        or any(
+            not name.lower().startswith("dead")
+            for name, region_type in zip(names, types)
+            if region_type in {"dead", "void"}
+        )
+        or approved["region_name_list"] != names
+        or approved["old_region_name_list"] != names
+        or approved["region_type_list"] != types
+        or approved["old_region_type_list"] != types
     ):
         raise RuntimeError("CONSUMER_REGION_CLASSIFICATION_INVALID")
 
@@ -479,6 +506,7 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         "post_volume_generic_boundary_collapse",
         "post_volume_single_fluid_adjacency_ok",
         "post_volume_canonical_boundary_inventory",
+        "throat_local_sizing_observation",
         "throat_face_adjacency",
         "throat_face_adjacency_ok",
         "anchor_zone_ids",
@@ -545,8 +573,8 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
     ):
         raise RuntimeError("CONSUMER_BOUNDARY_SEMANTICS_1078_INVALID")
     if (
-        (evidence.get("cell_count") != -1 and not positive_int(evidence.get("cell_count"), 1_000_000))
-        or (evidence.get("node_count") != -1 and not positive_int(evidence.get("node_count"), 1_000_000))
+        not positive_int(evidence.get("cell_count"), 1_000_000)
+        or not positive_int(evidence.get("node_count"), 1_000_000)
         or evidence.get("cell_zone_count") != 1
     ):
         raise RuntimeError("CONSUMER_MESH_EVIDENCE_ENTITY_COUNT_INVALID")
@@ -560,9 +588,55 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
     ):
         raise RuntimeError("CONSUMER_MESH_EVIDENCE_ZONE_IDS_INVALID")
     zone_set = set(zone_ids)
-    validate_canonical_boundary_inventory(
-        evidence.get("post_volume_canonical_boundary_inventory"), zone_ids
+    canonical_boundary_inventory = evidence.get(
+        "post_volume_canonical_boundary_inventory"
     )
+    validate_canonical_boundary_inventory(canonical_boundary_inventory, zone_ids)
+    local_sizing = evidence.get("throat_local_sizing_observation")
+    expected_throat_names = [
+        name
+        for name, (role, _zone_type, _count) in CANONICAL_BOUNDARY_SPEC.items()
+        if role == "ORIFICE_THROAT_WALL"
+    ]
+    if (
+        not isinstance(local_sizing, dict)
+        or set(local_sizing) != {
+            "claim_scope",
+            "added",
+            "child_ids_before",
+            "child_ids_after",
+            "last_child_id",
+            "arguments",
+        }
+        or local_sizing.get("claim_scope")
+        != "CONFIGURED_NOT_POST_MESH_SIZE_MEASURED"
+        or local_sizing.get("added") is not True
+        or not isinstance(local_sizing.get("child_ids_before"), list)
+        or not isinstance(local_sizing.get("child_ids_after"), list)
+        or any(
+            not isinstance(value, str) or not value
+            for value in local_sizing.get("child_ids_before", [])
+            + local_sizing.get("child_ids_after", [])
+        )
+        or len(set(local_sizing["child_ids_before"]))
+        != len(local_sizing["child_ids_before"])
+        or len(set(local_sizing["child_ids_after"]))
+        != len(local_sizing["child_ids_after"])
+        or len(local_sizing["child_ids_after"])
+        != len(local_sizing["child_ids_before"]) + 1
+        or set(local_sizing["child_ids_after"])
+        - set(local_sizing["child_ids_before"])
+        != {local_sizing.get("last_child_id")}
+        or local_sizing.get("arguments")
+        != {
+            "boi_control_name": "throat-face-size-0p075mm",
+            "boi_execution": "Face Size",
+            "boi_zoneor_label": "zone",
+            "boi_face_zone_list": expected_throat_names,
+            "boi_size": 0.075,
+        }
+    ):
+        raise RuntimeError("CONSUMER_LOCAL_SIZING_OBSERVATION_INVALID")
     zone_keys = {str(value) for value in zone_ids}
     zone_types = evidence.get("cell_zone_types")
     counts = evidence.get("cell_counts_by_zone")
@@ -642,10 +716,16 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
 
     boundary = evidence.get("boundary_face_adjacency")
     anchors = evidence.get("anchor_zone_ids")
+    canonical_inlet_outlet_ids = {
+        str(record["zone_id"])
+        for record in canonical_boundary_inventory.values()
+        if record["role"] in {"INLET", "OUTLET"}
+    }
     if (
         evidence.get("boundary_adjacency_ok") is not True
         or not isinstance(boundary, dict)
         or len(boundary) != 5
+        or set(boundary) != canonical_inlet_outlet_ids
         or any(
             not isinstance(value, list)
             or len(value) != 1
@@ -659,6 +739,11 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         raise RuntimeError("CONSUMER_MESH_EVIDENCE_BOUNDARY_GRAPH_INVALID")
 
     throat_adjacency = evidence.get("throat_face_adjacency")
+    canonical_throat_ids = {
+        str(record["zone_id"])
+        for record in canonical_boundary_inventory.values()
+        if record["role"] == "ORIFICE_THROAT_WALL"
+    }
     if (
         evidence.get("post_volume_role_resolution_ok") is not True
         or evidence.get("post_volume_inlet_zone_count") != 4
@@ -668,6 +753,7 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         or not isinstance(throat_adjacency, dict)
         or len(throat_adjacency)
         != evidence.get("post_volume_throat_zone_count")
+        or set(throat_adjacency) != canonical_throat_ids
         or any(
             not isinstance(value, dict)
             or set(value) != {"label", "raw_none", "values"}
@@ -757,17 +843,18 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         or evidence.get("actuator_gap_exclusion_evaluable") is not True
         or actuator_gap_excluded is not True
         or main_flow_count != 1
-        or non_flow_count != 0
+        or non_flow_count != 11
         or not isinstance(pre_inv, dict)
         or not isinstance(post_inv, dict)
         or not isinstance(region_trans, dict)
         or region_trans.get("main_flow_region_count") != 1
         or region_trans
         != {
-            "route": "REVERSED_BOUNDARY_FLUID_OBJECT",
+            "route": "MIXED_1_MAIN_11_VOID_UPDATE_REGIONS",
             "main_flow_region_count": 1,
-            "non_flow_region_count": 0,
+            "non_flow_region_count": 11,
             "unchanged": True,
+            "voids_excluded": True,
         }
         or type(hit_count) is not int
         or type(miss_count) is not int
@@ -795,10 +882,11 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         pre_inv != post_inv
         or region_trans
         != {
-            "route": "REVERSED_BOUNDARY_FLUID_OBJECT",
+            "route": "MIXED_1_MAIN_11_VOID_UPDATE_REGIONS",
             "main_flow_region_count": 1,
-            "non_flow_region_count": 0,
+            "non_flow_region_count": 11,
             "unchanged": True,
+            "voids_excluded": True,
         }
     ):
         raise RuntimeError("CONSUMER_REGION_TRANSITION_INVALID")
@@ -901,7 +989,7 @@ def validate_consumer_report(
             not isinstance(reported, dict)
             or not isinstance(file_entry, dict)
             or reported.get("relative_path") != relative
-            or (reported.get("size") != -1 and not positive_int(reported.get("size")))
+            or not positive_int(reported.get("size"))
             or reported.get("size") != file_entry.get("size")
             or not isinstance(reported.get("sha256"), str)
             or not re.fullmatch(r"[0-9a-f]{64}", reported["sha256"])
@@ -1046,12 +1134,27 @@ async def run_submitted_stages(
     head: str,
     contracts: dict[str, Any],
 ) -> None:
-    first = await stage1.call_json(
-        session,
-        "submit_job",
-        {"profile_id": stage1.PROFILE_ID, "case_id": CASE_ID},
-    )
     result["stage1"].update({
+        "submit_attempted": True,
+        "capability_status": "FAIL",
+        "submit_result": "PENDING",
+    })
+    persist_result(result)
+    try:
+        first = await stage1.call_json(
+            session,
+            "submit_job",
+            {"profile_id": stage1.PROFILE_ID, "case_id": CASE_ID},
+        )
+    except BaseException as exc:
+        result["stage1"]["submit_result"] = "UNAVAILABLE"
+        result["stage1"]["submit_error"] = "{}:{}".format(
+            type(exc).__name__, exc
+        )
+        persist_result(result)
+        raise
+    result["stage1"].update({
+        "submit_result": "RECEIVED",
         "submitted": True,
         "capability_status": "FAIL",
         "job_state": first,
@@ -1062,7 +1165,7 @@ async def run_submitted_stages(
             isinstance(first, dict)
             and isinstance(first.get("job_id"), str)
             and bool(first.get("job_id"))
-            and first.get("phase") == "RUNNING"
+            and first.get("phase") not in stage1.TERMINAL_PHASES
         ),
     })
     stage1_complete = False
@@ -1115,16 +1218,31 @@ async def run_submitted_stages(
             await cancel_submitted_job(session, result["stage1"])
             persist_result(result)
 
-    second = await stage1.call_json(
-        session,
-        "submit_job",
-        {
-            "profile_id": CONSUMER_PROFILE_ID,
-            "case_id": CASE_ID,
-            "predecessor_job_id": first.get("job_id"),
-        },
-    )
     result["stage2"].update({
+        "submit_attempted": True,
+        "capability_status": "FAIL",
+        "submit_result": "PENDING",
+    })
+    persist_result(result)
+    try:
+        second = await stage1.call_json(
+            session,
+            "submit_job",
+            {
+                "profile_id": CONSUMER_PROFILE_ID,
+                "case_id": CASE_ID,
+                "predecessor_job_id": first.get("job_id"),
+            },
+        )
+    except BaseException as exc:
+        result["stage2"]["submit_result"] = "UNAVAILABLE"
+        result["stage2"]["submit_error"] = "{}:{}".format(
+            type(exc).__name__, exc
+        )
+        persist_result(result)
+        raise
+    result["stage2"].update({
+        "submit_result": "RECEIVED",
         "submitted": True,
         "capability_status": "FAIL",
         "job_state": second,
@@ -1135,7 +1253,7 @@ async def run_submitted_stages(
             isinstance(second, dict)
             and isinstance(second.get("job_id"), str)
             and bool(second.get("job_id"))
-            and second.get("phase") == "RUNNING"
+            and second.get("phase") not in stage1.TERMINAL_PHASES
         ),
     })
     stage2_complete = False

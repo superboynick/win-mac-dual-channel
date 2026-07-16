@@ -127,21 +127,25 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "session.tui.boundary.separate.sep_face_zone_by_region([inlet_name])",
         '"POST_SURFACE_NATIVE_BOUNDARY_ZONE_COUNT_LT_7:{}"',
         '"POST_SURFACE_INLET_SPLIT_COUNT_NOT_4"',
-        '"POST_SURFACE_ROLE_ZONE_IDS_NOT_EXACT_10"',
+        "validate_post_surface_role_partition(",
+        "canonical_boundary_update_contract(",
         'workflow.import_geometry.length_unit = "mm"',
         'workflow.import_geometry.cad_import_options.one_zone_per = "face"',
         'imported_face_zone_ids = list(utilities.get_face_zones(filter="*"))',
         '"import_face_zone_inventory_completed"',
-        "local.add_child_and_update(",
-        '"boi_face_zone_list": throat_zone_names',
-        '"boi_size": THROAT_LOCAL_SIZE_MM',
+        'local.add_child = "yes"',
+        'local.boi_execution = "Face Size"',
+        "local.boi_face_zone_list = throat_zone_names",
+        "local.boi_size = THROAT_LOCAL_SIZE_MM",
+        "local.add_child_and_update(defer_update=False)",
+        "validate_local_sizing_child(",
         "workflow.create_surface_mesh",
         "surface.cfd_surface_mesh_controls.min_size = SURFACE_MIN_SIZE_MM",
         "surface.cfd_surface_mesh_controls.max_size = SURFACE_MAX_SIZE_MM",
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=False)",
         "workflow.describe_geometry.update_child_tasks(setup_type_changed=True)",
-        '"The geometry consists of only fluid regions with no voids"',
-        "workflow.describe_geometry.setup_type = FLUID_ONLY_SETUP_TYPE",
+        '"The geometry consists of both fluid and solid regions and/or voids"',
+        "workflow.describe_geometry.setup_type = MIXED_REGION_SETUP_TYPE",
         "workflow.describe_geometry.wall_to_internal = False",
         "workflow.describe_geometry.arguments()",
         '"describe_geometry_pre_execute_state"',
@@ -150,9 +154,9 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.update_boundaries.old_boundary_zone_list",
         "workflow.update_boundaries.old_boundary_zone_type_list",
         '"boundary_zone_types_updated"',
-        "utilities.set_object_cell_zone_type(",
-        'cell_zone_type="fluid"',
-        '"fluid_only_object_cell_zone_type_route_selected"',
+        "workflow.create_regions()",
+        "workflow.update_regions()",
+        '"MIXED_1_MAIN_11_VOID_UPDATE_REGIONS"',
         "workflow.create_volume_mesh_wtm",
         'volume_mesh.volume_fill = "poly-hexcore"',
         "volume_mesh.volume_fill_controls.hex_max_cell_length = VOLUME_MAX_SIZE_MM",
@@ -163,59 +167,39 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.update_boundaries.boundary_label_type_list",
         "workflow.update_boundaries.old_boundary_label_list",
         "workflow.update_boundaries.old_boundary_label_type_list",
-        "workflow.create_regions",
-        "workflow.update_regions",
         "number_of_flow_volumes",
-        '"The geometry consists of both fluid and solid regions and/or voids"',
+        '"The geometry consists of only fluid regions with no voids"',
     ):
         assert forbidden not in SOURCE
 
 
-def test_fluid_only_region_route_is_explicit_and_ordered() -> None:
+def test_mixed_region_route_is_explicit_and_ordered() -> None:
     boundary_guard = SOURCE.index("BOUNDARY_SEMANTIC_ZONE_TYPES_NOT_EXACT")
     describe = SOURCE.index(
-        '"The geometry consists of only fluid regions with no voids"'
+        '"The geometry consists of both fluid and solid regions and/or voids"'
     )
-    select_fluid_object = SOURCE.index(
-        "utilities.set_object_cell_zone_type("
-    )
-    route_trace = SOURCE.index(
-        '"fluid_only_object_cell_zone_type_route_selected"'
-    )
+    create_regions = SOURCE.index("workflow.create_regions()")
+    update_regions = SOURCE.index("workflow.update_regions()")
     volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
-    inventory = SOURCE.index("fluid_only_inventory = {")
     assert (
         describe
         < boundary_guard
-        < select_fluid_object
-        < route_trace
+        < create_regions
+        < update_regions
         < volume_mesh
-        < inventory
     )
     for required in (
-        '"workflow.describe_geometry.setup_type"',
-        '"utilities.get_cell_zones"',
-        '"utilities.get_zone_type"',
-        '"meshing_utilities.convert_zone_ids_to_name_strings"',
-        '"non_flow_region_count": 0',
-        '"route": "REVERSED_BOUNDARY_FLUID_OBJECT"',
-        'utilities.get_objects(filter="*")',
-        'not name.startswith("origin-")',
-        'f"origin-{mesh_object_candidates[0]}" not in mesh_objects',
-        "len(mesh_objects) != 2",
-        "utilities.set_object_cell_zone_type(",
-        'object_name=mesh_object_name, cell_zone_type="fluid"',
-        '"fluid_object_cell_zone_type_selected"',
-        "setup_type=FLUID_ONLY_SETUP_TYPE",
-        "create_regions_executed=False",
-        "update_regions_executed=False",
+        '"workflow.update_regions.region_current_list"',
+        '"workflow.update_regions.region_current_type_list"',
+        '"workflow.update_regions.number_of_listed_regions"',
+        '"non_flow_region_count": 11',
+        '"route": "MIXED_1_MAIN_11_VOID_UPDATE_REGIONS"',
+        '"voids_excluded": True',
     ):
         assert required in SOURCE
     for forbidden in (
-        "workflow.create_regions",
-        "workflow.update_regions",
         "number_of_flow_volumes",
-        '"The geometry consists of both fluid and solid regions and/or voids"',
+        '"The geometry consists of only fluid regions with no voids"',
         "session.tui.material_point",
         "session.tui.objects.volumetric_regions",
     ):
@@ -253,6 +237,10 @@ def load_semantic_helpers() -> dict[str, Any]:
         "build_boundary_role_blueprint",
         "validate_semantic_zone_mapping",
         "validate_canonical_semantic_mapping",
+        "validate_post_surface_role_partition",
+        "canonical_boundary_update_contract",
+        "validate_mixed_region_state",
+        "validate_local_sizing_child",
         "semantic_zone_type",
         "validate_final_boundary_semantics",
     }
@@ -288,6 +276,7 @@ def load_semantic_helpers() -> dict[str, Any]:
             "WALL_CONTINUOUS_UNCLASSIFIED": ["ajm_remaining_wall"],
         },
         "CANONICAL_BOUNDARY_ZONE_COUNT": 10,
+        "THROAT_LOCAL_SIZE_MM": 0.075,
     }
     module = ast.Module(body=nodes, type_ignores=[])
     exec(
@@ -510,6 +499,81 @@ def test_c7_final_boundary_coverage_and_single_fluid_adjacency() -> None:
     )
 
 
+def test_post_surface_partition_region_and_local_sizing_negative_contracts() -> None:
+    helpers = load_semantic_helpers()
+    roles = {
+        "INLET": [1, 1, 1, 1],
+        "OUTLET": [2],
+        "HEAT_WALL": [3],
+        "MEMBRANE_TOP": [4],
+        "MEMBRANE_BOTTOM": [5],
+        "ORIFICE_THROAT_WALL": [6],
+        "WALL_CONTINUOUS_UNCLASSIFIED": [7, 8, 9],
+    }
+    normalized = helpers["validate_post_surface_role_partition"](roles)
+    assert normalized["INLET"] == [1]
+    assert normalized["WALL_CONTINUOUS_UNCLASSIFIED"] == [7, 8, 9]
+    crossing = copy.deepcopy(roles)
+    crossing["OUTLET"] = [1]
+    expect_runtime_error(
+        helpers["validate_post_surface_role_partition"],
+        crossing,
+        marker="POST_SURFACE_ZONE_CROSSES_ROLES",
+    )
+    bad_inlets = copy.deepcopy(roles)
+    bad_inlets["INLET"] = [1, 10]
+    expect_runtime_error(
+        helpers["validate_post_surface_role_partition"],
+        bad_inlets,
+        marker="POST_SURFACE_INLET_ZONE_CARDINALITY_INVALID",
+    )
+
+    blueprint = helpers["build_boundary_role_blueprint"](
+        semantic_source_fixture()
+    )
+    canonical = canonical_mapping_fixture(blueprint)
+    names, types, zone_ids = helpers["canonical_boundary_update_contract"](
+        canonical
+    )
+    assert len(names) == len(types) == len(zone_ids) == 10
+    assert len(set(zone_ids)) == 10
+
+    region_names = ["fluid_continuous"] + [
+        f"dead{index}-membrane_bottom" for index in range(11)
+    ]
+    region_types = ["fluid"] + ["dead"] * 11
+    inventory = helpers["validate_mixed_region_state"](
+        region_names, region_types, 12
+    )
+    assert inventory["main_flow_region_count"] == 1
+    assert inventory["non_flow_region_count"] == 11
+    expect_runtime_error(
+        helpers["validate_mixed_region_state"],
+        region_names + ["dead11-membrane_bottom"],
+        region_types + ["dead"],
+        13,
+        marker="MIXED_REGION_STATE_NOT_EXACT_12",
+    )
+
+    child_args = {
+        "boi_control_name": "throat-face-size-0p075mm",
+        "boi_execution": "Face Size",
+        "boi_zoneor_label": "zone",
+        "boi_face_zone_list": ["ajm_throat_wall"],
+        "boi_size": 0.075,
+    }
+    helpers["validate_local_sizing_child"](
+        True, ["existing"], ["existing", "new"], "new", child_args,
+        ["ajm_throat_wall"],
+    )
+    expect_runtime_error(
+        helpers["validate_local_sizing_child"],
+        object(), ["existing"], ["existing", "new"], "new", child_args,
+        ["ajm_throat_wall"],
+        marker="LOCAL_SIZING_ADD_CHILD_NOT_TRUE",
+    )
+
+
 def test_c7_runtime_integration_and_compact_evidence_fields_are_pinned() -> None:
     for required in (
         "build_boundary_role_blueprint(inventory)",
@@ -679,14 +743,13 @@ def test_throat_occupancy_failure_stays_truthful_and_does_not_block_mesh_write()
     )
 
 
-def test_fluid_only_inventory_is_observed_from_actual_cell_zone() -> None:
+def test_mixed_region_inventory_is_observed_before_volume() -> None:
     for required in (
         "if len(cell_zone_ids) != 1:",
         "cell_zone_names = zone_names_one_way(utilities, cell_zone_ids)",
-        '"name": cell_zone_names[0]',
-        '"type": "fluid"',
-        '"classification": "MAIN_FLOW"',
-        'post_update_region_inventory = copy.deepcopy(fluid_only_inventory)',
+        "validate_mixed_region_state(",
+        '"MIXED_REGION_TYPES_NOT_1_FLUID_11_VOID"',
+        '"POST_VOLUME_MAIN_REGION_NAME_MISMATCH',
     ):
         assert required in SOURCE
 def test_json_safe_trace_helper_preserves_nested_input() -> None:
