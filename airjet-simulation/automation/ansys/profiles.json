@@ -489,7 +489,7 @@
       "profile_id": "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
       "engine": "spaceclaim",
       "script": "006/v03_continuous_fluid_producer.py",
-      "sha256": "76d49ee372f71e993caadda2cb61d511a46b980e8db440c0b9017dd8b63772fb",
+      "sha256": "556b32a37e8cf926ff7ef06ca7d1fc1ba8b65dc5bce16d34449dee1f1e7652f6",
       "timeout_seconds": 7200,
       "output_root_id": "p1_cad_006",
       "reports": [

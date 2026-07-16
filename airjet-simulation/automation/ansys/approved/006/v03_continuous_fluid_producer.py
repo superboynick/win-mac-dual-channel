@@ -752,7 +752,7 @@ try:
     radius = float(layout["orifice_diameter_candidate_mm"]) / 2.0
     numerical_overlap_mm = 0.02
     vent_riser_overlap_mm = 0.001
-    perimeter_boolean_overlap_mm = 0.02
+    perimeter_boolean_overlap_mm = 0.15
     perimeter_boolean_overlap_raw_mm3 = (
         cell_count
         * (
