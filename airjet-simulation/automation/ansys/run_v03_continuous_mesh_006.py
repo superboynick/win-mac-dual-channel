@@ -232,29 +232,25 @@ def validate_profile_contracts(contracts: Any, expected_head: str) -> dict[str, 
 def validate_stage1_submit_identity(
     state: Any, expected_head: str, expected_contract: str
 ) -> None:
-    if (
-        not isinstance(state, dict)
-        or not isinstance(state.get("job_id"), str)
-        or not state["job_id"]
-        or state.get("case_id") != CASE_ID
-        or state.get("profile_id") != stage1.PROFILE_ID
-        or state.get("phase") != "RUNNING"
-        or state.get("engine") != "spaceclaim"
-        or state.get("git_head") != expected_head
-        or state.get("profile_contract_sha256") != expected_contract
-        or not isinstance(state.get("profile_dependency_manifest_sha256"), str)
-        or re.fullmatch(
-            r"[0-9a-f]{64}", state["profile_dependency_manifest_sha256"]
-        )
-        is None
-        or state.get("output_root_id") != "p1_cad_006"
-        or not isinstance(state.get("job_directory"), str)
-        or not state["job_directory"]
-        or state.get("license_arguments_added") is not False
-        or state.get("predecessor_job_id") is not None
-        or state.get("predecessor_artifacts") != []
-    ):
-        raise RuntimeError("STAGE1_SUBMIT_IDENTITY_MISMATCH")
+    errors = []
+    if not isinstance(state, dict): errors.append("NOT_DICT")
+    else:
+        if not isinstance(state.get("job_id"), str) or not state["job_id"]: errors.append("JOB_ID")
+        if state.get("case_id") != CASE_ID: errors.append(f"CASE_ID:{state.get('case_id')}!={CASE_ID}")
+        if state.get("profile_id") != stage1.PROFILE_ID: errors.append("PROFILE_ID")
+        if state.get("phase") != "RUNNING": errors.append(f"PHASE:{state.get('phase')}")
+        if state.get("engine") != "spaceclaim": errors.append("ENGINE")
+        if state.get("git_head") != expected_head: errors.append(f"GIT_HEAD:{state.get('git_head')[:16]}!={expected_head[:16]}")
+        if state.get("profile_contract_sha256") != expected_contract: errors.append(f"CONTRACT:{state.get('profile_contract_sha256','')[:16]}!={expected_contract[:16]}")
+        pdm = state.get("profile_dependency_manifest_sha256")
+        if not isinstance(pdm, str) or re.fullmatch(r"[0-9a-f]{64}", pdm) is None: errors.append("DEPS_HASH")
+        if state.get("output_root_id") != "p1_cad_006": errors.append("OUTPUT_ROOT")
+        if not isinstance(state.get("job_directory"), str) or not state["job_directory"]: errors.append("JOB_DIR")
+        if state.get("license_arguments_added") is not False: errors.append("LICENSE")
+        if state.get("predecessor_job_id") is not None: errors.append("PREDECESSOR")
+        if state.get("predecessor_artifacts") != []: errors.append("PRED_ARTIFACTS")
+    if errors:
+        raise RuntimeError("STAGE1_SUBMIT_IDENTITY_MISMATCH:" + ",".join(errors))
 
 
 def validate_stage2_submit_identity(
