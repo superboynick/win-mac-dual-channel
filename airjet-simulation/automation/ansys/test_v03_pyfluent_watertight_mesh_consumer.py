@@ -125,7 +125,7 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         '"NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1078:{}"',
         "rebind_post_surface_canonical_records(",
         "session.tui.boundary.separate.sep_face_zone_by_region([inlet_name])",
-        '"POST_SURFACE_NATIVE_BOUNDARY_ZONE_COUNT_NOT_7:{}"',
+        '"POST_SURFACE_NATIVE_BOUNDARY_ZONE_COUNT_LT_7:{}"',
         '"POST_SURFACE_INLET_SPLIT_COUNT_NOT_4"',
         '"POST_SURFACE_ROLE_ZONE_IDS_NOT_EXACT_10"',
         'workflow.import_geometry.length_unit = "mm"',

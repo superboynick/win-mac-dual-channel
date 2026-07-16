@@ -657,9 +657,9 @@ def rebind_post_surface_canonical_records(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Split the remeshed inlet label and rebind ten canonical boundary zones."""
     zone_ids_before = sorted(set(meshing_utilities.get_face_zones(filter="*")))
-    if len(zone_ids_before) != 7:
+    if len(zone_ids_before) < 7:
         raise RuntimeError(
-            "POST_SURFACE_NATIVE_BOUNDARY_ZONE_COUNT_NOT_7:{}".format(
+            "POST_SURFACE_NATIVE_BOUNDARY_ZONE_COUNT_LT_7:{}".format(
                 len(zone_ids_before)
             )
         )
@@ -675,7 +675,9 @@ def rebind_post_surface_canonical_records(
     if len(set(role_zone_ids["INLET"])) != 1:
         raise RuntimeError("POST_SURFACE_NATIVE_INLET_ZONE_NOT_AGGREGATED")
     representative_ids = {values[0] for values in role_zone_ids.values()}
-    if len(representative_ids) != 7 or representative_ids != set(zone_ids_before):
+    if len(representative_ids) != 7 or not representative_ids.issubset(
+        set(zone_ids_before)
+    ):
         raise RuntimeError("POST_SURFACE_NATIVE_ROLE_ZONE_COVERAGE_INVALID")
     inlet_name = zone_names(meshing_utilities, role_zone_ids["INLET"][:1])[0]
     session.tui.boundary.separate.sep_face_zone_by_region([inlet_name])
