@@ -315,6 +315,9 @@ def validate_predecessor() -> tuple[
     native_throat_inventory = (
         (producer.get("geometry") or {}).get("native_throat_inventory") or {}
     )
+    detached_native_throat = native_reopen.get("throat_inventory") or {}
+    embedded_native_xy = native_throat_inventory.get("xy_inventory") or {}
+    detached_native_xy = detached_native_throat.get("xy_inventory") or {}
     expected_boundary_counts = {
         "HEAT_WALL": 1,
         "INLET": 4,
@@ -366,7 +369,40 @@ def validate_predecessor() -> tuple[
         or native_reopen.get("group_counts") != expected_boundary_counts | {
             "FLUID_CONTINUOUS": 1
         }
-        or native_reopen.get("throat_inventory") != native_throat_inventory
+        or detached_native_throat.get("candidate_face_count") != THROAT_COUNT
+        or detached_native_throat.get("pass") is not True
+        or any(
+            detached_native_throat.get(key) != native_throat_inventory.get(key)
+            for key in (
+                "accepted_area_model_counts",
+                "area_tolerance_mm2",
+                "expected_center_z_mm",
+                "expected_diameter_mm",
+                "expected_length_mm",
+                "expected_radius_mm",
+                "expected_z_max_mm",
+                "expected_z_min_mm",
+                "geometry_tolerance_mm",
+                "observed_candidate_area_range_mm2",
+                "observed_candidate_center_z_range_mm",
+                "observed_candidate_edge_count_histogram",
+            )
+        )
+        or any(
+            detached_native_xy.get(key) != embedded_native_xy.get(key)
+            for key in (
+                "actual_count",
+                "expected_count",
+                "matched_count",
+                "max_xy_delta_mm",
+                "one_to_one_complete",
+                "tolerance_mm",
+            )
+        )
+        or detached_native_xy.get("missing_expected_xy") != []
+        or detached_native_xy.get("unexpected_actual_xy") != []
+        or embedded_native_xy.get("missing_count") != 0
+        or embedded_native_xy.get("unexpected_count") != 0
         or producer_native_reopen.get("sha256")
         != sha256_file(PREDECESSOR_DIR / "v03_native_reopen.json")
         or producer_native_reopen.get("size")
