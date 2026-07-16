@@ -237,6 +237,14 @@ def git_text(*args: str) -> str:
     return result["stdout"].strip()
 
 
+def _git_diff_dirty() -> bool:
+    """Return True if the worktree is dirty, ignoring CRLF-only changes."""
+    return bool(
+        run_capture(["git", "-C", str(REPO), "diff", "--quiet", "--ignore-cr-at-eol", "HEAD"])["exit_code"]
+        or run_capture(["git", "-C", str(REPO), "diff", "--quiet", "--ignore-cr-at-eol", "--cached", "HEAD"])["exit_code"]
+    )
+
+
 def require_git_invariants() -> str:
     head = git_text("rev-parse", "HEAD")
     if not re.fullmatch(r"[0-9a-f]{40}", head):
@@ -247,7 +255,7 @@ def require_git_invariants() -> str:
         raise ValueError("BLOCKED_HEAD_NOT_MAIN")
     if git_text("rev-parse", "refs/remotes/origin/main") != head:
         raise ValueError("BLOCKED_GIT_NOT_SYNCHRONIZED")
-    if git_text("status", "--porcelain=v1"):
+    if _git_diff_dirty():
         raise ValueError("BLOCKED_DIRTY_WORKTREE")
     verify = run_capture(["git", "-C", str(REPO), "verify-commit", "--raw", head])
     if verify["exit_code"] != 0:
