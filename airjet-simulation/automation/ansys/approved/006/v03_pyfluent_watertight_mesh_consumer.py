@@ -845,6 +845,85 @@ def build_post_surface_coverage_diagnostic(
     }
 
 
+def validate_post_surface_product_suffix_structure(
+    product_role_ids: dict[str, list[int]],
+    product_role_names: dict[str, list[str]],
+) -> dict[str, Any]:
+    """Bind generated suffixes to live IDs without freezing their start ID."""
+    anchors = {
+        "INLET": "inlet",
+        "OUTLET": "outlet",
+        "HEAT_WALL": "heat_wall",
+        "MEMBRANE_TOP": "membrane_top",
+        "MEMBRANE_BOTTOM": "membrane_bottom",
+        "ORIFICE_THROAT_WALL": "orifice_throat_wall",
+        "WALL_CONTINUOUS_UNCLASSIFIED": "fluid_continuous:1",
+    }
+    if (
+        set(product_role_ids) != set(BOUNDARY_ROLE_ORDER)
+        or set(product_role_names) != set(BOUNDARY_ROLE_ORDER)
+        or any(
+            len(product_role_ids[role]) != len(product_role_names[role])
+            for role in BOUNDARY_ROLE_ORDER
+        )
+    ):
+        raise RuntimeError("POST_SURFACE_PRODUCT_SUFFIX_SCHEMA_INVALID")
+    for role, anchor in anchors.items():
+        if sum(name.lower() == anchor for name in product_role_names[role]) != 1:
+            raise RuntimeError(
+                "POST_SURFACE_PRODUCT_SUFFIX_ANCHOR_INVALID:{}".format(role)
+            )
+    block_specs = (
+        ("WALL_CONTINUOUS_UNCLASSIFIED", "fluid_continuous", 12),
+        ("MEMBRANE_TOP", "membrane_top", 11),
+        ("MEMBRANE_BOTTOM", "membrane_bottom", 11),
+    )
+    blocks = {}
+    for role, base_name, expected_count in block_specs:
+        suffix_ids = []
+        for zone_id, zone_name in zip(
+            product_role_ids[role], product_role_names[role]
+        ):
+            if zone_name.lower() == anchors[role]:
+                continue
+            match = re.fullmatch(
+                re.escape(base_name) + r":([0-9]+)",
+                zone_name,
+                flags=re.IGNORECASE,
+            )
+            if match is None:
+                continue
+            suffix = int(match.group(1))
+            if suffix != zone_id:
+                raise RuntimeError(
+                    "POST_SURFACE_PRODUCT_SUFFIX_NOT_ZONE_ID:{}:{}:{}".format(
+                        role, zone_name, zone_id
+                    )
+                )
+            suffix_ids.append(zone_id)
+        suffix_ids.sort()
+        if len(suffix_ids) != expected_count:
+            raise RuntimeError(
+                "POST_SURFACE_PRODUCT_SUFFIX_BLOCK_COUNT_INVALID:{}".format(role)
+            )
+        blocks[role] = suffix_ids
+    ordered_suffix_ids = [
+        zone_id
+        for role, _base_name, _count in block_specs
+        for zone_id in blocks[role]
+    ]
+    if ordered_suffix_ids != list(
+        range(ordered_suffix_ids[0], ordered_suffix_ids[0] + 34)
+    ):
+        raise RuntimeError("POST_SURFACE_PRODUCT_SUFFIX_BLOCKS_NOT_CONTIGUOUS_ORDERED")
+    return {
+        "suffix_start_zone_id": ordered_suffix_ids[0],
+        "suffix_end_zone_id": ordered_suffix_ids[-1],
+        "suffix_zone_count": len(ordered_suffix_ids),
+        "suffix_blocks": blocks,
+    }
+
+
 def resolve_post_surface_dual_object_boundaries(
     meshing_utilities: Any,
     expected_origin_role_zone_ids: dict[str, list[int]],
@@ -1001,18 +1080,6 @@ def resolve_post_surface_dual_object_boundaries(
         "ORIFICE_THROAT_WALL": 1,
         "WALL_CONTINUOUS_UNCLASSIFIED": 13,
     }
-    expected_product_names = {
-        "INLET": {"inlet"},
-        "OUTLET": {"outlet"},
-        "HEAT_WALL": {"heat_wall"},
-        "MEMBRANE_TOP": {"membrane_top"}
-        | {"membrane_top:{}".format(value) for value in range(1136, 1147)},
-        "MEMBRANE_BOTTOM": {"membrane_bottom"}
-        | {"membrane_bottom:{}".format(value) for value in range(1147, 1158)},
-        "ORIFICE_THROAT_WALL": {"orifice_throat_wall"},
-        "WALL_CONTINUOUS_UNCLASSIFIED": {"fluid_continuous:1"}
-        | {"fluid_continuous:{}".format(value) for value in range(1124, 1136)},
-    }
     product_records = inventories[product_object]
     if any(
         record["zone_type"].strip().lower() != "wall"
@@ -1051,12 +1118,9 @@ def resolve_post_surface_dual_object_boundaries(
                 product_counts
             )
         )
-    if any(
-        {name.lower() for name in product_role_names[role]}
-        != expected_product_names[role]
-        for role in BOUNDARY_ROLE_ORDER
-    ):
-        raise RuntimeError("POST_SURFACE_PRODUCT_EXACT_NAME_SETS_INVALID")
+    suffix_structure = validate_post_surface_product_suffix_structure(
+        product_role_ids, product_role_names
+    )
     if set(
         zone_id for values in product_role_ids.values() for zone_id in values
     ) != object_id_sets[product_object]:
@@ -1075,6 +1139,7 @@ def resolve_post_surface_dual_object_boundaries(
         "product_role_zone_ids": product_role_ids,
         "product_role_zone_names": product_role_names,
         "product_role_counts": product_counts,
+        "product_suffix_structure": suffix_structure,
     }
 
 
@@ -1587,6 +1652,28 @@ def observe_parameter(parameter: Any) -> dict[str, Any]:
         "python_type": type(value).__name__,
         "value": json_safe_trace_value(value),
     }
+
+
+def observe_update_regions_argument_menu(argument_menu: Any) -> dict[str, Any]:
+    """Read generated current-region fields from the task argument menu."""
+    field_names = (
+        "region_current_list",
+        "region_current_type_list",
+        "number_of_listed_regions",
+    )
+    observations = {}
+    for name in field_names:
+        try:
+            parameter = getattr(argument_menu, name)
+        except Exception as exc:
+            observations[name] = {
+                "read_ok": False,
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+            }
+            continue
+        observations[name] = observe_parameter(parameter)
+    return observations
 
 
 def validate_mixed_region_state(
@@ -2615,16 +2702,11 @@ try:
         state=json_safe_trace_value(create_regions_pre_state),
     )
     workflow.create_regions()
-    direct_region_state = {
-        name: observe_parameter(getattr(workflow.update_regions, name))
-        for name in (
-            "region_current_list",
-            "region_current_type_list",
-            "number_of_listed_regions",
-        )
-    }
+    direct_region_state = observe_update_regions_argument_menu(
+        workflow.update_regions.arguments
+    )
     trace_checkpoint(
-        "update_regions_direct_parameter_state",
+        "update_regions_argument_menu_state",
         state=direct_region_state,
     )
     if any(
@@ -2653,14 +2735,9 @@ try:
         "old_region_type_list"
     ]
     workflow.update_regions()
-    post_region_state = {
-        name: observe_parameter(getattr(workflow.update_regions, name))
-        for name in (
-            "region_current_list",
-            "region_current_type_list",
-            "number_of_listed_regions",
-        )
-    }
+    post_region_state = observe_update_regions_argument_menu(
+        workflow.update_regions.arguments
+    )
     if any(
         observation.get("read_ok") is not True
         for observation in post_region_state.values()

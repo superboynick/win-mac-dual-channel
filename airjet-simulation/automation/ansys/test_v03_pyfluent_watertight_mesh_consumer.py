@@ -211,6 +211,9 @@ def load_contract_helpers() -> dict[str, Any]:
         "validate_full_throat_occupancy",
         "validate_actuator_gap_exclusion",
         "parse_mesh_size",
+        "json_safe_trace_value",
+        "observe_parameter",
+        "observe_update_regions_argument_menu",
     }
     nodes = [
         node
@@ -248,6 +251,7 @@ def load_semantic_helpers() -> dict[str, Any]:
         "zone_names_one_way",
         "safe_diagnostic_observation",
         "build_post_surface_coverage_diagnostic",
+        "validate_post_surface_product_suffix_structure",
         "resolve_post_surface_dual_object_boundaries",
         "enforce_post_surface_native_role_coverage",
         "classify_post_surface_product_roles",
@@ -513,7 +517,7 @@ def test_c7_final_boundary_coverage_and_single_fluid_adjacency() -> None:
     )
 
 
-def post_surface_dual_object_fixture():
+def post_surface_dual_object_fixture(suffix_start=1124):
     origin_ids = {
         "INLET": [1051, 1056, 1065, 1071],
         "OUTLET": [2],
@@ -539,10 +543,10 @@ def post_surface_dual_object_fixture():
         "INLET": [1105],
         "OUTLET": [4],
         "HEAT_WALL": [8],
-        "MEMBRANE_TOP": [5] + list(range(1136, 1147)),
-        "MEMBRANE_BOTTOM": [6] + list(range(1147, 1158)),
+        "MEMBRANE_TOP": [5] + list(range(suffix_start + 12, suffix_start + 23)),
+        "MEMBRANE_BOTTOM": [6] + list(range(suffix_start + 23, suffix_start + 34)),
         "ORIFICE_THROAT_WALL": [1106],
-        "WALL_CONTINUOUS_UNCLASSIFIED": [1104] + list(range(1124, 1136)),
+        "WALL_CONTINUOUS_UNCLASSIFIED": [1104] + list(range(suffix_start, suffix_start + 12)),
     }
     name_by_id.update(
         {
@@ -555,9 +559,9 @@ def post_surface_dual_object_fixture():
             1104: "fluid_continuous:1",
         }
     )
-    name_by_id.update({zone_id: f"membrane_top:{zone_id}" for zone_id in range(1136, 1147)})
-    name_by_id.update({zone_id: f"membrane_bottom:{zone_id}" for zone_id in range(1147, 1158)})
-    name_by_id.update({zone_id: f"fluid_continuous:{zone_id}" for zone_id in range(1124, 1136)})
+    name_by_id.update({zone_id: f"membrane_top:{zone_id}" for zone_id in range(suffix_start + 12, suffix_start + 23)})
+    name_by_id.update({zone_id: f"membrane_bottom:{zone_id}" for zone_id in range(suffix_start + 23, suffix_start + 34)})
+    name_by_id.update({zone_id: f"fluid_continuous:{zone_id}" for zone_id in range(suffix_start, suffix_start + 12)})
     origin_flat = sorted(zone_id for ids in origin_ids.values() for zone_id in ids)
     product_flat = sorted(zone_id for ids in product_ids.values() for zone_id in ids)
     return {
@@ -663,6 +667,23 @@ def test_post_surface_dual_object_41_wall_partition_is_exact() -> None:
     assert set(observed["origin_zone_ids"]).isdisjoint(
         observed["product_zone_ids"]
     )
+    assert observed["product_suffix_structure"]["suffix_start_zone_id"] == 1124
+    new_fixture = post_surface_dual_object_fixture(suffix_start=1123)
+    new_observed = resolve(
+        PostSurfaceDualObjectUtilities(new_fixture),
+        new_fixture["origin_ids"],
+        new_fixture["origin_names"],
+    )
+    assert new_observed["product_suffix_structure"] == {
+        "suffix_start_zone_id": 1123,
+        "suffix_end_zone_id": 1156,
+        "suffix_zone_count": 34,
+        "suffix_blocks": {
+            "WALL_CONTINUOUS_UNCLASSIFIED": list(range(1123, 1135)),
+            "MEMBRANE_TOP": list(range(1135, 1146)),
+            "MEMBRANE_BOTTOM": list(range(1146, 1157)),
+        },
+    }
 
 
 def test_post_surface_dual_object_partition_rejects_every_trust_break() -> None:
@@ -727,7 +748,25 @@ def test_post_surface_dual_object_partition_rejects_every_trust_break() -> None:
 
     broken = copy.deepcopy(base)
     broken["name_by_id"][broken["product_ids"]["MEMBRANE_TOP"][1]] = "membrane_top:9999"
-    reject(broken, "POST_SURFACE_PRODUCT_EXACT_NAME_SETS_INVALID")
+    reject(broken, "POST_SURFACE_PRODUCT_SUFFIX_NOT_ZONE_ID")
+
+    broken = copy.deepcopy(base)
+    old_zone_id = broken["product_ids"]["WALL_CONTINUOUS_UNCLASSIFIED"][1]
+    new_zone_id = 9999
+    broken["product_ids"]["WALL_CONTINUOUS_UNCLASSIFIED"][1] = new_zone_id
+    for object_name, ids in broken["object_ids"].items():
+        broken["object_ids"][object_name] = [
+            new_zone_id if zone_id == old_zone_id else zone_id for zone_id in ids
+        ]
+    broken["global_ids"] = [
+        new_zone_id if zone_id == old_zone_id else zone_id
+        for zone_id in broken["global_ids"]
+    ]
+    broken["name_by_id"][new_zone_id] = "fluid_continuous:9999"
+    broken["type_by_id"][new_zone_id] = broken["type_by_id"][old_zone_id]
+    del broken["name_by_id"][old_zone_id]
+    del broken["type_by_id"][old_zone_id]
+    reject(broken, "POST_SURFACE_PRODUCT_SUFFIX_BLOCKS_NOT_CONTIGUOUS_ORDERED")
 
 
 def test_post_surface_coverage_diagnostic_is_complete_and_fail_safe() -> None:
@@ -1357,8 +1396,86 @@ def test_mixed_region_inventory_is_observed_before_volume() -> None:
         "validate_mixed_region_state(",
         '"MIXED_REGION_TYPES_NOT_1_FLUID_12_VOID"',
         '"POST_VOLUME_MAIN_REGION_NAME_MISMATCH',
+        "observe_update_regions_argument_menu(",
+        "workflow.update_regions.arguments",
+        '"update_regions_argument_menu_state"',
     ):
         assert required in SOURCE
+    assert "getattr(workflow.update_regions, name)" not in SOURCE
+
+
+def test_update_regions_reads_generated_argument_menu_only() -> None:
+    observe = load_contract_helpers()[
+        "observe_update_regions_argument_menu"
+    ]
+
+    class Parameter:
+        def __init__(self, value):
+            self.value = value
+
+        def __call__(self):
+            return self.value
+
+    class ArgumentMenu:
+        region_current_list = Parameter(["fluid", "dead0"])
+        region_current_type_list = Parameter(["fluid", "dead"])
+        number_of_listed_regions = Parameter(2)
+
+    assert observe(ArgumentMenu()) == {
+        "region_current_list": {
+            "read_ok": True,
+            "python_type": "list",
+            "value": ["fluid", "dead0"],
+        },
+        "region_current_type_list": {
+            "read_ok": True,
+            "python_type": "list",
+            "value": ["fluid", "dead"],
+        },
+        "number_of_listed_regions": {
+            "read_ok": True,
+            "python_type": "int",
+            "value": 2,
+        },
+    }
+
+    class BrokenParameter:
+        def __call__(self):
+            raise RuntimeError("menu read failed")
+
+    class BrokenMenu:
+        region_current_list = BrokenParameter()
+
+    broken = observe(BrokenMenu())
+    assert broken["region_current_list"] == {
+        "read_ok": False,
+        "error_type": "RuntimeError",
+        "error": "menu read failed",
+    }
+    assert broken["region_current_type_list"]["read_ok"] is False
+    assert broken["region_current_type_list"]["error_type"] == "AttributeError"
+    assert broken["number_of_listed_regions"]["read_ok"] is False
+
+
+def test_update_regions_argument_menu_calls_are_attributes_not_calls() -> None:
+    calls = [
+        node
+        for node in ast.walk(TREE)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "observe_update_regions_argument_menu"
+    ]
+    assert len(calls) == 2
+    for call in calls:
+        assert len(call.args) == 1
+        argument = call.args[0]
+        assert isinstance(argument, ast.Attribute)
+        assert argument.attr == "arguments"
+        assert not isinstance(argument.value, ast.Call)
+    assert "workflow.update_regions.arguments()" not in SOURCE
+    assert "getattr(workflow.update_regions, name)" not in SOURCE
+
+
 def test_json_safe_trace_helper_preserves_nested_input() -> None:
     helper_node = next(
         node for node in TREE.body

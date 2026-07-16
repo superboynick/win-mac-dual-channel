@@ -2094,6 +2094,12 @@ for invariant in (
     '"POST_SURFACE_ROLE_MERGE_FACE_COUNT_NOT_CONSERVED"',
     '"POST_SURFACE_INLET_SPLIT_LINEAGE_NOT_CONSERVED"',
     '"POST_SURFACE_CANONICAL_FACE_COUNT_NOT_CONSERVED"',
+    "validate_post_surface_product_suffix_structure(",
+    '"POST_SURFACE_PRODUCT_SUFFIX_NOT_ZONE_ID',
+    '"POST_SURFACE_PRODUCT_SUFFIX_BLOCKS_NOT_CONTIGUOUS_ORDERED"',
+    "observe_update_regions_argument_menu(",
+    "workflow.update_regions.arguments",
+    '"update_regions_argument_menu_state"',
 ):
     if invariant not in v03_mesh_source:
         fail("V03 C5 consumer lacks computed occupancy/region invariant: " + invariant)
@@ -2118,6 +2124,30 @@ if sum(
     for node in rebind_calls
 ) != 1:
     fail("V03 post-surface rebind does not use one exact four-inlet binder")
+argument_menu_calls = [
+    node
+    for node in ast.walk(v03_mesh_tree)
+    if isinstance(node, ast.Call)
+    and isinstance(node.func, ast.Name)
+    and node.func.id == "observe_update_regions_argument_menu"
+]
+if len(argument_menu_calls) != 2 or any(
+    len(node.args) != 1
+    or not isinstance(node.args[0], ast.Attribute)
+    or node.args[0].attr != "arguments"
+    or isinstance(node.args[0].value, ast.Call)
+    for node in argument_menu_calls
+):
+    fail("V03 update-regions reads are not exact argument-menu attributes")
+for forbidden in (
+    "getattr(workflow.update_regions, name)",
+    "workflow.update_regions.arguments()",
+    "range(1124, 1136)",
+    "range(1136, 1147)",
+    "range(1147, 1158)",
+):
+    if forbidden in v03_mesh_source:
+        fail("V03 consumer contains stale region/suffix contract: " + forbidden)
 if "passthrough" in v03_mesh_source or "passthrough" in v03_mesh_runner_source:
     fail("V03 C5 runtime reintroduced forbidden region passthrough")
 for forbidden in (
@@ -2169,6 +2199,8 @@ for guard_name in (
     "test_destructive_post_surface_sequence_is_fully_gated",
     "test_rebind_has_zero_exhaustive_post_surface_mapping_calls",
     "test_inlet_binding_executes_exactly_four_point_queries",
+    "test_update_regions_reads_generated_argument_menu_only",
+    "test_update_regions_argument_menu_calls_are_attributes_not_calls",
 ):
     if guard_name not in consumer_guard_names:
         fail("V03 C5 consumer regression guard missing: " + guard_name)
