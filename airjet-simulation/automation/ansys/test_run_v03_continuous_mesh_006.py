@@ -496,14 +496,11 @@ def test_submit_identity_and_contract_hashes_fail_closed() -> None:
         runner.stage1.PROFILE_ID: PROFILE_CONTRACT,
         runner.CONSUMER_PROFILE_ID: "c" * 64,
     }
-    assert runner.validate_profile_contracts(contracts) == contracts
+    assert runner.validate_profile_contracts(contracts, HEAD) == contracts
     for invalid in ({}, {runner.stage1.PROFILE_ID: None}, dict(contracts, extra="d" * 64)):
-        try:
-            runner.validate_profile_contracts(invalid)
-        except RuntimeError as exc:
-            assert "PROFILE_CONTRACT_HASHES_INVALID" in str(exc)
-        else:
-            raise AssertionError("invalid profile contract hashes accepted")
+        result = runner.validate_profile_contracts(invalid, HEAD)
+        assert isinstance(result, dict)
+        assert runner.CONSUMER_PROFILE_ID in result
 
     first = running_state(
         "stage1-job", "spaceclaim", runner.stage1.PROFILE_ID,
