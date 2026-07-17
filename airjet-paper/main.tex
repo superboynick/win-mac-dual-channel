@@ -1,0 +1,216 @@
+\documentclass[11pt]{article}
+\usepackage{graphicx}
+\usepackage[
+  backend=biber,
+  style=ieee
+]{biblatex}
+
+\addbibresource{references.bib}
+
+\title{AirJet Modeling}
+\author{Nick Zhang}
+\date{July 2026}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introduction}
+
+\subsection{Context}
+
+Nowadays electronic devices have better chips and more compact designs.
+The power of chips keeps growing. However, most devices like laptops
+either use passive cooling or a fan. These are the two classical
+solutions, and each has clear trade-offs. A fan can handle higher power,
+but it makes the device bigger, heavier, and noisier. Passive cooling
+keeps the device light and quiet, but the cooling capacity is limited.
+Because of this, even small mobile devices such as phones have started
+using tiny fans. Conventional rotary-fan cooling has stayed the main
+approach in most consumer electronics for a long time, while small
+improvements have struggled to keep up with rising heat and shrinking
+space~\cite{wang2013thermal}.
+
+Even without increasing the total power, chips keep getting higher
+transistor density. This makes the chip area smaller, which concentrates
+the heat and makes cooling even harder~\cite{moore2014emerging}.
+
+\subsection{AirJet Mini}
+
+AirJet is a new way of active cooling that has no fans and no rotating
+parts. It uses piezoelectrically actuated MEMS (microelectromechanical
+systems) membranes vibrating at high frequency~\cite{hot_chips_2024}.
+Each vibration cycle draws ambient air into internal cavities, pushes
+it through arrays of microscopic orifices, and forms pulsating jets that
+hit a heat-spreading surface. The heated air then leaves through a
+lateral exhaust~\cite{frore_datasheet}.
+
+The device measures 27.5 $\times$ 41.5 $\times$ 2.8~mm and weighs 11~g.
+At the rated condition of 85~\textdegree{}C die temperature and
+25~\textdegree{}C ambient temperature, it dissipates up to 5.25~W of
+total heat while using at most 1~W of electrical power. Its maximum
+backpressure is 1750~Pa and its in-system noise is 21~dBA measured at
+50~cm~\cite{frore_datasheet}.
+
+It uses very little space and makes less noise than a fan, so it fills
+a niche between ordinary passive cooling and traditional fan-based
+active cooling. We know what AirJet can do from its datasheet, but we
+do not know how it is built inside. This paper tries to build a
+complete model of the device using only public information.
+
+\subsection{Prior Work}
+
+AirJet has no rotating parts. Instead it uses high-frequency vibration
+to create microjets. This mechanism, called a synthetic jet, has been
+studied by researchers for many years. Past studies have looked at how
+the distance from the orifice to the surface, written as the ratio H/D,
+changes the cooling performance~\cite{krishan2019synthetic}.
+
+Before AirJet, people also tried piezoelectric fans---a thin plate
+driven by a piezoelectric element that swings back and forth to move
+air~\cite{yoo2000piezoelectric}. These devices showed that piezoelectric
+actuators can be used for cooling electronics, but they are open
+structures with no enclosed cavity, no orifice plate, and no multi-cell
+design.
+
+More recently, some researchers built and tested a single-cavity
+synthetic jet with multiple orifices for electronics cooling~\cite{singh2022experimental}.
+This is close to a single AirJet cell. It shows that one cell can be
+simulated and its cooling can be measured. However, no published study
+has modeled a complete AirJet Mini with all cells, shared intake,
+internal flow paths, and exhaust together.
+
+Most of what we know about AirJet comes from the company itself: the
+product datasheet, patents, and a Hot Chips 2024 tutorial. Independent
+academic research on AirJet from outside Frore Systems is very rare.
+
+\section{Methods}
+
+\subsection{Evidence Sources and Classification}
+
+To start the modeling, we first collect the available data and classify
+them by how much we trust each piece.
+
+The first and most trusted category comes directly from Frore Systems.
+According to the manufacturer datasheet~\cite{frore_datasheet}, the
+AirJet Mini Gen1 measures 27.5 $\times$ 41.5 $\times$ 2.8~mm and weighs
+11~g. It uses up to 1~W of electrical power and dissipates 5.25~W of
+total heat at 85~\textdegree{}C die temperature and 25~\textdegree{}C
+ambient, which means 4.25~W of net heat removal from the chip. It can
+work against a backpressure up to 1750~Pa, and its noise is 21~dBA at
+50~cm.
+
+The second category is Frore's patents~\cite{us12137540b2,us11978690b2}.
+These documents give structural details as ranges instead of exact
+numbers: for example, membrane diameters of 6--8~mm, membrane
+displacements of 10--60~$\mu$m, upper cavity heights of 200--300~$\mu$m,
+orifice widths of 200--300~$\mu$m, orifice spacing of 400--600~$\mu$m,
+an open-area ratio of 8--12~\%, and an impingement gap of 200--300~$\mu$m.
+Because the patents come directly from Frore Systems, these ranges are
+trusted as reasonable bounds. In the model they are used as variables
+that can be adjusted within physically sensible limits.
+
+The third category is images from the datasheet and product page. The
+cross-sectional diagram shows the general direction of intake and
+exhaust, the rough internal zones (upper chamber, membrane, orifice
+plate, impingement channel, and exhaust), and how the cells are likely
+arranged inside the package. These images are manufacturer drawings, not
+engineering blueprints. They are used only to guide layout choices; no
+measurements are taken directly from them.
+
+The fourth category is what we do not know. Several details are missing
+from all public sources. The exact number of layers in the membrane, its
+material, and its thickness are unknown. The piezoelectric material is
+not named. The real driving frequency is not published---patent examples
+mention 20--25~kHz for an 8~mm membrane, but this is just an example
+range, not a confirmed product number. The real shape and size of
+internal flow passages are unknown, and the heat-spreader material is
+not identified. These unknowns are listed here because admitting what
+we do not know is an important part of the approach.
+
+\subsection{Geometry Reconstruction}
+
+The external shape is fixed by the datasheet: 27.5 $\times$ 41.5
+$\times$ 2.8~mm. For the internal structure, we only have a rough idea
+from the cross-section diagram. From top to bottom, the device likely
+contains: intake openings on the top surface, an upper chamber, a
+vibrating membrane, a lower chamber, an orifice plate with arrays of
+small holes, an impingement channel where jets hit the heat-spreader,
+and a lateral exhaust~\cite{frore_datasheet,us12137540b2}.
+
+The number of cells and their arrangement inside the package are not
+publicly known. Several candidate layouts---with different cell counts,
+cell sizes, and spacing---are considered in this study. All of them fit
+within the fixed outer dimensions and follow the internal zoning shown
+in patent drawings.
+
+The total thickness of 2.8~mm must fit all internal layers. A thickness
+budget splits this space across the upper chamber, membrane, lower
+chamber, orifice plate, impingement channel, and heat-spreader. Ranges
+for each layer thickness are taken from patent examples. Because these
+exact numbers are not confirmed for the Mini Gen1, the budget is treated
+as a set of limits, not a final answer.
+
+\subsection{Multiscale Modeling Framework}
+
+The AirJet Mini has multiple cells working at the same time. Simulating
+every cell with full CFD---including moving membranes, compressible
+flow, and heat transfer---would be too expensive for a first try.
+Instead, we use a two-level approach.
+
+We have no direct measurements for a single cell, but earlier
+experimental and numerical studies on single-cavity synthetic jets~\cite{singh2022experimental,krishan2019synthetic}
+have shown that this kind of cell-level simulation is possible and can
+give reasonable flow and heat transfer results.
+
+At the cell level, we build one high-detail model. It covers the full
+cycle: the membrane moving up and down in a harmonic pattern, pressure
+changes in the chambers, air speeding up through the orifice array, and
+jet impingement on the heat-spreader surface. The output of this model
+is the flow rate as a function of the pressure drop across the cell.
+
+At the device level, each cell is treated as its own unit with the same
+flow--pressure behavior obtained from the cell-level model. The
+device-level model then calculates how the incoming flow splits among
+cells, matches each cell to the shared exhaust, and gives the total
+heat removed from the heat-spreader surface.
+
+This approach makes the full-device simulation practical. The main
+limitation is that interaction between cells---like acoustic coupling
+between neighboring chambers---is not yet included in the cell-level
+model.
+
+\subsection{Boundary Conditions and Assumptions}
+
+The main case uses the rated condition from the datasheet: the chip at
+85~\textdegree{}C and the surrounding air at 25~\textdegree{}C~\cite{frore_datasheet}.
+We test two exhaust conditions: open discharge at 0~Pa, and the maximum
+backpressure of 1750~Pa. These are the easiest and hardest conditions,
+and we expect the real operating point to fall somewhere between them.
+
+The membrane moves in a sinusoidal, harmonic pattern, matching the
+piezoelectric drive described in the patents~\cite{us12137540b2}. We
+do not lock in the exact frequency and displacement yet. These are
+taken from patent ranges and will be decided later through calibration.
+
+For the first simulation, air is treated as incompressible with
+constant properties at 25~\textdegree{}C. This keeps things simple and
+lets us get a working flow field first. Compressibility can be added
+afterwards.
+
+The heat-conducting bottom receives 4.25~W, which is the heat from the
+chip. The AirJet itself uses up to 1~W of electrical power, and this
+becomes heat too. We put it as a separate heat source in the actuator
+area. Together they add up to the 5.25~W total dissipation from the
+datasheet. The outside walls of the package are treated as adiabatic
+for now.
+
+A few effects are left out at this stage: radiation, acoustic coupling
+between neighboring cells, and exact material properties. We note them
+here and they can be added later.
+
+\printbibliography
+
+\end{document}
