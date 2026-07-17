@@ -1,43 +1,22 @@
-# AirJet Daemon v2 — 双端 Git 监控 + 任务分发
+# AirJet Daemon v3 — Git 监控 + 耦合信号 + 任务分发
+
+## 功能
+1. 🟢 Git 每 10s 轮询
+2. 📨 检测到 TASK.env → 自动写入 ~/.codex/airjet_task.md
+3. 📡 检测到耦合状态变化 → 写入 ~/.codex/coupling_signal.txt
+4. 🔔 OS 通知 + 终端标题实时状态
 
 ## 启动
+- Mac: `sh tools/airjet-daemon/mac/start.sh`
+- Win: `tools\airjet-daemon\windows\start.bat`
 
-### Mac
+## 耦合信号
+当 coupling/COUPLING_STATUS.md 显示：
+- membrane_params.json WRITTEN → OpenFOAM Codex 该干活了
+- cell_results.json WRITTEN → ANSYS Codex 该验证了
+
+## Codex 如何读取
 ```bash
-sh tools/airjet-daemon/mac/start.sh
+cat ~/.codex/airjet_task.md      # 新任务
+cat ~/.codex/coupling_signal.txt  # 耦合信号
 ```
-- 在独立终端窗口运行，标题栏显示当前 commit
-- 有新任务时：OS 通知 + 声音提示
-- 关闭终端窗口即停止
-
-### Windows
-```
-tools\airjet-daemon\windows\start.bat
-```
-- 在独立 PowerShell 窗口运行
-- 关闭窗口即停止
-
-## 状态显示
-| 状态 | 终端标题 | 含义 |
-|---|---|---|
-| 🟢 AirJet | 正常运行 | 监控中，无新任务 |
-| 📨 AirJet | 新任务到达 | 任务已写入 ~/.codex/airjet_task.md |
-
-## 任务文件
-有新任务时，daemon 将内容写入 `~/.codex/airjet_task.md`。
-Codex 读取方式：
-```
-codex -f ~/.codex/airjet_task.md
-```
-
-## 工作原理
-```
-Windows Codex 推送 → Git → Mac daemon 检测 → OS 通知 → 写入 airjet_task.md
-Mac Codex 推送     → Git → Win daemon 检测 → 写入 airjet_task.md
-```
-
-## 与旧 watcher 的区别
-- v2 daemon 更轻量：纯 shell/PS，无依赖
-- 独立终端窗口，可见可关
-- OS 原生通知
-- 不依赖 launchd/scheduled tasks
