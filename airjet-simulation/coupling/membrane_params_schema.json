@@ -1,0 +1,31 @@
+{
+  "_schema_version": "1.0",
+  "_description": "Handoff from ANSYS Mechanical (Codex A) to OpenFOAM CFD (Codex B). Written by Codex A. Read by Codex B.",
+  "_owner": "Codex A (ANSYS)",
+  "_status": "PENDING",
+  "membrane": {
+    "diameter_mm": null,
+    "thickness_mm": null,
+    "material": null,
+    "youngs_modulus_gpa": null,
+    "poisson_ratio": null,
+    "density_kgm3": null
+  },
+  "piezoelectric": {
+    "material": null,
+    "d31_pCN": null,
+    "coupling_coefficient": null
+  },
+  "actuation": {
+    "frequency_hz": null,
+    "center_displacement_um": null,
+    "waveform": "sinusoidal",
+    "voltage_amplitude_v": null,
+    "source": "ANSYS Mechanical harmonic response"
+  },
+  "cavity": {
+    "upper_cavity_height_um": null,
+    "lower_cavity_height_um": null,
+    "impingement_gap_um": null
+  }
+}

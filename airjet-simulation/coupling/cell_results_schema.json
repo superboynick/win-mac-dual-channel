@@ -1,0 +1,20 @@
+{
+  "_schema_version": "1.0",
+  "_description": "Handoff from OpenFOAM CFD (Codex B) back to ANSYS Codex (Codex A) for validation.",
+  "_owner": "Codex B (OpenFOAM)",
+  "_status": "PENDING",
+  "cell_results": {
+    "mass_flow_rate_kgs": null,
+    "average_jet_velocity_ms": null,
+    "pressure_drop_pa": null,
+    "net_heat_removal_w": null,
+    "convective_heat_transfer_coefficient_wm2k": null
+  },
+  "solver_info": {
+    "solver": null,
+    "turbulence_model": null,
+    "mesh_cell_count": null,
+    "time_step_s": null,
+    "wall_clock_time_s": null
+  }
+}
