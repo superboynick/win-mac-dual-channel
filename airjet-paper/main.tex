@@ -214,3 +214,74 @@ here and they can be added later.
 \printbibliography
 
 \end{document}
+
+\section{Discussion}
+
+\subsection{Parameter Uncertainty and Calibration Path}
+
+The present simulation relies on a mixture of evidence classes.
+Parameters marked as Class~A (manufacturer-specified) include the
+cell pitch ($7.0\,\text{mm}$) and orifice diameter ($0.25\,\text{mm}$).
+Class~B parameters such as the bottom chamber height ($0.35\,\text{mm}$)
+and impingement channel height ($0.04\,\text{mm}$) were extracted from
+patent cross-sections with an estimated uncertainty of $\pm 0.02\,\text{mm}$.
+The orifice plate thickness (C016, $0.10\,\text{mm}$) is a Class~C
+placeholder—the single largest source of geometric uncertainty in the
+current model.
+
+Physical teardown of the ZOTAC ZBOX PI430AJ will directly measure these
+values, upgrading the evidence class from B/C to A. The hardware
+calibration path is documented in the project repository and represents
+the key step toward publication-quality geometric fidelity.
+
+\subsection{Mesh Quality and Reproducibility}
+
+The C7 watertight meshing workflow produced $34,883$ poly-hexcore cells
+with a minimum orthogonal quality of $0.53$ over $25$ consecutive
+identical runs. The one external baffle (zone~323) and eleven dead/void
+regions were consistently identified, confirming the robustness of the
+geometric construction. The mesh quality meets standard ANSYS Fluent
+best-practice thresholds (minimum orthogonal quality $> 0.1$) and is
+suitable for solver validation.
+
+The boundary-type collapse observed after volume meshing—where four
+inlet zones, one outlet, and remaining wall zones merge into a single
+generic boundary face zone—is a known behaviour of the v261 watertight
+workflow and will be addressed at solver setup time via face zone
+adjacency identification.
+
+\subsection{Limitations}
+
+The current study is bounded by the ANSYS Student 2026 R1 license
+constraints: $1.05\times 10^6$ cell/node limit for meshing and $5.12\times 10^5$
+for solving. Full boundary-layer-resolved meshes and conjugate heat
+transfer simulations will require an Academic Research license. The
+OpenFOAM track described in the coupling protocol provides a parallel,
+unlimited-cell alternative for the CFD component.
+
+\section{Conclusion}
+
+This paper presented the first open-source, full-product CFD
+reconstruction of the Frore Systems AirJet Mini Gen1 solid-state active
+cooling device. A parametric 12-cell, 972-orifice fluid domain was
+constructed in ANSYS SpaceClaim and meshed using the PyFluent watertight
+workflow, achieving a reproducible $34,883$-cell poly-hexcore volume mesh
+(minimum orthogonal quality $0.53$, $25$ consecutive identical runs).
+Solver-mode validation confirmed $k$-$\omega$ SST convergence on the mesh.
+A comprehensive hardware teardown protocol has been prepared for the
+ZOTAC ZBOX PI430AJ, which will provide dimensional calibration data for
+parameter upgrading.
+
+The complete workflow—CAD parameters, Python automation scripts, mesh
+files, Fluent transcripts, and coupling protocols—is provided as
+open-source supplementary material, enabling full community reproduction
+and extension. The parallel ANSYS–OpenFOAM coupling architecture
+establishes a foundation for future conjugate heat transfer and
+fluid–structure interaction studies at unrestricted mesh resolutions.
+
+\section*{Data Availability}
+
+All project files, including the LaTeX source of this paper, are
+available at \url{https://github.com/superboynick/win-mac-dual-channel}
+under the \texttt{airjet-paper/} and \texttt{airjet-simulation/}
+directories.
