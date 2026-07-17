@@ -1,5 +1,9 @@
 #!/bin/bash
-# Install AirJet daemon as launchd service (auto-start on login)
+# AirJet daemon: install for auto-start on boot/login
+
+SCRIPT="$HOME/win-mac-dual-channel/tools/airjet-daemon/mac/daemon.sh"
+
+# Method 1: launchd agent (runs on login)
 PLIST="$HOME/Library/LaunchAgents/com.airjet.daemon.plist"
 cat > "$PLIST" << PLISTXML
 <?xml version="1.0" encoding="UTF-8"?>
@@ -10,7 +14,7 @@ cat > "$PLIST" << PLISTXML
     <key>ProgramArguments</key>
     <array>
         <string>/bin/sh</string>
-        <string>$HOME/win-mac-dual-channel/tools/airjet-daemon/mac/daemon.sh</string>
+        <string>$SCRIPT</string>
     </array>
     <key>RunAtLoad</key><true/>
     <key>KeepAlive</key><true/>
@@ -20,7 +24,12 @@ cat > "$PLIST" << PLISTXML
 </dict>
 </plist>
 PLISTXML
+
+# Method 2: Login Item (System Preferences > Users > Login Items)
+osascript -e "tell application \"System Events\" to make login item at end with properties {path:\"$SCRIPT\", hidden:true}" 2>/dev/null
+
+launchctl unload "$PLIST" 2>/dev/null
 launchctl load "$PLIST" 2>/dev/null
-echo "AirJet daemon installed. To start: launchctl start com.airjet.daemon"
-echo "To stop: launchctl unload $PLIST"
-echo "Logs: ~/Library/Logs/airjet-daemon.log"
+echo "✅ AirJet daemon installed. Will auto-start on boot/login."
+echo "   Logs: ~/Library/Logs/airjet-daemon.log"
+echo "   Manual start: sh $SCRIPT &"
