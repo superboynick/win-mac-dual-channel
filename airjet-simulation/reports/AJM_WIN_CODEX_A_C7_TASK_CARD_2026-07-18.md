@@ -32,3 +32,14 @@ Checkpoint update at `2026-07-18T09:36:00Z`:
 - Its first two observed terminal attempts both stopped before volume mesh. Attempt 2 tested deletion of `dead*` regions, observed none to delete, and still failed at `Topology region with name dead0 already exists`.
 - Attempt 3 is active and tests saving the labeled surface mesh before the region failure, followed by a standalone surface-to-volume mesher. It is diagnostic only; no A Gate claim is permitted.
 - Revised ETA is `2026-07-18T13:15:00Z`. The exact blocker remains concurrent A-file ownership overlap, dirty integration checkout, watcher off and official MCP inventory fail-closed.
+
+Formal A execution checkpoint at `2026-07-18T10:08:00Z`:
+
+- Production watcher was clean and `WATCHING`; official ANSYS inventory returned `ready=true` at signed head `bda8341bc9b9a188d2a39dcf5ae4cbd850e13f73`.
+- Reviewed two-stage runner submitted producer job `AJM006-V03-CONTINUOUS-cd12932a990d` and consumer job `AJM006-V03-CONTINUOUS-b5dcd946e346` through the official MCP only.
+- Producer reached `PROCESS_EXITED_0`; consumer reached `FAILED_PROCESS` with exit code `2` at `workflow.create_regions()` and literal error `Topology region with name dead0 already exists`.
+- Consumer report preserved boundary evidence (4 inlet zones, 1 outlet, 972 throat hits, 1078 imported face zones, throat local sizing) but `volume_mesh=false`, `solver_mode=NOT_ENTERED`, `p1_p6_gates=NOT_RUN`, and `formal_006_completion=false`.
+- Full producer/consumer job trees and MCP stderr are indexed in the external recovery increment `D:\AirJet_P1\external-evidence\workspace-recovery-20260718T075804Z\increment-20260718T101000Z`.
+- Repeated overlapping CLI experiments were archived as diagnostics only; they do not alter A acceptance or the signed canonical consumer. Main checkout was restored clean and watcher returned to `WATCHING` after evidence capture.
+
+Current decision: escalate the unchanged `dead0` topology blocker to Mac for root-cause/design decision; do not repeat the same consumer route or enter solver mode without a reviewed source change.
