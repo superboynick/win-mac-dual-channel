@@ -1,0 +1,27 @@
+# Windows Codex A C7 task card
+
+```text
+TASK_ID=ajm-win-a-c7-formal-20260718-010
+OWNER=A
+SCOPE=Close the AJM-006 C7 full-product mesh boundary contract through the reviewed hash-pinned two-stage ANSYS runner; stop before solver mode on any failed assertion.
+INPUT_COMMIT=bda8341bc9b9a188d2a39dcf5ae4cbd850e13f73
+ESTIMATED_EFFORT=3 hours after the blocking main-worktree conflict is cleared
+STARTED_AT_UTC=2026-07-18T09:23:00Z
+ETA_UTC=2026-07-18T12:30:00Z conditional on clean synchronized main and MCP inventory PASS by 2026-07-18T09:30:00Z
+CHECKPOINTS=2026-07-18T09:30:00Z=main conflict and watcher disposition;2026-07-18T10:00:00Z=inventory/profile/hash preflight;2026-07-18T11:30:00Z=formal two-stage terminal evidence;2026-07-18T12:30:00Z=validated report and peer-review handoff
+DELIVERABLES=External producer and consumer manifests, native CAD/mesh hashes, C7 semantic-gate report, compact Git evidence report, and signed source-only commit if a reviewed fix is required
+ACCEPTANCE=4 inlet zones;1 outlet;972 throat faces;1 heat wall;12 membrane-top;12 membrane-bottom;complete 1078-face coverage;10 canonical boundary zones;one connected main fluid zone;correct full-product bbox;Student guards;mesh integrity and quality;real mesh hash;solver mode NOT_ENTERED on failure
+BLOCKERS=Primary main is behind origin/main and is dirty because the separate Windows Codex CLI is running an overlapping ad-hoc Fluent diagnostic against A-owned ANSYS files; watcher and official airjet-ansys inventory are therefore fail-closed
+SAFE_BACKLOG_NEXT=Run source-only C7 gate/runner/consumer guard tests;review approved profile and hash closure;condense the overlapping diagnostic failure evidence;prepare peer-review handoff without solver execution
+FILES_OWNED=airjet-simulation/reports/AJM_WIN_CODEX_A_C7_TASK_CARD_2026-07-18.md;airjet-simulation/automation/ansys/run_v03_continuous_mesh_006.py;airjet-simulation/automation/ansys/approved/006/v03_pyfluent_watertight_mesh_consumer.py;airjet-simulation/automation/ansys/profiles.json;airjet-simulation/automation/ansys/contracts/c7_hdf5_boundary_semantic_gate.py;corresponding A-side tests
+EXTERNAL_ARTIFACT_ROOT=D:\AirJet_P1\AJM-P1-CAD-006\AJM006-A-C7-FORMAL-20260718
+```
+
+Initial safe-backlog verification at `2026-07-18T09:22:00Z`:
+
+- C7 HDF5 semantic gate direct test: PASS (`positive=1`, `collapsed=1`, `negative=9`, `parser=2`).
+- Formal two-stage runner guards: PASS_ALL (17 tests).
+- V03 PyFluent consumer guards: PASS_ALL (31 tests).
+- No ANSYS process was launched by Codex A.
+
+Current escalation: the overlapping CLI is assigned by the user to Windows track B but is repeatedly modifying and executing A-owned ANSYS/Fluent files in the dirty integration checkout. Its outputs are diagnostic only and cannot satisfy this task's signed-input or official-MCP acceptance requirements.
