@@ -1,48 +1,50 @@
 ﻿# AJM Windows Incident Recovery Report
-**UTC**: 2026-07-18T11:10:00Z
+**UTC**: 2026-07-18T17:15:00Z
 **Branch**: incident/windows-recovery-20260718-001
+**Task**: ajm-windows-four-inlet-cad-correction-20260718-003
 
-## INCIDENT_STATE=OPEN
+## INCIDENT_STATE=OPEN_CONFIRMED_REAR_INLET_OVERHANG
+## USER_CONFIRMED_FOUR_INLETS=YES
+## DEFECT_DIRECTION=BACKWARD_NOT_DOWNWARD
 
-## Observed Failure
-CAD geometry defect: outlet upper rectangular zones extend beyond housing boundary.
-- Source: product_continuous_fluid.scdocx (V03 pilot)
-- BBox Y=[-17.75, 20.75] (asymmetric, outlet side extended)
-- Producer: exact_product_geometry=NOT_CLAIMED, formal_006_completion=false
-- Impact: mesh includes invalid flow domain -> CFD results unreliable
+## Evolution
+1. A reported outlet overhang → incident opened
+2. Mac closed as FALSE_POSITIVE (task 002): Y asymmetry is intentional outlet manifold
+3. User personally inspected 3D geometry → confirmed REAL defect
+4. Mac retracted false positive, opened task 003
 
-## Worktree Inventory
-| Worktree | Branch | HEAD | Status |
-|----------|--------|------|--------|
-| integration | main | 60916ea | 1 untracked (status file) |
-| A (ANSYS) | codex-a-ansys-20260718 | c4195a6 | clean |
-| B (OpenFOAM) | codex-b-openfoam-20260718 | be92c30 | clean |
+## Confirmed Defect
+- Two of four inlet structures at tail extend backward past intended rear boundary
+- Defect direction: backward overhang (not downward)
+- Affected: inlet structures, not outlet manifold
+- Remaining two inlet structures are normal
 
-## A State
-- Dead0 fix: pulled (90b645a -> 60916ea)
-- C7 retry: pending MCP availability
-- ANSYS processes: 0
-- PyFluent: operational but license unstable
-- SpaceClaim: installed, no PySpaceClaim
+## Root Cause Analysis
+- Producer: run_v03_continuous_fluid_006.py (SpaceClaim IronPython)
+- Likely cause: inlet structure placement/mirror/array at rear positions
+- Not a bbox-only issue; requires per-inlet boundary check
 
-## B State
-- Scope: OpenFOAM CFD/CHT only
-- Not accessed by A
+## A Limitations
+- SpaceClaim installed but no PySpaceClaim (ansys.api.spaceclaim not available)
+- Cannot measure inlet overhangs programmatically
+- Cannot identify exact producer operation without opening scdocx
+
+## Request to Mac
+- Provide SpaceClaim measurement/identification instructions for GUI
+- Or push a reviewed SpaceClaim script to run via Workbench
+- Or perform the CAD diagnosis from Mac side
 
 ## Actions Taken
 - Read-only inventory: COMPLETE
 - Destructive actions: NONE
 - ANSYS execution: NONE
 - OpenFOAM execution: NONE
-
-## Next Action
-- Mac: review CAD defect, provide SpaceClaim fix script or approve manual fix
-- Windows: execute fix when ready
-- C7 retry: requires Mac MCP; Windows Python direct run blocked by license instability
+- Git communication: FUNCTIONAL (bidirectional confirmed)
 
 ## P1-P6 Gate Effect
-- P1-P6: unchanged, remain NOT_RUN
-- C7 volume_mesh: remains false pending fix
+- P1-P6: NOT_RUN
+- C7: pending CAD fix + MCP retry
+- CF: NOT_STARTED
 
-## Checkpoint
-Next update within 30 min or on state change.
+## Next Checkpoint
+Within 30 min or on state change.
