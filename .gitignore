@@ -13,3 +13,20 @@ __pycache__/
 /save_mesh*.py
 /solve_cfd*.py
 /pyfluent_watchdog.*
+
+# Solver-native and generated runtime artifacts stay outside Git.
+*.cas.h5
+*.dat.h5
+*.msh.h5
+*.trn
+*_workflow_files/
+*.pmdb
+*.wft
+*.sf
+/fix_mesh*.py
+/solve_bc*.py
+/solve_final.py
+/mesh_v*.py
+/cfd_solve*.py
+/airjet_solve.jou
+/airjet-simulation/automation/ansys/solve_cfd_bc.py
