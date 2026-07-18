@@ -1620,6 +1620,28 @@
 - 关联 decision/annotation/run：AJM-P1-MESH-002；A C7 task card 2026-07-18。
 - 状态：REVIEWED_SOURCE_FIX_PENDING_FORMAL_RETRY
 
+## REAL-20260718-070：V03 后侧两进气结构缺少后向 plenum 支撑
+- UTC：2026-07-18T17:48:17Z
+- Stage/task：AJM-006 V03 full-product fluid CAD rear-inlet correction
+- Machine/operator：Mac Codex independent source/contract review；Windows runtime pending
+- run/job/profile：runtime `NOT_RUN` / `ajm006-spaceclaim-v03-continuous-throat-pilot-v1`
+- 期望：四个 inlet riser 均由共享 plenum 支撑，同时保持四进一出和 frozen vent boxes。
+- 实际观察：source-derived V01/V02 minimum Y=`-17.750 mm`，原 cell footprint/plenum rear
+  Y=`-14.500 mm`，各缺少 `3.250 mm` 后向支撑；此前使用的 `-14.375 mm` 是 array boundary。
+- 原始错误短摘：`REAR_INLET_SUPPORT_MISSING:V01,V02:3.250_MM`
+- 原始日志路径 + SHA-256：本条为 Git source/contracts 静态复核；native/STEP 新证据尚未生成。
+- 假设与最小区分实验：保留四个 I 类 vent boxes，只把 C 类 plenum 延至 `-17.750 mm`；Windows
+  official MCP 重建并分别 native/STEP reopen，核对 4/1 boundaries、支撑、bbox、volume 和 connectivity。
+- 结果：Mac 纯函数、负向合同、runner guards、MCP policy 与项目 audit PASS；runtime 未执行。
+- 根因及置信度：高置信为 producer 用 cell footprint 直接建 plenum，却未对 frozen vent boxes 建立
+  per-inlet support rule；最终几何修复有效性需 Windows runtime 确认。
+- 采取/拒绝的 workaround：采用 C 类 plenum extension；拒绝 Windows incident branch 的 silent
+  clipping、重复生产逻辑的自证测试和 merge commit 直接整合。
+- 对 Gate/论文主张的影响：旧 V03/C7 几何不得继续供下游使用；P1--P6 保持 `NOT_RUN/NOT_PASSED`。
+- 下一步：Windows A 官方 ANSYS native/STEP 验收；Windows B 完成 input rejection gate；Mac 线性验收。
+- 关联 decision/annotation/run：AJM-P1-GEO-009；rear-inlet coordination report。
+- 状态：OPEN_PENDING_WINDOWS_NATIVE_STEP_ACCEPTANCE
+
 ## 新条目模板
 
 ```text

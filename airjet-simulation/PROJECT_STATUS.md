@@ -17,9 +17,12 @@
 ## Current engineering blocker
 
 User visual inspection and source reconstruction confirm that rear inlet risers V01 and
-V02 extend backward from the intended `Y=-14.375 mm` supporting footprint to
-`Y=-17.750 mm`, an overhang of `3.375 mm` each. This is a real local CAD construction
-defect. A owns the producer correction; B must reject and not consume this geometry.
+V02 reach `Y=-17.750 mm`, while the generated shared plenum stops at the actual cell
+footprint boundary `Y=-14.500 mm`, leaving `3.250 mm` of each rear inlet unsupported.
+The array boundary `Y=-14.375 mm` is not the plenum boundary. The reviewed correction
+preserves all four image-derived inlet lengths and extends the C-class shared plenum
+support rather than silently clipping visible inlet geometry. A owns runtime validation;
+B must reject and not consume the unvalidated geometry.
 
 The committed 34,883-cell Fluent mesh selects one actuator-gap tile, not the complete main-flow domain. It collapses all boundaries into one generic wall face zone. Fluent transcripts state `This case has no inlets & no outlets`; zero-velocity iterations are diagnostic failures, not converged AirJet CFD.
 

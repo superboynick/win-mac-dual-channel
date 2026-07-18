@@ -171,10 +171,6 @@ def independent_volume_components(
         float(exhaust["cell_footprint_x_max_mm"])
         - float(exhaust["cell_footprint_x_min_mm"])
     )
-    footprint_height = (
-        float(exhaust["cell_footprint_y_max_mm"])
-        - float(exhaust["cell_footprint_y_min_mm"])
-    )
     downstream_height = (
         float(exhaust["manifold_y_max_mm"])
         - float(exhaust["cell_footprint_y_min_mm"])
@@ -188,6 +184,7 @@ def independent_volume_components(
     outside_apron_area = 0.0
     footprint_y_min = float(exhaust["cell_footprint_y_min_mm"])
     footprint_y_max = float(exhaust["cell_footprint_y_max_mm"])
+    vent_bounds = []
     for vent in vents:
         length = float(vent["axis_length_mm"])
         width = float(vent["slot_width_mm"])
@@ -198,10 +195,20 @@ def independent_volume_components(
         half_y = dy * length / 2.0 + dx * width / 2.0
         y_min = center_y - half_y
         y_max = center_y + half_y
-        outside_y = max(0.0, footprint_y_min - y_min) + max(
+        vent_bounds.append((str(vent["vent_id"]), y_min, y_max))
+    supported_plenum_y_min = min(
+        [footprint_y_min] + [item[1] for item in vent_bounds]
+    )
+    footprint_height = footprint_y_max - supported_plenum_y_min
+    for _vent_id, y_min, y_max in vent_bounds:
+        outside_y = max(0.0, supported_plenum_y_min - y_min) + max(
             0.0, y_max - footprint_y_max
         )
-        x_span = dx * length + dy * width
+        vent = next(item for item in vents if str(item["vent_id"]) == _vent_id)
+        x_span = (
+            abs(float(vent["axis_dx_unit"])) * float(vent["axis_length_mm"])
+            + abs(float(vent["axis_dy_unit"])) * float(vent["slot_width_mm"])
+        )
         outside_apron_area += outside_y * x_span
     return {
         "downstream_manifold": (
@@ -357,6 +364,12 @@ def validate_route(route: dict[str, Any], repo: Path) -> dict[str, Any]:
         or geometry.get("numerical_overlap_product_fact") is not False
         or geometry.get("vent_riser_overlap_role")
         != "UNCHANGED_C1_BOOLEAN_ROBUSTNESS_CONTROL"
+        or geometry.get("upstream_rear_support_rule")
+        != "EXTEND_C_CLASS_SHARED_PLENUM_TO_PRESERVE_FOUR_IMAGE_DERIVED_INLETS_R0"
+        or not close(geometry.get("cell_footprint_y_min_mm"), -14.5)
+        or not close(geometry.get("supported_plenum_y_min_mm"), -17.75)
+        or not close(geometry.get("rear_inlet_support_extension_mm"), 3.25)
+        or geometry.get("rear_inlet_ids") != ["V01", "V02"]
         or geometry.get("perimeter_boolean_overlap_role")
         != "C5_BOOLEAN_ROBUSTNESS_DIAGNOSTIC_BOTTOM_TO_RING_INTERFACE"
         or geometry.get("perimeter_boolean_overlap_product_fact") is not False

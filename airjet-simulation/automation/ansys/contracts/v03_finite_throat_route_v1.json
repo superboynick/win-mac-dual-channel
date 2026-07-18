@@ -118,10 +118,10 @@
     ],
     "bbox_tolerance_native_mm": 0.02,
     "bbox_tolerance_step_mm": 0.02,
-    "analytic_volume_mm3": 451.7788188426395,
+    "analytic_volume_mm3": 469.4396438426395,
     "volume_tolerance_native_mm3": 0.08,
     "volume_tolerance_step_mm3": 0.03,
-    "premerge_upstream_analytic_volume_mm3": 261.0612026111674,
+    "premerge_upstream_analytic_volume_mm3": 278.7220276111674,
     "premerge_downstream_analytic_volume_mm3": 191.671875,
     "numerical_overlap_mm": 0.02,
     "numerical_overlap_volume_mm3": 0.9542587685278997,
@@ -130,6 +130,14 @@
     "numerical_overlap_reason": "0.001 mm C1 overlap produced eleven dead regions after STEP and Fluent surface meshing; 0.02 mm tests whether interface overlap was lost without changing the effective 0.10 mm throat length",
     "vent_riser_overlap_mm": 0.001,
     "vent_riser_overlap_role": "UNCHANGED_C1_BOOLEAN_ROBUSTNESS_CONTROL",
+    "upstream_rear_support_rule": "EXTEND_C_CLASS_SHARED_PLENUM_TO_PRESERVE_FOUR_IMAGE_DERIVED_INLETS_R0",
+    "cell_footprint_y_min_mm": -14.5,
+    "supported_plenum_y_min_mm": -17.75,
+    "rear_inlet_support_extension_mm": 3.25,
+    "rear_inlet_ids": [
+      "V01",
+      "V02"
+    ],
     "perimeter_boolean_overlap_mm": 0.05,
     "perimeter_boolean_overlap_raw_mm3": 1.3392,
     "perimeter_boolean_overlap_role": "C5_BOOLEAN_ROBUSTNESS_DIAGNOSTIC_BOTTOM_TO_RING_INTERFACE",
@@ -141,9 +149,9 @@
       "finite_throat_core": 4.771293842639498,
       "bottom_chambers": 23.52,
       "cell_rings_below_plenum": 13.46625,
-      "shared_plenum": 157.6875,
+      "shared_plenum": 175.359375,
       "vent_risers_above_plenum": 60.65085,
-      "lower_riser_outside_plenum_apron": 0.01105
+      "lower_riser_outside_plenum_apron": 0.0
     }
   },
   "boundary_contract": {

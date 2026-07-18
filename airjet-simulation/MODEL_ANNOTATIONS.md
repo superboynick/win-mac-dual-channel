@@ -366,3 +366,23 @@ smoke。首轮只允许写 pre-Gate candidate frequencies 和 normalized mode sh
 
 **决定**：当前 native attach 路线不足以支撑可重复仿真。下一任务启用已签名的 split STEP
 fallback；本轮不是 mesh failure，共节点、physics、formal 006、P1--P6 继续 `NOT_RUN`。
+
+## AJM-P1-GEO-009：四进气口后向支撑修复
+
+日期：2026-07-18
+状态：Mac 静态合同与负向测试 PASS；Windows native/STEP runtime `NOT_RUN`
+
+**已确认缺陷**：V03 producer 的共享 plenum 后边界原为 cell footprint 的
+`Y=-14.500 mm`，但 image-derived V01/V02 达到 `Y=-17.750 mm`。两者各有
+`3.250 mm` 后向长度没有下方 plenum 支撑。`Y=-14.375 mm` 只是 array boundary，
+不是 plenum/footprint 边界。
+
+**选择的最小修复**：原样保留 V01--V04 四个 frozen vent boxes，将 C 类共享
+plenum 后边界延伸到四个 vent 的最小 Y，即 `-17.750 mm`。拒绝把 V01/V02
+裁到 `-14.500 mm`，因为裁剪会静默改变 I 类顶视图候选；本修复也不把新的
+内部 plenum 形状声称为产品事实。
+
+**静态闭合值**：整体 bbox 不变；共享 plenum 为 `175.359375 mm3`，premerge
+upstream 为 `278.7220276111674 mm3`，连续流体解析体积为
+`469.4396438426395 mm3`。这些值必须由 hash-pinned official ANSYS producer、
+native reopen 和 STEP reopen 独立实测后才可接受。P1--P6 继续 `NOT_RUN`。

@@ -201,6 +201,57 @@ def close_enough(actual, expected, tolerance):
     return abs(float(actual) - float(expected)) <= float(tolerance)
 
 
+def compute_vent_box(vent):
+    """Return the axis-aligned planform box for one frozen vent candidate."""
+    cx = float(vent["center_x_cad_mm"])
+    cy = float(vent["center_y_cad_mm"])
+    dx = float(vent["axis_dx_unit"])
+    dy = float(vent["axis_dy_unit"])
+    length = float(vent["axis_length_mm"])
+    width = float(vent["slot_width_mm"])
+    half_x = abs(dx) * length / 2.0 + abs(dy) * width / 2.0
+    half_y = abs(dy) * length / 2.0 + abs(dx) * width / 2.0
+    return [cx - half_x, cy - half_y, cx + half_x, cy + half_y]
+
+
+def derive_supported_plenum_rear(vent_records, footprint_y_min):
+    """Preserve all four vents and extend the C-class plenum under them."""
+    if len(vent_records) != 4:
+        raise Exception("AJM006_V03_VENT_SUPPORT_COUNT_NOT_4")
+    boxes = []
+    by_id = {}
+    for vent in sorted(vent_records, key=lambda item: item["vent_id"]):
+        vent_id = str(vent["vent_id"])
+        if vent_id in by_id:
+            raise Exception("AJM006_V03_VENT_SUPPORT_DUPLICATE_ID")
+        box = compute_vent_box(vent)
+        if box[0] >= box[2] or box[1] >= box[3]:
+            raise Exception("AJM006_V03_VENT_SUPPORT_BOX_INVALID")
+        boxes.append(box)
+        by_id[vent_id] = list(box)
+    if set(by_id) != set(["V01", "V02", "V03", "V04"]):
+        raise Exception("AJM006_V03_VENT_SUPPORT_IDS_INVALID")
+    supported_y_min = min(
+        [float(footprint_y_min)] + [box[1] for box in boxes]
+    )
+    extension_mm = float(footprint_y_min) - supported_y_min
+    if extension_mm <= 0.0:
+        raise Exception("AJM006_V03_VENT_SUPPORT_EXTENSION_NOT_POSITIVE")
+    unsupported_ids = sorted(
+        vent_id for vent_id, box in by_id.items()
+        if box[1] < float(footprint_y_min)
+    )
+    if unsupported_ids != ["V01", "V02"]:
+        raise Exception("AJM006_V03_VENT_SUPPORT_REAR_IDS_INVALID")
+    return {
+        "cell_footprint_y_min_mm": float(footprint_y_min),
+        "supported_plenum_y_min_mm": supported_y_min,
+        "rear_support_extension_mm": extension_mm,
+        "rear_inlet_ids": unsupported_ids,
+        "vent_boxes_mm": by_id,
+    }
+
+
 def create_block(x0, y0, z0, x1, y1, z1, name):
     body = BlockBody.Create(
         Point.Create(mm(x0), mm(y0), mm(z0)),
@@ -854,9 +905,21 @@ try:
         ):
             raise Exception("AJM006_V03_ORIFICE_SIGNATURE")
 
+    vent_support = derive_supported_plenum_rear(vents, footprint_y_min)
+    if (
+        not close_enough(
+            vent_support["supported_plenum_y_min_mm"], -17.75, 1.0e-9
+        )
+        or not close_enough(
+            vent_support["rear_support_extension_mm"], 3.25, 1.0e-9
+        )
+        or vent_support["rear_inlet_ids"] != ["V01", "V02"]
+    ):
+        raise Exception("AJM006_V03_VENT_SUPPORT_CONTRACT_MISMATCH")
+
     DocumentHelper.CreateNewDocument()
     upstream = create_block(
-        footprint_x_min, footprint_y_min, membrane_top_z,
+        footprint_x_min, vent_support["supported_plenum_y_min_mm"], membrane_top_z,
         footprint_x_max, footprint_y_max, plenum_top_z,
         "AJM006_V03_FLUID_UPSTREAM_BUILD",
     )
@@ -864,15 +927,7 @@ try:
     risers = []
     vent_boxes = []
     for vent in sorted(vents, key=lambda item: item["vent_id"]):
-        cx = float(vent["center_x_cad_mm"])
-        cy = float(vent["center_y_cad_mm"])
-        dx = float(vent["axis_dx_unit"])
-        dy = float(vent["axis_dy_unit"])
-        length = float(vent["axis_length_mm"])
-        width = float(vent["slot_width_mm"])
-        half_x = abs(dx) * length / 2.0 + abs(dy) * width / 2.0
-        half_y = abs(dy) * length / 2.0 + abs(dx) * width / 2.0
-        box = [cx - half_x, cy - half_y, cx + half_x, cy + half_y]
+        box = list(vent_support["vent_boxes_mm"][str(vent["vent_id"])])
         vent_boxes.append(box)
         risers.append(create_block(
             box[0], box[1], plenum_top_z - vent_riser_overlap_mm,
@@ -1396,6 +1451,7 @@ try:
         "preferred_porosity_guard_pct": [8.0, 12.0],
         "numerical_overlap_mm": numerical_overlap_mm,
         "vent_riser_overlap_mm": vent_riser_overlap_mm,
+        "vent_rear_support": vent_support,
         "perimeter_boolean_overlap_mm": perimeter_boolean_overlap_mm,
         "perimeter_boolean_overlap_raw_mm3": (
             perimeter_boolean_overlap_raw_mm3

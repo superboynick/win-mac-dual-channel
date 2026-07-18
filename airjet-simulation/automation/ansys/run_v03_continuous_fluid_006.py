@@ -40,7 +40,7 @@ OUTPUT_ROOT = Path(r"D:\AirJet_P1\AJM-P1-CAD-006")
 RESULT_PATH = OUTPUT_ROOT / "V03_CONTINUOUS_FLUID_RUN_SUMMARY.json"
 POLICY_GIT_PATH = "airjet-simulation/automation/ansys/profiles.json"
 PROFILE_ID = "ajm006-spaceclaim-v03-continuous-throat-pilot-v1"
-PROFILE_SCRIPT_SHA256 = "e5e8764cf8a2eeddd5d56be43a02921d41d8b39f54d39160e9f95979bed0b66d"
+PROFILE_SCRIPT_SHA256 = "8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0"
 PROFILE_SCRIPT = "006/v03_continuous_fluid_producer.py"
 CASE_ID = "AJM006-V03-CONTINUOUS"
 EXPECTED_TOOLS = {
@@ -428,7 +428,7 @@ def validate_route_body(value: Any, bbox_tolerance: float, volume_tolerance: flo
         or value.get("is_closed") is not True
         or value.get("is_manifold") is not True
         or not numeric_close(
-            value.get("volume_mm3"), 451.7788188426395, volume_tolerance
+            value.get("volume_mm3"), 469.4396438426395, volume_tolerance
         )
     ):
         raise RuntimeError("ROUTE_BODY_VOLUME_OR_TOPOLOGY_MISMATCH")
@@ -550,7 +550,7 @@ def validate_producer_report(
         or geometry.get("boolean_volume_delta_mm3") > 0.08
         or not numeric_close(
             geometry.get("route_analytic_volume_mm3"),
-            451.7788188426395,
+            469.4396438426395,
         )
         or not numeric_close(
             geometry.get("native_route_volume_tolerance_mm3"), 0.08
@@ -563,7 +563,7 @@ def validate_producer_report(
             abs(
                 float((geometry.get("continuous_before_save") or {}).get(
                     "volume_mm3", math.inf
-                )) - 451.7788188426395
+                )) - 469.4396438426395
             ),
         )
         or not isinstance(

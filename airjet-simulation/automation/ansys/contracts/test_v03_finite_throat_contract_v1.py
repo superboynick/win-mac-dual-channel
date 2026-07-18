@@ -87,7 +87,7 @@ def test_route_accepts_independent_static_sources():
         "assignment_count": 972,
         "assignment_sha256": contract.EXPECTED_ASSIGNMENT_SHA256,
         "minimum_spacing_mm": 0.7006239999999995,
-        "analytic_volume_mm3": 451.7788188426395,
+        "analytic_volume_mm3": 469.4396438426395,
     }
 
 

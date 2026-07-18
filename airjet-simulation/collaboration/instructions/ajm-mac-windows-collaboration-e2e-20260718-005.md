@@ -9,8 +9,8 @@ From the synchronized integration checkout, verify and report:
 2. branch is `main`, upstream is `origin/main`, worktree is clean and divergence is 0/0;
 3. this task commit has a valid trusted Mac signature;
 4. the frozen defect facts read from the committed coordination report are:
-   rear plane `Y=-14.375 mm`, V01/V02 minimum `Y=-17.750 mm`, backward overhang
-   `3.375 mm` each, exactly four inlets and one outlet;
+   actual plenum rear plane `Y=-14.500 mm`, V01/V02 minimum `Y=-17.750 mm`, unsupported
+   rear length `3.250 mm` each, exactly four inlets and one outlet;
 5. A owns ANSYS runtime CAD correction, B owns OpenFOAM input rejection, Mac owns
    integration and acceptance;
 6. Windows watcher manager status, PID, state/detail and whether this task was consumed

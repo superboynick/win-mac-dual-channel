@@ -188,7 +188,7 @@ def valid_report_and_manifest() -> tuple[dict, dict, dict]:
             "numerical_overlap_mm": 0.02,
             "vent_riser_overlap_mm": 0.001,
             "boolean_volume_delta_mm3": 0.0,
-            "route_analytic_volume_mm3": 451.7788188426395,
+            "route_analytic_volume_mm3": 469.4396438426395,
             "native_analytic_volume_delta_mm3": 0.0,
             "native_route_volume_tolerance_mm3": 0.08,
             "step_analytic_volume_delta_mm3": 0.0,
@@ -207,7 +207,7 @@ def valid_report_and_manifest() -> tuple[dict, dict, dict]:
             "continuous_before_save": {
                 "bbox_min_mm": [-10.875, -17.75, 1.2675],
                 "bbox_max_mm": [10.875, 20.75, 2.8],
-                "volume_mm3": 451.7788188426395,
+                "volume_mm3": 469.4396438426395,
                 "piece_count": 1,
                 "is_closed": True,
                 "is_manifold": True,
@@ -229,7 +229,7 @@ def valid_report_and_manifest() -> tuple[dict, dict, dict]:
                 "body_fingerprint": {
                     "bbox_min_mm": [-10.875, -17.75, 1.2675],
                     "bbox_max_mm": [10.875, 20.75, 2.8],
-                    "volume_mm3": 451.7788188426395,
+                    "volume_mm3": 469.4396438426395,
                     "piece_count": 1,
                     "is_closed": True,
                     "is_manifold": True,
@@ -242,7 +242,7 @@ def valid_report_and_manifest() -> tuple[dict, dict, dict]:
                 "body_fingerprint": {
                     "bbox_min_mm": [-10.875, -17.75, 1.2675],
                     "bbox_max_mm": [10.875, 20.75, 2.8],
-                    "volume_mm3": 451.7788188426395,
+                    "volume_mm3": 469.4396438426395,
                     "piece_count": 1,
                     "is_closed": True,
                     "is_manifold": True,
