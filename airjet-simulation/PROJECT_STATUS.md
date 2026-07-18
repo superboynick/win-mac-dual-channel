@@ -16,6 +16,11 @@
 
 ## Current engineering blocker
 
+User visual inspection and source reconstruction confirm that rear inlet risers V01 and
+V02 extend backward from the intended `Y=-14.375 mm` supporting footprint to
+`Y=-17.750 mm`, an overhang of `3.375 mm` each. This is a real local CAD construction
+defect. A owns the producer correction; B must reject and not consume this geometry.
+
 The committed 34,883-cell Fluent mesh selects one actuator-gap tile, not the complete main-flow domain. It collapses all boundaries into one generic wall face zone. Fluent transcripts state `This case has no inlets & no outlets`; zero-velocity iterations are diagnostic failures, not converged AirJet CFD.
 
 The first formal C7 retry reached the complete pre-region boundary evidence but failed at Watertight `Create Regions` with `Topology region with name dead0 already exists`. The reviewed consumer now replaces the preceding region-based inlet split with a face-angle split while retaining exact-four, conservation and probe-binding gates.
