@@ -106,6 +106,7 @@ SURFACE_MIN_SIZE_MM = 0.05
 SURFACE_MAX_SIZE_MM = 0.75
 THROAT_LOCAL_SIZE_MM = 0.075
 VOLUME_MAX_SIZE_MM = 0.75
+INLET_SPLIT_ANGLE_DEG = 89
 TARGET_FLOW_VOLUME_MESH_TOLERANCE_MM3 = 1.0
 ACTUATOR_GAP_CENTER_Z_MM = 1.795
 ACTUATOR_GAP_PROBE_COUNT = 12
@@ -1502,8 +1503,13 @@ def rebind_post_surface_canonical_records(
         "post_surface_product_only_after_role_merge_observed",
         **merged_product_observation,
     )
-    session.tui.boundary.separate.sep_face_zone_by_region(
-        [merged_role_names["INLET"][0]]
+    # Region-based face separation leaves implicit topology-region names in
+    # Fluent 2026 R1.  The later Watertight Create Regions task then collides
+    # with the first generated void name (dead0).  These four inlet patches
+    # are disconnected and planar, so keep the split strictly face-based.
+    # The exact-four and representative-point checks below remain fail-closed.
+    session.tui.boundary.separate.sep_face_zone_by_angle(
+        [merged_role_names["INLET"][0]], str(INLET_SPLIT_ANGLE_DEG)
     )
     split_product_ids = list(
         meshing_utilities.get_face_zones_of_object(

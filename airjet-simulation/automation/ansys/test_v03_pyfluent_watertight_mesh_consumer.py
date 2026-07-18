@@ -59,6 +59,7 @@ def test_exact_profile_and_assertion_contract() -> None:
     assert values["SURFACE_MAX_SIZE_MM"] == 0.75
     assert values["THROAT_LOCAL_SIZE_MM"] == 0.075
     assert values["VOLUME_MAX_SIZE_MM"] == 0.75
+    assert values["INLET_SPLIT_ANGLE_DEG"] == 89
 
 
 def test_launch_is_v261_mesh_only_and_single_process() -> None:
@@ -124,7 +125,7 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         '"NATIVE_SCDOCX_BOUND_TO_SIGNED_PREDECESSOR"',
         '"NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1078:{}"',
         "rebind_post_surface_canonical_records(",
-        "session.tui.boundary.separate.sep_face_zone_by_region(",
+        "session.tui.boundary.separate.sep_face_zone_by_angle(",
         '"POST_SURFACE_NATIVE_BOUNDARY_ZONE_COUNT_LT_7:{}"',
         '"POST_SURFACE_INLET_REPRESENTATIVE_BINDING_INVALID"',
         "validate_post_surface_role_partition(",
@@ -169,6 +170,7 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.update_boundaries.old_boundary_label_type_list",
         "number_of_flow_volumes",
         '"The geometry consists of only fluid regions with no voids"',
+        "sep_face_zone_by_region",
     ):
         assert forbidden not in SOURCE
 
@@ -1036,7 +1038,7 @@ def test_destructive_post_surface_sequence_is_fully_gated() -> None:
     merge = source.index("session.tui.boundary.manage.merge(")
     merge_gate = source.index('"POST_SURFACE_ROLE_MERGE"', merge)
     split = source.index(
-        "session.tui.boundary.separate.sep_face_zone_by_region(", merge_gate
+        "session.tui.boundary.separate.sep_face_zone_by_angle(", merge_gate
     )
     split_gate = source.index('"POST_SURFACE_INLET_SPLIT"', split)
     canonicalize = source.index("canonicalize_boundary_zones(", split_gate)

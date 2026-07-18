@@ -18,7 +18,9 @@
 
 The committed 34,883-cell Fluent mesh selects one actuator-gap tile, not the complete main-flow domain. It collapses all boundaries into one generic wall face zone. Fluent transcripts state `This case has no inlets & no outlets`; zero-velocity iterations are diagnostic failures, not converged AirJet CFD.
 
-Next ANSYS action: use the approved hash-pinned C7 two-stage consumer and require the full boundary/region contract before entering solver mode. Do not run root-level ad-hoc mesh or solve scripts.
+The first formal C7 retry reached the complete pre-region boundary evidence but failed at Watertight `Create Regions` with `Topology region with name dead0 already exists`. The reviewed consumer now replaces the preceding region-based inlet split with a face-angle split while retaining exact-four, conservation and probe-binding gates.
+
+Next ANSYS action: Windows Codex A pulls the signed hash-pinned fix and performs exactly one official-MCP two-stage retry, requiring the full boundary/region contract before entering solver mode. Do not run root-level ad-hoc mesh or solve scripts.
 
 Next OpenFOAM action: Windows Codex B performs read-only tooling inventory and a separately authorized pinned tooling smoke, then waits for valid P1/P2 interfaces before AirJet P3.
 

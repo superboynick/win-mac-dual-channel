@@ -43,3 +43,9 @@ Formal A execution checkpoint at `2026-07-18T10:08:00Z`:
 - Repeated overlapping CLI experiments were archived as diagnostics only; they do not alter A acceptance or the signed canonical consumer. Main checkout was restored clean and watcher returned to `WATCHING` after evidence capture.
 
 Current decision: escalate the unchanged `dead0` topology blocker to Mac for root-cause/design decision; do not repeat the same consumer route or enter solver mode without a reviewed source change.
+
+Mac remediation handoff:
+
+- Root cause is isolated to the pre-region inlet split: `sep_face_zone_by_region` creates implicit topology-region state before the Watertight `Create Regions` task, whose first generated void name then collides at `dead0`.
+- The reviewed consumer now uses an 89-degree face-angle split for the four disconnected planar inlet patches. Exact four-zone cardinality, face-count conservation, and four representative-point bindings remain mandatory fail-closed checks.
+- A must pull the reviewed signed commit, verify the policy hash, and run exactly one official-MCP two-stage retry. Do not retain or rerun the prior diagnostics. ETA: source sync/preflight 15 minutes; formal retry evidence 2 hours; blocker report immediately on the first failed assertion.

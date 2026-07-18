@@ -1946,7 +1946,7 @@ for invariant in (
     "session.tui.file.write_mesh(str(MESH_PATH))",
     "workflow.import_geometry.file_name = str(STAGED_NATIVE_PATH)",
     '"NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1078:{}"',
-    "session.tui.boundary.separate.sep_face_zone_by_region(",
+    "session.tui.boundary.separate.sep_face_zone_by_angle(",
     '"POST_SURFACE_INLET_REPRESENTATIVE_BINDING_INVALID"',
     '"POST_SURFACE_INLET_SPLIT"',
     "PRODUCT_ROLE_COUNTS_INVALID",
@@ -1958,7 +1958,12 @@ for invariant in (
 ):
     if invariant not in v03_mesh_source:
         fail("V03 PyFluent consumer lacks invariant: " + invariant)
-for forbidden in ("switch_to_solver", "additional_arguments=", ".iterate("):
+for forbidden in (
+    "switch_to_solver",
+    "additional_arguments=",
+    ".iterate(",
+    "sep_face_zone_by_region",
+):
     if forbidden in v03_mesh_source:
         fail("V03 PyFluent consumer contains forbidden action: " + forbidden)
 

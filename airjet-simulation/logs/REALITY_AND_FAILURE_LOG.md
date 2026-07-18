@@ -1602,6 +1602,24 @@
 - 关联 decision/annotation/run：AJM-P1-GEO-008、AJM-P1-MESH-002；本轮两条 run-index。
 - 状态：OPEN_GEOMETRY_VOLUMETRIC_CONNECTIVITY_FIX
 
+## REAL-20260718-069：C7 Create Regions 的 dead0 拓扑命名冲突
+- UTC：2026-07-18T10:08:00Z
+- Stage/task：AJM-006 V03 C7 formal two-stage mesh consumer
+- Machine/operator：Windows ANSYS Student 2026 R1 / Windows Codex A via official MCP
+- run/job/profile：producer `AJM006-V03-CONTINUOUS-cd12932a990d`；consumer `AJM006-V03-CONTINUOUS-b5dcd946e346` / `ajm006-pyfluent-v03-continuous-mesh-pilot-v1`
+- 期望：通过 10 个 canonical boundaries、1 main flow + 12 excluded voids 和完整 C7 mesh gates。
+- 实际观察：producer exit 0；consumer 已观察 4 inlet、1 outlet、972 throat hits、1078 imported face zones 和 local sizing，随后在 `workflow.create_regions()` 前停止。
+- 原始错误短摘：`Topology region with name dead0 already exists`。
+- 原始日志路径 + SHA-256：外部证据索引 `D:\AirJet_P1\external-evidence\workspace-recovery-20260718T075804Z\increment-20260718T101000Z`；本条不虚构未提交的原始文件 hash。
+- 假设与最小区分实验：pre-region 的 `sep_face_zone_by_region` 是唯一主动按 region 拆面的操作；改为 89-degree face-angle split，保留 exact-four、face-count conservation 和 representative-point bindings 后只做一次正式复跑。
+- 结果：源修复已进入 reviewed Git handoff；运行验证待 A 拉取签名提交后执行。
+- 根因及置信度：高置信为 region-based inlet split 留下隐式 topology region 状态，与 Watertight `Create Regions` 的 `dead0` 命名冲突；正式复跑是最终确认实验。
+- 采取/拒绝的 workaround：采用严格 face-angle split；拒绝删除未观察到的 `dead*`、standalone ad-hoc mesher、跳过 Create Regions 或进入 solver。
+- 对 Gate/论文主张的影响：`volume_mesh=false`，P1--P6 仍 `NOT_RUN`，不得声称 C7 或整机 ANSYS 链已通过。
+- 下一步：A 拉取并完成 policy/hash preflight 后只运行一次 official-MCP two-stage retry；首个失败 assertion 立即上报。
+- 关联 decision/annotation/run：AJM-P1-MESH-002；A C7 task card 2026-07-18。
+- 状态：REVIEWED_SOURCE_FIX_PENDING_FORMAL_RETRY
+
 ## 新条目模板
 
 ```text
