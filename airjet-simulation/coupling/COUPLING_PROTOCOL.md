@@ -1,58 +1,36 @@
-# Dual Codex Coupling Protocol
+# Dual Windows Codex coupling protocol
 
-Two Codex instances run in parallel on Windows:
-
-| Slot | Codex | Track | Owns |
+| Slot | Runtime | Full track | Exclusive ownership |
 |---|---|---|---|
-| A | ANSYS Codex | Structural | CAD geometry, Mechanical (piezo modal, harmonic, displacement, frequency) |
-| B | OpenFOAM Codex | Fluid + Thermal | Single-cell CFD, full-device CFD, CHT |
+| A | Windows Codex A | Complete ANSYS P1-P6 | `automation/ansys/`, ANSYS run evidence, `membrane_params.json` |
+| B | Windows Codex B | Complete OpenFOAM P3-P6 reproduction | `automation/openfoam/`, OpenFOAM cases/evidence, `cell_results.json` |
+| Coordinator | Mac Codex | Scheduling, audit, acceptance, Git integration | task contracts, peer-review reports, deadline/escalation board |
 
-## Communication Channel
+## Worktree isolation
 
-**Primary:** Git repository (`win-mac-dual-channel`). Every exchange goes through `airjet-simulation/coupling/`.
+- Keep one clean integration checkout for watcher/Git handoff.
+- A and B use separate Windows worktrees and separate external artifact roots.
+- A and B never edit the same file concurrently. Shared status has a temporary named owner in the active task contract.
+- Generated meshes, case/data, fields, transcripts, containers and native projects stay outside Git; Git stores small manifests, hashes and interpretations only.
 
-**Secondary:** `COUPLING_STATUS.md` — shared message board. Both instances read it before acting and write to it after acting.
+## Data handoff
 
-## Handoff Flow
+1. Producer writes a versioned schema-valid JSON plus units, evidence class, source commit and artifact hashes.
+2. Producer commits and pushes from a clean, linear branch/worktree.
+3. Consumer fast-forwards, validates schema/hash/units, and records acceptance or a precise rejection.
+4. A rejected handoff returns to its owner. The consumer must not silently repair or overwrite it.
 
-```
-[Codex A]                        [Codex B]
-    │                                │
-    ├─ Mechanical solves             │
-    ├─ Writes membrane_params.json   │
-    ├─ Updates COUPLING_STATUS.md    │
-    ├─ git add, commit, push         │
-    │                                │
-    │                                ├─ git pull --ff-only
-    │                                ├─ Reads COUPLING_STATUS.md
-    │                                ├─ Sees "ANSYS_DONE = YES"
-    │                                ├─ Reads membrane_params.json
-    │                                ├─ Runs single-cell CFD
-    │                                ├─ Writes cell_results.json
-    │                                ├─ Updates COUPLING_STATUS.md
-    │                                ├─ git add, commit, push
-    │                                │
-    ├─ git pull --ff-only            │
-    ├─ Reads cell_results.json       │
-    ├─ Compares with datasheet       │
-    ├─ Accepts or requests re-run    │
-    │                                │
-```
+Coupling order:
 
-## Rules
+`A/P1 geometry → A/P2 displacement → A/P3 and B/P3 independent cell maps → A/P4 and B/P4 full-product airflow → A/P5 and B/P5 CHT → P6 comparison`
 
-1. **Never force-push.** Never rewrite history.
-2. **One owns the write.** Only Codex A writes `membrane_params.json`. Only Codex B writes `cell_results.json`. `COUPLING_STATUS.md` can be written by either, but never at the same time.
-3. **Pull before write.** Always `git pull --ff-only` before editing any coupling file.
-4. **Commit atomically.** Group related coupling outputs in one commit.
-5. **Status before action.** Read `COUPLING_STATUS.md` before starting any coupled task.
-6. **Do not block.** If the other Codex is not ready, continue independent work. Do not wait.
+## No duplicate work
 
-## What to do while waiting
+- Every run has one task ID, owner, case ID, hypothesis and acceptance condition.
+- A second implementation is allowed only when explicitly labeled independent cross-validation.
+- Do not run placeholder AirJet physics while waiting. Work from the safe backlog in `DUAL_WINDOWS_EXECUTION_CONTRACT.md`.
+- Never force-push, reset, clean, stash, rebase or overwrite peer work. Stop on dirty/diverged state.
 
-| Codex A (ANSYS) | Codex B (OpenFOAM) |
-|---|---|
-| Refine CAD geometry | Set up solver dictionaries |
-| Run mesh independence study | Test single-cell with placeholder params |
-| Prepare Workbench journal | Validate turbulence model choice |
-| Read patent evidence | Write post-processing scripts |
+## Completion boundary
+
+Only formal Gate evidence changes P1-P6 status. Process exit, repeated identical meshes, solver iterations, or a zero-flow residual history do not establish engineering completion.

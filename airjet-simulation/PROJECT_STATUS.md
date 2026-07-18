@@ -1,25 +1,29 @@
-# AirJet P3 实时状态 — 2026-07-17 03:46 UTC
+# AirJet project status — 2026-07-18
 
-## 网格管线
-- 连续运行：25 次
-- 结果：34,883 cells | OQ 0.53 | 8.2 MB — 100% 一致
-- 网格独立性：coarse 2.8MB + medium 8.2MB
-- Windows Stage 1：持续自跑产新 STEP
+## Literal stage state
 
-## P4 CFD
-- 求解突破：50 迭代收敛，k-ω model
-- BC：待修复（zone 329 mass-flow-inlet）
-- Case+Data 已保存
+- P0 public-evidence freeze: `PASS AJM-P0-v001`.
+- P1-P6 formal Gates: `NOT_PASSED`.
+- Full-product target: AirJet Mini Gen1; single-cell work is calibration-only.
+- Execution strategy: complete ANSYS line plus independent OpenFOAM reproduction line. Neither replaces the other.
 
-## 硬件
-- ZOTAC ZBOX PI430AJ：开箱 9 折，今晚付款
-- 到货后拆解 → 参数校准 → 实验验证
+## Valid progress
 
-## Ansys License
-- 董如怡：明天电话沟通
-- 目标：Academic Research License
+- Evidence, parameter registry, layout candidates, stage manuals and audited ANSYS automation framework exist.
+- V03/C7 preliminary SpaceClaim geometry preserved a single closed/manifold product candidate with 972 finite throats.
+- ANSYS Student tooling diagnostics and several partial CAD/transfer routes produced auditable capability evidence.
+- OpenFOAM Track B received a Mac read-only readiness audit and source-only smoke launcher; actual tooling smoke and AirJet solves remain `NOT_RUN`.
 
-## 论文
-- V2 结构含硬件拆解章节
-- Method section 完成
-- 复现指南 299 行
+## Current engineering blocker
+
+The committed 34,883-cell Fluent mesh selects one actuator-gap tile, not the complete main-flow domain. It collapses all boundaries into one generic wall face zone. Fluent transcripts state `This case has no inlets & no outlets`; zero-velocity iterations are diagnostic failures, not converged AirJet CFD.
+
+Next ANSYS action: use the approved hash-pinned C7 two-stage consumer and require the full boundary/region contract before entering solver mode. Do not run root-level ad-hoc mesh or solve scripts.
+
+Next OpenFOAM action: Windows Codex B performs read-only tooling inventory and a separately authorized pinned tooling smoke, then waits for valid P1/P2 interfaces before AirJet P3.
+
+## Coordination
+
+Windows Codex A owns the complete ANSYS chain. A separate Windows Codex B owns the complete OpenFOAM reproduction chain. Mac owns Git watcher coordination, ETA/checkpoint tracking,催交, independent evidence review and integration. See `DUAL_WINDOWS_EXECUTION_CONTRACT.md`.
+
+Large CAD, mesh, case/data, transcript, field, container and solver-native artifacts stay outside Git and are referenced by size/SHA256. Git contains reviewed source, compact reports and manifests only.

@@ -16,6 +16,8 @@
 - `reports/AIRJET_MINI_PROJECT_REPORT_FOR_ADVISOR_2026-07-13.md`：可直接交导师审阅的完整项目描述与阶段汇报；PDF 构建方法见 `reports/README.md`。
 - `SKILLS_AND_GIT_WORKFLOW.md`：Git 作为 skill 源版本、一键安装和两机哈希验证方法。
 - `PEER_COLLABORATION_PROTOCOL.md`：Mac/Windows Codex 平级权限、统一任务入口、任务领取、双向 push 和分叉处理规则。
+- `DUAL_TRACK_PLAN.md`：两个独立 Windows Codex 的完整 ANSYS/OpenFOAM 双线边界。
+- `DUAL_WINDOWS_EXECUTION_CONTRACT.md`：ETA、检查点、催交、闲置检测、阻塞升级、文件 lease 和验收合同。
 - `AIRJET_RECONSTRUCTION_PLAN.md`：已明确降级为 P2/P3 单元子模型历史参考；不得先于整机 P1 执行。
 - `OPERATION_MANUAL_00_EVIDENCE_TO_CAD.md`：早期单元 CAD 参考，同样只能在 P1 后使用；当前整机手册是 `manuals/01_FULL_PRODUCT_CAD.md`。
 - `MODEL_ANNOTATIONS.md`：仿真注释总表；每一个简化、设置和结果都必须在这里解释。

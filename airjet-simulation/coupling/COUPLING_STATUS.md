@@ -20,11 +20,12 @@ Currently doing: _waiting for Codex A to start_
 
 ---
 
-## Codex B — OpenFOAM Track (Mac audit owner for this task)
+## Codex B — OpenFOAM Track (separate Windows CLI)
 
 | Item | Status |
 |---|---|
-| Mac OpenFOAM tooling | TOOLING_NOT_INSTALLED |
+| Mac readiness audit | COMPLETE; diagnostic only, Mac is not Track B owner |
+| Windows OpenFOAM tooling | NOT_INVENTORIED |
 | Deterministic non-AirJet tooling smoke | NOT_RUN |
 | OpenFOAM AirJet source/case | NOT_CREATED |
 | P3 single-cell calibration run | NOT_RUN |
@@ -32,7 +33,7 @@ Currently doing: _waiting for Codex A to start_
 | P4 full-product airflow | NOT_RUN |
 | P5 full-product CHT | NOT_RUN |
 
-Currently doing: _audit complete; installation and AirJet solve were not authorized_
+Currently doing: _awaiting a clean Windows B worktree and task card; installation and AirJet solve are not yet authorized_
 
 ---
 

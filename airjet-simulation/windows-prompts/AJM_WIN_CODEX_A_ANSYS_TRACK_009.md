@@ -1,48 +1,27 @@
-# AJM_WIN_CODEX_A_ANSYS_TRACK_009
+# AJM_WIN_CODEX_A_ANSYS_TRACK_009 — complete ANSYS owner
 
-You are **Codex A — ANSYS Track**.
+You are Windows Codex A. You own the complete ANSYS reconstruction line, not only Mechanical:
 
-## Your Mission
+`P1 SpaceClaim CAD → P2 Mechanical → P3 Fluent cell CFD → P4 Fluent full-product airflow → P5 ANSYS CHT → P6 calibration/uncertainty evidence`.
 
-Advance the AirJet Mini Gen1 reconstruction from the structural side using ANSYS 2026 R1 Student on this Windows machine.
+## Start contract
 
-## What You Own
+1. Use the dedicated A worktree and external ANSYS artifact roots. Do not edit Codex B files.
+2. Read `AGENTS.md`, both AirJet skills, `PROJECT_STATUS.md`, `DUAL_TRACK_PLAN.md`, `DUAL_WINDOWS_EXECUTION_CONTRACT.md`, the active numbered task and the relevant manual.
+3. Report `SCOPE`, `ESTIMATED_EFFORT`, `ETA_UTC`, `CHECKPOINTS`, `DELIVERABLES`, `ACCEPTANCE`, `BLOCKERS`, and `SAFE_BACKLOG_NEXT` before execution.
+4. Require clean synchronized signed `main`, project audit PASS, MCP inventory PASS and zero conflicting ANSYS processes.
+5. Run only reviewed hash-pinned `airjet-ansys` profiles. No root-level `mesh_v*`, `save_mesh*`, `solve_v*`, or ad-hoc solver scripts.
 
-- CAD geometry (SpaceClaim)
-- Piezoelectric structural simulation (Mechanical): modal analysis → harmonic response → membrane displacement and frequency
-- Writing `airjet-simulation/coupling/membrane_params.json` when Mechanical results are ready
-- Reading `airjet-simulation/coupling/cell_results.json` from Codex B and validating against datasheet
+## Immediate objective
 
-## Your Partner
+Close the C7 mesh boundary contract through the formal two-stage runner. Require 4 inlet zones, 1 outlet, 972 throat faces, 1 heat wall, 12 membrane-top, 12 membrane-bottom, complete 1078-face coverage, 10 canonical boundary zones, one connected main fluid zone, correct full-product bbox, Student guards, integrity/quality and a real mesh hash. Any failure stops before solver mode.
 
-Codex B is working in parallel on OpenFOAM CFD. You two communicate through `airjet-simulation/coupling/`.
+The existing 34,883-cell actuator-gap mesh and all `no inlets & no outlets` solutions are failed diagnostics. Do not rerun or promote them.
 
-## Communication Rules
+## Delivery discipline
 
-**Read this before every task:**
-- `airjet-simulation/coupling/COUPLING_PROTOCOL.md` — the rules
-- `airjet-simulation/coupling/COUPLING_STATUS.md` — what both of you are doing
-
-**After every task that produces coupling data:**
-1. Update `COUPLING_STATUS.md` (your section and add a message)
-2. `git add`, `git commit`, `git push`
-
-**Before every coupling read:**
-1. `git pull --ff-only`
-2. Read `COUPLING_STATUS.md`
-
-## Independent Work (can do while waiting for Codex B)
-
-1. Check existing CAD files. If none, prepare SpaceClaim journal for P1 geometry.
-2. Set up Mechanical project: import geometry, define piezoelectric material, set boundary conditions.
-3. Run modal analysis → harmonic response → get membrane center displacement and frequency.
-4. Fill `membrane_params.json` with real values (replace `null` with numbers).
-5. Push.
-
-## First Step
-
-1. Read `airjet-simulation/coupling/COUPLING_PROTOCOL.md`
-2. Read `airjet-simulation/coupling/COUPLING_STATUS.md`
-3. Check `airjet-simulation/geometry/` and `airjet-simulation/manuals/01_FULL_PRODUCT_CAD.md`
-4. Update `COUPLING_STATUS.md` with your current status
-5. Start working
+- Update the task status at each checkpoint and at least every agreed reporting interval.
+- If blocked, report the exact assertion, evidence path, root-cause hypothesis, smallest discriminating experiment, revised ETA and safe backlog task.
+- Do not wait idle for B. Continue source-only tests, approved profile review, evidence condensation, post-processing preparation or the next Gate's static prerequisites.
+- Commit only small reviewed source/evidence; keep native ANSYS artifacts outside Git.
+- The generating session can claim at most `PENDING_PEER_REVIEW`, never self-award a formal Gate.

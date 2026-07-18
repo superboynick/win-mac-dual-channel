@@ -1,4 +1,6 @@
-# AJM Mac OpenFOAM Track B audit — 2026-07-18
+# AJM Mac OpenFOAM Track B readiness audit — 2026-07-18
+
+> Role correction: this was a one-time read-only Mac readiness audit created under a superseded task assignment. Windows Codex B owns and executes the OpenFOAM track; Mac does not own either solver track.
 
 ## Result
 
