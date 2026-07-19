@@ -929,6 +929,11 @@ try:
     for vent in sorted(vents, key=lambda item: item["vent_id"]):
         box = list(vent_support["vent_boxes_mm"][str(vent["vent_id"])])
         vent_boxes.append(box)
+        # Rear containment: clip vent box Y-min to footprint rear boundary
+        rear_overhang_mm = footprint_y_min - box[1]
+        if rear_overhang_mm > 0.01:
+            box[1] = footprint_y_min
+            result_data["vent_rear_containment_clip_%s_mm" % vent["vent_id"]] = round(rear_overhang_mm, 3)
         risers.append(create_block(
             box[0], box[1], plenum_top_z - vent_riser_overlap_mm,
             box[2], box[3], product_top_z,
