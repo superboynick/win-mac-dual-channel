@@ -37,6 +37,19 @@ class Finding:
     message: str
 
 
+class DuplicateKeyError(ValueError):
+    """Raised when a JSON object repeats a key and would otherwise be ambiguous."""
+
+
+def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise DuplicateKeyError(f"duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
 def _add(findings: list[Finding], code: str, path: str, message: str) -> None:
     findings.append(Finding(code, path, message))
 
@@ -380,7 +393,7 @@ def validate_manifest(manifest: Any) -> list[Finding]:
             if artifact is None:
                 continue
             role = artifact.get("role")
-            if role not in EXPECTED_ARTIFACT_ROLES:
+            if not isinstance(role, str) or role not in EXPECTED_ARTIFACT_ROLES:
                 _add(findings, "GATE.INTEG.ARTIFACT_ROLE", f"{path}.role", "unexpected artifact role")
                 continue
             roles.append(role)
@@ -412,7 +425,11 @@ def validate_manifest(manifest: Any) -> list[Finding]:
 
 def _load_manifest(path: Path) -> Any:
     with path.open("r", encoding="utf-8") as handle:
-        return json.load(handle, parse_float=Decimal)
+        return json.load(
+            handle,
+            parse_float=Decimal,
+            object_pairs_hook=_reject_duplicate_keys,
+        )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -421,6 +438,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         manifest = _load_manifest(args.manifest)
+    except DuplicateKeyError as exc:
+        print(json.dumps({"accepted": False, "findings": [{"code": "GATE.INPUT.JSON_DUPLICATE_KEY", "path": str(args.manifest), "message": str(exc)}]}))
+        return 3
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         print(json.dumps({"accepted": False, "findings": [{"code": "GATE.INPUT.JSON", "path": str(args.manifest), "message": str(exc)}]}))
         return 3

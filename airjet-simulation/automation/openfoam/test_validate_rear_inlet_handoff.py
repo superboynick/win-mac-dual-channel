@@ -247,6 +247,11 @@ class RearInletHandoffGateTests(unittest.TestCase):
         self.assertIn("GATE.INTEG.ARTIFACT_ROLE_DUPLICATE", actual)
         self.assertIn("GATE.INTEG.ARTIFACT_ROLE_SET", actual)
 
+    def test_non_string_artifact_role_is_rejected_without_crashing(self) -> None:
+        manifest = valid_manifest()
+        manifest["artifacts"][0]["role"] = ["native"]
+        self.assert_rejected(manifest, "GATE.INTEG.ARTIFACT_ROLE")
+
     def test_geometry_acceptance_evidence_is_fail_closed(self) -> None:
         cases = (
             ("body_count", 2, "GATE.STRUCT.BODY_COUNT"),
@@ -325,6 +330,21 @@ class RearInletHandoffGateTests(unittest.TestCase):
             result = json.loads(output.getvalue())
             self.assertFalse(result["accepted"])
             self.assertIn("GATE.SEM.ACCEPTANCE", {item["code"] for item in result["findings"]})
+
+    def test_cli_rejects_duplicate_json_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "duplicate.json"
+            path.write_text('{"schema_version":"1.0","schema_version":"evil"}', encoding="utf-8")
+            with contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(main([str(path)]), 3)
+            result = json.loads(output.getvalue())
+            self.assertFalse(result["accepted"])
+            self.assertEqual(result["findings"][0]["code"], "GATE.INPUT.JSON_DUPLICATE_KEY")
+
+    def test_malformed_root_types_are_rejected_without_crashing(self) -> None:
+        for value in (None, [], "manifest", 1, True):
+            with self.subTest(value=value):
+                self.assertIn("GATE.SCHEMA.TYPE", {item.code for item in validate_manifest(value)})
 
 
 if __name__ == "__main__":

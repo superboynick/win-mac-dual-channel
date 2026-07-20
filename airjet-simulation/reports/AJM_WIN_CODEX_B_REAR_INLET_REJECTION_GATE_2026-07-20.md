@@ -53,6 +53,16 @@ the analytic volume, native/STEP reopen, connectivity, artifact role completenes
 syntax, and rejection of unknown fields. The implementation reads a supplied manifest only;
 it does not open CAD/STEP files, fabricate geometry, run ANSYS, or run OpenFOAM.
 
+## Consumer invocation
+
+```powershell
+python airjet-simulation/automation/openfoam/validate_rear_inlet_handoff.py <handoff.json>
+```
+
+Exit `0` means every source-only assertion and Mac receipt binding passed; exit `2` is a
+deterministic gate rejection; exit `3` is unreadable, malformed, or duplicate-key JSON. A
+zero exit is input acceptance only and does not advance P1--P6 or authorize an OpenFOAM run.
+
 ## Delivery status
 
 - Expected time: 90 minutes total; first checkpoint within 15 minutes; signed source/test
@@ -63,8 +73,11 @@ it does not open CAD/STEP files, fabricate geometry, run ANSYS, or run OpenFOAM.
   the unpushed B commit was linearly rebased with a fresh signature and the harness was
   extended for the new pinned-producer/clip-marker requirements.
 - Delivered evidence: JSON Schema Draft 2020-12 declaration, standard-library fail-closed
-  validator/CLI, positive/negative tests including CLI paths and Mac receipt binding, and
-  stable reason codes.
+  validator/CLI, 27 positive/negative tests including CLI paths and Mac receipt binding,
+  duplicate-key rejection, stable reason codes, and a fixed-seed 10,000-case malformed-input
+  no-crash fuzz pass.
+- Schema verification: JSON parse `PASS`; Draft 2020-12 meta-schema check through the isolated
+  AirJet venv `PASS`.
 - Independent review: a tool-free DeepSeek review supplied extra negative-test ideas. ID
   syntax, hash syntax, unknown fields, role completeness, and cross-boundary duplicates were
   incorporated. A second implementation review exceeded its response window and made no
