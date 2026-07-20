@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://airjet.local/schemas/rear-inlet-handoff-v1.json",
+  "title": "AirJet rear-inlet ANSYS-to-OpenFOAM handoff manifest",
+  "description": "Source-only, fail-closed manifest for Task 008 using the Task 007 policy and frozen Task 006 geometry contract. Schema validity alone is insufficient; cross-field checks are implemented by validate_rear_inlet_handoff.py.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "task_id", "policy_contract_task_id", "geometry_contract_task_id", "producer", "geometry", "artifacts"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "task_id": {"const": "ajm-dual-windows-harness-execute-20260720-008"},
+    "policy_contract_task_id": {"const": "ajm-dual-windows-harness-recovery-20260720-007"},
+    "geometry_contract_task_id": {"const": "ajm-windows-rear-inlet-runtime-and-consumer-gates-20260718-006"},
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["acceptance_state", "source_commit", "script", "profile", "source_policy"],
+      "properties": {
+        "acceptance_state": {"const": "PASS"},
+        "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "script": {"$ref": "#/$defs/pinnedProducerAttestation"},
+        "profile": {"$ref": "#/$defs/hashAttestation"},
+        "source_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["forbidden_markers_checked", "forbidden_markers_detected"],
+          "properties": {
+            "forbidden_markers_checked": {
+              "type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true,
+              "items": {"enum": ["vent_rear_containment_clip", "box[1] = footprint_y_min"]}
+            },
+            "forbidden_markers_detected": {"type": "array", "maxItems": 0}
+          }
+        }
+      }
+    },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inlets", "outlets", "cell_footprint_y_min_mm",
+        "supported_plenum_y_min_mm", "rear_support_extension_mm",
+        "rear_inlet_ids", "body_count", "piece_count", "closed",
+        "manifold", "bbox_min_mm", "bbox_max_mm", "analytic_volume_mm3",
+        "native_reopen_pass", "step_reopen_pass", "connectivity_pass"
+      ],
+      "properties": {
+        "inlets": {
+          "type": "array", "minItems": 4, "maxItems": 4,
+          "items": {"$ref": "#/$defs/boundaryIdentity"}
+        },
+        "outlets": {
+          "type": "array", "minItems": 1, "maxItems": 1,
+          "items": {"$ref": "#/$defs/boundaryIdentity"}
+        },
+        "cell_footprint_y_min_mm": {"const": -14.5},
+        "supported_plenum_y_min_mm": {"const": -17.75},
+        "rear_support_extension_mm": {"const": 3.25},
+        "rear_inlet_ids": {
+          "type": "array", "minItems": 2, "maxItems": 2,
+          "uniqueItems": true,
+          "items": {"enum": ["V01", "V02"]}
+        },
+        "body_count": {"const": 1},
+        "piece_count": {"const": 1},
+        "closed": {"const": true},
+        "manifold": {"const": true},
+        "bbox_min_mm": {
+          "type": "array", "minItems": 3, "maxItems": 3, "prefixItems": [
+            {"const": -10.875}, {"const": -17.75}, {"const": 1.2675}
+          ], "items": false
+        },
+        "bbox_max_mm": {
+          "type": "array", "minItems": 3, "maxItems": 3, "prefixItems": [
+            {"const": 10.875}, {"const": 20.75}, {"const": 2.8}
+          ], "items": false
+        },
+        "analytic_volume_mm3": {"const": 469.4396438426395},
+        "native_reopen_pass": {"const": true},
+        "step_reopen_pass": {"const": true},
+        "connectivity_pass": {"const": true}
+      }
+    },
+    "artifacts": {
+      "type": "array", "minItems": 3, "maxItems": 3,
+      "items": {"$ref": "#/$defs/artifactAttestation"}
+    }
+  },
+  "$defs": {
+    "boundaryIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"}
+      }
+    },
+    "hashAttestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256_declared", "sha256_observed"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256_declared": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "sha256_observed": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "pinnedProducerAttestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256_declared", "sha256_observed"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "sha256_declared": {"const": "8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0"},
+        "sha256_observed": {"const": "8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0"}
+      }
+    },
+    "artifactAttestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "path", "size_bytes", "sha256_declared", "sha256_observed"],
+      "properties": {
+        "role": {"enum": ["native", "step", "runtime_report"]},
+        "path": {"type": "string", "minLength": 1},
+        "size_bytes": {"type": "integer", "minimum": 1},
+        "sha256_declared": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "sha256_observed": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}
