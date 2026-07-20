@@ -1,7 +1,7 @@
 # WINDOWS A — ROOT CAUSE ANALYSIS & CORRECTION
 **UTC**: 2026-07-20T08:34:22Z
 **Incident Branch**: incident/windows-recovery-20260718-001
-**Correction Commit**: d42630d
+**Correction Commit**: `d42630d` (incident branch candidate; not integrated)
 
 ## ROOT CAUSE
 
@@ -23,12 +23,14 @@ The error originated from TWO independent failures:
 - Committed to main instead of incident/windows-recovery-20260718-001
 - Mac rejected commit 4fbec7b (clipping approach)
 
-## CORRECTION APPLIED (d42630d)
+## CORRECTION CANDIDATE (`d42630d`)
 
 - Producer: supported_plenum_y_min_mm = -17.750 replaces ootprint_y_min in upstream create_block
 - All vent boxes preserved at full extent
-- 8/8 negative tests PASS (including explicit clipping-approach rejection test)
-- E2E collaboration report: COLLAB_E2E=PASS
+- 8/8 branch-local tests PASS, but they duplicate producer math and do not replace the
+  Mac independent production-function tests
+- Manual collaboration checks passed; the official watcher E2E did not pass and the
+  Windows watcher was not running at the time of Mac review
 - Plenum extends to support V01/V02 at Y=-17.750 mm
 - Expected bbox: [-10.875, -17.750, 1.2675]--[10.875, 20.750, 2.800] mm
 
@@ -37,6 +39,8 @@ The error originated from TWO independent failures:
 - Run used OLD mesh (pre-correction); new mesh required after Mac reviews correction
 
 ## NEXT FOR PLAN B / MAC
-- Review incident branch d42630d
-- If approved: Plan B can consume corrected plenum Y-min = -17.750
-- Windows A awaits Mac authorization to run official MCP SpaceClaim producer
+- Do not cherry-pick `d42630d`; Mac `9082340` already contains the stricter reviewed
+  implementation, contract, profile hash and independent negative tests
+- Plan B remains blocked until Windows A produces new official-MCP native/STEP runtime
+  evidence from the reviewed `main` producer
+- P1--P6 remain `NOT_RUN/NOT_PASSED`

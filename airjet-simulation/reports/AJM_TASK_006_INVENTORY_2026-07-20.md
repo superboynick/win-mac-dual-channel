@@ -50,3 +50,17 @@ still pins the old hash. Mac has not yet reviewed and merged the correction.
 
 ### P1-P6 Gate Status
 - P1-P6: NOT_RUN (task 006 blocked by hash mismatch)
+
+## Mac disposition — 2026-07-20T08:45Z
+
+`HASH_MISMATCH_BLOCKING` was a valid observation on contaminated main commit `5c71578`,
+but the proposed remedy was rejected. The mismatch came from the previously rejected clip
+code entering `main`; the reviewed profile hash `8f23d7...` was not stale. Mac restored the
+independently tested producer whose literal SHA-256 is
+`8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0`, removed the
+duplicate self-test and retained the existing profile pin. Do not cherry-pick `d42630d` or
+update the profile to `a6a1e910...`.
+
+The source/hash blocker is resolved for a fresh preflight. Runtime native/STEP evidence is
+still absent, so A must rerun official-MCP inventory and producer from task 007. OpenFOAM
+consumption and P1--P6 remain blocked/not passed.
