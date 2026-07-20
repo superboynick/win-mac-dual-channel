@@ -1,4 +1,4 @@
-﻿# AJM-006 V03 full-product continuous-fluid SpaceClaim producer.
+# AJM-006 V03 full-product continuous-fluid SpaceClaim producer.
 # This is a finite-throat geometry pilot only. It never claims a P1 gate pass.
 from __future__ import print_function
 
@@ -747,6 +747,7 @@ try:
     footprint_x_max = float(exhaust["cell_footprint_x_max_mm"])
     footprint_y_min = float(exhaust["cell_footprint_y_min_mm"])
     footprint_y_max = float(exhaust["cell_footprint_y_max_mm"])
+    supported_plenum_y_min_mm = -17.750  # v2 corrected: extend plenum to fully support V01/V02
     manifold_y_max = float(exhaust["manifold_y_max_mm"])
     outlet_width = float(exhaust["outlet_width_mm"])
     radius = float(layout["orifice_diameter_candidate_mm"]) / 2.0
@@ -856,7 +857,7 @@ try:
 
     DocumentHelper.CreateNewDocument()
     upstream = create_block(
-        footprint_x_min, footprint_y_min, membrane_top_z,
+        footprint_x_min, supported_plenum_y_min_mm, membrane_top_z,
         footprint_x_max, footprint_y_max, plenum_top_z,
         "AJM006_V03_FLUID_UPSTREAM_BUILD",
     )
@@ -874,11 +875,6 @@ try:
         half_y = abs(dy) * length / 2.0 + abs(dx) * width / 2.0
         box = [cx - half_x, cy - half_y, cx + half_x, cy + half_y]
         vent_boxes.append(box)
-        # Rear containment: clip vent box Y-min to footprint rear boundary
-        rear_overhang_mm = footprint_y_min - box[1]
-        if rear_overhang_mm > 0.01:
-            box[1] = footprint_y_min
-            result_data["vent_rear_containment_clip_%s_mm" % vent["vent_id"]] = round(rear_overhang_mm, 3)
         risers.append(create_block(
             box[0], box[1], plenum_top_z - vent_riser_overlap_mm,
             box[2], box[3], product_top_z,
