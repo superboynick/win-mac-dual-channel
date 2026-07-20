@@ -45,6 +45,8 @@ The validator must reject each of the following independently:
 10. A acceptance state other than explicit `PASS`.
 11. either rejected producer clip marker, an incomplete marker scan, or producer hash other
     than the reviewed pin `8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0`.
+12. missing Mac review, Mac state other than literal `ACCEPTED_PASS`, or a Mac receipt whose
+    producer commit/runtime-report hash does not match the supplied handoff.
 
 Additional fail-closed checks cover one closed/manifold piece, the frozen bounding box,
 the analytic volume, native/STEP reopen, connectivity, artifact role completeness, SHA-256
@@ -61,8 +63,8 @@ it does not open CAD/STEP files, fabricate geometry, run ANSYS, or run OpenFOAM.
   the unpushed B commit was linearly rebased with a fresh signature and the harness was
   extended for the new pinned-producer/clip-marker requirements.
 - Delivered evidence: JSON Schema Draft 2020-12 declaration, standard-library fail-closed
-  validator/CLI, 23 unit tests including CLI valid/reject paths, and stable reason codes.
-- Test result: `Ran 23 tests ... OK`; JSON parse `PASS`; `git diff --check` `PASS`.
+  validator/CLI, positive/negative tests including CLI paths and Mac receipt binding, and
+  stable reason codes.
 - Independent review: a tool-free DeepSeek review supplied extra negative-test ideas. ID
   syntax, hash syntax, unknown fields, role completeness, and cross-boundary duplicates were
   incorporated. A second implementation review exceeded its response window and made no

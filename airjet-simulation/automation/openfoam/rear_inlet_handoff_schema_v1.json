@@ -5,7 +5,7 @@
   "description": "Source-only, fail-closed manifest for Task 008 using the Task 007 policy and frozen Task 006 geometry contract. Schema validity alone is insufficient; cross-field checks are implemented by validate_rear_inlet_handoff.py.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "task_id", "policy_contract_task_id", "geometry_contract_task_id", "producer", "geometry", "artifacts"],
+  "required": ["schema_version", "task_id", "policy_contract_task_id", "geometry_contract_task_id", "producer", "geometry", "artifacts", "mac_review"],
   "properties": {
     "schema_version": {"const": "1.0"},
     "task_id": {"const": "ajm-dual-windows-harness-execute-20260720-008"},
@@ -84,6 +84,17 @@
     "artifacts": {
       "type": "array", "minItems": 3, "maxItems": 3,
       "items": {"$ref": "#/$defs/artifactAttestation"}
+    },
+    "mac_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["acceptance_state", "review_commit", "producer_source_commit", "runtime_report_sha256"],
+      "properties": {
+        "acceptance_state": {"const": "ACCEPTED_PASS"},
+        "review_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "producer_source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "runtime_report_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
     }
   },
   "$defs": {

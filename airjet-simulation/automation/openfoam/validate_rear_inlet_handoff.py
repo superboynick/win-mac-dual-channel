@@ -171,7 +171,7 @@ def validate_manifest(manifest: Any) -> list[Finding]:
     findings: list[Finding] = []
     top_fields = {
         "schema_version", "task_id", "policy_contract_task_id", "geometry_contract_task_id",
-        "producer", "geometry", "artifacts"
+        "producer", "geometry", "artifacts", "mac_review"
     }
     root = _object(manifest, "$", findings, required=top_fields, allowed=top_fields)
     if root is None:
@@ -269,6 +269,63 @@ def validate_manifest(manifest: Any) -> list[Finding]:
                     "producer contains a rejected rear-vent clipping marker",
                 )
 
+    mac_review_fields = {
+        "acceptance_state", "review_commit", "producer_source_commit", "runtime_report_sha256"
+    }
+    mac_review = _object(
+        root.get("mac_review"),
+        "$.mac_review",
+        findings,
+        required=mac_review_fields,
+        allowed=mac_review_fields,
+    )
+    if mac_review is None:
+        _add(
+            findings,
+            "GATE.SEM.MAC_ACCEPTANCE",
+            "$.mac_review",
+            "Mac acceptance receipt is required before consumer use",
+        )
+    else:
+        if mac_review.get("acceptance_state") != "ACCEPTED_PASS":
+            _add(
+                findings,
+                "GATE.SEM.MAC_ACCEPTANCE",
+                "$.mac_review.acceptance_state",
+                "expected literal ACCEPTED_PASS",
+            )
+        review_commit = mac_review.get("review_commit")
+        if not isinstance(review_commit, str) or COMMIT_RE.fullmatch(review_commit) is None:
+            _add(
+                findings,
+                "GATE.INTEG.MAC_REVIEW_COMMIT",
+                "$.mac_review.review_commit",
+                "expected lowercase 40-hex review commit",
+            )
+        accepted_source_commit = mac_review.get("producer_source_commit")
+        if not isinstance(accepted_source_commit, str) or COMMIT_RE.fullmatch(accepted_source_commit) is None:
+            _add(
+                findings,
+                "GATE.INTEG.MAC_PRODUCER_COMMIT",
+                "$.mac_review.producer_source_commit",
+                "expected lowercase 40-hex producer commit",
+            )
+        elif not isinstance(producer, dict) or accepted_source_commit != producer.get("source_commit"):
+            _add(
+                findings,
+                "GATE.INTEG.MAC_PRODUCER_COMMIT",
+                "$.mac_review.producer_source_commit",
+                "Mac-accepted producer commit differs from the handoff producer",
+            )
+        accepted_report_hash = mac_review.get("runtime_report_sha256")
+        if not isinstance(accepted_report_hash, str) or SHA256_RE.fullmatch(accepted_report_hash) is None:
+            _add(
+                findings,
+                "GATE.INTEG.MAC_RUNTIME_REPORT_HASH",
+                "$.mac_review.runtime_report_sha256",
+                "expected lowercase SHA-256 hex",
+            )
+
     geometry_fields = {
         "inlets", "outlets", "cell_footprint_y_min_mm", "supported_plenum_y_min_mm",
         "rear_support_extension_mm", "rear_inlet_ids", "body_count", "piece_count",
@@ -335,6 +392,18 @@ def validate_manifest(manifest: Any) -> list[Finding]:
             _add(findings, "GATE.INTEG.ARTIFACT_ROLE_DUPLICATE", "$.artifacts", "artifact roles must be unique")
         if set(roles) != EXPECTED_ARTIFACT_ROLES:
             _add(findings, "GATE.INTEG.ARTIFACT_ROLE_SET", "$.artifacts", "native, step, and runtime_report are required")
+        runtime_reports = [
+            item for item in artifacts
+            if isinstance(item, dict) and item.get("role") == "runtime_report"
+        ]
+        if isinstance(mac_review, dict) and len(runtime_reports) == 1:
+            if mac_review.get("runtime_report_sha256") != runtime_reports[0].get("sha256_observed"):
+                _add(
+                    findings,
+                    "GATE.INTEG.MAC_RUNTIME_REPORT_HASH",
+                    "$.mac_review.runtime_report_sha256",
+                    "Mac-accepted runtime report differs from the handoff artifact",
+                )
     else:
         _add(findings, "GATE.INTEG.ARTIFACT_ROLE_SET", "$.artifacts", "native, step, and runtime_report are required")
 

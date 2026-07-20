@@ -83,6 +83,12 @@ def valid_manifest() -> dict:
             }
             for role in ("native", "step", "runtime_report")
         ],
+        "mac_review": {
+            "acceptance_state": "ACCEPTED_PASS",
+            "review_commit": "2" * 40,
+            "producer_source_commit": "1" * 40,
+            "runtime_report_sha256": HASH_A,
+        },
     }
 
 
@@ -171,6 +177,23 @@ class RearInletHandoffGateTests(unittest.TestCase):
                 manifest = valid_manifest()
                 manifest["producer"]["acceptance_state"] = value
                 self.assert_rejected(manifest, "GATE.SEM.ACCEPTANCE")
+
+    def test_mac_acceptance_is_required_and_bound_to_runtime_evidence(self) -> None:
+        manifest = valid_manifest()
+        del manifest["mac_review"]
+        self.assert_rejected(manifest, "GATE.SEM.MAC_ACCEPTANCE")
+
+        manifest = valid_manifest()
+        manifest["mac_review"]["acceptance_state"] = "PENDING"
+        self.assert_rejected(manifest, "GATE.SEM.MAC_ACCEPTANCE")
+
+        manifest = valid_manifest()
+        manifest["mac_review"]["producer_source_commit"] = "3" * 40
+        self.assert_rejected(manifest, "GATE.INTEG.MAC_PRODUCER_COMMIT")
+
+        manifest = valid_manifest()
+        manifest["mac_review"]["runtime_report_sha256"] = HASH_B
+        self.assert_rejected(manifest, "GATE.INTEG.MAC_RUNTIME_REPORT_HASH")
 
     def test_producer_and_profile_hash_mismatch_are_rejected(self) -> None:
         for component, expected_code in (
