@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0",
+  "task_id": "ajm-dual-windows-harness-execute-20260720-008",
+  "policy_contract_task_id": "ajm-dual-windows-harness-recovery-20260720-007",
+  "geometry_contract_task_id": "ajm-windows-rear-inlet-runtime-and-consumer-gates-20260718-006",
+  "producer": {
+    "acceptance_state": "PASS",
+    "source_commit": "a8ece4383e0c65c7a33f026203d86807feac6c0c",
+    "script": {
+      "path": "airjet-simulation/automation/ansys/approved/006/v03_continuous_fluid_producer.py",
+      "sha256_declared": "8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0",
+      "sha256_observed": "8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0"
+    },
+    "profile": {
+      "path": "airjet-simulation/automation/ansys/profiles.json",
+      "sha256_declared": "c525f5d53e8a72100232b4e30a88020ab54305769b5cd6c71629e09b5acf15e0",
+      "sha256_observed": "c525f5d53e8a72100232b4e30a88020ab54305769b5cd6c71629e09b5acf15e0"
+    },
+    "source_policy": {
+      "forbidden_markers_checked": [
+        "box[1] = footprint_y_min",
+        "vent_rear_containment_clip"
+      ],
+      "forbidden_markers_detected": []
+    }
+  },
+  "geometry": {
+    "inlets": [
+      {"id": "V01"},
+      {"id": "V02"},
+      {"id": "V03"},
+      {"id": "V04"}
+    ],
+    "outlets": [{"id": "O01"}],
+    "cell_footprint_y_min_mm": -14.5,
+    "supported_plenum_y_min_mm": -17.75,
+    "rear_support_extension_mm": 3.25,
+    "rear_inlet_ids": ["V01", "V02"],
+    "body_count": 1,
+    "piece_count": 1,
+    "closed": true,
+    "manifold": true,
+    "bbox_min_mm": [-10.875, -17.75, 1.2675],
+    "bbox_max_mm": [10.875, 20.75, 2.8],
+    "analytic_volume_mm3": 469.4396438426395,
+    "native_reopen_pass": true,
+    "step_reopen_pass": true,
+    "connectivity_pass": true
+  },
+  "artifacts": [
+    {
+      "role": "native",
+      "path": "D:/AirJet_P1/AJM-P1-CAD-006/ajm-rear-inlet-009-mcp/ajm-rear-inlet-009-mcp-fbff57daa893/product_continuous_fluid.scdocx",
+      "size_bytes": 6957892,
+      "sha256_declared": "50223b0fd0d70b80ce7d4abd4e267e44fb2c66c1a4ae77f117629953b08cae9e",
+      "sha256_observed": "50223b0fd0d70b80ce7d4abd4e267e44fb2c66c1a4ae77f117629953b08cae9e"
+    },
+    {
+      "role": "step",
+      "path": "D:/AirJet_P1/AJM-P1-CAD-006/ajm-rear-inlet-009-mcp/ajm-rear-inlet-009-mcp-fbff57daa893/product_continuous_fluid.step",
+      "size_bytes": 1806621,
+      "sha256_declared": "b1ce3b9016f74663a7fdb686b122f491f9df391a668d86b43c33a5132e477fa4",
+      "sha256_observed": "b1ce3b9016f74663a7fdb686b122f491f9df391a668d86b43c33a5132e477fa4"
+    },
+    {
+      "role": "runtime_report",
+      "path": "D:/AirJet_P1/AJM-P1-CAD-006/ajm-rear-inlet-009-mcp/ajm-rear-inlet-009-mcp-fbff57daa893/v03_continuous_fluid_producer.json",
+      "size_bytes": 16056,
+      "sha256_declared": "6bd4604baa6b9c7631e99ff8a517ce782d3c006de13301c31f9955a12def0c4b",
+      "sha256_observed": "6bd4604baa6b9c7631e99ff8a517ce782d3c006de13301c31f9955a12def0c4b"
+    }
+  ],
+  "mac_review": {
+    "acceptance_state": "ACCEPTED_PASS",
+    "review_commit": "a26aa968e6d8911326fa8b0c8b951a14fbcc68ec",
+    "producer_source_commit": "a8ece4383e0c65c7a33f026203d86807feac6c0c",
+    "runtime_report_sha256": "6bd4604baa6b9c7631e99ff8a517ce782d3c006de13301c31f9955a12def0c4b"
+  }
+}
