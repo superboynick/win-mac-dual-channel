@@ -172,6 +172,8 @@ pass shell_syntax
 [ "$(grep -c '^RUNTIME_STATUS=ENABLED_AFTER_REVIEW$' "$MANAGER")" -eq 1 ] || fail manager_runtime_status_missing
 [ "$(grep -c '^RUNTIME_STATUS=ENABLED_AFTER_REVIEW$' "$RUNNER")" -eq 1 ] || fail runner_runtime_status_missing
 grep -q 'INSTALL_RESULT=REFUSED_DISABLED_PENDING_END_TO_END' "$INSTALLER" || fail installer_runtime_guard_missing
+grep -q '<key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>' "$INSTALLER" || fail installer_failure_restart_missing
+grep -q '<key>ThrottleInterval</key><integer>60</integer>' "$INSTALLER" || fail installer_restart_throttle_missing
 pass runtime_guard_source
 
 ssh-keygen -q -t ed25519 -N '' -C airjet-mac-test -f "$MAC_TEST_KEY"

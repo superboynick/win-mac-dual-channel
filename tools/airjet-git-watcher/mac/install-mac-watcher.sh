@@ -72,7 +72,8 @@ install_agent() {
     printf '<string>%s</string>\n' "$POLL_SECONDS"
     printf '%s\n' '</array>'
     printf '%s\n' '<key>RunAtLoad</key><true/>'
-    printf '%s\n' '<key>KeepAlive</key><false/>'
+    printf '%s\n' '<key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>'
+    printf '%s\n' '<key>ThrottleInterval</key><integer>60</integer>'
     printf '%s\n' '<key>ProcessType</key><string>Background</string>'
     printf '<key>StandardOutPath</key><string>%s</string>\n' "$STDOUT_LOG"
     printf '<key>StandardErrorPath</key><string>%s</string>\n' "$STDERR_LOG"
