@@ -4,6 +4,7 @@ param()
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 $reports = Join-Path $env:USERPROFILE 'Downloads\AirJetGitWatcherReports'
+$repo = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..\..')).Path
 $lockPath = Join-Path $reports 'self-driver.lock'
 $logPath = Join-Path $reports 'AIRJET_AB_SELF_DRIVER.log'
 
@@ -15,6 +16,45 @@ function Get-Runner([string]$ScriptName) {
     Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
         $_.Name -eq 'powershell.exe' -and $_.CommandLine -like "*$ScriptName*"
     } | Select-Object -First 1
+}
+
+function Move-UntrackedReceiptsOutsideGit {
+    $receiptRoot = Join-Path $repo 'airjet-simulation\collaboration\receipts'
+    if (-not (Test-Path -LiteralPath $receiptRoot -PathType Container)) { return }
+    $receiptRootItem = Get-Item -LiteralPath $receiptRoot
+    if (($receiptRootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        Write-DriverLog "BLOCKED_RECEIPT_ROOT_REPARSE path=$receiptRoot"
+        return
+    }
+    $git = (Get-Command git.exe -ErrorAction SilentlyContinue)
+    if (-not $git) { $git = Get-Command git -ErrorAction Stop }
+    foreach ($item in Get-ChildItem -LiteralPath $receiptRoot -Filter 'windows-receipt-*.txt' -File -ErrorAction SilentlyContinue) {
+        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            Write-DriverLog "BLOCKED_RECEIPT_REPARSE path=$($item.FullName)"
+            continue
+        }
+        $relative = 'airjet-simulation/collaboration/receipts/' + $item.Name
+        & $git.Source -C $repo ls-files --error-unmatch -- $relative *> $null
+        if ($LASTEXITCODE -eq 0) {
+            Write-DriverLog "TRACKED_RECEIPT_PRESERVED path=$relative"
+            continue
+        }
+        $probe = $null
+        try {
+            $probe = [IO.File]::Open($item.FullName, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::None)
+        } catch [IO.IOException] {
+            Write-DriverLog "RECEIPT_BUSY_DEFERRED path=$relative"
+            continue
+        } finally {
+            if ($probe) { $probe.Dispose() }
+        }
+        $destination = Join-Path $reports $item.Name
+        if (Test-Path -LiteralPath $destination) {
+            $destination = Join-Path $reports ("{0}-{1}{2}" -f $item.BaseName, [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ'), $item.Extension)
+        }
+        Move-Item -LiteralPath $item.FullName -Destination $destination
+        Write-DriverLog "UNTRACKED_RECEIPT_QUARANTINED source=$relative destination=$destination"
+    }
 }
 
 function Start-Line([string]$Line, [string]$ScriptName) {
@@ -39,11 +79,16 @@ try {
         [void](New-Item -ItemType Directory -Path $reports)
     }
     $lock = [IO.File]::Open($lockPath, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
-    Write-DriverLog 'TICK'
-    Start-Line 'A' 'Run-AirJetPlanA.ps1'
-    Start-Line 'B' 'Run-AirJetPlanB.ps1'
 } catch [IO.IOException] {
     Write-DriverLog 'SKIP_LOCK_HELD'
+    exit 0
+}
+
+try {
+    Write-DriverLog 'TICK'
+    Move-UntrackedReceiptsOutsideGit
+    Start-Line 'A' 'Run-AirJetPlanA.ps1'
+    Start-Line 'B' 'Run-AirJetPlanB.ps1'
 } catch {
     Write-DriverLog "FAILED error=$($_.Exception.Message)"
     exit 1
