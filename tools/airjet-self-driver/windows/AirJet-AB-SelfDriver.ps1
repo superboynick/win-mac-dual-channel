@@ -24,27 +24,38 @@ function Move-UntrackedReceiptsOutsideGit {
     $receiptRootItem = Get-Item -LiteralPath $receiptRoot
     if (($receiptRootItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
         Write-DriverLog "BLOCKED_RECEIPT_ROOT_REPARSE path=$receiptRoot"
-        return
+        throw 'BLOCKED_RECEIPT_ROOT_REPARSE'
     }
     $git = (Get-Command git.exe -ErrorAction SilentlyContinue)
     if (-not $git) { $git = Get-Command git -ErrorAction Stop }
     foreach ($item in Get-ChildItem -LiteralPath $receiptRoot -Filter 'windows-receipt-*.txt' -File -ErrorAction SilentlyContinue) {
         if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
             Write-DriverLog "BLOCKED_RECEIPT_REPARSE path=$($item.FullName)"
-            continue
+            throw 'BLOCKED_RECEIPT_REPARSE'
         }
         $relative = 'airjet-simulation/collaboration/receipts/' + $item.Name
         & $git.Source -C $repo ls-files --error-unmatch -- $relative *> $null
-        if ($LASTEXITCODE -eq 0) {
+        $trackedExit = $LASTEXITCODE
+        if ($trackedExit -eq 0) {
             Write-DriverLog "TRACKED_RECEIPT_PRESERVED path=$relative"
             continue
+        }
+        if ($trackedExit -ne 1) {
+            Write-DriverLog "BLOCKED_GIT_TRACKING_QUERY path=$relative exit=$trackedExit"
+            throw 'BLOCKED_GIT_TRACKING_QUERY'
+        }
+        $untracked = @(& $git.Source -C $repo ls-files --others --exclude-standard -- $relative 2>$null)
+        $untrackedExit = $LASTEXITCODE
+        if ($untrackedExit -ne 0 -or $untracked.Count -ne 1 -or $untracked[0] -ne $relative) {
+            Write-DriverLog "BLOCKED_RECEIPT_NOT_CONFIRMED_UNTRACKED path=$relative exit=$untrackedExit matches=$($untracked.Count)"
+            throw 'BLOCKED_RECEIPT_NOT_CONFIRMED_UNTRACKED'
         }
         $probe = $null
         try {
             $probe = [IO.File]::Open($item.FullName, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::None)
         } catch [IO.IOException] {
             Write-DriverLog "RECEIPT_BUSY_DEFERRED path=$relative"
-            continue
+            throw 'BLOCKED_RECEIPT_BUSY'
         } finally {
             if ($probe) { $probe.Dispose() }
         }
