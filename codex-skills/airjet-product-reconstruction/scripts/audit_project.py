@@ -68,6 +68,8 @@ REQUIRED = [
     "airjet-simulation/automation/ansys/test_run_p2_s0_equivalent_plate_008.py",
     "airjet-simulation/automation/ansys/contracts/p2_s0_equivalent_plate_v1.json",
     "airjet-simulation/automation/ansys/contracts/test_p2_s0_equivalent_plate_v1.py",
+    "airjet-simulation/automation/ansys/contracts/p2_production_readiness_v1.json",
+    "airjet-simulation/automation/ansys/contracts/test_p2_production_readiness_v1.py",
     "airjet-simulation/parameters/p2_s0_equivalent_material_candidates.csv",
     "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
     "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
@@ -1743,6 +1745,29 @@ def main() -> int:
                     "mandatory Gen1 006/007 reviewer bridge audit failed: "
                     + completed_reviewer.stdout
                     + completed_reviewer.stderr
+                )
+            p2_readiness_test = (
+                repo
+                / "airjet-simulation/automation/ansys/contracts/test_p2_production_readiness_v1.py"
+            )
+            completed_p2_readiness = subprocess.run(
+                [sys.executable, "-B", str(p2_readiness_test)],
+                cwd=repo,
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=False,
+                env=policy_environment,
+            )
+            if (
+                completed_p2_readiness.returncode != 0
+                or "AJM_P2_PRODUCTION_READINESS=PASS_ALL_NOT_READY_FAIL_CLOSED"
+                not in completed_p2_readiness.stdout
+            ):
+                failures.append(
+                    "mandatory P2 production-readiness audit failed: "
+                    + completed_p2_readiness.stdout
+                    + completed_p2_readiness.stderr
                 )
         except (AttributeError, json.JSONDecodeError, KeyError, OSError, TypeError) as exc:
             failures.append(f"ANSYS profile policy audit failed: {exc}")

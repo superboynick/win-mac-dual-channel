@@ -106,6 +106,8 @@ $Required = @(
     'airjet-simulation\automation\ansys\test_run_p2_s0_equivalent_plate_008.py',
     'airjet-simulation\automation\ansys\contracts\p2_s0_equivalent_plate_v1.json',
     'airjet-simulation\automation\ansys\contracts\test_p2_s0_equivalent_plate_v1.py',
+    'airjet-simulation\automation\ansys\contracts\p2_production_readiness_v1.json',
+    'airjet-simulation\automation\ansys\contracts\test_p2_production_readiness_v1.py',
     'airjet-simulation\parameters\p2_s0_equivalent_material_candidates.csv',
     'airjet-simulation\automation\ansys\contracts\full_product_semantic_contract_v1.py',
     'airjet-simulation\automation\ansys\contracts\full_product_semantic_sidecar_v1.schema.json',
@@ -1597,6 +1599,18 @@ if (Test-Path -LiteralPath $AnsysProfilesPath) {
         if ($ReviewerExit -ne 0 -or
             -not (($ReviewerOutput -join "`n").Contains('P1_REVIEWER_STATIC_TESTS=PASS product=AIRJET_MINI_GEN1 variants=9'))) {
             Add-Failure "mandatory Gen1 006/007 reviewer bridge audit failed: $($ReviewerOutput -join ' | ')"
+        }
+        $P2ReadinessTest = Join-Path $RepoRoot 'airjet-simulation\automation\ansys\contracts\test_p2_production_readiness_v1.py'
+        try {
+            $env:PYTHONDONTWRITEBYTECODE = '1'
+            $P2ReadinessOutput = @(& python -B $P2ReadinessTest 2>&1)
+            $P2ReadinessExit = $LASTEXITCODE
+        } finally {
+            $env:PYTHONDONTWRITEBYTECODE = $PreviousNoBytecode
+        }
+        if ($P2ReadinessExit -ne 0 -or
+            -not (($P2ReadinessOutput -join "`n").Contains('AJM_P2_PRODUCTION_READINESS=PASS_ALL_NOT_READY_FAIL_CLOSED'))) {
+            Add-Failure "mandatory P2 production-readiness audit failed: $($P2ReadinessOutput -join ' | ')"
         }
     } catch {
         Add-Failure "ANSYS profile policy audit failed: $($_.Exception.Message)"
