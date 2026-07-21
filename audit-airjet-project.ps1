@@ -307,7 +307,7 @@ $WindowsWatcherFiles = @{
     'Watch-AirJetGit.ps1' = @('[ValidateRange(10, 3600)][int]$PollSeconds = 10','BLOCKED_RUNTIME_','BLOCKED_TEST_MODE_WAKE_FORBIDDEN','BLOCKED_CRITICAL_WATCHER_UPDATE','SHELL_REQUESTED_NOT_USER_OBSERVED')
     'Manage-AirJetWatcher.ps1' = @('[ValidateRange(10, 3600)][int]$PollSeconds = 10','ENABLED_AFTER_END_TO_END','REFUSED_TEST_MODE',"'start'", "'retry'")
     'Run-AwakenedCodex.ps1' = @('BLOCKED_TEST_MODE_CODEX_FORBIDDEN','ENABLED_AFTER_END_TO_END','approval_policy="never"')
-    'Install-AirJetWatcher.ps1' = @('InteractiveToken','RegisterAtLogOn','BLOCKED_REGISTER_RUNTIME_NOT_ENABLED')
+    'Install-AirJetWatcher.ps1' = @('LogonType Interactive','RegisterAtLogOn','BLOCKED_REGISTER_RUNTIME_NOT_ENABLED')
 }
 foreach ($Name in $WindowsWatcherFiles.Keys) {
     $Path = Join-Path $RepoRoot (Join-Path 'tools\airjet-git-watcher\windows' $Name)

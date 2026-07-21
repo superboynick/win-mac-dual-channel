@@ -104,7 +104,7 @@ try {
         }
         $action = New-ScheduledTaskAction -Execute $powerShell -Argument $arguments
         $trigger = New-ScheduledTaskTrigger -AtLogOn -User ([Security.Principal.WindowsIdentity]::GetCurrent().Name)
-        $principal = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType InteractiveToken -RunLevel Limited
+        $principal = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType Interactive -RunLevel Limited
         $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero) -StartWhenAvailable -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 5)
         Register-ScheduledTask -TaskName 'AirJetGitWatcher' -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
         Write-Output 'AT_LOGON_REGISTERED=true'

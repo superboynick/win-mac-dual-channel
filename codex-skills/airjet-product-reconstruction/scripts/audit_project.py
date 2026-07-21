@@ -345,7 +345,7 @@ def main() -> int:
             "ENABLED_AFTER_END_TO_END",
             "approval_policy=\"never\"",
         ),
-        windows_installer: ("InteractiveToken", "RegisterAtLogOn", "BLOCKED_REGISTER_RUNTIME_NOT_ENABLED"),
+        windows_installer: ("LogonType Interactive", "RegisterAtLogOn", "BLOCKED_REGISTER_RUNTIME_NOT_ENABLED"),
         windows_test: (
             "EXPECTED_PASS_COUNT=$ExpectedPassCount",
             "RUNTIME_TEST_MODE_GUARD=BEHAVIOR_TESTED",
