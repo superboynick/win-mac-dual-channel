@@ -187,6 +187,7 @@ REQUIRED = [
     "tools/airjet-git-watcher/windows/Install-AirJetWatcher.ps1",
     "tools/airjet-git-watcher/tests/test-watch-airjet-git-windows.ps1",
     "tools/airjet-self-driver/windows/AirJet-AB-SelfDriver.ps1",
+    "tools/airjet-self-driver/windows/Keep-AirJetAwake.ps1",
     "tools/airjet-self-driver/windows/Install-AirJetABSelfDriver.ps1",
 ]
 
