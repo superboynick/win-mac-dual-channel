@@ -70,6 +70,11 @@ REQUIRED = [
     "airjet-simulation/automation/ansys/contracts/test_p2_s0_equivalent_plate_v1.py",
     "airjet-simulation/automation/ansys/contracts/p2_production_readiness_v1.json",
     "airjet-simulation/automation/ansys/contracts/test_p2_production_readiness_v1.py",
+    "airjet-simulation/automation/openfoam/rear_inlet_handoff_schema_v1.json",
+    "airjet-simulation/automation/openfoam/validate_rear_inlet_handoff.py",
+    "airjet-simulation/automation/openfoam/test_validate_rear_inlet_handoff.py",
+    "airjet-simulation/automation/openfoam/rear_inlet_handoff_accepted_20260720.json",
+    "airjet-simulation/reports/AJM_MAC_REAR_INLET_RUNTIME_ACCEPTANCE_2026-07-20.md",
     "airjet-simulation/parameters/p2_s0_equivalent_material_candidates.csv",
     "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
     "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
@@ -181,6 +186,8 @@ REQUIRED = [
     "tools/airjet-git-watcher/windows/Run-AwakenedCodex.ps1",
     "tools/airjet-git-watcher/windows/Install-AirJetWatcher.ps1",
     "tools/airjet-git-watcher/tests/test-watch-airjet-git-windows.ps1",
+    "tools/airjet-self-driver/windows/AirJet-AB-SelfDriver.ps1",
+    "tools/airjet-self-driver/windows/Install-AirJetABSelfDriver.ps1",
 ]
 
 MANUALS = [
@@ -1768,6 +1775,36 @@ def main() -> int:
                     "mandatory P2 production-readiness audit failed: "
                     + completed_p2_readiness.stdout
                     + completed_p2_readiness.stderr
+                )
+            rear_handoff_validator = (
+                repo / "airjet-simulation/automation/openfoam/validate_rear_inlet_handoff.py"
+            )
+            rear_handoff_manifest = (
+                repo / "airjet-simulation/automation/openfoam/rear_inlet_handoff_accepted_20260720.json"
+            )
+            completed_rear_handoff = subprocess.run(
+                [sys.executable, "-B", str(rear_handoff_validator), str(rear_handoff_manifest)],
+                cwd=repo,
+                capture_output=True,
+                text=True,
+                timeout=60,
+                check=False,
+                env=policy_environment,
+            )
+            try:
+                rear_handoff_result = json.loads(completed_rear_handoff.stdout)
+            except json.JSONDecodeError:
+                rear_handoff_result = None
+            if (
+                completed_rear_handoff.returncode != 0
+                or not isinstance(rear_handoff_result, dict)
+                or rear_handoff_result.get("accepted") is not True
+                or rear_handoff_result.get("findings") != []
+            ):
+                failures.append(
+                    "mandatory accepted rear-inlet handoff audit failed: "
+                    + completed_rear_handoff.stdout
+                    + completed_rear_handoff.stderr
                 )
         except (AttributeError, json.JSONDecodeError, KeyError, OSError, TypeError) as exc:
             failures.append(f"ANSYS profile policy audit failed: {exc}")

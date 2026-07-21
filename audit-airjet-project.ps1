@@ -108,6 +108,11 @@ $Required = @(
     'airjet-simulation\automation\ansys\contracts\test_p2_s0_equivalent_plate_v1.py',
     'airjet-simulation\automation\ansys\contracts\p2_production_readiness_v1.json',
     'airjet-simulation\automation\ansys\contracts\test_p2_production_readiness_v1.py',
+    'airjet-simulation\automation\openfoam\rear_inlet_handoff_schema_v1.json',
+    'airjet-simulation\automation\openfoam\validate_rear_inlet_handoff.py',
+    'airjet-simulation\automation\openfoam\test_validate_rear_inlet_handoff.py',
+    'airjet-simulation\automation\openfoam\rear_inlet_handoff_accepted_20260720.json',
+    'airjet-simulation\reports\AJM_MAC_REAR_INLET_RUNTIME_ACCEPTANCE_2026-07-20.md',
     'airjet-simulation\parameters\p2_s0_equivalent_material_candidates.csv',
     'airjet-simulation\automation\ansys\contracts\full_product_semantic_contract_v1.py',
     'airjet-simulation\automation\ansys\contracts\full_product_semantic_sidecar_v1.schema.json',
@@ -217,7 +222,9 @@ $Required = @(
     'tools\airjet-git-watcher\windows\Manage-AirJetWatcher.ps1',
     'tools\airjet-git-watcher\windows\Run-AwakenedCodex.ps1',
     'tools\airjet-git-watcher\windows\Install-AirJetWatcher.ps1',
-    'tools\airjet-git-watcher\tests\test-watch-airjet-git-windows.ps1'
+    'tools\airjet-git-watcher\tests\test-watch-airjet-git-windows.ps1',
+    'tools\airjet-self-driver\windows\AirJet-AB-SelfDriver.ps1',
+    'tools\airjet-self-driver\windows\Install-AirJetABSelfDriver.ps1'
 )
 
 foreach ($Relative in $Required) {
@@ -1611,6 +1618,21 @@ if (Test-Path -LiteralPath $AnsysProfilesPath) {
         if ($P2ReadinessExit -ne 0 -or
             -not (($P2ReadinessOutput -join "`n").Contains('AJM_P2_PRODUCTION_READINESS=PASS_ALL_NOT_READY_FAIL_CLOSED'))) {
             Add-Failure "mandatory P2 production-readiness audit failed: $($P2ReadinessOutput -join ' | ')"
+        }
+        $RearHandoffValidator = Join-Path $RepoRoot 'airjet-simulation\automation\openfoam\validate_rear_inlet_handoff.py'
+        $RearHandoffManifest = Join-Path $RepoRoot 'airjet-simulation\automation\openfoam\rear_inlet_handoff_accepted_20260720.json'
+        try {
+            $env:PYTHONDONTWRITEBYTECODE = '1'
+            $RearHandoffOutput = @(& python -B $RearHandoffValidator $RearHandoffManifest 2>&1)
+            $RearHandoffExit = $LASTEXITCODE
+        } finally {
+            $env:PYTHONDONTWRITEBYTECODE = $PreviousNoBytecode
+        }
+        $RearHandoffText = $RearHandoffOutput -join "`n"
+        if ($RearHandoffExit -ne 0 -or
+            -not $RearHandoffText.Contains('"accepted": true') -or
+            -not $RearHandoffText.Contains('"findings": []')) {
+            Add-Failure "mandatory accepted rear-inlet handoff audit failed: $($RearHandoffOutput -join ' | ')"
         }
     } catch {
         Add-Failure "ANSYS profile policy audit failed: $($_.Exception.Message)"
