@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "contract_id": "AJM_P2_PRODUCTION_READINESS_V1",
+  "product_id": "AIRJET_MINI_GEN1",
+  "source_variant_id": "M-3x4-7.0__R50_BALANCED",
+  "source_cell_id": "CELL_005",
+  "formal_p2_gate": "NOT_RUN",
+  "claim_ceiling": "P2_PRODUCTION_PROFILE_NOT_READY",
+  "accepted_geometry_handoff": {
+    "path": "airjet-simulation/automation/openfoam/rear_inlet_handoff_accepted_20260720.json",
+    "sha256": "e3a571534208feeccdaaa7e1d09f8b16162f509a23753c026f0d7894517c00da",
+    "scope": "FULL_PRODUCT_P1_GEOMETRY_RUNTIME_ONLY",
+    "formal_p1_gate": "NOT_PASSED"
+  },
+  "existing_baseline": {
+    "profile_id": "ajm008-spaceclaim-p2-s0-equivalent-plate-v1",
+    "claim": "PASS_PRE_GATE_P2_S0_EQUIVALENT_PLATE_BASELINE",
+    "solver_use": "PROHIBITED_AS_PRODUCTION_P2",
+    "reason": "single-cell equivalent-property CAD sensitivity baseline only"
+  },
+  "required_production_profile": {
+    "engine": "mechanical",
+    "profile_id": "UNASSIGNED",
+    "script": "UNASSIGNED",
+    "output_root_id": "p2_structural_008",
+    "timeout_seconds_min": 900,
+    "timeout_seconds_max": 7200,
+    "status": "NOT_READY",
+    "submission_authorization": "SEPARATE_SIGNED_RUNTIME_TASK_REQUIRED"
+  },
+  "entry_requirements": [
+    {"id": "P2.IN.GEOMETRY", "status": "PASS", "requirement": "hash-bound accepted P1 geometry handoff"},
+    {"id": "P2.IN.CELL", "status": "NOT_READY", "requirement": "selected-cell native structural ingestion and semantic selection proof"},
+    {"id": "P2.IN.STACK", "status": "NOT_READY", "requirement": "size-specific STACK-A/B/C layer definitions; no cross-size 0.275 mm product claim"},
+    {"id": "P2.IN.MATERIAL", "status": "NOT_READY", "requirement": "per-layer density, elastic or anisotropic matrices, damping, units and provenance"},
+    {"id": "P2.IN.PIEZO", "status": "NOT_READY", "requirement": "piezoelectric, dielectric and loss matrices with axes, units and provenance"},
+    {"id": "P2.IN.ELECTRODE", "status": "NOT_READY", "requirement": "top/bottom electrode identities, polarity, reference potential and voltage sweep"},
+    {"id": "P2.IN.BOUNDARY", "status": "NOT_READY", "requirement": "central-anchor constraint plus free perimeter and compliant-anchor sensitivity branch"},
+    {"id": "P2.IN.CAPABILITY", "status": "NOT_READY", "requirement": "Student 2026 R1 modal, harmonic and piezo capability smoke evidence"}
+  ],
+  "required_solver_sequence": [
+    "MODAL_S0",
+    "HARMONIC_S0_UNIT_LOAD",
+    "MODAL_S1_STACK_A_B_C",
+    "PIEZO_HARMONIC_S2"
+  ],
+  "required_assertions": [
+    "central_anchor_fixed_or_declared_compliant_branch",
+    "perimeter_free",
+    "target_mode_changes_chamber_volume",
+    "frequency_sweep_brackets_resonance",
+    "mesh_convergence_frequency_lt_1pct",
+    "mesh_convergence_displacement_lt_2pct",
+    "mesh_convergence_stress_lt_5pct",
+    "collision_envelope_clear",
+    "per_cell_and_product_power_budget_checked",
+    "normalized_mode_shape_exported",
+    "all_outputs_hash_indexed_external"
+  ],
+  "required_outputs": [
+    "p2_production_report.json",
+    "p2_modal_modes.csv",
+    "p2_harmonic_response.csv",
+    "p2_normalized_mode_shape.csv",
+    "p2_collision_envelope.json",
+    "p2_power_budget.json",
+    "p2_artifact_manifest.json"
+  ],
+  "external_artifact_root": "D:/AirJet_P2/AJM-P2-STRUCTURAL-008",
+  "fail_closed_rules": {
+    "missing_required_input": "REJECT_BEFORE_SUBMISSION",
+    "student_capability_unknown": "SMOKE_ONLY_NO_PRODUCTION_CLAIM",
+    "solver_nonterminal_timeout": "FAIL_AND_PRESERVE_JOB",
+    "artifact_hash_missing": "REJECT_HANDOFF_TO_P3",
+    "formal_gate_self_award": "PROHIBITED"
+  }
+}
