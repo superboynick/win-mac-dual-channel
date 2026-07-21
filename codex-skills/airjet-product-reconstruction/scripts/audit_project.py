@@ -55,6 +55,8 @@ REQUIRED = [
     "airjet-simulation/automation/ansys/test_run_v02_parasolid_topology_006.py",
     "airjet-simulation/automation/ansys/run_v03_continuous_fluid_006.py",
     "airjet-simulation/automation/ansys/test_run_v03_continuous_fluid_006.py",
+    "airjet-simulation/automation/ansys/approved/006/full_product_producer.py",
+    "airjet-simulation/automation/ansys/test_full_product_producer_candidate_static.py",
     "airjet-simulation/automation/ansys/contracts/v03_finite_throat_route_v1.json",
     "airjet-simulation/automation/ansys/contracts/v03_finite_throat_contract_v1.py",
     "airjet-simulation/automation/ansys/contracts/test_v03_finite_throat_contract_v1.py",
