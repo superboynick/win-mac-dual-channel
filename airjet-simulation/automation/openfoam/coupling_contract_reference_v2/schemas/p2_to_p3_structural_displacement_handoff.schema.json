@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:airjet:contract:p2-to-p3-structural-displacement:2",
+  "title": "AirJet P2 to P3 full-field structural displacement handoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_type", "contract_version", "identity", "coordinate_system", "temporal_sampling", "artifacts", "mapping", "mechanical_metrics", "provenance"],
+  "properties": {
+    "contract_type": {"const": "AIRJET_P2_TO_P3_STRUCTURAL_DISPLACEMENT"},
+    "contract_version": {"const": "2.0.0"},
+    "identity": {"$ref": "#/$defs/identity"},
+    "coordinate_system": {"$ref": "#/$defs/coordinate_system"},
+    "temporal_sampling": {"$ref": "#/$defs/temporal_sampling"},
+    "artifacts": {
+      "type": "array",
+      "minItems": 3,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/artifact"},
+      "allOf": [
+        {"contains": {"properties": {"role": {"const": "nodes"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"role": {"const": "connectivity"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1},
+        {"contains": {"properties": {"role": {"const": "displacement_vector_field"}}, "required": ["role"]}, "minContains": 1, "maxContains": 1}
+      ]
+    },
+    "mapping": {"$ref": "#/$defs/mapping"},
+    "mechanical_metrics": {"$ref": "#/$defs/mechanical_metrics"},
+    "provenance": {"$ref": "#/$defs/provenance"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "nonempty": {"type": "string", "minLength": 1, "pattern": "^(?!\\s*$).+"},
+    "identity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["task_id", "session_id", "snapshot_id", "receipt_id", "schema_sha256"],
+      "properties": {
+        "task_id": {"$ref": "#/$defs/nonempty"},
+        "session_id": {"$ref": "#/$defs/nonempty"},
+        "snapshot_id": {"type": "string", "pattern": "^snap_[A-Za-z0-9_-]{16,128}$"},
+        "receipt_id": {"type": "string", "pattern": "^rcpt_[A-Za-z0-9_-]{16,128}$"},
+        "schema_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "vector3": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+    "axis_matrix": {
+      "type": "array", "minItems": 3, "maxItems": 3,
+      "items": {"$ref": "#/$defs/vector3"}
+    },
+    "coordinate_system": {
+      "type": "object", "additionalProperties": false,
+      "required": ["frame_id", "origin", "axes", "handedness", "length_unit"],
+      "properties": {
+        "frame_id": {"$ref": "#/$defs/nonempty"},
+        "origin": {"$ref": "#/$defs/vector3"},
+        "axes": {"$ref": "#/$defs/axis_matrix"},
+        "handedness": {"enum": ["right", "left"]},
+        "length_unit": {"enum": ["m", "mm", "um"]}
+      }
+    },
+    "temporal_sampling": {
+      "type": "object", "additionalProperties": false,
+      "required": ["frequency", "frequency_unit", "phase_reference_deg", "samples_per_cycle", "period_count", "time_origin_s"],
+      "properties": {
+        "frequency": {"type": "number", "exclusiveMinimum": 0},
+        "frequency_unit": {"const": "Hz"},
+        "phase_reference_deg": {"type": "number", "minimum": 0, "exclusiveMaximum": 360},
+        "samples_per_cycle": {"type": "integer", "minimum": 2},
+        "period_count": {"type": "integer", "minimum": 1},
+        "time_origin_s": {"type": "number"}
+      }
+    },
+    "artifact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["role", "path", "size_bytes", "sha256", "media_type"],
+      "properties": {
+        "role": {"enum": ["nodes", "connectivity", "displacement_vector_field"]},
+        "path": {"type": "string", "minLength": 1, "pattern": "^(?![/\\\\])(?!.*:)(?!.*(?:^|[/\\\\])\\.\\.?(?:[/\\\\]|$))(?!.*[/\\\\]{2})(?!.*[. ](?:[/\\\\]|$))(?!.*(?:^|[/\\\\])(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.[^/\\\\]*)?(?:[/\\\\]|$)).+"},
+        "size_bytes": {"type": "integer", "minimum": 1},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "media_type": {"enum": ["application/x-hdf5", "application/vnd.apache.arrow.file", "application/octet-stream"]},
+        "components": {
+          "type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true,
+          "items": {"enum": ["ux", "uy", "uz"]}
+        },
+        "value_unit": {"enum": ["m", "mm", "um"]}
+      }
+    },
+    "mapping": {
+      "type": "object", "additionalProperties": false,
+      "required": ["method", "tolerance", "tolerance_unit", "coverage_scope", "unmapped_policy", "maximum_unmapped_fraction"],
+      "properties": {
+        "method": {"enum": ["node_exact", "nearest_node", "barycentric"]},
+        "tolerance": {"type": "number", "exclusiveMinimum": 0},
+        "tolerance_unit": {"enum": ["m", "mm", "um"]},
+        "coverage_scope": {"const": "ALL_DISPLACEMENT_FIELD_NODES"},
+        "unmapped_policy": {"const": "FAIL_IF_ACTIVE_MEMBRANE_NODE_UNMAPPED"},
+        "maximum_unmapped_fraction": {"type": "number", "minimum": 0, "maximum": 0.0001}
+      }
+    },
+    "quantity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["value", "unit", "provenance_ref"],
+      "properties": {
+        "value": {"type": "number"},
+        "unit": {"type": "string", "minLength": 1},
+        "provenance_ref": {"$ref": "#/$defs/nonempty"}
+      }
+    },
+    "positive_quantity": {
+      "allOf": [
+        {"$ref": "#/$defs/quantity"},
+        {"properties": {"value": {"type": "number", "exclusiveMinimum": 0}}}
+      ]
+    },
+    "nonnegative_quantity": {
+      "allOf": [
+        {"$ref": "#/$defs/quantity"},
+        {"properties": {"value": {"type": "number", "minimum": 0}}}
+      ]
+    },
+    "mechanical_metrics": {
+      "type": "object", "additionalProperties": false,
+      "required": ["minimum_gap", "maximum_stress", "electrical_power"],
+      "properties": {
+        "minimum_gap": {"$ref": "#/$defs/positive_quantity"},
+        "maximum_stress": {"$ref": "#/$defs/nonnegative_quantity"},
+        "electrical_power": {"$ref": "#/$defs/nonnegative_quantity"}
+      }
+    },
+    "uncertainty": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "lower", "upper", "unit"],
+      "properties": {
+        "kind": {"enum": ["absolute", "relative", "interval"]},
+        "lower": {"type": "number"},
+        "upper": {"type": "number"},
+        "unit": {"type": "string", "minLength": 1}
+      }
+    },
+    "claim": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "classification", "assertion_kind", "source_ref", "derivation", "uncertainty"],
+      "properties": {
+        "id": {"$ref": "#/$defs/nonempty"},
+        "classification": {"enum": ["D", "P", "I", "C", "U"]},
+        "assertion_kind": {"enum": ["measured_fact", "patent_bound", "inference", "calibration", "unresolved"]},
+        "source_ref": {"$ref": "#/$defs/nonempty"},
+        "derivation": {"type": "string"},
+        "uncertainty": {"$ref": "#/$defs/uncertainty"}
+      }
+    },
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["claims"],
+      "properties": {"claims": {"type": "array", "minItems": 3, "items": {"$ref": "#/$defs/claim"}}}
+    }
+  }
+}
