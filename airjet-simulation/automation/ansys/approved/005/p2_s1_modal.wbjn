@@ -1,0 +1,39 @@
+﻿# AJM-P2-S1 Equivalent Plate Modal Analysis - Workbench Journal
+# Creates Modal system, imports equivalent plate geometry, saves project
+import json, os, traceback
+
+job_dir = os.environ['AIRJET_JOB_DIR']
+scdocx = r'D:\AirJet_P2\AJM-P2-STRUCTURAL-008\AJM-P2-S0-EQ-M7-C005\AJM-P2-S0-EQ-M7-C005-e8f61480898c\p2_s0_equivalent_plate.scdocx'
+report_path = os.path.join(job_dir, 'p2_s1_modal_probe.json')
+project_path = os.path.join(job_dir, 'p2_s1_modal.wbpj')
+
+result = {
+    'schema_version': 1,
+    'task': 'AJM_P2_S1_EQUIVALENT_PLATE_MODAL',
+    'status': 'FAIL_DIRECT',
+}
+
+try:
+    modal_template = GetTemplate(TemplateName='Modal', Solver='ANSYS')
+    modal_system = modal_template.CreateSystem()
+    result['modal_system_created'] = True
+    result['system_name'] = modal_system.Name
+
+    geometry = modal_system.GetContainer(ComponentName='Geometry')
+    geometry.SetFile(FilePath=scdocx)
+    result['geometry_set'] = True
+    result['geometry_file'] = scdocx
+
+    Save(FilePath=project_path)
+    result['project_saved'] = os.path.isfile(project_path)
+
+    if result['project_saved']:
+        result['status'] = 'PASS_WORKBENCH_SETUP'
+
+except Exception as e:
+    result['error_type'] = type(e).__name__
+    result['error'] = str(e)
+    result['traceback'] = traceback.format_exc()
+
+with open(report_path, 'w') as f:
+    json.dump(result, f, indent=2, sort_keys=True)

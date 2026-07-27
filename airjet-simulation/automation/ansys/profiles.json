@@ -1,15 +1,5 @@
 {
-  "schema_version": 2,
   "production_contracts": {
-    "schema_version": 1,
-    "contract_id": "AJM006_GEN1_FULL_PRODUCT_SEMANTIC_PRODUCTION_V1",
-    "scope": "FULL_PRODUCT",
-    "product_id": "AIRJET_MINI_GEN1",
-    "expected_variant_count": 9,
-    "producer_profile_id": "ajm006-spaceclaim-full-product-producer-v1",
-    "observer_profile_id": "ajm006-workbench-full-product-observer-v1",
-    "execution_state": "STATIC_CONTRACT_ONLY_NOT_REGISTERED",
-    "p1_p6_gates": "NOT_RUN",
     "components": [
       {
         "contract_key": "full_product_validator",
@@ -41,85 +31,89 @@
         "git_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
         "sha256": "df601ada88c06b63cb390f98acf447f46aefd3c5d881b47b7874503dd801c9e7"
       }
-    ]
+    ],
+    "contract_id": "AJM006_GEN1_FULL_PRODUCT_SEMANTIC_PRODUCTION_V1",
+    "execution_state": "STATIC_CONTRACT_ONLY_NOT_REGISTERED",
+    "expected_variant_count": 9,
+    "observer_profile_id": "ajm006-workbench-full-product-observer-v1",
+    "p1_p6_gates": "NOT_RUN",
+    "producer_profile_id": "ajm006-spaceclaim-full-product-producer-v1",
+    "product_id": "AIRJET_MINI_GEN1",
+    "schema_version": 1,
+    "scope": "FULL_PRODUCT"
   },
   "profiles": [
     {
-      "profile_id": "ajm005-spaceclaim-t0-v1",
       "engine": "spaceclaim",
-      "script": "005/spaceclaim_t0.py",
-      "sha256": "9ce3d2e38711cbcf4cdf23fce5bfc44e02212022d41c46809929189a6f6d9044",
-      "timeout_seconds": 300,
       "output_root_id": "student_smoke_005",
+      "predecessor": null,
+      "profile_id": "ajm005-spaceclaim-t0-v1",
       "reports": [
         "spaceclaim_probe.json"
       ],
-      "predecessor": null
+      "script": "005/spaceclaim_t0.py",
+      "sha256": "9ce3d2e38711cbcf4cdf23fce5bfc44e02212022d41c46809929189a6f6d9044",
+      "timeout_seconds": 300
     },
     {
-      "profile_id": "ajm005-workbench-t0-v1",
       "engine": "workbench",
-      "script": "005/workbench_t0.wbjn",
-      "sha256": "d6d47fb5be553d363d0f781b9c708c5a4e9e86cf9c22b7c519f53a40eae0915a",
-      "timeout_seconds": 600,
       "output_root_id": "student_smoke_005",
+      "predecessor": null,
+      "profile_id": "ajm005-workbench-t0-v1",
       "reports": [
         "workbench_probe.json"
       ],
-      "predecessor": null
+      "script": "005/workbench_t0.wbjn",
+      "sha256": "d6d47fb5be553d363d0f781b9c708c5a4e9e86cf9c22b7c519f53a40eae0915a",
+      "timeout_seconds": 600
     },
     {
-      "profile_id": "ajm005-pymechanical-t0-v1",
       "engine": "pymechanical",
-      "script": "005/pymechanical_t0.py",
-      "sha256": "bd4630e9fde57ce75045f38471559e32e363eeafcd1740a16f6ef60405923b55",
-      "timeout_seconds": 600,
       "output_root_id": "student_smoke_005",
+      "predecessor": null,
+      "profile_id": "ajm005-pymechanical-t0-v1",
       "reports": [
         "pymechanical_probe.json"
       ],
-      "predecessor": null
+      "script": "005/pymechanical_t0.py",
+      "sha256": "bd4630e9fde57ce75045f38471559e32e363eeafcd1740a16f6ef60405923b55",
+      "timeout_seconds": 600
     },
     {
-      "profile_id": "ajm005-pyfluent-t0-v1",
       "engine": "pyfluent",
-      "script": "005/pyfluent_t0.py",
-      "sha256": "fd5a1c09fd7ecf7710fa4963d8e5aac2fbb7c63f7d7248c2d5e41f5c804d41be",
-      "timeout_seconds": 600,
       "output_root_id": "student_smoke_005",
+      "predecessor": null,
+      "profile_id": "ajm005-pyfluent-t0-v1",
       "reports": [
         "pyfluent_probe.json"
       ],
-      "predecessor": null
+      "script": "005/pyfluent_t0.py",
+      "sha256": "fd5a1c09fd7ecf7710fa4963d8e5aac2fbb7c63f7d7248c2d5e41f5c804d41be",
+      "timeout_seconds": 600
     },
     {
-      "profile_id": "ajm005-spaceclaim-cad-t1-v1",
       "engine": "spaceclaim",
-      "script": "005/spaceclaim_cad_t1.py",
-      "sha256": "dde33311f88cefa6eaa351705497568c6681d0041ab679086eb1f658ab3c6dc3",
-      "timeout_seconds": 900,
       "output_root_id": "student_smoke_005",
+      "predecessor": null,
+      "profile_id": "ajm005-spaceclaim-cad-t1-v1",
       "reports": [
         "spaceclaim_cad_t1.json"
       ],
-      "predecessor": null
+      "script": "005/spaceclaim_cad_t1.py",
+      "sha256": "dde33311f88cefa6eaa351705497568c6681d0041ab679086eb1f658ab3c6dc3",
+      "timeout_seconds": 900
     },
     {
-      "profile_id": "ajm005-workbench-transfer-t1-v1",
       "engine": "workbench",
-      "script": "005/workbench_transfer_t1.wbjn",
-      "sha256": "268385159e3c7d586bc379f76ab972dc5d2fabe07434d1e2038434b95f151b52",
-      "timeout_seconds": 1200,
       "output_root_id": "student_smoke_005",
-      "reports": [
-        "workbench_transfer_t1.json",
-        "workbench_model_inspection.json"
-      ],
       "predecessor": {
+        "artifacts": [
+          "spaceclaim_cad_t1.json",
+          "spaceclaim_cad_t1.scdocx",
+          "spaceclaim_cad_t1.step"
+        ],
         "profile_id": "ajm005-spaceclaim-cad-t1-v1",
         "report": "spaceclaim_cad_t1.json",
-        "required_probe": "spaceclaim_cad_t1",
-        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
         "required_assertions": [
           "script_parameterization_equivalent",
           "named_selections",
@@ -129,29 +123,29 @@
           "native_reopen",
           "step_export_reimport"
         ],
-        "artifacts": [
-          "spaceclaim_cad_t1.json",
-          "spaceclaim_cad_t1.scdocx",
-          "spaceclaim_cad_t1.step"
-        ]
-      }
+        "required_probe": "spaceclaim_cad_t1",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY"
+      },
+      "profile_id": "ajm005-workbench-transfer-t1-v1",
+      "reports": [
+        "workbench_transfer_t1.json",
+        "workbench_model_inspection.json"
+      ],
+      "script": "005/workbench_transfer_t1.wbjn",
+      "sha256": "268385159e3c7d586bc379f76ab972dc5d2fabe07434d1e2038434b95f151b52",
+      "timeout_seconds": 1200
     },
     {
-      "profile_id": "ajm005-workbench-semantic-reconstruction-t1-v1",
       "engine": "workbench",
-      "script": "005/workbench_semantic_reconstruction_t1.wbjn",
-      "sha256": "c60beb14e03d3f77274f62d843a802131c5f8ec07501d9a8fc83cbb7c39e3098",
-      "timeout_seconds": 1200,
       "output_root_id": "student_smoke_005",
-      "reports": [
-        "workbench_semantic_reconstruction_t1.json",
-        "workbench_semantic_reconstruction_inspection.json"
-      ],
       "predecessor": {
+        "artifacts": [
+          "spaceclaim_cad_t1.json",
+          "spaceclaim_cad_t1.step",
+          "spaceclaim_semantic_sidecar.json"
+        ],
         "profile_id": "ajm005-spaceclaim-cad-t1-v1",
         "report": "spaceclaim_cad_t1.json",
-        "required_probe": "spaceclaim_cad_t1",
-        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
         "required_assertions": [
           "script_parameterization_equivalent",
           "named_selections",
@@ -162,30 +156,27 @@
           "step_export_reimport",
           "semantic_sidecar"
         ],
-        "artifacts": [
-          "spaceclaim_cad_t1.json",
-          "spaceclaim_cad_t1.step",
-          "spaceclaim_semantic_sidecar.json"
-        ]
-      }
+        "required_probe": "spaceclaim_cad_t1",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY"
+      },
+      "profile_id": "ajm005-workbench-semantic-reconstruction-t1-v1",
+      "reports": [
+        "workbench_semantic_reconstruction_t1.json",
+        "workbench_semantic_reconstruction_inspection.json"
+      ],
+      "script": "005/workbench_semantic_reconstruction_t1.wbjn",
+      "sha256": "c60beb14e03d3f77274f62d843a802131c5f8ec07501d9a8fc83cbb7c39e3098",
+      "timeout_seconds": 1200
     },
     {
-      "profile_id": "ajm005-workbench-connected-spaceclaim-t1-v1",
       "engine": "workbench",
-      "script": "005/workbench_connected_spaceclaim_t1.wbjn",
-      "sha256": "160b0b4590b1c7db19841eeba318ee22c95cbd36f4cf7f790d4cc6d66d28539b",
-      "timeout_seconds": 1200,
       "output_root_id": "student_smoke_005",
-      "reports": [
-        "workbench_connected_spaceclaim_t1.json",
-        "connected_spaceclaim_build.json",
-        "workbench_connected_inspection.json"
-      ],
       "predecessor": {
+        "artifacts": [
+          "spaceclaim_cad_t1.json"
+        ],
         "profile_id": "ajm005-spaceclaim-cad-t1-v1",
         "report": "spaceclaim_cad_t1.json",
-        "required_probe": "spaceclaim_cad_t1",
-        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
         "required_assertions": [
           "script_parameterization_equivalent",
           "named_selections",
@@ -195,42 +186,47 @@
           "native_reopen",
           "step_export_reimport"
         ],
-        "artifacts": [
-          "spaceclaim_cad_t1.json"
-        ]
-      }
+        "required_probe": "spaceclaim_cad_t1",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY"
+      },
+      "profile_id": "ajm005-workbench-connected-spaceclaim-t1-v1",
+      "reports": [
+        "workbench_connected_spaceclaim_t1.json",
+        "connected_spaceclaim_build.json",
+        "workbench_connected_inspection.json"
+      ],
+      "script": "005/workbench_connected_spaceclaim_t1.wbjn",
+      "sha256": "160b0b4590b1c7db19841eeba318ee22c95cbd36f4cf7f790d4cc6d66d28539b",
+      "timeout_seconds": 1200
     },
     {
-      "profile_id": "ajm005-spaceclaim-cad-t1-v2",
       "engine": "spaceclaim",
-      "script": "005/spaceclaim_cad_t1_v2.py",
-      "sha256": "67b38e2e02fb5c99e92fa3a7b28147c4855b26ea3bd01eaa877d8e7e78af1b1d",
-      "timeout_seconds": 900,
       "output_root_id": "student_smoke_005",
+      "predecessor": null,
+      "profile_id": "ajm005-spaceclaim-cad-t1-v2",
       "reports": [
         "spaceclaim_cad_t1.json",
         "spaceclaim_cad_t1_v2.json"
       ],
-      "predecessor": null
+      "script": "005/spaceclaim_cad_t1_v2.py",
+      "sha256": "67b38e2e02fb5c99e92fa3a7b28147c4855b26ea3bd01eaa877d8e7e78af1b1d",
+      "timeout_seconds": 900
     },
     {
-      "profile_id": "ajm005-workbench-semantic-reconstruction-t1-v2",
       "engine": "workbench",
-      "script": "005/workbench_semantic_reconstruction_t1_v2.wbjn",
-      "sha256": "2e4f67742ab8b2aef67a7b5aceec9983055f06076f2f286ae703c49347f8c8a6",
-      "timeout_seconds": 1200,
       "output_root_id": "student_smoke_005",
-      "reports": [
-        "workbench_semantic_reconstruction_t1.json",
-        "workbench_semantic_reconstruction_inspection.json",
-        "workbench_semantic_reconstruction_t1_v2.json",
-        "semantic_key_cardinality_report_v2.json"
-      ],
       "predecessor": {
+        "artifacts": [
+          "spaceclaim_cad_t1.json",
+          "spaceclaim_cad_t1_v2.json",
+          "spaceclaim_cad_t1.scdocx",
+          "spaceclaim_cad_t1.step",
+          "spaceclaim_semantic_sidecar.json",
+          "spaceclaim_semantic_sidecar_v2.json",
+          "spaceclaim_semantic_binding_v2.json"
+        ],
         "profile_id": "ajm005-spaceclaim-cad-t1-v2",
         "report": "spaceclaim_cad_t1_v2.json",
-        "required_probe": "spaceclaim_cad_t1_v2",
-        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
         "required_assertions": [
           "script_parameterization_equivalent",
           "named_selections",
@@ -248,80 +244,115 @@
           "artifact_hash_chain",
           "actual_source_files_hashed"
         ],
-        "artifacts": [
-          "spaceclaim_cad_t1.json",
-          "spaceclaim_cad_t1_v2.json",
-          "spaceclaim_cad_t1.scdocx",
-          "spaceclaim_cad_t1.step",
-          "spaceclaim_semantic_sidecar.json",
-          "spaceclaim_semantic_sidecar_v2.json",
-          "spaceclaim_semantic_binding_v2.json"
-        ]
-      }
+        "required_probe": "spaceclaim_cad_t1_v2",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY"
+      },
+      "profile_id": "ajm005-workbench-semantic-reconstruction-t1-v2",
+      "reports": [
+        "workbench_semantic_reconstruction_t1.json",
+        "workbench_semantic_reconstruction_inspection.json",
+        "workbench_semantic_reconstruction_t1_v2.json",
+        "semantic_key_cardinality_report_v2.json"
+      ],
+      "script": "005/workbench_semantic_reconstruction_t1_v2.wbjn",
+      "sha256": "2e4f67742ab8b2aef67a7b5aceec9983055f06076f2f286ae703c49347f8c8a6",
+      "timeout_seconds": 1200
     },
     {
-      "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
       "engine": "spaceclaim",
-      "script": "006/v02_preliminary_producer.py",
-      "sha256": "e575c045ddc329175a9fad8e091adc44f299b0d86e741e098279d0fba9790a48",
-      "timeout_seconds": 7200,
       "output_root_id": "p1_cad_006",
+      "predecessor": null,
+      "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
       "reports": [
         "v02_preliminary_producer.json"
       ],
-      "predecessor": null
+      "script": "006/v02_preliminary_producer.py",
+      "sha256": "e575c045ddc329175a9fad8e091adc44f299b0d86e741e098279d0fba9790a48",
+      "timeout_seconds": 7200
     },
     {
-      "profile_id": "ajm006-workbench-v02-topology-observer-v1",
       "engine": "workbench",
-      "script": "006/v02_preliminary_topology_observer.wbjn",
-      "sha256": "3df9bef91be72337e3f1b24a567b2125482d2c17e21b0e9a7be5a74029d6fcb0",
-      "timeout_seconds": 3600,
       "output_root_id": "p1_cad_006",
-      "reports": [
-        "v02_preliminary_topology_observer.json"
-      ],
       "predecessor": {
-        "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
-        "report": "v02_preliminary_producer.json",
-        "required_probe": "v02_preliminary_producer",
-        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
-        "required_assertions": [
-          "input_contract",
-          "gen1_target",
-          "full_product_scope",
-          "complete_flow_path",
-          "two_fluid_zone",
-          "native_save",
-          "native_reopen",
-          "step_export_reimport",
-          "artifact_hashes",
-          "physics_guards"
-        ],
         "artifacts": [
           "v02_preliminary_producer.json",
           "product.step",
           "v02_face_inventory.json",
           "native_reopen.json",
           "step_reimport.json"
-        ]
-      }
-    },
-    {
-      "profile_id": "ajm006-workbench-v02-native-topology-observer-v1",
-      "engine": "workbench",
+        ],
+        "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
+        "report": "v02_preliminary_producer.json",
+        "required_assertions": [
+          "input_contract",
+          "gen1_target",
+          "full_product_scope",
+          "complete_flow_path",
+          "two_fluid_zone",
+          "native_save",
+          "native_reopen",
+          "step_export_reimport",
+          "artifact_hashes",
+          "physics_guards"
+        ],
+        "required_probe": "v02_preliminary_producer",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY"
+      },
+      "profile_id": "ajm006-workbench-v02-topology-observer-v1",
+      "reports": [
+        "v02_preliminary_topology_observer.json"
+      ],
       "script": "006/v02_preliminary_topology_observer.wbjn",
       "sha256": "3df9bef91be72337e3f1b24a567b2125482d2c17e21b0e9a7be5a74029d6fcb0",
-      "timeout_seconds": 3600,
+      "timeout_seconds": 3600
+    },
+    {
+      "engine": "workbench",
       "output_root_id": "p1_cad_006",
+      "predecessor": {
+        "artifacts": [
+          "v02_preliminary_producer.json",
+          "product_two_zone.scdocx",
+          "v02_face_inventory.json",
+          "native_reopen.json"
+        ],
+        "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
+        "report": "v02_preliminary_producer.json",
+        "required_assertions": [
+          "input_contract",
+          "gen1_target",
+          "full_product_scope",
+          "complete_flow_path",
+          "two_fluid_zone",
+          "native_save",
+          "native_reopen",
+          "step_export_reimport",
+          "artifact_hashes",
+          "physics_guards"
+        ],
+        "required_probe": "v02_preliminary_producer",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY"
+      },
+      "profile_id": "ajm006-workbench-v02-native-topology-observer-v1",
       "reports": [
         "v02_native_topology_observer.json"
       ],
+      "script": "006/v02_preliminary_topology_observer.wbjn",
+      "sha256": "3df9bef91be72337e3f1b24a567b2125482d2c17e21b0e9a7be5a74029d6fcb0",
+      "timeout_seconds": 3600
+    },
+    {
+      "engine": "workbench",
+      "output_root_id": "p1_cad_006",
       "predecessor": {
+        "artifacts": [
+          "v02_preliminary_producer.json",
+          "product_two_zone.scdocx",
+          "v02_face_inventory.json",
+          "native_reopen.json"
+        ],
         "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
         "report": "v02_preliminary_producer.json",
-        "required_probe": "v02_preliminary_producer",
-        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
         "required_assertions": [
           "input_contract",
           "gen1_target",
@@ -334,29 +365,29 @@
           "artifact_hashes",
           "physics_guards"
         ],
-        "artifacts": [
-          "v02_preliminary_producer.json",
-          "product_two_zone.scdocx",
-          "v02_face_inventory.json",
-          "native_reopen.json"
-        ]
-      }
-    },
-    {
+        "required_probe": "v02_preliminary_producer",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY"
+      },
       "profile_id": "ajm006-workbench-v02-native-mesh-conformality-observer-v1",
-      "engine": "workbench",
-      "script": "006/v02_preliminary_topology_observer.wbjn",
-      "sha256": "3df9bef91be72337e3f1b24a567b2125482d2c17e21b0e9a7be5a74029d6fcb0",
-      "timeout_seconds": 3600,
-      "output_root_id": "p1_cad_006",
       "reports": [
         "v02_native_mesh_conformality_observer.json"
       ],
+      "script": "006/v02_preliminary_topology_observer.wbjn",
+      "sha256": "3df9bef91be72337e3f1b24a567b2125482d2c17e21b0e9a7be5a74029d6fcb0",
+      "timeout_seconds": 3600
+    },
+    {
+      "engine": "spaceclaim",
+      "output_root_id": "p1_cad_006",
       "predecessor": {
+        "artifacts": [
+          "v02_preliminary_producer.json",
+          "product_two_zone.scdocx",
+          "v02_face_inventory.json",
+          "native_reopen.json"
+        ],
         "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
         "report": "v02_preliminary_producer.json",
-        "required_probe": "v02_preliminary_producer",
-        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
         "required_assertions": [
           "input_contract",
           "gen1_target",
@@ -369,29 +400,29 @@
           "artifact_hashes",
           "physics_guards"
         ],
-        "artifacts": [
-          "v02_preliminary_producer.json",
-          "product_two_zone.scdocx",
-          "v02_face_inventory.json",
-          "native_reopen.json"
-        ]
-      }
-    },
-    {
+        "required_probe": "v02_preliminary_producer",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY"
+      },
       "profile_id": "ajm006-spaceclaim-v02-parasolid-converter-v1",
-      "engine": "spaceclaim",
-      "script": "006/v02_parasolid_converter.py",
-      "sha256": "0e54b98f9169e28c20ade139b41d4038e54c957a7f7cae7af1956071ffe6927c",
-      "timeout_seconds": 3600,
-      "output_root_id": "p1_cad_006",
       "reports": [
         "v02_parasolid_converter.json"
       ],
+      "script": "006/v02_parasolid_converter.py",
+      "sha256": "0e54b98f9169e28c20ade139b41d4038e54c957a7f7cae7af1956071ffe6927c",
+      "timeout_seconds": 3600
+    },
+    {
+      "engine": "spaceclaim",
+      "output_root_id": "p1_cad_006",
       "predecessor": {
+        "artifacts": [
+          "v02_preliminary_producer.json",
+          "product_two_zone.scdocx",
+          "v02_face_inventory.json",
+          "native_reopen.json"
+        ],
         "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
         "report": "v02_preliminary_producer.json",
-        "required_probe": "v02_preliminary_producer",
-        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
         "required_assertions": [
           "input_contract",
           "gen1_target",
@@ -404,64 +435,30 @@
           "artifact_hashes",
           "physics_guards"
         ],
-        "artifacts": [
-          "v02_preliminary_producer.json",
-          "product_two_zone.scdocx",
-          "v02_face_inventory.json",
-          "native_reopen.json"
-        ]
-      }
-    },
-    {
+        "required_probe": "v02_preliminary_producer",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY"
+      },
       "profile_id": "ajm006-spaceclaim-v02-split-step-converter-v1",
-      "engine": "spaceclaim",
-      "script": "006/v02_parasolid_converter.py",
-      "sha256": "0e54b98f9169e28c20ade139b41d4038e54c957a7f7cae7af1956071ffe6927c",
-      "timeout_seconds": 3600,
-      "output_root_id": "p1_cad_006",
       "reports": [
         "v02_split_step_converter.json"
       ],
-      "predecessor": {
-        "profile_id": "ajm006-spaceclaim-v02-preliminary-v1",
-        "report": "v02_preliminary_producer.json",
-        "required_probe": "v02_preliminary_producer",
-        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
-        "required_assertions": [
-          "input_contract",
-          "gen1_target",
-          "full_product_scope",
-          "complete_flow_path",
-          "two_fluid_zone",
-          "native_save",
-          "native_reopen",
-          "step_export_reimport",
-          "artifact_hashes",
-          "physics_guards"
-        ],
-        "artifacts": [
-          "v02_preliminary_producer.json",
-          "product_two_zone.scdocx",
-          "v02_face_inventory.json",
-          "native_reopen.json"
-        ]
-      }
+      "script": "006/v02_parasolid_converter.py",
+      "sha256": "0e54b98f9169e28c20ade139b41d4038e54c957a7f7cae7af1956071ffe6927c",
+      "timeout_seconds": 3600
     },
     {
-      "profile_id": "ajm006-workbench-v02-parasolid-topology-observer-v1",
       "engine": "workbench",
-      "script": "006/v02_parasolid_topology_observer.wbjn",
-      "sha256": "624dbb7d51ace1bf10f3f2defb5b7e75fa3c7dd1a0e601392b311632fb8d88ec",
-      "timeout_seconds": 3600,
       "output_root_id": "p1_cad_006",
-      "reports": [
-        "v02_parasolid_topology_observer.json"
-      ],
       "predecessor": {
+        "artifacts": [
+          "v02_parasolid_converter.json",
+          "product.x_t",
+          "parasolid_reimport.json",
+          "v02_face_inventory.json",
+          "source_chain.json"
+        ],
         "profile_id": "ajm006-spaceclaim-v02-parasolid-converter-v1",
         "report": "v02_parasolid_converter.json",
-        "required_probe": "v02_parasolid_converter",
-        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
         "required_assertions": [
           "predecessor_identity",
           "predecessor_immutable",
@@ -476,42 +473,44 @@
           "artifact_hashes",
           "claim_boundaries"
         ],
-        "artifacts": [
-          "v02_parasolid_converter.json",
-          "product.x_t",
-          "parasolid_reimport.json",
-          "v02_face_inventory.json",
-          "source_chain.json"
-        ]
-      }
+        "required_probe": "v02_parasolid_converter",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY"
+      },
+      "profile_id": "ajm006-workbench-v02-parasolid-topology-observer-v1",
+      "reports": [
+        "v02_parasolid_topology_observer.json"
+      ],
+      "script": "006/v02_parasolid_topology_observer.wbjn",
+      "sha256": "624dbb7d51ace1bf10f3f2defb5b7e75fa3c7dd1a0e601392b311632fb8d88ec",
+      "timeout_seconds": 3600
     },
     {
-      "profile_id": "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
       "engine": "spaceclaim",
-      "script": "006/v03_continuous_fluid_producer.py",
-      "sha256": "8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0",
-      "timeout_seconds": 7200,
       "output_root_id": "p1_cad_006",
+      "predecessor": null,
+      "profile_id": "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
       "reports": [
         "v03_continuous_fluid_producer.json"
       ],
-      "predecessor": null
+      "script": "006/v03_continuous_fluid_producer.py",
+      "sha256": "8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0",
+      "timeout_seconds": 7200
     },
     {
-      "profile_id": "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
       "engine": "pyfluent",
-      "script": "006/v03_pyfluent_watertight_mesh_consumer.py",
-      "sha256": "97b587eaf3016c63320308e9ebd05ea350980b12e628bfad6f58c1214bbdbda3",
-      "timeout_seconds": 7200,
       "output_root_id": "p1_cad_006",
-      "reports": [
-        "v03_pyfluent_watertight_mesh_consumer.json"
-      ],
       "predecessor": {
+        "artifacts": [
+          "v03_continuous_fluid_producer.json",
+          "product_continuous_fluid.scdocx",
+          "product_continuous_fluid.step",
+          "v03_native_reopen.json",
+          "v03_step_reimport.json",
+          "v03_throat_inventory.json",
+          "v03_source_chain.json"
+        ],
         "profile_id": "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
         "report": "v03_continuous_fluid_producer.json",
-        "required_probe": "v03_continuous_fluid_producer",
-        "required_status": "PASS_PARTIAL_CAD_CAPABILITY",
         "required_assertions": [
           "input_contract",
           "gen1_target",
@@ -531,28 +530,41 @@
           "claim_boundaries",
           "physics_guards"
         ],
-        "artifacts": [
-          "v03_continuous_fluid_producer.json",
-          "product_continuous_fluid.scdocx",
-          "product_continuous_fluid.step",
-          "v03_native_reopen.json",
-          "v03_step_reimport.json",
-          "v03_throat_inventory.json",
-          "v03_source_chain.json"
-        ]
-      }
+        "required_probe": "v03_continuous_fluid_producer",
+        "required_status": "PASS_PARTIAL_CAD_CAPABILITY"
+      },
+      "profile_id": "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
+      "reports": [
+        "v03_pyfluent_watertight_mesh_consumer.json"
+      ],
+      "script": "006/v03_pyfluent_watertight_mesh_consumer.py",
+      "sha256": "97b587eaf3016c63320308e9ebd05ea350980b12e628bfad6f58c1214bbdbda3",
+      "timeout_seconds": 7200
     },
     {
-      "profile_id": "ajm008-spaceclaim-p2-s0-equivalent-plate-v1",
       "engine": "spaceclaim",
-      "script": "008/p2_s0_equivalent_plate_producer.py",
-      "sha256": "8681318dadbb14556980dd38bd7d49be681f2e85fa4f39e24a0f84aa171619f4",
-      "timeout_seconds": 900,
       "output_root_id": "p2_structural_008",
+      "predecessor": null,
+      "profile_id": "ajm008-spaceclaim-p2-s0-equivalent-plate-v1",
       "reports": [
         "p2_s0_equivalent_plate_producer.json"
       ],
-      "predecessor": null
+      "script": "008/p2_s0_equivalent_plate_producer.py",
+      "sha256": "8681318dadbb14556980dd38bd7d49be681f2e85fa4f39e24a0f84aa171619f4",
+      "timeout_seconds": 900
+    },
+    {
+      "engine": "workbench",
+      "output_root_id": "p2_structural_008",
+      "profile_contract_sha256": "32f62eea8e592103424dd29855d5a018e9118e02bfb58331c96b1e187dff369a",
+      "profile_id": "ajm008-workbench-p2-s1-modal-v1",
+      "reports": [
+        "p2_s1_modal_probe.json"
+      ],
+      "script": "005/p2_s1_modal.wbjn",
+      "sha256": "70ecd3d7622a2d7ba640c336ef5b35c9b76d1e78df5585fcf6682f8c8c08f5e3",
+      "timeout_seconds": 900
     }
-  ]
+  ],
+  "schema_version": 2
 }
