@@ -564,6 +564,18 @@
       "script": "005/p2_s1_modal.wbjn",
       "sha256": "66430597a1e68ec84be711a64b3dd9c1fa47bade2c6122a650161680a12aaaab",
       "timeout_seconds": 900
+    },
+    {
+      "engine": "workbench",
+      "output_root_id": "p2_structural_008",
+      "predecessor": null,
+      "profile_id": "ajm008-workbench-p2-s1-mechanical-v1",
+      "reports": [
+        "p2_s1_modal_mechanical_probe.json"
+      ],
+      "script": "005/p2_s1_modal_mechanical.wbjn",
+      "sha256": "51cd4d1cbaf4a7f0f82b6cb5c35146d776560125f3c1fc3735b70edb43c63612",
+      "timeout_seconds": 900
     }
   ],
   "schema_version": 2
