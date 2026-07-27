@@ -556,6 +556,7 @@
     {
       "engine": "workbench",
       "output_root_id": "p2_structural_008",
+      "predecessor": null,
       "profile_id": "ajm008-workbench-p2-s1-modal-v1",
       "reports": [
         "p2_s1_modal_probe.json"
