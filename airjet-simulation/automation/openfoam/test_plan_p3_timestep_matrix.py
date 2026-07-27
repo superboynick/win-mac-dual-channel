@@ -64,6 +64,9 @@ class TimestepPlanTests(unittest.TestCase):
         self.assertEqual(first.stdout, second.stdout)
         result = json.loads(first.stdout)
         self.assertEqual(result["frequency_hz"], "20000")
+        self.assertEqual(result["source_commit"], "1" * 40)
+        self.assertFalse(result["source_commit_verified"])
+        self.assertTrue(result["source_commit_is_caller_supplied_unverified_claim"])
         self.assertEqual(
             [item["delta_t_s"] for item in result["plans"]],
             ["0.0000005", "0.00000025", "0.000000125"],
@@ -112,7 +115,17 @@ class TimestepPlanTests(unittest.TestCase):
                 value["frequency_hz"] = frequency
                 result = self.run_cli(self.write(Path(raw), value))
             self.assertEqual(result.returncode, 0, result.stderr)
-        for frequency in ("0", "0.0009", "10000000", "-1", "NaN", "1.0.0", 20000):
+        for frequency in (
+            "0",
+            "0.0009",
+            "9999999.00000000000000000000000000000000000000000000000001",
+            "9999999.99999999999999999999999999999999999999999999999999",
+            "10000000",
+            "-1",
+            "NaN",
+            "1.0.0",
+            20000,
+        ):
             with self.subTest(frequency=frequency), tempfile.TemporaryDirectory() as raw:
                 value = valid()
                 value["frequency_hz"] = frequency
@@ -231,6 +244,30 @@ class TimestepPlanTests(unittest.TestCase):
             with mock.patch.object(MODULE.os, "fstat", side_effect=drifting):
                 with self.assertRaisesRegex(
                     MODULE.PlanError, "INPUT_CHANGED_DURING_READ"
+                ):
+                    MODULE.read_stable(path)
+
+            actual = os.lstat(path)
+            swapped_preopen = types.SimpleNamespace(
+                st_mode=actual.st_mode,
+                st_dev=actual.st_dev,
+                st_ino=actual.st_ino + 1,
+                st_size=actual.st_size,
+                st_mtime_ns=actual.st_mtime_ns,
+                st_file_attributes=getattr(actual, "st_file_attributes", 0),
+            )
+            real_lstat = MODULE.safe_lstat
+
+            def preopen_identity_swap(candidate: Path, phase: str):
+                if phase == "PREOPEN":
+                    return swapped_preopen
+                return real_lstat(candidate, phase)
+
+            with mock.patch.object(
+                MODULE, "safe_lstat", side_effect=preopen_identity_swap
+            ):
+                with self.assertRaisesRegex(
+                    MODULE.PlanError, "INPUT_PREOPEN_METADATA_MISMATCH"
                 ):
                     MODULE.read_stable(path)
 

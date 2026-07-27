@@ -20,6 +20,8 @@ MAX_BYTES = 1_048_576
 MAX_DEPTH = 12
 MAX_NODES = 1024
 MAX_STRING = 128
+MIN_FREQUENCY_HZ = Decimal("0.001")
+MAX_FREQUENCY_HZ = Decimal("9999999")
 DECIMAL_RE = re.compile(r"^(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?$")
 HEX40_RE = re.compile(r"^[0-9a-f]{40}$")
 EXPECTED_KEYS = frozenset(
@@ -66,6 +68,8 @@ def read_stable(path: Path) -> tuple[bytes, str]:
     pre = safe_lstat(path, "PREOPEN")
     if is_link_or_reparse(pre):
         fail("INPUT_LINK_OR_REPARSE_REJECTED")
+    if not stat.S_ISREG(pre.st_mode):
+        fail("INPUT_NOT_REGULAR")
     flags = os.O_RDONLY | getattr(os, "O_BINARY", 0)
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
@@ -75,6 +79,18 @@ def read_stable(path: Path) -> tuple[bytes, str]:
         raise PlanError(f"INPUT_OPEN_FAILED_{exc.__class__.__name__}") from exc
     try:
         before = os.fstat(fd)
+        if (
+            pre.st_dev,
+            pre.st_ino,
+            pre.st_size,
+            pre.st_mtime_ns,
+        ) != (
+            before.st_dev,
+            before.st_ino,
+            before.st_size,
+            before.st_mtime_ns,
+        ):
+            fail("INPUT_PREOPEN_METADATA_MISMATCH")
         opened = safe_lstat(path, "POSTOPEN")
         if is_link_or_reparse(opened):
             fail("INPUT_LINK_OR_REPARSE_REJECTED")
@@ -246,7 +262,10 @@ def validate(value: dict[str, Any]) -> tuple[Decimal, int, int]:
         frequency = Decimal(raw_frequency)
     except InvalidOperation as exc:
         raise PlanError("FREQUENCY_DECIMAL_STRING_INVALID") from exc
-    if not frequency.is_finite() or frequency <= 0 or not -3 <= frequency.adjusted() <= 6:
+    if (
+        not frequency.is_finite()
+        or not MIN_FREQUENCY_HZ <= frequency <= MAX_FREQUENCY_HZ
+    ):
         fail("FREQUENCY_RANGE_INVALID")
     if value["steps_per_cycle"] != [100, 200, 400] or any(
         isinstance(item, bool) for item in value["steps_per_cycle"]
@@ -321,6 +340,8 @@ def build_result(
         "status": "P3_TIMESTEP_MATRIX_PLANNED_NOT_AUTHORIZED",
         "schema_version": SCHEMA,
         "source_commit": value["source_commit"],
+        "source_commit_verified": False,
+        "source_commit_is_caller_supplied_unverified_claim": True,
         "contract_sha256": digest,
         "frequency_hz": fixed(frequency),
         "frequency_status": value["frequency_status"],
