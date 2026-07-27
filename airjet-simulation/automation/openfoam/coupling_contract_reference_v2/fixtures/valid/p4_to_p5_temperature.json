@@ -1,0 +1,51 @@
+{
+  "contract_type": "AIRJET_P4_TO_P5_WALL_CHT",
+  "contract_version": "2.0.0",
+  "identity": {
+    "task_id": "AJM-P4-REFERENCE-001",
+    "session_id": "session-reference-p4-001",
+    "snapshot_id": "snap_fedcba9876543210",
+    "receipt_id": "rcpt_fedcba9876543210",
+    "schema_sha256": "8716d4edabaaa1c7647b1c85216b2f445acc44c1d82824555461f90d509edebb"
+  },
+  "coordinate_system": {
+    "frame_id": "AJM_FULL_PRODUCT",
+    "origin": [0, 0, 0],
+    "axes": [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+    "handedness": "right",
+    "length_unit": "mm"
+  },
+  "temporal_sampling": {"time_basis": "cycle_phase", "time_unit": "s", "start": 0, "step": 0.0000001136363636, "sample_count": 400, "periodic": true, "cycle_period_s": 0.00004545454545},
+  "wall_field": {
+    "representation": "H_AND_WALL_TEMPERATURE",
+    "artifacts": [
+      {"role": "wall_heat_transfer_coefficient", "path": "wall/h_field.h5", "size_bytes": 8192, "sha256": "4444444444444444444444444444444444444444444444444444444444444444", "media_type": "application/x-hdf5", "value_unit": "W/(m^2*K)"},
+      {"role": "wall_temperature", "path": "wall/temperature_field.h5", "size_bytes": 8192, "sha256": "5555555555555555555555555555555555555555555555555555555555555555", "media_type": "application/x-hdf5", "value_unit": "K"}
+    ]
+  },
+  "region_interface_map": {
+    "artifact": {"role": "region_interface_map", "path": "maps/interfaces.json", "size_bytes": 1024, "sha256": "6666666666666666666666666666666666666666666666666666666666666666", "media_type": "application/json", "value_unit": "1"},
+    "interfaces": [
+      {"interface_id": "wall-spreader", "fluid_region": "air-full-product", "solid_region": "spreader", "orientation": "fluid_to_solid"}
+    ]
+  },
+  "solid_material_refs": [
+    {"solid_region": "spreader", "material_id": "candidate-spreader-001", "material_record_sha256": "7777777777777777777777777777777777777777777777777777777777777777", "provenance_ref": "material-i"}
+  ],
+  "energy_sources": {
+    "accounting_basis": "NET_CHIP_PLUS_AIRJET_SELF",
+    "operating_point": "MINI_1W_REFERENCE",
+    "q_chip": {"value": 4.25, "unit": "W", "provenance_ref": "chip-d"},
+    "q_airjet_self": {"value": 1.0, "unit": "W", "provenance_ref": "self-d"},
+    "q_total": {"value": 5.25, "unit": "W", "provenance_ref": "total-i"},
+    "sum_tolerance_w": 0.000001
+  },
+  "provenance": {
+    "claims": [
+      {"id": "material-i", "classification": "I", "assertion_kind": "inference", "source_ref": "candidate:spreader-material", "derivation": "candidate material retained for sensitivity analysis, not asserted as product fact", "uncertainty": {"kind": "relative", "lower": -0.5, "upper": 0.5, "unit": "1"}},
+      {"id": "chip-d", "classification": "D", "assertion_kind": "measured_fact", "source_ref": "official:mini-net-heat-reference", "derivation": "", "uncertainty": {"kind": "absolute", "lower": -0.01, "upper": 0.01, "unit": "W"}},
+      {"id": "self-d", "classification": "D", "assertion_kind": "measured_fact", "source_ref": "official:mini-power-reference", "derivation": "", "uncertainty": {"kind": "absolute", "lower": -0.01, "upper": 0.01, "unit": "W"}},
+      {"id": "total-i", "classification": "I", "assertion_kind": "inference", "source_ref": "equation:heat-accounting", "derivation": "Q_total = Q_chip + Q_airjet_self", "uncertainty": {"kind": "absolute", "lower": -0.02, "upper": 0.02, "unit": "W"}}
+    ]
+  }
+}

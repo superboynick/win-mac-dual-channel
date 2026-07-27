@@ -1,0 +1,44 @@
+{
+  "contract_type": "AIRJET_P2_TO_P3_STRUCTURAL_DISPLACEMENT",
+  "contract_version": "2.0.0",
+  "identity": {
+    "task_id": "AJM-P2-REFERENCE-001",
+    "session_id": "session-reference-p2-001",
+    "snapshot_id": "snap_0123456789abcdef",
+    "receipt_id": "rcpt_0123456789abcdef",
+    "schema_sha256": "5f40826e89c5954d5603d38dd9abfc47aa3715d3503466108bf413dde558e003"
+  },
+  "coordinate_system": {
+    "frame_id": "AJM_CELL_LOCAL",
+    "origin": [0, 0, 0],
+    "axes": [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+    "handedness": "right",
+    "length_unit": "mm"
+  },
+  "temporal_sampling": {
+    "frequency": 22000,
+    "frequency_unit": "Hz",
+    "phase_reference_deg": 0,
+    "samples_per_cycle": 400,
+    "period_count": 3,
+    "time_origin_s": 0
+  },
+  "artifacts": [
+    {"role": "nodes", "path": "fields/nodes.arrow", "size_bytes": 2048, "sha256": "1111111111111111111111111111111111111111111111111111111111111111", "media_type": "application/vnd.apache.arrow.file"},
+    {"role": "connectivity", "path": "fields/connectivity.arrow", "size_bytes": 4096, "sha256": "2222222222222222222222222222222222222222222222222222222222222222", "media_type": "application/vnd.apache.arrow.file"},
+    {"role": "displacement_vector_field", "path": "fields/displacement.h5", "size_bytes": 8192, "sha256": "3333333333333333333333333333333333333333333333333333333333333333", "media_type": "application/x-hdf5", "components": ["ux", "uy", "uz"], "value_unit": "mm"}
+  ],
+  "mapping": {"method": "barycentric", "tolerance": 0.001, "tolerance_unit": "mm", "coverage_scope": "ALL_DISPLACEMENT_FIELD_NODES", "unmapped_policy": "FAIL_IF_ACTIVE_MEMBRANE_NODE_UNMAPPED", "maximum_unmapped_fraction": 0.0001},
+  "mechanical_metrics": {
+    "minimum_gap": {"value": 0.02, "unit": "mm", "provenance_ref": "gap-d"},
+    "maximum_stress": {"value": 45000000, "unit": "Pa", "provenance_ref": "stress-p"},
+    "electrical_power": {"value": 0.025, "unit": "W", "provenance_ref": "power-c"}
+  },
+  "provenance": {
+    "claims": [
+      {"id": "gap-d", "classification": "D", "assertion_kind": "measured_fact", "source_ref": "producer:gap-report", "derivation": "", "uncertainty": {"kind": "absolute", "lower": -0.001, "upper": 0.001, "unit": "mm"}},
+      {"id": "stress-p", "classification": "P", "assertion_kind": "patent_bound", "source_ref": "patent:bounded-candidate", "derivation": "bounded candidate, not a product fact", "uncertainty": {"kind": "relative", "lower": -0.1, "upper": 0.1, "unit": "1"}},
+      {"id": "power-c", "classification": "C", "assertion_kind": "calibration", "source_ref": "calibration:cell-power-budget", "derivation": "cell allocation constrained by complete-product budget", "uncertainty": {"kind": "relative", "lower": -0.2, "upper": 0.2, "unit": "1"}}
+    ]
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:airjet:contract:p4-to-p5-wall-cht:2",
+  "title": "AirJet P4 to P5 wall-field CHT handoff",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_type", "contract_version", "identity", "coordinate_system", "temporal_sampling", "wall_field", "region_interface_map", "solid_material_refs", "energy_sources", "provenance"],
+  "properties": {
+    "contract_type": {"const": "AIRJET_P4_TO_P5_WALL_CHT"},
+    "contract_version": {"const": "2.0.0"},
+    "identity": {"$ref": "#/$defs/identity"},
+    "coordinate_system": {"$ref": "#/$defs/coordinate_system"},
+    "temporal_sampling": {"$ref": "#/$defs/temporal_sampling"},
+    "wall_field": {"$ref": "#/$defs/wall_field"},
+    "region_interface_map": {"$ref": "#/$defs/region_interface_map"},
+    "solid_material_refs": {
+      "type": "array", "minItems": 1, "items": {"$ref": "#/$defs/solid_material_ref"}
+    },
+    "energy_sources": {"$ref": "#/$defs/energy_sources"},
+    "provenance": {"$ref": "#/$defs/provenance"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "nonempty": {"type": "string", "minLength": 1, "pattern": "^(?!\\s*$).+"},
+    "identity": {
+      "type": "object", "additionalProperties": false,
+      "required": ["task_id", "session_id", "snapshot_id", "receipt_id", "schema_sha256"],
+      "properties": {
+        "task_id": {"$ref": "#/$defs/nonempty"}, "session_id": {"$ref": "#/$defs/nonempty"},
+        "snapshot_id": {"type": "string", "pattern": "^snap_[A-Za-z0-9_-]{16,128}$"},
+        "receipt_id": {"type": "string", "pattern": "^rcpt_[A-Za-z0-9_-]{16,128}$"},
+        "schema_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "vector3": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+    "coordinate_system": {
+      "type": "object", "additionalProperties": false,
+      "required": ["frame_id", "origin", "axes", "handedness", "length_unit"],
+      "properties": {
+        "frame_id": {"$ref": "#/$defs/nonempty"}, "origin": {"$ref": "#/$defs/vector3"},
+        "axes": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/vector3"}},
+        "handedness": {"enum": ["right", "left"]}, "length_unit": {"enum": ["m", "mm", "um"]}
+      }
+    },
+    "temporal_sampling": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["time_basis", "time_unit", "start", "step", "sample_count", "periodic", "cycle_period_s"],
+          "properties": {
+            "time_basis": {"const": "cycle_phase"}, "time_unit": {"const": "s"}, "start": {"type": "number"},
+            "step": {"type": "number", "exclusiveMinimum": 0}, "sample_count": {"type": "integer", "minimum": 2},
+            "periodic": {"const": true}, "cycle_period_s": {"type": "number", "exclusiveMinimum": 0}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["time_basis", "time_unit", "start", "step", "sample_count", "periodic"],
+          "properties": {
+            "time_basis": {"const": "instantaneous"}, "time_unit": {"const": "s"}, "start": {"type": "number"},
+            "step": {"type": "number", "exclusiveMinimum": 0}, "sample_count": {"type": "integer", "minimum": 1},
+            "periodic": {"const": false}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["time_basis", "time_unit", "start", "averaging_window_s", "sample_count", "periodic"],
+          "properties": {
+            "time_basis": {"const": "cycle_mean"}, "time_unit": {"const": "s"}, "start": {"type": "number"},
+            "averaging_window_s": {"type": "number", "exclusiveMinimum": 0}, "sample_count": {"const": 1},
+            "periodic": {"const": false}
+          }
+        }
+      ]
+    },
+    "artifact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["role", "path", "size_bytes", "sha256", "media_type", "value_unit"],
+      "properties": {
+        "role": {"enum": ["wall_heat_transfer_coefficient", "wall_temperature", "wall_heat_flux", "region_interface_map"]},
+        "path": {"type": "string", "minLength": 1, "pattern": "^(?![/\\\\])(?!.*:)(?!.*(?:^|[/\\\\])\\.\\.?(?:[/\\\\]|$))(?!.*[/\\\\]{2})(?!.*[. ](?:[/\\\\]|$))(?!.*(?:^|[/\\\\])(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.[^/\\\\]*)?(?:[/\\\\]|$)).+"},
+        "size_bytes": {"type": "integer", "minimum": 1}, "sha256": {"$ref": "#/$defs/sha256"},
+        "media_type": {"enum": ["application/x-hdf5", "application/vnd.apache.arrow.file", "application/json", "application/octet-stream"]},
+        "value_unit": {"type": "string", "minLength": 1}
+      }
+    },
+    "wall_field": {
+      "type": "object", "additionalProperties": false,
+      "required": ["representation", "artifacts"],
+      "properties": {
+        "representation": {"enum": ["H_AND_WALL_TEMPERATURE", "H_AND_WALL_HEAT_FLUX"]},
+        "artifacts": {
+          "type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/artifact"},
+          "contains": {"properties": {"role": {"const": "wall_heat_transfer_coefficient"}}, "required": ["role"]},
+          "minContains": 1, "maxContains": 1
+        }
+      }
+    },
+    "interface": {
+      "type": "object", "additionalProperties": false,
+      "required": ["interface_id", "fluid_region", "solid_region", "orientation"],
+      "properties": {
+        "interface_id": {"$ref": "#/$defs/nonempty"}, "fluid_region": {"$ref": "#/$defs/nonempty"},
+        "solid_region": {"$ref": "#/$defs/nonempty"}, "orientation": {"enum": ["fluid_to_solid", "solid_to_fluid"]}
+      }
+    },
+    "region_interface_map": {
+      "type": "object", "additionalProperties": false,
+      "required": ["artifact", "interfaces"],
+      "properties": {
+        "artifact": {
+          "allOf": [
+            {"$ref": "#/$defs/artifact"},
+            {"properties": {"role": {"const": "region_interface_map"}, "value_unit": {"const": "1"}}}
+          ]
+        },
+        "interfaces": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/interface"}}
+      }
+    },
+    "solid_material_ref": {
+      "type": "object", "additionalProperties": false,
+      "required": ["solid_region", "material_id", "material_record_sha256", "provenance_ref"],
+      "properties": {
+        "solid_region": {"$ref": "#/$defs/nonempty"}, "material_id": {"$ref": "#/$defs/nonempty"},
+        "material_record_sha256": {"$ref": "#/$defs/sha256"}, "provenance_ref": {"$ref": "#/$defs/nonempty"}
+      }
+    },
+    "power": {
+      "type": "object", "additionalProperties": false,
+      "required": ["value", "unit", "provenance_ref"],
+      "properties": {"value": {"type": "number", "minimum": 0}, "unit": {"const": "W"}, "provenance_ref": {"$ref": "#/$defs/nonempty"}}
+    },
+    "energy_sources": {
+      "type": "object", "additionalProperties": false,
+      "required": ["accounting_basis", "operating_point", "q_chip", "q_airjet_self", "q_total", "sum_tolerance_w"],
+      "properties": {
+        "accounting_basis": {"const": "NET_CHIP_PLUS_AIRJET_SELF"},
+        "operating_point": {"enum": ["MINI_1W_REFERENCE", "OTHER_DECLARED_POINT"]},
+        "q_chip": {"$ref": "#/$defs/power"}, "q_airjet_self": {"$ref": "#/$defs/power"}, "q_total": {"$ref": "#/$defs/power"},
+        "sum_tolerance_w": {"type": "number", "minimum": 0, "maximum": 0.001}
+      }
+    },
+    "uncertainty": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "lower", "upper", "unit"],
+      "properties": {"kind": {"enum": ["absolute", "relative", "interval"]}, "lower": {"type": "number"}, "upper": {"type": "number"}, "unit": {"type": "string", "minLength": 1}}
+    },
+    "claim": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "classification", "assertion_kind", "source_ref", "derivation", "uncertainty"],
+      "properties": {
+        "id": {"$ref": "#/$defs/nonempty"}, "classification": {"enum": ["D", "P", "I", "C", "U"]},
+        "assertion_kind": {"enum": ["measured_fact", "patent_bound", "inference", "calibration", "unresolved"]},
+        "source_ref": {"$ref": "#/$defs/nonempty"}, "derivation": {"type": "string"}, "uncertainty": {"$ref": "#/$defs/uncertainty"}
+      }
+    },
+    "provenance": {"type": "object", "additionalProperties": false, "required": ["claims"], "properties": {"claims": {"type": "array", "minItems": 3, "items": {"$ref": "#/$defs/claim"}}}}
+  }
+}
