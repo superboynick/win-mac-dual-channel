@@ -1,0 +1,49 @@
+﻿# AJM-P2-S1 Modal Mechanical Solver - Workbench Journal
+# Opens saved project, enters Mechanical, meshes and solves
+import json, os, traceback
+
+job_dir = os.environ['AIRJET_JOB_DIR']
+project_path = r'D:\AirJet_P2\AJM-P2-STRUCTURAL-008\AJM-P2-S1-MODAL-006\AJM-P2-S1-MODAL-006-0829a426f78f\p2_s1_modal.wbpj'
+report_path = os.path.join(job_dir, 'p2_s1_modal_mechanical_probe.json')
+
+result = {
+    'schema_version': 1,
+    'task': 'AJM_P2_S1_EQUIVALENT_PLATE_MODAL_MECHANICAL',
+    'status': 'FAIL_DIRECT',
+}
+
+try:
+    # Open the existing project
+    Open(FilePath=project_path)
+    result['project_opened'] = True
+
+    # Get the Modal system
+    systems = GetAllSystems()
+    result['system_count'] = len(systems)
+    if systems:
+        modal_system = systems[0]
+        result['system_name'] = modal_system.Name
+
+        # Refresh/Update to ensure geometry is processed
+        modal_system.Update()
+        result['system_updated'] = True
+
+    result['status'] = 'PASS_WORKBENCH_OPEN'
+
+except Exception as e:
+    result['error_type'] = type(e).__name__
+    result['error'] = str(e)
+    result['traceback'] = traceback.format_exc()
+
+# Also compute artifact hashes of project files
+try:
+    import hashlib
+    if os.path.isfile(project_path):
+        with open(project_path, 'rb') as pf:
+            result['project_sha256'] = hashlib.sha256(pf.read()).hexdigest()
+            result['project_size'] = os.path.getsize(project_path)
+except:
+    pass
+
+with open(report_path, 'w') as f:
+    json.dump(result, f, indent=2, sort_keys=True)
