@@ -1,0 +1,14 @@
+{
+  "energy": true,
+  "error": "'Meshing' object has no attribute 'exit'",
+  "initialized": true,
+  "iterations": 200,
+  "mesh_cells": 9208,
+  "schema_version": 2,
+  "solver_ready": true,
+  "status": "PASS_CFD_SOLVE_COMPLETE",
+  "task": "AJM_P3_S1_CFD_SOLVE",
+  "timestamp": "2026-07-27T13:45:50.197615+00:00",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\admin\\Downloads\\AirJetGitWatcherReports\\p3_s1_cfd_solve_v5.py\", line 47, in <module>\n    meshing.exit()\n    ^^^^^^^^^^^^\n  File \"C:\\Users\\admin\\AppData\\Local\\AirJetAnsysAutomation\\.venv\\Lib\\site-packages\\ansys\\fluent\\core\\session_meshing.py\", line 111, in __getattribute__\n    raise AttributeError(\nAttributeError: 'Meshing' object has no attribute 'exit'\n",
+  "viscous": "k-omega"
+}
