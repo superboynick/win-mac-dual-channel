@@ -556,13 +556,13 @@
     {
       "engine": "workbench",
       "output_root_id": "p2_structural_008",
-      "profile_contract_sha256": "32f62eea8e592103424dd29855d5a018e9118e02bfb58331c96b1e187dff369a",
+      "profile_contract_sha256": "7402f4b356b8d742337f23b6ad1caebf3db6910da92db039aa337ff8661cac8e",
       "profile_id": "ajm008-workbench-p2-s1-modal-v1",
       "reports": [
         "p2_s1_modal_probe.json"
       ],
       "script": "005/p2_s1_modal.wbjn",
-      "sha256": "70ecd3d7622a2d7ba640c336ef5b35c9b76d1e78df5585fcf6682f8c8c08f5e3",
+      "sha256": "66430597a1e68ec84be711a64b3dd9c1fa47bade2c6122a650161680a12aaaab",
       "timeout_seconds": 900
     }
   ],
