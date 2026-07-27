@@ -1,0 +1,28 @@
+{
+  "describe_geometry": "EXECUTED",
+  "error": "'Meshing' object has no attribute 'exit'",
+  "fluent_session": "Meshing",
+  "geometry_imported": true,
+  "schema_version": 2,
+  "status": "PASS_WATERTIGHT_MESH_COMPLETE",
+  "surface_mesh": "EXECUTED",
+  "switched_to_solver": true,
+  "task": "AJM_P3_S0_CFD_WATERTIGHT",
+  "timestamp": "2026-07-27T13:33:03.852674+00:00",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\admin\\Downloads\\AirJetGitWatcherReports\\p3_cfd_watertight_v2.py\", line 50, in <module>\n    meshing.exit()\n    ^^^^^^^^^^^^\n  File \"C:\\Users\\admin\\AppData\\Local\\AirJetAnsysAutomation\\.venv\\Lib\\site-packages\\ansys\\fluent\\core\\session_meshing.py\", line 111, in __getattribute__\n    raise AttributeError(\nAttributeError: 'Meshing' object has no attribute 'exit'\n",
+  "update_regions": "EXECUTED",
+  "volume_mesh": "EXECUTED",
+  "wt_tasks": [
+    "create_regions",
+    "update_boundaries",
+    "apply_share_topology",
+    "add_boundary_layers",
+    "update_regions",
+    "add_local_sizing_wtm",
+    "import_geometry",
+    "describe_geometry",
+    "create_volume_mesh_wtm",
+    "capping",
+    "create_surface_mesh"
+  ]
+}
