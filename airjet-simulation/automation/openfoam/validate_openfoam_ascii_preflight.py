@@ -4,15 +4,14 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import os
 import re
-import stat
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, NoReturn, Sequence
+
+from safe_artifact_io import SafeArtifactError, read_bounded_regular_file
 
 
 SCHEMA_VERSION = "AJM_PLAN_B_OPENFOAM_ASCII_PREFLIGHT_V1"
@@ -124,83 +123,16 @@ class Cursor:
             fail("FOAM_UNEXPECTED_TOKEN")
 
 
-def is_link_or_reparse(value: os.stat_result) -> bool:
-    return stat.S_ISLNK(value.st_mode) or bool(
-        getattr(value, "st_file_attributes", 0)
-        & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
-    )
-
-
-def safe_lstat(path: Path, phase: str) -> os.stat_result:
-    try:
-        return os.lstat(path)
-    except OSError as exc:
-        raise PreflightError(
-            f"INPUT_{phase}_LSTAT_FAILED_{exc.__class__.__name__}"
-        ) from exc
-
-
 def read_stable(path: Path, max_bytes: int) -> StableInput:
-    pre = safe_lstat(path, "PREOPEN")
-    if is_link_or_reparse(pre):
-        fail("INPUT_LINK_OR_REPARSE_REJECTED")
-    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0)
-    if hasattr(os, "O_NOFOLLOW"):
-        flags |= os.O_NOFOLLOW
     try:
-        fd = os.open(path, flags)
-    except OSError as exc:
-        raise PreflightError(f"INPUT_OPEN_FAILED_{exc.__class__.__name__}") from exc
-    try:
-        before = os.fstat(fd)
-        post = safe_lstat(path, "POSTOPEN")
-        if is_link_or_reparse(post):
-            fail("INPUT_LINK_OR_REPARSE_REJECTED")
-        if (post.st_dev, post.st_ino) != (before.st_dev, before.st_ino):
-            fail("INPUT_PATH_IDENTITY_MISMATCH")
-        if not stat.S_ISREG(before.st_mode):
-            fail("INPUT_NOT_REGULAR_FILE")
-        if before.st_size <= 0:
-            fail("INPUT_EMPTY")
-        if before.st_size > max_bytes:
-            fail("INPUT_SIZE_LIMIT_EXCEEDED")
-        chunks: list[bytes] = []
-        remaining = max_bytes + 1
-        while remaining:
-            chunk = os.read(fd, min(65_536, remaining))
-            if not chunk:
-                break
-            chunks.append(chunk)
-            remaining -= len(chunk)
-        data = b"".join(chunks)
-        after = os.fstat(fd)
-        final_path = safe_lstat(path, "FINAL")
-        if is_link_or_reparse(final_path):
-            fail("INPUT_LINK_OR_REPARSE_REJECTED")
-        if (final_path.st_dev, final_path.st_ino) != (
-            before.st_dev,
-            before.st_ino,
-        ):
-            fail("INPUT_FINAL_PATH_IDENTITY_MISMATCH")
-    finally:
-        os.close(fd)
-    if (
-        before.st_dev,
-        before.st_ino,
-        before.st_size,
-        before.st_mtime_ns,
-    ) != (
-        after.st_dev,
-        after.st_ino,
-        after.st_size,
-        after.st_mtime_ns,
-    ) or len(data) != before.st_size:
-        fail("INPUT_CHANGED_DURING_READ")
-    if len(data) > max_bytes:
-        fail("INPUT_SIZE_LIMIT_EXCEEDED")
+        data, digest = read_bounded_regular_file(
+            str(path), max_bytes, "INPUT_SAFE_READ_REJECTED"
+        )
+    except SafeArtifactError as exc:
+        raise PreflightError("INPUT_SAFE_READ_REJECTED") from exc
     if b"\x00" in data:
         fail("INPUT_NUL_REJECTED")
-    return StableInput(data=data, sha256=hashlib.sha256(data).hexdigest())
+    return StableInput(data=data, sha256=digest)
 
 
 def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:

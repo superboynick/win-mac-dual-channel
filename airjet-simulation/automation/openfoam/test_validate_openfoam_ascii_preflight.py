@@ -15,11 +15,14 @@ from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 SCRIPT = HERE / "validate_openfoam_ascii_preflight.py"
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
 SPEC = importlib.util.spec_from_file_location("ascii_preflight", SCRIPT)
 assert SPEC and SPEC.loader
 MODULE = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
+SAFE_IO = sys.modules[MODULE.read_bounded_regular_file.__module__]
 
 
 def contract() -> dict[str, object]:
@@ -396,14 +399,14 @@ class PreflightTests(unittest.TestCase):
             paths[1].unlink()
             result = self.run_case(paths)
         self.assertEqual(result.returncode, 2)
-        self.assertIn("INPUT_PREOPEN_LSTAT_FAILED_FileNotFoundError", result.stderr)
+        self.assertEqual(result.stderr, "REJECTED: INPUT_SAFE_READ_REJECTED\n")
         self.assertNotIn("Traceback", result.stderr)
 
         for data, code in (
             (b"\x00", "INPUT_NUL_REJECTED"),
             (b"\xef\xbb\xbf" + boundary().encode(), "INPUT_UTF8_BOM_REJECTED"),
             (b"\xff", "INPUT_NOT_UTF8"),
-            (b"x" * (MODULE.MAX_FOAM_BYTES + 1), "INPUT_SIZE_LIMIT_EXCEEDED"),
+            (b"x" * (MODULE.MAX_FOAM_BYTES + 1), "INPUT_SAFE_READ_REJECTED"),
         ):
             with self.subTest(code=code), tempfile.TemporaryDirectory() as raw:
                 paths = self.make_case(Path(raw))
@@ -424,65 +427,91 @@ class PreflightTests(unittest.TestCase):
                 self.skipTest(f"symlink privilege unavailable: {exc}")
             result = self.run_case((paths[0], link, paths[2], paths[3]))
         self.assertEqual(result.returncode, 2)
-        self.assertIn("INPUT_LINK_OR_REPARSE_REJECTED", result.stderr)
+        self.assertEqual(result.stderr, "REJECTED: INPUT_SAFE_READ_REJECTED\n")
 
-    def test_handle_drift_and_postopen_unlink_reject(self) -> None:
+    def test_shared_reader_errors_are_redacted(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             path = Path(raw) / "input"
             path.write_text("x", encoding="utf-8")
-            real_fstat = os.fstat
-            calls = 0
+            for shared_code in (
+                "ARTIFACT_IDENTITY_DRIFT",
+                "ARTIFACT_READ_REJECTED",
+            ):
+                with self.subTest(shared_code=shared_code), mock.patch.object(
+                    MODULE,
+                    "read_bounded_regular_file",
+                    side_effect=MODULE.SafeArtifactError(shared_code),
+                ):
+                    with self.assertRaisesRegex(
+                        MODULE.PreflightError, "^INPUT_SAFE_READ_REJECTED$"
+                    ):
+                        MODULE.read_stable(path, 100)
 
-            def drifting(fd: int):
-                nonlocal calls
-                calls += 1
-                result = real_fstat(fd)
-                if calls == 2:
-                    values = list(result)
-                    values[8] = result.st_mtime + 1
-                    return os.stat_result(values)
-                return result
+    def test_shared_reader_enforces_final_path_and_double_read_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "input"
+            path.write_text("x", encoding="utf-8")
 
-            with mock.patch.object(MODULE.os, "fstat", side_effect=drifting):
+            actual_path = str(path.resolve())
+            with mock.patch.object(
+                SAFE_IO,
+                "_handle_final_path",
+                side_effect=(actual_path, actual_path + "-alias"),
+            ) as final_path:
                 with self.assertRaisesRegex(
-                    MODULE.PreflightError, "INPUT_CHANGED_DURING_READ"
+                    MODULE.PreflightError, "^INPUT_SAFE_READ_REJECTED$"
                 ):
                     MODULE.read_stable(path, 100)
+            self.assertEqual(final_path.call_count, 2)
 
-            real_lstat = os.lstat
-            lstat_calls = 0
+            actual_read = SAFE_IO._read_fd_bytes
+            read_count = 0
 
-            def disappearing(candidate: os.PathLike[str] | str):
-                nonlocal lstat_calls
-                lstat_calls += 1
-                if lstat_calls == 2:
-                    raise FileNotFoundError
-                return real_lstat(candidate)
-
-            with mock.patch.object(MODULE.os, "lstat", side_effect=disappearing):
-                with self.assertRaisesRegex(
-                    MODULE.PreflightError,
-                    "INPUT_POSTOPEN_LSTAT_FAILED_FileNotFoundError",
-                ):
-                    MODULE.read_stable(path, 100)
-
-            final_calls = 0
-
-            def disappearing_final(candidate: os.PathLike[str] | str):
-                nonlocal final_calls
-                final_calls += 1
-                if final_calls == 3:
-                    raise FileNotFoundError
-                return real_lstat(candidate)
+            def drift_on_second_read(
+                descriptor: int, maximum: int, code: str
+            ) -> bytes:
+                nonlocal read_count
+                data = actual_read(descriptor, maximum, code)
+                read_count += 1
+                return data if read_count == 1 else data + b"!"
 
             with mock.patch.object(
-                MODULE.os, "lstat", side_effect=disappearing_final
+                SAFE_IO, "_read_fd_bytes", side_effect=drift_on_second_read
             ):
                 with self.assertRaisesRegex(
-                    MODULE.PreflightError,
-                    "INPUT_FINAL_LSTAT_FAILED_FileNotFoundError",
+                    MODULE.PreflightError, "^INPUT_SAFE_READ_REJECTED$"
                 ):
                     MODULE.read_stable(path, 100)
+            self.assertEqual(read_count, 2)
+
+    def test_hardlink_input_is_rejected_by_shared_reader(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            paths = self.make_case(root)
+            alias = root / "boundary-hardlink"
+            try:
+                os.link(paths[1], alias)
+            except OSError as exc:
+                self.skipTest(f"hardlink unavailable: {exc}")
+            result = self.run_case((paths[0], alias, paths[2], paths[3]))
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.stderr, "REJECTED: INPUT_SAFE_READ_REJECTED\n")
+
+    def test_shared_reader_adapter_preserves_stable_input_and_nul_diagnostic(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            path = Path(raw) / "input"
+            path.write_bytes(b"abc")
+            stable = MODULE.read_stable(path, 100)
+            self.assertEqual(stable.data, b"abc")
+            self.assertEqual(
+                stable.sha256,
+                "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            )
+            path.write_bytes(b"a\x00b")
+            with self.assertRaisesRegex(
+                MODULE.PreflightError, "^INPUT_NUL_REJECTED$"
+            ):
+                MODULE.read_stable(path, 100)
 
     def test_source_has_no_process_network_or_write_api(self) -> None:
         source = SCRIPT.read_text(encoding="utf-8")
@@ -494,6 +523,10 @@ class PreflightTests(unittest.TestCase):
             "requests",
             "urllib",
             "os.system",
+            "os.open(",
+            "os.read(",
+            "os.fstat(",
+            "os.lstat(",
             "Popen(",
             "write_text(",
             "write_bytes(",
