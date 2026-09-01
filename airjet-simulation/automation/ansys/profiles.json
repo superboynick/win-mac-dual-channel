@@ -552,42 +552,6 @@
       "script": "008/p2_s0_equivalent_plate_producer.py",
       "sha256": "8681318dadbb14556980dd38bd7d49be681f2e85fa4f39e24a0f84aa171619f4",
       "timeout_seconds": 900
-    },
-    {
-      "engine": "workbench",
-      "output_root_id": "p2_structural_008",
-      "predecessor": null,
-      "profile_id": "ajm008-workbench-p2-s1-modal-v1",
-      "reports": [
-        "p2_s1_modal_probe.json"
-      ],
-      "script": "005/p2_s1_modal.wbjn",
-      "sha256": "66430597a1e68ec84be711a64b3dd9c1fa47bade2c6122a650161680a12aaaab",
-      "timeout_seconds": 900
-    },
-    {
-      "engine": "workbench",
-      "output_root_id": "p2_structural_008",
-      "predecessor": null,
-      "profile_id": "ajm008-workbench-p2-s1-mechanical-v1",
-      "reports": [
-        "p2_s1_modal_mechanical_probe.json"
-      ],
-      "script": "005/p2_s1_modal_mechanical.wbjn",
-      "sha256": "51cd4d1cbaf4a7f0f82b6cb5c35146d776560125f3c1fc3735b70edb43c63612",
-      "timeout_seconds": 900
-    },
-    {
-      "engine": "pymechanical",
-      "output_root_id": "p2_structural_008",
-      "predecessor": null,
-      "profile_id": "ajm008-pymechanical-p2-s1-modal-v1",
-      "reports": [
-        "p2_s1_modal_solve_probe.json"
-      ],
-      "script": "008/p2_s1_modal_solver.py",
-      "sha256": "ccb7704aff863a3131b2f729a6498c3f5288b6e421adecbe7f93e1382f32cf98",
-      "timeout_seconds": 1800
     }
   ],
   "schema_version": 2

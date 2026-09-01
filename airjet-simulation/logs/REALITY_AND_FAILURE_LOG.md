@@ -1642,6 +1642,25 @@
 - 关联 decision/annotation/run：AJM-P1-GEO-009；rear-inlet coordination report。
 - 状态：OPEN_PENDING_WINDOWS_NATIVE_STEP_ACCEPTANCE
 
+## REAL-20260901-071：未审计 P2 profiles 阻塞官方 MCP inventory
+
+- UTC：2026-09-01
+- Stage/task：AJM-009 Windows ANSYS track restart preflight
+- Machine/operator：Windows ANSYS Student 2026 R1 / Codex
+- run/job/profile：未启动 ANSYS job；`airjet-ansys inventory`
+- 期望：clean/synchronized `main`、project audit PASS、inventory ready 后复跑 C7 formal two-stage mesh。
+- 实际观察：同步后项目审计因 3 个后加 P2 profiles 不在 20-profile 强制白名单且脚本 SHA-256 不一致而 FAIL；移除这 3 个未获审计接纳的执行清单条目后 audit PASS。首次 inventory 随后按设计因本地修复尚未提交而返回 `BLOCKED_DIRTY_WORKTREE`。
+- 原始错误短摘：`ANSYS profile policy identity/schema/unique-name lock failed`；`ANSYS profile hash mismatch`；`BLOCKED_DIRTY_WORKTREE`。
+- 原始日志路径 + SHA-256：本轮为 Git/MCP preflight 输出，无 ANSYS 原生产物；变更由本条对应 Git commit 固定。
+- 假设与最小区分实验：3 个 P2 条目属于未经主审计接纳的后续实验注册，而非当前 AJM-009 C7 profile；仅从 `profiles.json` 撤销可执行注册、保留脚本与 Git 历史，再运行全项目 audit 和 clean-worktree inventory。
+- 结果：audit 已恢复 PASS；等待提交后重跑 inventory。
+- 根因及置信度：高置信；`audit-airjet-project.ps1` 与 MCP static policy 均固定要求 20 个批准 profiles，后续提交只追加了 3 个条目及不一致哈希，没有同步强制策略或建立安全 predecessor 契约。
+- 采取/拒绝的 workaround：撤销未批准注册；拒绝仅更新哈希、绕过 audit、直接运行带绝对旧 job 路径的 P2 scripts。
+- 对 Gate/论文主张的影响：无新增物理或 Gate 证据；P1--P6 保持 `NOT_PASSED`。
+- 下一步：提交并推送本次 policy 清理；重新 inventory；仅执行 AJM-009 批准的 C7 two-stage profile。
+- 关联 decision/annotation/run：AJM_WIN_CODEX_A_ANSYS_TRACK_009；无 run-index 行（未启动 ANSYS job）。
+- 状态：OPEN_INVENTORY_RETRY_AFTER_CLEAN_COMMIT
+
 ## 新条目模板
 
 ```text
