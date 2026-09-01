@@ -1945,7 +1945,7 @@ for invariant in (
     "session.tui.report.mesh_size()",
     "session.tui.file.write_mesh(str(MESH_PATH))",
     "workflow.import_geometry.file_name = str(STAGED_NATIVE_PATH)",
-    '"NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1078:{}"',
+    '"NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1076:{}"',
     "session.tui.boundary.separate.sep_face_zone_by_angle(",
     '"POST_SURFACE_INLET_REPRESENTATIVE_BINDING_INVALID"',
     '"POST_SURFACE_INLET_SPLIT"',

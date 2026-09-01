@@ -52,7 +52,7 @@ def test_exact_profile_and_assertion_contract() -> None:
     assert len(values["PRODUCER_ASSERTIONS"]) == 17
     assertions = values["ASSERTION_NAMES"]
     assert len(assertions) == 21 and len(set(assertions)) == 21
-    assert "boundary_semantics_preserved_1078" in assertions
+    assert "boundary_semantics_preserved_1076" in assertions
     assert values["STUDENT_ENTITY_LIMIT"] == 1_000_000
     assert values["THROAT_COUNT"] == 972
     assert values["SURFACE_MIN_SIZE_MM"] == 0.05
@@ -123,7 +123,7 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.import_geometry.file_name",
         "workflow.import_geometry.file_name = str(STAGED_NATIVE_PATH)",
         '"NATIVE_SCDOCX_BOUND_TO_SIGNED_PREDECESSOR"',
-        '"NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1078:{}"',
+        '"NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1076:{}"',
         "rebind_post_surface_canonical_records(",
         "session.tui.boundary.separate.sep_face_zone_by_angle(",
         '"POST_SURFACE_NATIVE_BOUNDARY_ZONE_COUNT_LT_7:{}"',
@@ -275,7 +275,7 @@ def load_semantic_helpers() -> dict[str, Any]:
         "MEMBRANE_TOP": 12,
         "MEMBRANE_BOTTOM": 12,
         "ORIFICE_THROAT_WALL": 972,
-        "WALL_CONTINUOUS_UNCLASSIFIED": 76,
+        "WALL_CONTINUOUS_UNCLASSIFIED": 74,
     }
     namespace = {
         "Any": Any,
@@ -284,7 +284,7 @@ def load_semantic_helpers() -> dict[str, Any]:
         "THROAT_RADIUS_MM": 0.125,
         "BOUNDARY_ROLE_ORDER": tuple(role_counts),
         "EXPECTED_BOUNDARY_ROLE_COUNTS": role_counts,
-        "SOURCE_BOUNDARY_FACE_COUNT": 1078,
+        "SOURCE_BOUNDARY_FACE_COUNT": 1076,
         "CANONICAL_BOUNDARY_ZONE_NAMES": {
             "INLET": ["ajm_inlet_001", "ajm_inlet_002", "ajm_inlet_003", "ajm_inlet_004"],
             "OUTLET": ["ajm_outlet"],
@@ -314,7 +314,7 @@ def semantic_source_fixture() -> dict[str, Any]:
         "MEMBRANE_TOP": 12,
         "MEMBRANE_BOTTOM": 12,
         "ORIFICE_THROAT_WALL": 972,
-        "WALL_CONTINUOUS_UNCLASSIFIED": 76,
+        "WALL_CONTINUOUS_UNCLASSIFIED": 74,
     }
     faces = []
     index = 0
@@ -388,12 +388,12 @@ def test_c7_source_blueprint_and_unique_mapping_contract() -> None:
     helpers = load_semantic_helpers()
     source = semantic_source_fixture()
     blueprint = helpers["build_boundary_role_blueprint"](source)
-    assert len(blueprint) == 1078
+    assert len(blueprint) == 1076
     assert blueprint[30]["role"] == "ORIFICE_THROAT_WALL"
     assert blueprint[30]["probe_point_mm"][0] == 31.125
     mapping = semantic_mapping_fixture(blueprint)
     summary = helpers["validate_semantic_zone_mapping"](mapping, "TEST")
-    assert summary["semantic_zone_count"] == 1078
+    assert summary["semantic_zone_count"] == 1076
     assert summary["role_exclusive_mapping_ok"] is True
     assert summary["role_counts"]["ORIFICE_THROAT_WALL"] == 972
 
@@ -402,7 +402,7 @@ def test_c7_source_blueprint_and_unique_mapping_contract() -> None:
     expect_runtime_error(
         helpers["build_boundary_role_blueprint"],
         missing,
-        marker="SOURCE_BOUNDARY_FACE_COUNT_NOT_1078",
+        marker="SOURCE_BOUNDARY_FACE_COUNT_NOT_1076",
     )
     wrong_role = copy.deepcopy(source)
     wrong_role["continuous_faces"][0]["classification"] = "GENERIC_WALL"
@@ -427,7 +427,7 @@ def test_c7_source_blueprint_and_unique_mapping_contract() -> None:
     merged_summary = helpers["validate_semantic_zone_mapping"](
         same_role_merged, "TEST"
     )
-    assert merged_summary["semantic_zone_count"] == 1077
+    assert merged_summary["semantic_zone_count"] == 1075
     collapsed = copy.deepcopy(mapping)
     collapsed[-1]["zone_id"] = collapsed[0]["zone_id"]
     collapsed[-1]["zone_name"] = collapsed[0]["zone_name"]
@@ -470,10 +470,10 @@ def test_c7_final_boundary_coverage_and_single_fluid_adjacency() -> None:
             "MEMBRANE_TOP": 12,
             "MEMBRANE_BOTTOM": 12,
             "ORIFICE_THROAT_WALL": 972,
-            "WALL_CONTINUOUS_UNCLASSIFIED": 76,
+            "WALL_CONTINUOUS_UNCLASSIFIED": 74,
         },
         "canonical_zone_count": 10,
-        "boundary_coverage_count": 1078,
+        "boundary_coverage_count": 1076,
         "role_exclusive_mapping_ok": True,
         "generic_boundary_collapse": False,
         "single_fluid_adjacency_ok": True,
@@ -489,7 +489,7 @@ def test_c7_final_boundary_coverage_and_single_fluid_adjacency() -> None:
                         "MEMBRANE_TOP": 12,
                         "MEMBRANE_BOTTOM": 12,
                         "ORIFICE_THROAT_WALL": 972,
-                        "WALL_CONTINUOUS_UNCLASSIFIED": 76,
+                        "WALL_CONTINUOUS_UNCLASSIFIED": 74,
                     }[record["role"]]
                 ),
                 "adjacent_cell_zone_ids": [2001],
@@ -523,7 +523,7 @@ def post_surface_dual_object_fixture(suffix_start=1124):
     origin_ids = {
         "INLET": [1051, 1056, 1065, 1071],
         "OUTLET": [2],
-        "HEAT_WALL": [1078],
+        "HEAT_WALL": [1076],
         "MEMBRANE_TOP": [7],
         "MEMBRANE_BOTTOM": [9],
         "ORIFICE_THROAT_WALL": [78],
@@ -1231,7 +1231,7 @@ def test_c7_runtime_integration_and_compact_evidence_fields_are_pinned() -> None
         'result["diagnostics"]',
         'result["diagnostic_trace"] = file_record(PRELAUNCH_TRACE_PATH)',
         'observe_semantic_zone_mapping(\n            utilities, boundary_blueprint, "POST_VOLUME"',
-        'result["assertions"]["boundary_semantics_preserved_1078"] = True',
+        'result["assertions"]["boundary_semantics_preserved_1076"] = True',
         '"source_boundary_face_count": SOURCE_BOUNDARY_FACE_COUNT',
         '"source_boundary_role_counts": source_boundary_role_counts',
         '"pre_canonical_role_exclusive_mapping_ok"',

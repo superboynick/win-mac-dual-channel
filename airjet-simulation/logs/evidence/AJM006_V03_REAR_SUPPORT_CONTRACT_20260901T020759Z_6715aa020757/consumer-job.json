@@ -1,0 +1,59 @@
+{
+  "case_id": "AJM006-V03-CONTINUOUS",
+  "ended_at": "2026-09-01T02:10:04.803803+00:00",
+  "engine": "pyfluent",
+  "exit_code": 2,
+  "git_head": "fc7256c23d4e9d0727d46a2c3b1ace8bde0c0946",
+  "job_directory": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-6715aa020757",
+  "job_id": "AJM006-V03-CONTINUOUS-6715aa020757",
+  "license_arguments_added": false,
+  "output_root_id": "p1_cad_006",
+  "phase": "FAILED_PROCESS",
+  "pid": 26752,
+  "predecessor_artifacts": [
+    {
+      "relative_path": "v03_continuous_fluid_producer.json",
+      "sha256": "b7914b9601bf7163cae71de7d20a0a656e33f42cbea00848eea66b783038d721",
+      "size": 16043
+    },
+    {
+      "relative_path": "product_continuous_fluid.scdocx",
+      "sha256": "79389799d4ed703a7c9d977ae11d52295b4036d145016242e239f1077349651d",
+      "size": 6959126
+    },
+    {
+      "relative_path": "product_continuous_fluid.step",
+      "sha256": "ba4c2fd563182175cbcce5f9213ba2eac6a6247da0d3f37c775f5621293f62af",
+      "size": 1806619
+    },
+    {
+      "relative_path": "v03_native_reopen.json",
+      "sha256": "c10aa14d4f1acb77962252e819708066e3864232ed0da2ae2e70f70525c1536f",
+      "size": 533071
+    },
+    {
+      "relative_path": "v03_step_reimport.json",
+      "sha256": "98175c767a9189fcb5dbccde4f8cd6d267e0921af2ef8d405c30f13409bb7e18",
+      "size": 500939
+    },
+    {
+      "relative_path": "v03_throat_inventory.json",
+      "sha256": "6d570ba5a95c83337fe2e833159de5d07402bb3df5d159ee818e5eea24a3890c",
+      "size": 1071139
+    },
+    {
+      "relative_path": "v03_source_chain.json",
+      "sha256": "c4aa73b9b8ed509ec0a04653fddc57d776c0159d41d2ad2d5487f37ca4a33aac",
+      "size": 1614
+    }
+  ],
+  "predecessor_job_id": "AJM006-V03-CONTINUOUS-22885f73ae65",
+  "profile_contract_sha256": "ba055d451a29ba8b9486e7a633fbfe10cd00f2657a55db6e5dc0b887ec62769a",
+  "profile_dependency_artifacts": [],
+  "profile_dependency_manifest_sha256": null,
+  "profile_id": "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
+  "reason": null,
+  "schema_version": 4,
+  "script_sha256": "97b587eaf3016c63320308e9ebd05ea350980b12e628bfad6f58c1214bbdbda3",
+  "started_at": "2026-09-01T02:10:02.165822+00:00"
+}

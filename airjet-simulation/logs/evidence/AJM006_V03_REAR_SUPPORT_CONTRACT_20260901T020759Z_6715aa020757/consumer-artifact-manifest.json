@@ -1,0 +1,169 @@
+{
+    "file_count":  14,
+    "files":  [
+                  {
+                      "relative_path":  "job.json",
+                      "sha256":  "e0f88a59f4033e1d9e86a74e7753a1395911e3bb9f0cd5232286e0696ffbd708",
+                      "size":  2243
+                  },
+                  {
+                      "relative_path":  "stderr.log",
+                      "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                      "size":  0
+                  },
+                  {
+                      "relative_path":  "stdout.log",
+                      "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                      "size":  0
+                  },
+                  {
+                      "relative_path":  "v03_pyfluent_prelaunch_trace.jsonl",
+                      "sha256":  "c004f7bb1b8b4c986f11c3338458fce6ede9bce84ece0803139ef5729db7683f",
+                      "size":  108
+                  },
+                  {
+                      "relative_path":  "v03_pyfluent_watertight_mesh_consumer.json",
+                      "report_json":  {
+                                          "artifacts":  {
+
+                                                        },
+                                          "assertions":  {
+                                                             "actuator_gap_exclusion":  false,
+                                                             "boundary_roles_reconstructed":  false,
+                                                             "boundary_semantics_preserved_1078":  false,
+                                                             "claim_boundaries":  false,
+                                                             "connected_fluid_cell_zone_graph":  false,
+                                                             "exact_native_and_step_byte_staging":  false,
+                                                             "flow_cell_zone_inventory":  false,
+                                                             "fluent_v261_meshing_health":  false,
+                                                             "mesh_integrity":  false,
+                                                             "mesh_write_hash":  false,
+                                                             "predecessor_identity":  false,
+                                                             "predecessor_immutable":  false,
+                                                             "region_classification":  false,
+                                                             "student_limit_guard":  false,
+                                                             "surface_mesh":  false,
+                                                             "target_flow_volume_matches_predecessor":  false,
+                                                             "throat_local_sizing_contract":  false,
+                                                             "throat_occupancy_full_972":  false,
+                                                             "throat_roles_reconstructed_972":  false,
+                                                             "volume_mesh":  false,
+                                                             "watertight_native_import":  false
+                                                         },
+                                          "boundary_conditions":  "NOT_APPLIED",
+                                          "cht":  "NOT_RUN",
+                                          "claim_scope":  "V03_PRELIMINARY_PYFLUENT_MESH_PILOT_ONLY",
+                                          "diagnostic_trace":  {
+                                                                   "relative_path":  "v03_pyfluent_prelaunch_trace.jsonl",
+                                                                   "sha256":  "c004f7bb1b8b4c986f11c3338458fce6ede9bce84ece0803139ef5729db7683f",
+                                                                   "size":  108
+                                                               },
+                                          "diagnostics":  {
+
+                                                          },
+                                          "engineering_capability":  "FAIL_PRELIMINARY_MESH_CAPABILITY",
+                                          "error":  {
+                                                        "message":  "PREDECESSOR_NATIVE_EVIDENCE_INVALID",
+                                                        "traceback":  "Traceback (most recent call last):\n  File \"D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-6715aa020757\\input\\v03_pyfluent_watertight_mesh_consumer.py\", line 2365, in \u003cmodule\u003e\n    manifest, producer, inventory, predecessor_snapshot_before = validate_predecessor()\n                                                                 ^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-6715aa020757\\input\\v03_pyfluent_watertight_mesh_consumer.py\", line 416, in validate_predecessor\n    raise RuntimeError(\"PREDECESSOR_NATIVE_EVIDENCE_INVALID\")\nRuntimeError: PREDECESSOR_NATIVE_EVIDENCE_INVALID\n",
+                                                        "type":  "RuntimeError"
+                                                    },
+                                          "exact_product_geometry":  "NOT_CLAIMED",
+                                          "formal_006_completion":  false,
+                                          "fsi":  "NOT_RUN",
+                                          "identity":  {
+                                                           "case_id":  "AJM006-V03-CONTINUOUS",
+                                                           "git_head":  "fc7256c23d4e9d0727d46a2c3b1ace8bde0c0946",
+                                                           "predecessor_job_id":  null,
+                                                           "profile_contract_sha256":  "ba055d451a29ba8b9486e7a633fbfe10cd00f2657a55db6e5dc0b887ec62769a",
+                                                           "profile_id":  "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
+                                                           "script_sha256":  "97b587eaf3016c63320308e9ebd05ea350980b12e628bfad6f58c1214bbdbda3"
+                                                       },
+                                          "license_arguments_added":  false,
+                                          "mesh_contract":  {
+                                                                "cad_import_source":  "NATIVE_SCDOCX_BOUND_TO_SIGNED_PREDECESSOR",
+                                                                "cad_one_zone_per":  "face",
+                                                                "dimension":  "THREE",
+                                                                "max_expected_flow_cell_zones":  1,
+                                                                "mode":  "MESHING",
+                                                                "precision":  "DOUBLE",
+                                                                "processor_count":  1,
+                                                                "product_version":  "261",
+                                                                "resolution_class":  "STUDENT_COARSE_MAIN_FLOW_REGION_C5",
+                                                                "student_cell_limit":  1000000,
+                                                                "student_node_limit":  1000000,
+                                                                "surface_max_size_mm":  0.75,
+                                                                "surface_min_size_mm":  0.05,
+                                                                "target_flow_volume_mesh_tolerance_mm3":  1.0,
+                                                                "throat_local_size_mm":  0.075,
+                                                                "ui_mode":  "NO_GUI_OR_GRAPHICS",
+                                                                "volume_max_size_mm":  0.75,
+                                                                "wall_to_internal":  false
+                                                            },
+                                          "mesh_result":  "FAIL_V03_WATERTIGHT_VOLUME_MESH",
+                                          "p1_mesh_gate":  "NOT_RUN",
+                                          "p1_p6_gates":  "NOT_RUN",
+                                          "p1_stage_gate":  "NOT_RUN",
+                                          "physics":  "NOT_RUN",
+                                          "probe":  "v03_pyfluent_watertight_mesh_consumer",
+                                          "schema_version":  1,
+                                          "solution":  "NOT_RUN",
+                                          "solver_initialization":  "NOT_RUN",
+                                          "solver_iterations":  0,
+                                          "solver_mode":  "NOT_ENTERED",
+                                          "status":  "FAIL_PRELIMINARY_MESH_CAPABILITY",
+                                          "task":  "AJM006_V03_PYFLUENT_WATERTIGHT_MESH_ONLY",
+                                          "visibility":  "NOT_USER_OBSERVED"
+                                      },
+                      "sha256":  "bf3e178789d8d502d361dc2dd85fd83eaa69b4d4c6bbfa3e6ef4531056400a0b",
+                      "size":  3855
+                  },
+                  {
+                      "relative_path":  "input/v03_pyfluent_watertight_mesh_consumer.py",
+                      "sha256":  "97b587eaf3016c63320308e9ebd05ea350980b12e628bfad6f58c1214bbdbda3",
+                      "size":  148260
+                  },
+                  {
+                      "relative_path":  "input/predecessor/predecessor-manifest.json",
+                      "sha256":  "45b7f662aee8c116aca90a295f63f8705bd4d92da3e57ecc438bf1ad583ea75d",
+                      "size":  1918
+                  },
+                  {
+                      "relative_path":  "input/predecessor/product_continuous_fluid.scdocx",
+                      "sha256":  "79389799d4ed703a7c9d977ae11d52295b4036d145016242e239f1077349651d",
+                      "size":  6959126
+                  },
+                  {
+                      "relative_path":  "input/predecessor/product_continuous_fluid.step",
+                      "sha256":  "ba4c2fd563182175cbcce5f9213ba2eac6a6247da0d3f37c775f5621293f62af",
+                      "size":  1806619
+                  },
+                  {
+                      "relative_path":  "input/predecessor/v03_continuous_fluid_producer.json",
+                      "sha256":  "b7914b9601bf7163cae71de7d20a0a656e33f42cbea00848eea66b783038d721",
+                      "size":  16043
+                  },
+                  {
+                      "relative_path":  "input/predecessor/v03_native_reopen.json",
+                      "sha256":  "c10aa14d4f1acb77962252e819708066e3864232ed0da2ae2e70f70525c1536f",
+                      "size":  533071
+                  },
+                  {
+                      "relative_path":  "input/predecessor/v03_source_chain.json",
+                      "sha256":  "c4aa73b9b8ed509ec0a04653fddc57d776c0159d41d2ad2d5487f37ca4a33aac",
+                      "size":  1614
+                  },
+                  {
+                      "relative_path":  "input/predecessor/v03_step_reimport.json",
+                      "sha256":  "98175c767a9189fcb5dbccde4f8cd6d267e0921af2ef8d405c30f13409bb7e18",
+                      "size":  500939
+                  },
+                  {
+                      "relative_path":  "input/predecessor/v03_throat_inventory.json",
+                      "sha256":  "6d570ba5a95c83337fe2e833159de5d07402bb3df5d159ee818e5eea24a3890c",
+                      "size":  1071139
+                  }
+              ],
+    "job_id":  "AJM006-V03-CONTINUOUS-6715aa020757",
+    "phase":  "FAILED_PROCESS",
+    "total_size":  11044935
+}

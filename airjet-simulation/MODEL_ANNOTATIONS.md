@@ -370,7 +370,7 @@ fallback；本轮不是 mesh failure，共节点、physics、formal 006、P1--P6
 ## AJM-P1-GEO-009：四进气口后向支撑修复
 
 日期：2026-07-18
-状态：Mac 静态合同与负向测试 PASS；Windows native/STEP runtime `NOT_RUN`
+状态：Windows hash-pinned native/STEP runtime PASS；C7 consumer 契约同步后待复跑
 
 **已确认缺陷**：V03 producer 的共享 plenum 后边界原为 cell footprint 的
 `Y=-14.500 mm`，但 image-derived V01/V02 达到 `Y=-17.750 mm`。两者各有
@@ -386,3 +386,12 @@ plenum 后边界延伸到四个 vent 的最小 Y，即 `-17.750 mm`。拒绝把 
 upstream 为 `278.7220276111674 mm3`，连续流体解析体积为
 `469.4396438426395 mm3`。这些值必须由 hash-pinned official ANSYS producer、
 native reopen 和 STEP reopen 独立实测后才可接受。P1--P6 继续 `NOT_RUN`。
+
+**2026-09-01 Windows 复验**：official MCP producer
+`AJM006-V03-CONTINUOUS-22885f73ae65` 以脚本 SHA
+`8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0`
+再次通过 native/STEP reopen、972 throat 和 rear-support guards。实测连续流体体积为
+`469.43964384263649 mm3`，native/STEP SHA 分别为 `79389799...651d` 与
+`ba4c2fd5...62af`，闭合体 face count 为 1076。后续 consumer 因仍锁定旧 1078-face
+fingerprint 在 Fluent 启动前 fail closed；因此该轮只接受几何 runtime，不接受 mesh、formal
+006 或 P1--P6 Gate。

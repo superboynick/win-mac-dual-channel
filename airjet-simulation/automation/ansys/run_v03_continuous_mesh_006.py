@@ -25,7 +25,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "97b587eaf3016c63320308e9ebd05ea350980b12e628bfad6f58c1214bbdbda3"
+CONSUMER_SCRIPT_SHA256 = "aaf8b6140bfbdb233a1f19414c14e5e4264c394ba413b8caf3d7509c9a2bcab1"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"
@@ -38,7 +38,7 @@ CONSUMER_ASSERTIONS = {
     "watertight_native_import",
     "boundary_roles_reconstructed",
     "throat_roles_reconstructed_972",
-    "boundary_semantics_preserved_1078",
+    "boundary_semantics_preserved_1076",
     "throat_local_sizing_contract",
     "surface_mesh",
     "flow_cell_zone_inventory",
@@ -60,9 +60,9 @@ BOUNDARY_ROLE_COUNTS = {
     "MEMBRANE_TOP": 12,
     "MEMBRANE_BOTTOM": 12,
     "ORIFICE_THROAT_WALL": 972,
-    "WALL_CONTINUOUS_UNCLASSIFIED": 76,
+    "WALL_CONTINUOUS_UNCLASSIFIED": 74,
 }
-BOUNDARY_FACE_COUNT = 1078
+BOUNDARY_FACE_COUNT = 1076
 CANONICAL_BOUNDARY_SPEC = {
     "ajm_inlet_001": ("INLET", "velocity-inlet", 1),
     "ajm_inlet_002": ("INLET", "velocity-inlet", 1),
@@ -73,7 +73,7 @@ CANONICAL_BOUNDARY_SPEC = {
     "ajm_membrane_top": ("MEMBRANE_TOP", "wall", 12),
     "ajm_membrane_bottom": ("MEMBRANE_BOTTOM", "wall", 12),
     "ajm_throat_wall": ("ORIFICE_THROAT_WALL", "wall", 972),
-    "ajm_remaining_wall": ("WALL_CONTINUOUS_UNCLASSIFIED", "wall", 76),
+    "ajm_remaining_wall": ("WALL_CONTINUOUS_UNCLASSIFIED", "wall", 74),
 }
 PREDECESSOR_ARTIFACTS = (
     "v03_continuous_fluid_producer.json",
@@ -571,7 +571,7 @@ def validate_connected_mesh_evidence(evidence: Any) -> None:
         or evidence.get("post_volume_single_fluid_adjacency_ok") is not True
         or sum(BOUNDARY_ROLE_COUNTS.values()) != BOUNDARY_FACE_COUNT
     ):
-        raise RuntimeError("CONSUMER_BOUNDARY_SEMANTICS_1078_INVALID")
+        raise RuntimeError("CONSUMER_BOUNDARY_SEMANTICS_1076_INVALID")
     if (
         not positive_int(evidence.get("cell_count"), 1_000_000)
         or not positive_int(evidence.get("node_count"), 1_000_000)

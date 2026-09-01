@@ -32,10 +32,17 @@ The committed 34,883-cell Fluent mesh selects one actuator-gap tile, not the com
 
 The first formal C7 retry reached the complete pre-region boundary evidence but failed at Watertight `Create Regions` with `Topology region with name dead0 already exists`. The reviewed consumer now replaces the preceding region-based inlet split with a face-angle split while retaining exact-four, conservation and probe-binding gates.
 
-Next ANSYS action: Windows Codex A consumes the accepted hash-bound geometry and closes the
-remaining complete P1 stage prerequisites, then advances the signed P2 Mechanical profile
-and capability prerequisites. Do not rerun the accepted SpaceClaim producer or use root-level
-ad-hoc mesh/solve scripts.
+The 2026-09-01 hash-pinned rear-support retry independently reconfirmed the corrected SpaceClaim
+geometry, but the consumer stopped before Fluent launch because its predecessor fingerprint still
+required the old 1078-face body. The corrected rear-support body has 1076 faces: the two-face
+difference is confined to the remaining continuous-wall inventory (74 rather than 76), while the
+4/1 inlet/outlet, heat wall, 12+12 membrane and 972 throat contracts remain unchanged. This is a
+contract synchronization failure, not mesh evidence; formal 006 and P1--P6 remain `NOT_PASSED`.
+
+Next ANSYS action: commit the reviewed 1076-face consumer/runner/profile lock, require clean
+inventory, and run exactly one official-MCP two-stage C7 retry. Stop before solver mode on the
+first failed assertion. Only after C7 closes may Windows Codex A continue the remaining complete
+P1 stage prerequisites. Do not use root-level ad-hoc mesh/solve scripts.
 
 Next OpenFOAM action: Windows Codex B consumes only
 `rear_inlet_handoff_accepted_20260720.json`, revalidates the artifact hashes available on its

@@ -14,7 +14,7 @@ You are Windows Codex A. You own the complete ANSYS reconstruction line, not onl
 
 ## Immediate objective
 
-Close the C7 mesh boundary contract through the formal two-stage runner. Require 4 inlet zones, 1 outlet, 972 throat faces, 1 heat wall, 12 membrane-top, 12 membrane-bottom, complete 1078-face coverage, 10 canonical boundary zones, one connected main fluid zone, correct full-product bbox, Student guards, integrity/quality and a real mesh hash. Any failure stops before solver mode.
+Close the C7 mesh boundary contract through the formal two-stage runner. Require 4 inlet zones, 1 outlet, 972 throat faces, 1 heat wall, 12 membrane-top, 12 membrane-bottom, complete 1076-face coverage, 10 canonical boundary zones, one connected main fluid zone, correct full-product bbox, Student guards, integrity/quality and a real mesh hash. Any failure stops before solver mode.
 
 The existing 34,883-cell actuator-gap mesh and all `no inlets & no outlets` solutions are failed diagnostics. Do not rerun or promote them.
 

@@ -1680,6 +1680,25 @@
 - 关联 decision/annotation/run：AJM_WIN_CODEX_A_ANSYS_TRACK_009；无 run-index 行（没有 ANSYS job）。
 - 状态：CLOSED_STATIC_FIX_PENDING_RUNTIME_RETRY
 
+## REAL-20260901-073：rear-support producer 的 1076-face 指纹被旧 consumer 契约拒绝
+
+- UTC：2026-09-01T02:08:09Z--02:10:04Z
+- Stage/task：AJM-009 / AJM006 V03 rear-support formal two-stage C7 retry
+- Machine/operator：Windows ANSYS Student 2026 R1 / Codex via official MCP runner
+- run/job/profile：producer `AJM006-V03-CONTINUOUS-22885f73ae65` / `ajm006-spaceclaim-v03-continuous-throat-pilot-v1`；consumer `AJM006-V03-CONTINUOUS-6715aa020757` / `ajm006-pyfluent-v03-continuous-mesh-pilot-v1`
+- 期望：使用已接受的后支撑几何完成 predecessor identity、1076-face semantic coverage、Watertight surface/volume mesh、单流体区、Student guards 与 mesh hash；任一失败均不得进入 solver。
+- 实际观察：producer `PROCESS_EXITED_0 / PASS_PARTIAL_CAD_CAPABILITY`，再次确认 `3.250 mm` 后支撑、`Y=-17.750 mm`、单一 closed/manifold body、972 throats、native/STEP reopen 及 `469.43964384263649 mm3`；native face count 为 1076。consumer 在 2.64 秒内 `FAILED_PROCESS`，Fluent 未启动，全部 mesh assertions 为 false，`solver_mode=NOT_ENTERED`。
+- 原始错误短摘：`PREDECESSOR_NATIVE_EVIDENCE_INVALID`
+- 原始日志路径 + SHA-256：凝练目录 `logs/evidence/AJM006_V03_REAR_SUPPORT_CONTRACT_20260901T020759Z_6715aa020757/`；suite summary SHA `8b4f3f182b837076ad4c320bde1de836fbe33489c9c856b109057bff29492923`；producer/consumer manifests 和外部 job 目录见同目录 job/manifest 文件。
+- 假设与最小区分实验：直接比较 producer native fingerprint 与 consumer `SOURCE_BOUNDARY_FACE_COUNT`。producer 为 1076，旧 consumer 仍要求 1078；同步为 1076 后运行 consumer/runner tests、MCP policy test 和全项目 audit，再只做一次 clean hash-pinned retry。
+- 结果：consumer、runner、profile SHA、对应测试、C7 task card 与 MCP policy audit 已统一到 1076；51 个局部测试、20-profile/5-tool 静态策略和全项目 audit 均 PASS。runtime 复跑仍待干净提交。
+- 根因及置信度：高置信；rear-support Boolean 使 remaining continuous-wall inventory 从 76 变为 74，而 4 inlet、1 outlet、1 heat wall、12+12 membrane 与 972 throat roles 未变；consumer 的前驱指纹合同未随已接受几何同步。
+- 采取/拒绝的 workaround：更新精确可测合同并保留全量 role conservation；拒绝把 producer 改回缺失后支撑的旧几何、跳过 predecessor validation、手工启动 Fluent 或把本轮称为 mesh failure/PASS。
+- 对 Gate/论文主张的影响：只新增独立 rear-support 几何 runtime 复验证据；没有 surface/volume mesh、solver 或正式 006 证据。P1--P6 保持 `NOT_PASSED`。
+- 下一步：提交并推送 1076-face 合同闭环；clean inventory 后运行一次固定 two-stage runner，首个失败 assertion 立即停止并记录。
+- 关联 decision/annotation/run：AJM-P1-GEO-009；AJM-P1-MESH-002；本轮 producer/consumer 两条 run-index。
+- 状态：CLOSED_FAILURE_PRESERVED_STATIC_FIX_PENDING_CLEAN_RETRY
+
 ## 新条目模板
 
 ```text

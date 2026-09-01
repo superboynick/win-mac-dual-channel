@@ -1,0 +1,691 @@
+{
+    "file_count":  41,
+    "files":  [
+                  {
+                      "relative_path":  "job.json",
+                      "sha256":  "101685e387c8aa8af9018e3c25b8797542161ac6d4d13af514bbcff5d23bd5d6",
+                      "size":  5734
+                  },
+                  {
+                      "relative_path":  "product_continuous_fluid.scdocx",
+                      "sha256":  "79389799d4ed703a7c9d977ae11d52295b4036d145016242e239f1077349651d",
+                      "size":  6959126
+                  },
+                  {
+                      "relative_path":  "product_continuous_fluid.step",
+                      "sha256":  "ba4c2fd563182175cbcce5f9213ba2eac6a6247da0d3f37c775f5621293f62af",
+                      "size":  1806619
+                  },
+                  {
+                      "relative_path":  "stderr.log",
+                      "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                      "size":  0
+                  },
+                  {
+                      "relative_path":  "stdout.log",
+                      "sha256":  "0f34712385ec47647c4f9a589e1c5cbc8a3449c472b437fedb2ac97e3ee2cc38",
+                      "size":  40026
+                  },
+                  {
+                      "relative_path":  "v03_continuous_fluid_producer.json",
+                      "report_json":  {
+                                          "assertions":  {
+                                                             "artifact_hashes":  true,
+                                                             "c016_candidate_boundary":  true,
+                                                             "claim_boundaries":  true,
+                                                             "complete_flow_path":  true,
+                                                             "explicit_throat_construction":  true,
+                                                             "gen1_target":  true,
+                                                             "input_contract":  true,
+                                                             "native_reopen_single_body":  true,
+                                                             "native_save":  true,
+                                                             "native_throat_inventory":  true,
+                                                             "physics_guards":  true,
+                                                             "preliminary_full_product_scope":  true,
+                                                             "round_trip_shape_fidelity":  true,
+                                                             "single_continuous_fluid_boolean":  true,
+                                                             "step_export":  true,
+                                                             "step_reopen_single_body":  true,
+                                                             "step_throat_inventory":  true
+                                                         },
+                                          "c016_candidate":  {
+                                                                 "evidence_class":  "C",
+                                                                 "parameter_id":  "C016",
+                                                                 "product_fact":  false,
+                                                                 "range_mm":  [
+                                                                                  0.05,
+                                                                                  0.2
+                                                                              ],
+                                                                 "status":  "cad_placeholder",
+                                                                 "uncertainty_scan":  "REQUIRED_LATER_NOT_RUN",
+                                                                 "value_mm":  0.1
+                                                             },
+                                          "claim_scope":  "V03_CONTINUOUS_FLUID_GEOMETRY_PILOT_ONLY",
+                                          "engineering_capability":  "PASS_PARTIAL_CAD_CAPABILITY",
+                                          "exact_product_geometry":  "NOT_CLAIMED",
+                                          "external_native_attach":  "NOT_PROVEN",
+                                          "files":  {
+                                                        "authoring_native":  {
+                                                                                 "path":  "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-22885f73ae65\\v03_full_product_authoring.scdocx",
+                                                                                 "sha256":  "87491f1d86d83065a940c867ecc7a06388795bf5a7f643bf6c16be14dc217183",
+                                                                                 "size":  6964236
+                                                                             },
+                                                        "continuous_native":  {
+                                                                                  "path":  "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-22885f73ae65\\product_continuous_fluid.scdocx",
+                                                                                  "sha256":  "79389799d4ed703a7c9d977ae11d52295b4036d145016242e239f1077349651d",
+                                                                                  "size":  6959126
+                                                                              },
+                                                        "continuous_step":  {
+                                                                                "path":  "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-22885f73ae65\\product_continuous_fluid.step",
+                                                                                "sha256":  "ba4c2fd563182175cbcce5f9213ba2eac6a6247da0d3f37c775f5621293f62af",
+                                                                                "size":  1806619
+                                                                            },
+                                                        "native_reopen":  {
+                                                                              "path":  "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-22885f73ae65\\v03_native_reopen.json",
+                                                                              "sha256":  "c10aa14d4f1acb77962252e819708066e3864232ed0da2ae2e70f70525c1536f",
+                                                                              "size":  533071
+                                                                          },
+                                                        "source_chain":  {
+                                                                             "path":  "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-22885f73ae65\\v03_source_chain.json",
+                                                                             "sha256":  "c4aa73b9b8ed509ec0a04653fddc57d776c0159d41d2ad2d5487f37ca4a33aac",
+                                                                             "size":  1614
+                                                                         },
+                                                        "step_reimport":  {
+                                                                              "path":  "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-22885f73ae65\\v03_step_reimport.json",
+                                                                              "sha256":  "98175c767a9189fcb5dbccde4f8cd6d267e0921af2ef8d405c30f13409bb7e18",
+                                                                              "size":  500939
+                                                                          },
+                                                        "throat_inventory":  {
+                                                                                 "path":  "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-22885f73ae65\\v03_throat_inventory.json",
+                                                                                 "sha256":  "6d570ba5a95c83337fe2e833159de5d07402bb3df5d159ee818e5eea24a3890c",
+                                                                                 "size":  1071139
+                                                                             }
+                                                    },
+                                          "formal_006_completion":  false,
+                                          "formal_convex_hull_contract":  "NOT_RUN",
+                                          "full_variant_campaign":  "NOT_RUN_1_OF_9_ONLY",
+                                          "geometry":  {
+                                                           "actual_membrane_area_porosity_pct":  8.11444531061139,
+                                                           "all_cells_have_throats":  true,
+                                                           "boolean_volume_delta_mm3":  7.3896444519050419E-13,
+                                                           "candidate_target_minus_actual_porosity_pct":  1.8855546893886093,
+                                                           "candidate_target_porosity_pct":  10.0,
+                                                           "cell_count":  12,
+                                                           "configuration_id":  "M-3x4-7.0",
+                                                           "continuous_before_save":  {
+                                                                                          "bbox_max_mm":  [
+                                                                                                              10.875000000000002,
+                                                                                                              20.750000000000004,
+                                                                                                              2.8
+                                                                                                          ],
+                                                                                          "bbox_min_mm":  [
+                                                                                                              -10.875000000000002,
+                                                                                                              -17.750000000000004,
+                                                                                                              1.2675
+                                                                                                          ],
+                                                                                          "face_count":  1076,
+                                                                                          "is_closed":  true,
+                                                                                          "is_manifold":  true,
+                                                                                          "name":  "AJM006_V03_FLUID_CONTINUOUS",
+                                                                                          "piece_count":  1,
+                                                                                          "volume_mm3":  469.4396438426365
+                                                                                      },
+                                                           "continuous_route_ok":  true,
+                                                           "expected_overlap_volume_mm3":  0.9542587685278997,
+                                                           "expected_union_volume_mm3":  469.43964384263575,
+                                                           "expected_xy_contract":  {
+                                                                                        "expected_count":  972,
+                                                                                        "minimum_center_spacing_mm":  0.7006239999999995,
+                                                                                        "pass":  true,
+                                                                                        "required_minimum_center_spacing_mm":  0.29,
+                                                                                        "step_xy_tolerance_mm":  0.02,
+                                                                                        "unique_count_rounded_9dp":  972
+                                                                                    },
+                                                           "group_counts":  {
+                                                                                "FLUID_CONTINUOUS":  1,
+                                                                                "HEAT_WALL":  1,
+                                                                                "INLET":  4,
+                                                                                "MEMBRANE_BOTTOM":  12,
+                                                                                "MEMBRANE_TOP":  12,
+                                                                                "ORIFICE_THROAT_WALL":  972,
+                                                                                "OUTLET":  1
+                                                                            },
+                                                           "group_required":  {
+                                                                                  "FLUID_CONTINUOUS":  1,
+                                                                                  "HEAT_WALL":  1,
+                                                                                  "INLET":  4,
+                                                                                  "MEMBRANE_BOTTOM":  12,
+                                                                                  "MEMBRANE_TOP":  12,
+                                                                                  "ORIFICE_THROAT_WALL":  972,
+                                                                                  "OUTLET":  1
+                                                                              },
+                                                           "group_semantics_ok":  true,
+                                                           "native_analytic_volume_delta_mm3":  3.0127011996228248E-12,
+                                                           "native_reopen_summary":  {
+                                                                                         "body_count":  1,
+                                                                                         "body_fingerprint":  {
+                                                                                                                  "bbox_max_mm":  [
+                                                                                                                                      10.875000000000002,
+                                                                                                                                      20.750000000000004,
+                                                                                                                                      2.8
+                                                                                                                                  ],
+                                                                                                                  "bbox_min_mm":  [
+                                                                                                                                      -10.875000000000002,
+                                                                                                                                      -17.750000000000004,
+                                                                                                                                      1.2675
+                                                                                                                                  ],
+                                                                                                                  "face_count":  1076,
+                                                                                                                  "is_closed":  true,
+                                                                                                                  "is_manifold":  true,
+                                                                                                                  "name":  "AJM006_V03_FLUID_CONTINUOUS",
+                                                                                                                  "piece_count":  1,
+                                                                                                                  "volume_mm3":  469.4396438426365
+                                                                                                              },
+                                                                                         "group_counts":  {
+                                                                                                              "FLUID_CONTINUOUS":  1,
+                                                                                                              "HEAT_WALL":  1,
+                                                                                                              "INLET":  4,
+                                                                                                              "MEMBRANE_BOTTOM":  12,
+                                                                                                              "MEMBRANE_TOP":  12,
+                                                                                                              "ORIFICE_THROAT_WALL":  972,
+                                                                                                              "OUTLET":  1
+                                                                                                          },
+                                                                                         "open_success":  true
+                                                                                     },
+                                                           "native_route_ok":  true,
+                                                           "native_route_volume_tolerance_mm3":  0.08,
+                                                           "native_throat_inventory":  {
+                                                                                           "accepted_area_model_counts":  {
+                                                                                                                              "CONSTRUCTION_OVERLAP_EXTENDED":  0,
+                                                                                                                              "EFFECTIVE_0P100_MM":  972,
+                                                                                                                              "STEP_KERNEL_OTHER_AREA":  0
+                                                                                                                          },
+                                                                                           "area_tolerance_mm2":  0.001,
+                                                                                           "candidate_face_count":  972,
+                                                                                           "expected_center_z_mm":  1.5675,
+                                                                                           "expected_construction_lateral_area_mm2":  0.10995574287564266,
+                                                                                           "expected_construction_length_mm":  0.13999999999999987,
+                                                                                           "expected_diameter_mm":  0.25,
+                                                                                           "expected_effective_lateral_area_mm2":  0.07853981633974472,
+                                                                                           "expected_length_mm":  0.09999999999999987,
+                                                                                           "expected_radius_mm":  0.125,
+                                                                                           "expected_z_max_mm":  1.6175,
+                                                                                           "expected_z_min_mm":  1.5175,
+                                                                                           "geometry_tolerance_mm":  0.002,
+                                                                                           "observed_candidate_area_range_mm2":  [
+                                                                                                                                     0.07853981633974463,
+                                                                                                                                     0.07853981633974585
+                                                                                                                                 ],
+                                                                                           "observed_candidate_center_z_range_mm":  [
+                                                                                                                                        1.5675000000000001,
+                                                                                                                                        1.5675000000000001
+                                                                                                                                    ],
+                                                                                           "observed_candidate_edge_count_histogram":  {
+                                                                                                                                           "2":  972
+                                                                                                                                       },
+                                                                                           "pass":  true,
+                                                                                           "xy_inventory":  {
+                                                                                                                "actual_count":  972,
+                                                                                                                "expected_count":  972,
+                                                                                                                "matched_count":  972,
+                                                                                                                "max_xy_delta_mm":  1.7763568394002505E-15,
+                                                                                                                "missing_count":  0,
+                                                                                                                "one_to_one_complete":  true,
+                                                                                                                "tolerance_mm":  0.002,
+                                                                                                                "unexpected_count":  0
+                                                                                                            }
+                                                                                       },
+                                                           "numerical_overlap_mm":  0.02,
+                                                           "orifice_count":  972,
+                                                           "orifice_diameter_mm":  0.25,
+                                                           "perimeter_boolean_overlap_mm":  0.05,
+                                                           "perimeter_boolean_overlap_raw_mm3":  1.3392000000000013,
+                                                           "perimeter_boolean_overlap_union_volume_delta_mm3":  0.0,
+                                                           "preferred_porosity_guard_pct":  [
+                                                                                                8.0,
+                                                                                                12.0
+                                                                                            ],
+                                                           "premerge_downstream":  {
+                                                                                       "bbox_max_mm":  [
+                                                                                                           10.875000000000002,
+                                                                                                           20.750000000000004,
+                                                                                                           1.5175000000000003
+                                                                                                       ],
+                                                                                       "bbox_min_mm":  [
+                                                                                                           -10.875000000000002,
+                                                                                                           -14.5,
+                                                                                                           1.2675
+                                                                                                       ],
+                                                                                       "face_count":  6,
+                                                                                       "is_closed":  true,
+                                                                                       "is_manifold":  true,
+                                                                                       "name":  "AJM006_V03_FLUID_DOWNSTREAM_PREMERGE",
+                                                                                       "piece_count":  1,
+                                                                                       "volume_mm3":  191.67187500000006
+                                                                                   },
+                                                           "premerge_upstream":  {
+                                                                                     "bbox_max_mm":  [
+                                                                                                         10.875000000000002,
+                                                                                                         14.5,
+                                                                                                         2.8
+                                                                                                     ],
+                                                                                     "bbox_min_mm":  [
+                                                                                                         -10.875000000000002,
+                                                                                                         -17.750000000000004,
+                                                                                                         1.4975
+                                                                                                     ],
+                                                                                     "face_count":  2042,
+                                                                                     "is_closed":  true,
+                                                                                     "is_manifold":  true,
+                                                                                     "name":  "AJM006_V03_FLUID_UPSTREAM_PREMERGE",
+                                                                                     "piece_count":  1,
+                                                                                     "volume_mm3":  278.7220276111636
+                                                                                 },
+                                                           "route_analytic_volume_mm3":  469.4396438426395,
+                                                           "source_variant_id":  "M-3x4-7.0__R50_BALANCED",
+                                                           "step_analytic_volume_delta_mm3":  3.808509063674137E-12,
+                                                           "step_boundary_counts":  {
+                                                                                        "HEAT_WALL":  1,
+                                                                                        "INLET":  4,
+                                                                                        "MEMBRANE_BOTTOM":  12,
+                                                                                        "MEMBRANE_TOP":  12,
+                                                                                        "ORIFICE_THROAT_WALL":  972,
+                                                                                        "OUTLET":  1
+                                                                                    },
+                                                           "step_reimport_summary":  {
+                                                                                         "body_count":  1,
+                                                                                         "body_fingerprint":  {
+                                                                                                                  "bbox_max_mm":  [
+                                                                                                                                      10.875,
+                                                                                                                                      20.75,
+                                                                                                                                      2.8
+                                                                                                                                  ],
+                                                                                                                  "bbox_min_mm":  [
+                                                                                                                                      -10.875,
+                                                                                                                                      -17.75,
+                                                                                                                                      1.2675
+                                                                                                                                  ],
+                                                                                                                  "face_count":  1076,
+                                                                                                                  "is_closed":  true,
+                                                                                                                  "is_manifold":  true,
+                                                                                                                  "name":  "实体",
+                                                                                                                  "piece_count":  1,
+                                                                                                                  "volume_mm3":  469.4396438426433
+                                                                                                              },
+                                                                                         "boundary_counts":  {
+                                                                                                                 "HEAT_WALL":  1,
+                                                                                                                 "INLET":  4,
+                                                                                                                 "MEMBRANE_BOTTOM":  12,
+                                                                                                                 "MEMBRANE_TOP":  12,
+                                                                                                                 "ORIFICE_THROAT_WALL":  972,
+                                                                                                                 "OUTLET":  1
+                                                                                                             },
+                                                                                         "comparison_deltas":  {
+                                                                                                                   "max_bbox_delta_mm":  3.5527136788005009E-15,
+                                                                                                                   "max_volume_delta_mm3":  6.8212102632969618E-12
+                                                                                                               },
+                                                                                         "comparison_tolerances":  {
+                                                                                                                       "bbox_tolerance_mm":  0.02,
+                                                                                                                       "comparison_basis":  "INDEPENDENT_ROUTE_ANALYTIC",
+                                                                                                                       "face_count_required":  false,
+                                                                                                                       "names_required":  false,
+                                                                                                                       "native_to_step_volume_delta_diagnostic_only":  true,
+                                                                                                                       "route_analytic_volume_tolerance_mm3":  0.03,
+                                                                                                                       "throat_xy_tolerance_mm":  0.02,
+                                                                                                                       "volume_absolute_tolerance_mm3":  0.08,
+                                                                                                                       "volume_relative_tolerance":  1E-05
+                                                                                                                   },
+                                                                                         "open_success":  true
+                                                                                     },
+                                                           "step_route_ok":  true,
+                                                           "step_route_volume_tolerance_mm3":  0.03,
+                                                           "step_throat_inventory":  {
+                                                                                         "accepted_area_model_counts":  {
+                                                                                                                            "CONSTRUCTION_OVERLAP_EXTENDED":  0,
+                                                                                                                            "EFFECTIVE_0P100_MM":  972,
+                                                                                                                            "STEP_KERNEL_OTHER_AREA":  0
+                                                                                                                        },
+                                                                                         "area_tolerance_mm2":  0.001,
+                                                                                         "candidate_face_count":  972,
+                                                                                         "expected_center_z_mm":  1.5675,
+                                                                                         "expected_construction_lateral_area_mm2":  0.10995574287564266,
+                                                                                         "expected_construction_length_mm":  0.13999999999999987,
+                                                                                         "expected_diameter_mm":  0.25,
+                                                                                         "expected_effective_lateral_area_mm2":  0.07853981633974472,
+                                                                                         "expected_length_mm":  0.09999999999999987,
+                                                                                         "expected_radius_mm":  0.125,
+                                                                                         "expected_z_max_mm":  1.6175,
+                                                                                         "expected_z_min_mm":  1.5175,
+                                                                                         "geometry_tolerance_mm":  0.005,
+                                                                                         "observed_candidate_area_range_mm2":  [
+                                                                                                                                   0.07853981633974487,
+                                                                                                                                   0.07853981633974487
+                                                                                                                               ],
+                                                                                         "observed_candidate_center_z_range_mm":  [
+                                                                                                                                      1.5675,
+                                                                                                                                      1.5675
+                                                                                                                                  ],
+                                                                                         "observed_candidate_edge_count_histogram":  {
+                                                                                                                                         "2":  972
+                                                                                                                                     },
+                                                                                         "pass":  true,
+                                                                                         "xy_inventory":  {
+                                                                                                              "actual_count":  972,
+                                                                                                              "expected_count":  972,
+                                                                                                              "matched_count":  972,
+                                                                                                              "max_xy_delta_mm":  1.7763568394002505E-15,
+                                                                                                              "missing_count":  0,
+                                                                                                              "one_to_one_complete":  true,
+                                                                                                              "tolerance_mm":  0.02,
+                                                                                                              "unexpected_count":  0
+                                                                                                          }
+                                                                                     },
+                                                           "throat_counts_by_cell":  {
+                                                                                         "1":  81,
+                                                                                         "10":  81,
+                                                                                         "11":  81,
+                                                                                         "12":  81,
+                                                                                         "2":  81,
+                                                                                         "3":  81,
+                                                                                         "4":  81,
+                                                                                         "5":  81,
+                                                                                         "6":  81,
+                                                                                         "7":  81,
+                                                                                         "8":  81,
+                                                                                         "9":  81
+                                                                                     },
+                                                           "throat_inventory_before_save":  {
+                                                                                                "accepted_area_model_counts":  {
+                                                                                                                                   "CONSTRUCTION_OVERLAP_EXTENDED":  0,
+                                                                                                                                   "EFFECTIVE_0P100_MM":  972,
+                                                                                                                                   "STEP_KERNEL_OTHER_AREA":  0
+                                                                                                                               },
+                                                                                                "area_tolerance_mm2":  0.001,
+                                                                                                "candidate_face_count":  972,
+                                                                                                "expected_center_z_mm":  1.5675,
+                                                                                                "expected_construction_lateral_area_mm2":  0.10995574287564266,
+                                                                                                "expected_construction_length_mm":  0.13999999999999987,
+                                                                                                "expected_diameter_mm":  0.25,
+                                                                                                "expected_effective_lateral_area_mm2":  0.07853981633974472,
+                                                                                                "expected_length_mm":  0.09999999999999987,
+                                                                                                "expected_radius_mm":  0.125,
+                                                                                                "expected_z_max_mm":  1.6175,
+                                                                                                "expected_z_min_mm":  1.5175,
+                                                                                                "geometry_tolerance_mm":  0.002,
+                                                                                                "observed_candidate_area_range_mm2":  [
+                                                                                                                                          0.07853981633974463,
+                                                                                                                                          0.07853981633974585
+                                                                                                                                      ],
+                                                                                                "observed_candidate_center_z_range_mm":  [
+                                                                                                                                             1.5675000000000001,
+                                                                                                                                             1.5675000000000001
+                                                                                                                                         ],
+                                                                                                "observed_candidate_edge_count_histogram":  {
+                                                                                                                                                "2":  972
+                                                                                                                                            },
+                                                                                                "pass":  true,
+                                                                                                "xy_inventory":  {
+                                                                                                                     "actual_count":  972,
+                                                                                                                     "expected_count":  972,
+                                                                                                                     "matched_count":  972,
+                                                                                                                     "max_xy_delta_mm":  1.7763568394002505E-15,
+                                                                                                                     "missing_count":  0,
+                                                                                                                     "one_to_one_complete":  true,
+                                                                                                                     "tolerance_mm":  0.002,
+                                                                                                                     "unexpected_count":  0
+                                                                                                                 }
+                                                                                            },
+                                                           "throat_length_evidence_class":  "C",
+                                                           "throat_length_mm":  0.09999999999999987,
+                                                           "throat_length_range_mm":  [
+                                                                                          0.05,
+                                                                                          0.2
+                                                                                      ],
+                                                           "vent_rear_support":  {
+                                                                                     "cell_footprint_y_min_mm":  -14.5,
+                                                                                     "rear_inlet_ids":  [
+                                                                                                            "V01",
+                                                                                                            "V02"
+                                                                                                        ],
+                                                                                     "rear_support_extension_mm":  3.25,
+                                                                                     "supported_plenum_y_min_mm":  -17.75,
+                                                                                     "vent_boxes_mm":  {
+                                                                                                           "V01":  [
+                                                                                                                       -6.5,
+                                                                                                                       -17.75,
+                                                                                                                       -4.800000000000001,
+                                                                                                                       -3.6499999999999995
+                                                                                                                   ],
+                                                                                                           "V02":  [
+                                                                                                                       3.4999999999999996,
+                                                                                                                       -17.75,
+                                                                                                                       5.199999999999999,
+                                                                                                                       -3.4499999999999993
+                                                                                                                   ],
+                                                                                                           "V03":  [
+                                                                                                                       -6.6000000000000005,
+                                                                                                                       -1.75,
+                                                                                                                       -4.8,
+                                                                                                                       12.75
+                                                                                                                   ],
+                                                                                                           "V04":  [
+                                                                                                                       3.75,
+                                                                                                                       -1.5499999999999998,
+                                                                                                                       5.35,
+                                                                                                                       13.350000000000001
+                                                                                                                   ]
+                                                                                                       }
+                                                                                 },
+                                                           "vent_riser_overlap_mm":  0.001
+                                                       },
+                                          "geometry_representation":  "SINGLE_CONTINUOUS_FLUID_BODY_WITH_972_EXPLICIT_FINITE_THROATS",
+                                          "identity":  {
+                                                           "case_id":  "AJM006-V03-CONTINUOUS",
+                                                           "dependency_manifest_sha256":  "bdc8829aa0eae60ec9e091c5fcdc4df2c1c30c54aee2e7c886f775ce207f5e8d",
+                                                           "git_head":  "fc7256c23d4e9d0727d46a2c3b1ace8bde0c0946",
+                                                           "profile_contract_sha256":  "c525f5d53e8a72100232b4e30a88020ab54305769b5cd6c71629e09b5acf15e0",
+                                                           "profile_id":  "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
+                                                           "script_sha256":  "8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0"
+                                                       },
+                                          "license_arguments_added":  false,
+                                          "mesh":  "NOT_RUN",
+                                          "native_named_selection_transfer":  "NOT_PROVEN",
+                                          "native_parameterization":  "NOT_PROVEN",
+                                          "p1_p6_gates":  "NOT_RUN",
+                                          "p1_stage_gate":  "NOT_RUN",
+                                          "physics":  "NOT_RUN",
+                                          "pilot_result":  "PASS_PRELIMINARY_V03_FINITE_THROAT_GEOMETRY",
+                                          "probe":  "v03_continuous_fluid_producer",
+                                          "pyfluent":  "NOT_RUN",
+                                          "schema_version":  1,
+                                          "script_api":  "V261",
+                                          "status":  "PASS_PARTIAL_CAD_CAPABILITY",
+                                          "task":  "AJM006_V03_CONTINUOUS_FLUID_FULL_PRODUCT_PILOT",
+                                          "top_plenum_planform":  "PRELIMINARY_CELL_FOOTPRINT_BLOCK_WITH_VENT_RISER_UNION",
+                                          "trusted_production_profile_binding":  "NOT_RUN_PRELIMINARY_PROFILE",
+                                          "visibility":  "NOT_USER_OBSERVED",
+                                          "workbench":  "NOT_RUN"
+                                      },
+                      "sha256":  "b7914b9601bf7163cae71de7d20a0a656e33f42cbea00848eea66b783038d721",
+                      "size":  16043
+                  },
+                  {
+                      "relative_path":  "v03_full_product_authoring.scdocx",
+                      "sha256":  "87491f1d86d83065a940c867ecc7a06388795bf5a7f643bf6c16be14dc217183",
+                      "size":  6964236
+                  },
+                  {
+                      "relative_path":  "v03_native_reopen.json",
+                      "sha256":  "c10aa14d4f1acb77962252e819708066e3864232ed0da2ae2e70f70525c1536f",
+                      "size":  533071
+                  },
+                  {
+                      "relative_path":  "v03_source_chain.json",
+                      "sha256":  "c4aa73b9b8ed509ec0a04653fddc57d776c0159d41d2ad2d5487f37ca4a33aac",
+                      "size":  1614
+                  },
+                  {
+                      "relative_path":  "v03_step_reimport.json",
+                      "sha256":  "98175c767a9189fcb5dbccde4f8cd6d267e0921af2ef8d405c30f13409bb7e18",
+                      "size":  500939
+                  },
+                  {
+                      "relative_path":  "v03_throat_inventory.json",
+                      "sha256":  "6d570ba5a95c83337fe2e833159de5d07402bb3df5d159ee818e5eea24a3890c",
+                      "size":  1071139
+                  },
+                  {
+                      "relative_path":  "input/v03_continuous_fluid_producer.py",
+                      "sha256":  "8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0",
+                      "size":  63603
+                  },
+                  {
+                      "relative_path":  "input/dependencies/build_full_product_trusted_variants.py",
+                      "sha256":  "646ad9ed8b3344e64a8a2669b866594c6dda7aea81444d241a452f058d295b70",
+                      "size":  35168
+                  },
+                  {
+                      "relative_path":  "input/dependencies/campaign.json",
+                      "sha256":  "df601ada88c06b63cb390f98acf447f46aefd3c5d881b47b7874503dd801c9e7",
+                      "size":  7673
+                  },
+                  {
+                      "relative_path":  "input/dependencies/dependency-manifest.json",
+                      "sha256":  "bdc8829aa0eae60ec9e091c5fcdc4df2c1c30c54aee2e7c886f775ce207f5e8d",
+                      "size":  4757
+                  },
+                  {
+                      "relative_path":  "input/dependencies/full_product_parameter_registry.csv",
+                      "sha256":  "b1c9d0a4e7ac2a655afc5c449d1b8867f6273af3ebac4cfcbec0be5c50e3425c",
+                      "size":  11503
+                  },
+                  {
+                      "relative_path":  "input/dependencies/full_product_semantic_contract_v1.py",
+                      "sha256":  "a34440e9dc9936f081ebd58d72432b194a1d5ba29a1379079c91827cfd315666",
+                      "size":  83143
+                  },
+                  {
+                      "relative_path":  "input/dependencies/full_product_semantic_sidecar_v1.schema.json",
+                      "sha256":  "75cd95525e5189a4ef11a979a5621a7dd8db96efeb59e209cede794bb129ea30",
+                      "size":  11076
+                  },
+                  {
+                      "relative_path":  "input/dependencies/p1_cad_parameter_map.csv",
+                      "sha256":  "88d95dafc2ccaf063d14123da959b2e454b3dfa56b6c5a6d1a11b991b64ad9d3",
+                      "size":  110221
+                  },
+                  {
+                      "relative_path":  "input/dependencies/p1_internal_geometry_rules.csv",
+                      "sha256":  "04197c9322ea29baca56ccd2b9afccecb25708be0dfc21c9fceef79564c01da2",
+                      "size":  8755
+                  },
+                  {
+                      "relative_path":  "input/dependencies/p1_layout_configuration_matrix.csv",
+                      "sha256":  "70ff15d1fd4b6bb78973ad47c488dcb12aed797dcbed07a86c189c6952a879e1",
+                      "size":  2056
+                  },
+                  {
+                      "relative_path":  "input/dependencies/p1_model_form_variants.csv",
+                      "sha256":  "012e8031258aa1d1b4e4f274b76e09fdb83e930ce29eac737d82db25a5bb67da",
+                      "size":  6569
+                  },
+                  {
+                      "relative_path":  "input/dependencies/p1_orifice_pattern_candidates.csv",
+                      "sha256":  "e2ea0e007a4cb7b25b6f2c7ba03e1cb6f60c19433d4c7664217b0e9727f32570",
+                      "size":  6273
+                  },
+                  {
+                      "relative_path":  "input/dependencies/p1_planform_exhaust_candidates.csv",
+                      "sha256":  "de560f672da729477a1bde727aec6e6fb20e2a684d31874ffa032b5c642a81db",
+                      "size":  7993
+                  },
+                  {
+                      "relative_path":  "input/dependencies/p1_thickness_budget.csv",
+                      "sha256":  "7635ca5962a5d2f300c55553d6ed979fa59c35c448e8af3cdcfa2cb13f441976",
+                      "size":  4236
+                  },
+                  {
+                      "relative_path":  "input/dependencies/p1_vent_geometry_candidates.csv",
+                      "sha256":  "54cc8b657d38453ba27b8ccb6c6863f085679b2fa61f0b5bd6528d1033c62f9f",
+                      "size":  6870
+                  },
+                  {
+                      "relative_path":  "input/dependencies/test_full_product_semantic_contract_v1.py",
+                      "sha256":  "05aad0bc5ee74a783236bd6448face8f06776522ec4139108e570f0845817a81",
+                      "size":  28606
+                  },
+                  {
+                      "relative_path":  "input/dependencies/test_full_product_trusted_variants.py",
+                      "sha256":  "b4691df9fc91744bd3f740f2cda76d42df3025a5d99567d39a36953aff8bac87",
+                      "size":  17060
+                  },
+                  {
+                      "relative_path":  "input/dependencies/v03_finite_throat_route_v1.json",
+                      "sha256":  "9e5125c4338f1771220e77c51e85432c21f749373f34324a3ab6f14ad80386bb",
+                      "size":  6687
+                  },
+                  {
+                      "relative_path":  "input/dependencies/variant_02_m_3x4_7_0_r50_balanced.json",
+                      "sha256":  "17253b5ad35ecea541b9357e942eca6175a689517948f8b56cae254ebcc5b03a",
+                      "size":  1781515
+                  },
+                  {
+                      "relative_path":  "temp/ElectronicsDatabaseAddIn.log",
+                      "sha256":  "0c01488b8abed70ab0c1361f83466a41e1487fe332925a5b34eae200ee3d9995",
+                      "size":  7712
+                  },
+                  {
+                      "relative_path":  "temp/tmp2BC6.tmp",
+                      "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                      "size":  0
+                  },
+                  {
+                      "relative_path":  "temp/.ansys/.ansys.rnd",
+                      "sha256":  "3ad36279c4dc811893ee0ebbd75b97f41bd3c329f158f2feab68fcc86c9e5534",
+                      "size":  1024
+                  },
+                  {
+                      "relative_path":  "temp/.ansys/aclcleanup.log",
+                      "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                      "size":  0
+                  },
+                  {
+                      "relative_path":  "temp/.ansys/ansyscl.LAPTOP-LCCLM2HI.log",
+                      "sha256":  "1c3fc601d622e9d8edaf108fa4bdb0860dd55952fe167e24003273de2076a8ea",
+                      "size":  4201
+                  },
+                  {
+                      "relative_path":  "temp/.ansys/licdebug.LAPTOP-LCCLM2HI.ALI_UTIL.261.out",
+                      "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                      "size":  0
+                  },
+                  {
+                      "relative_path":  "temp/.ansys/licdebug.LAPTOP-LCCLM2HI.SPACECLAIM.261.out",
+                      "sha256":  "b6affc4664248ae4114395ce5972d7d16f714f61e579ba10c7259658a8111ce1",
+                      "size":  1419
+                  },
+                  {
+                      "relative_path":  "temp/ActivePIMgrClient/MutexLocks/be98bda0-a530-4ad4-8f8f-9d7c4eab34f6 Plugin 37432",
+                      "sha256":  "b76875c50ef704dbbf7f02c982445971d1bbd61aebe2e4b28ddc58a1d66317d5",
+                      "size":  12
+                  },
+                  {
+                      "relative_path":  "temp/ActivePIMgrClient/MutexLocks/be98bda0-a530-4ad4-8f8f-9d7c4eab34f6 WaitList 37432",
+                      "sha256":  "b76875c50ef704dbbf7f02c982445971d1bbd61aebe2e4b28ddc58a1d66317d5",
+                      "size":  12
+                  },
+                  {
+                      "relative_path":  "temp/ActivePIMgrClient/MutexLocks/be98bda0-a530-4ad4-8f8f-9d7c4eab34f6 WaitListData37432",
+                      "sha256":  "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+                      "size":  4
+                  },
+                  {
+                      "relative_path":  "temp/Ansys/RunningCADs/LAPTOP-LCCLM2HI/v261/37432.direct",
+                      "sha256":  "fa82dcdc9b8cbb64c1345b4d140ea71ccd27e4bed398e6d1b8ea858391abbd79",
+                      "size":  117
+                  }
+              ],
+    "job_id":  "AJM006-V03-CONTINUOUS-22885f73ae65",
+    "phase":  "PROCESS_EXITED_0",
+    "total_size":  20116812
+}

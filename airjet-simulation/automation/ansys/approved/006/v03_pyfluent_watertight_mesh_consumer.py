@@ -81,7 +81,7 @@ ASSERTION_NAMES = (
     "fluent_v261_meshing_health",
     "watertight_native_import",
     "boundary_roles_reconstructed",
-    "boundary_semantics_preserved_1078",
+    "boundary_semantics_preserved_1076",
     "throat_roles_reconstructed_972",
     "throat_local_sizing_contract",
     "surface_mesh",
@@ -131,7 +131,7 @@ EXPECTED_BOUNDARY_ROLE_COUNTS = {
     "MEMBRANE_TOP": 12,
     "MEMBRANE_BOTTOM": 12,
     "ORIFICE_THROAT_WALL": THROAT_COUNT,
-    "WALL_CONTINUOUS_UNCLASSIFIED": 76,
+    "WALL_CONTINUOUS_UNCLASSIFIED": 74,
 }
 SOURCE_BOUNDARY_FACE_COUNT = sum(EXPECTED_BOUNDARY_ROLE_COUNTS.values())
 CANONICAL_BOUNDARY_ZONE_NAMES = {
@@ -464,7 +464,7 @@ def build_boundary_role_blueprint(
         "edge_count",
     }
     if not isinstance(faces, list) or len(faces) != SOURCE_BOUNDARY_FACE_COUNT:
-        raise RuntimeError("SOURCE_BOUNDARY_FACE_COUNT_NOT_1078")
+        raise RuntimeError("SOURCE_BOUNDARY_FACE_COUNT_NOT_1076")
     records = []
     fingerprints = set()
     counts = {role: 0 for role in BOUNDARY_ROLE_ORDER}
@@ -538,7 +538,7 @@ def validate_semantic_zone_mapping(
     """Reject missing, overlapping, or many-source-to-one semantic mappings."""
     expected_keys = {"source_face_index", "role", "zone_id", "zone_name"}
     if not isinstance(records, list) or len(records) != SOURCE_BOUNDARY_FACE_COUNT:
-        raise RuntimeError(f"{stage}_SEMANTIC_MAPPING_COUNT_NOT_1078")
+        raise RuntimeError(f"{stage}_SEMANTIC_MAPPING_COUNT_NOT_1076")
     counts = {role: 0 for role in BOUNDARY_ROLE_ORDER}
     indices = []
     zone_ids = []
@@ -1207,7 +1207,7 @@ def classify_post_surface_product_roles(
     stage: str,
     expected_name_sets: dict[str, set[str]] | None = None,
 ) -> dict[str, Any]:
-    """Classify a small product-only zone inventory without 1078 probes."""
+    """Classify a small product-only zone inventory without 1076 probes."""
     if (
         not isinstance(product_zone_ids, list)
         or not product_zone_ids
@@ -1393,7 +1393,7 @@ def rebind_post_surface_canonical_records(
             )
         )
     if len(canonical_records) != SOURCE_BOUNDARY_FACE_COUNT:
-        raise RuntimeError("POST_SURFACE_CANONICAL_SOURCE_NOT_1078")
+        raise RuntimeError("POST_SURFACE_CANONICAL_SOURCE_NOT_1076")
     expected_origin_summary = validate_canonical_semantic_mapping(
         canonical_records, "POST_SURFACE_ORIGIN_CANONICAL"
     )
@@ -1822,7 +1822,7 @@ def semantic_zone_type(role: str) -> str:
 def canonical_boundary_update_contract(
     records: list[dict[str, Any]],
 ) -> tuple[list[str], list[str], list[int]]:
-    """Return exactly ten unique zone/type updates from 1078 source records."""
+    """Return exactly ten unique zone/type updates from 1076 source records."""
     summary = validate_canonical_semantic_mapping(
         records, "BOUNDARY_UPDATE_CANONICAL"
     )
@@ -2500,7 +2500,7 @@ try:
     )
     if len(imported_face_zone_ids) != SOURCE_BOUNDARY_FACE_COUNT:
         raise RuntimeError(
-            "NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1078:{}".format(
+            "NATIVE_IMPORT_FACE_ZONE_COUNT_NOT_1076:{}".format(
                 len(imported_face_zone_ids)
             )
         )
@@ -2516,7 +2516,7 @@ try:
         len(set(pre_surface_mapped_zone_ids)) != SOURCE_BOUNDARY_FACE_COUNT
         or sorted(pre_surface_mapped_zone_ids) != sorted(imported_face_zone_ids)
     ):
-        raise RuntimeError("PRE_SURFACE_MAPPED_ZONES_NOT_EXACT_IMPORTED_1078")
+        raise RuntimeError("PRE_SURFACE_MAPPED_ZONES_NOT_EXACT_IMPORTED_1076")
     for role in BOUNDARY_ROLE_ORDER:
         current_names = pre_surface_semantic_summary["role_zone_names"][role]
         if role != "INLET" and len(current_names) > 1:
@@ -3190,7 +3190,7 @@ try:
         semantic_zone_adjacency,
         cell_zone_ids,
     )
-    result["assertions"]["boundary_semantics_preserved_1078"] = True
+    result["assertions"]["boundary_semantics_preserved_1076"] = True
 
     launch_transcripts = sorted(JOB_DIR.glob("fluent-*.trn"))
     launch_transcript_text = (
