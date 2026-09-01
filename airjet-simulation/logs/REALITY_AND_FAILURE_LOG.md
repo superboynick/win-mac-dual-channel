@@ -1653,13 +1653,32 @@
 - 原始错误短摘：`ANSYS profile policy identity/schema/unique-name lock failed`；`ANSYS profile hash mismatch`；`BLOCKED_DIRTY_WORKTREE`。
 - 原始日志路径 + SHA-256：本轮为 Git/MCP preflight 输出，无 ANSYS 原生产物；变更由本条对应 Git commit 固定。
 - 假设与最小区分实验：3 个 P2 条目属于未经主审计接纳的后续实验注册，而非当前 AJM-009 C7 profile；仅从 `profiles.json` 撤销可执行注册、保留脚本与 Git 历史，再运行全项目 audit 和 clean-worktree inventory。
-- 结果：audit 已恢复 PASS；等待提交后重跑 inventory。
+- 结果：audit 已恢复 PASS；修复提交 `4c4af2962744ee2eb83ae862d45653583dececf7` 推送后 inventory `ready=true`。
 - 根因及置信度：高置信；`audit-airjet-project.ps1` 与 MCP static policy 均固定要求 20 个批准 profiles，后续提交只追加了 3 个条目及不一致哈希，没有同步强制策略或建立安全 predecessor 契约。
 - 采取/拒绝的 workaround：撤销未批准注册；拒绝仅更新哈希、绕过 audit、直接运行带绝对旧 job 路径的 P2 scripts。
 - 对 Gate/论文主张的影响：无新增物理或 Gate 证据；P1--P6 保持 `NOT_PASSED`。
-- 下一步：提交并推送本次 policy 清理；重新 inventory；仅执行 AJM-009 批准的 C7 two-stage profile。
+- 下一步：仅执行 AJM-009 批准的 C7 two-stage profile。
 - 关联 decision/annotation/run：AJM_WIN_CODEX_A_ANSYS_TRACK_009；无 run-index 行（未启动 ANSYS job）。
-- 状态：OPEN_INVENTORY_RETRY_AFTER_CLEAN_COMMIT
+- 状态：CLOSED_PROFILE_POLICY_RESTORED
+
+## REAL-20260901-072：C7 two-stage runner 的 consumer SHA 锁落后于批准 profile
+
+- UTC：2026-09-01T02:04:40Z--02:04:41Z
+- Stage/task：AJM-009 / AJM006 V03 C7 formal two-stage mesh preflight
+- Machine/operator：Windows ANSYS Student 2026 R1 / Codex
+- run/job/profile：suite `AJM006_V03_TWO_STAGE_CONTINUOUS_MESH_SUITE`；stage1/stage2 均 `NOT_RUN`，无 job ID
+- 期望：runner 在提交前确认 SpaceClaim producer 与 PyFluent consumer 的批准 profile/hash 完全一致。
+- 实际观察：producer preflight PASS；runner 在启动 MCP 前因 consumer SHA 常量仍为旧值 `41eb0977...` 而拒绝当前 profile/脚本一致的新值 `97b587ea...`。
+- 原始错误短摘：`BLOCKED_CONSUMER_PROFILE_CONTRACT_MISMATCH:sha256`
+- 原始日志路径 + SHA-256：`D:\AirJet_P1\AJM-P1-CAD-006\V03_CONTINUOUS_MESH_RUN_SUMMARY.json`；该固定路径会被下一次 suite 运行更新，最终证据以本条 Git commit 与后续 job manifest 为准。
+- 假设与最小区分实验：比较 runner 常量、`profiles.json` 登记 SHA 和批准 consumer 文件实际 SHA；后两者同为 `97b587ea...`，仅 runner 常量滞后。
+- 结果：更新 runner hash lock，并新增 repository-level 静态测试同时核对常量、profile 和文件实际 SHA；runner/consumer/rear-inlet guards 与项目 audit 全部 PASS。
+- 根因及置信度：高置信；C7 consumer 在 dead0 修复后更新，profile hash 已同步，但 two-stage runner 的独立常量和测试字面量未同步。
+- 采取/拒绝的 workaround：同步固定 hash 并增强回归测试；拒绝绕过 exact profile contract 或手动调用未绑定 consumer。
+- 对 Gate/论文主张的影响：无新增 ANSYS 运行或物理证据；P1--P6 保持 `NOT_PASSED`。
+- 下一步：提交并推送 hash-lock 修复；clean inventory 后重新执行固定 two-stage runner。
+- 关联 decision/annotation/run：AJM_WIN_CODEX_A_ANSYS_TRACK_009；无 run-index 行（没有 ANSYS job）。
+- 状态：CLOSED_STATIC_FIX_PENDING_RUNTIME_RETRY
 
 ## 新条目模板
 

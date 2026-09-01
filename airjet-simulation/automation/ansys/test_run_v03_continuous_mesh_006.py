@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import ast
 import copy
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -292,10 +293,23 @@ def valid_report_state_manifest() -> tuple[dict, dict, dict]:
 
 def test_consumer_report_accepts_exact_contract() -> None:
     assert runner.CONSUMER_SCRIPT_SHA256 == (
-        "41eb09770232ee549411d36642c1c330227a81842dafb285021586299e72ba09"
+        "97b587eaf3016c63320308e9ebd05ea350980b12e628bfad6f58c1214bbdbda3"
     )
     report, state, manifest = valid_report_state_manifest()
     assert runner.validate_consumer_report(manifest, state, HEAD) == report
+
+
+def test_repository_consumer_hash_lock_is_consistent() -> None:
+    profiles = json.loads((HERE / "profiles.json").read_text(encoding="utf-8"))
+    matches = [
+        item for item in profiles["profiles"]
+        if item["profile_id"] == runner.CONSUMER_PROFILE_ID
+    ]
+    assert len(matches) == 1
+    profile = matches[0]
+    script = HERE / "approved" / profile["script"]
+    assert profile["sha256"] == runner.CONSUMER_SCRIPT_SHA256
+    assert hashlib.sha256(script.read_bytes()).hexdigest() == runner.CONSUMER_SCRIPT_SHA256
 
 
 def test_consumer_assertion_contract_includes_c5_hard_gates() -> None:
