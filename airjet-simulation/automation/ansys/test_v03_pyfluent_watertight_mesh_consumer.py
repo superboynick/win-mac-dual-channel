@@ -155,6 +155,8 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.update_boundaries.old_boundary_zone_list",
         "workflow.update_boundaries.old_boundary_zone_type_list",
         '"boundary_zone_types_updated"',
+        "workflow.create_regions.retain_dead_region_name = True",
+        '"CREATE_REGIONS_RETAIN_DEAD_NAMES_NOT_TRUE"',
         "workflow.create_regions()",
         "workflow.update_regions()",
         '"MIXED_1_MAIN_12_VOID_UPDATE_REGIONS"',
@@ -181,11 +183,15 @@ def test_mixed_region_route_is_explicit_and_ordered() -> None:
         '"The geometry consists of both fluid and solid regions and/or voids"'
     )
     create_regions = SOURCE.index("workflow.create_regions()")
+    retain_dead_names = SOURCE.index(
+        "workflow.create_regions.retain_dead_region_name = True"
+    )
     update_regions = SOURCE.index("workflow.update_regions()")
     volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
     assert (
         describe
         < boundary_guard
+        < retain_dead_names
         < create_regions
         < update_regions
         < volume_mesh

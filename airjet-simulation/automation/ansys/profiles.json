@@ -538,7 +538,7 @@
         "v03_pyfluent_watertight_mesh_consumer.json"
       ],
       "script": "006/v03_pyfluent_watertight_mesh_consumer.py",
-      "sha256": "aaf8b6140bfbdb233a1f19414c14e5e4264c394ba413b8caf3d7509c9a2bcab1",
+      "sha256": "f7e530ddf59642d1a70bcbdb002d70921a6ac54bc760eb9b9fb8014f9a5fa021",
       "timeout_seconds": 7200
     },
     {

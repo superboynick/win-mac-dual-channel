@@ -395,3 +395,12 @@ native reopen 和 STEP reopen 独立实测后才可接受。P1--P6 继续 `NOT_R
 `ba4c2fd5...62af`，闭合体 face count 为 1076。后续 consumer 因仍锁定旧 1078-face
 fingerprint 在 Fluent 启动前 fail closed；因此该轮只接受几何 runtime，不接受 mesh、formal
 006 或 P1--P6 Gate。
+
+**2026-09-01 C7 1076 契约复跑**：consumer
+`AJM006-V03-CONTINUOUS-255f657e8b8d` 已接受 1076-face predecessor，并在 Fluent 中完成
+1076 面导入、4 inlet、1 outlet、972 throat hits、0.075 mm throat sizing 与 surface mesh。
+surface maximum skewness 为 `0.56680436`，随后 `Create Regions` 因十二个非流动 actuator-gap
+void 的 `dead0` 名称冲突而失败。体网格、Student cell/node guard、mesh hash 和 physics 均未到达。
+修复将 v261 的 `retain_dead_region_name` 固定为 `True` 并在执行前校验；状态更新为
+“surface mesh runtime PASS，dead-region naming 修复待 clean retry”，formal 006 与 P1--P6 仍
+`NOT_PASSED`。

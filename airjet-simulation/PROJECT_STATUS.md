@@ -39,10 +39,17 @@ difference is confined to the remaining continuous-wall inventory (74 rather tha
 4/1 inlet/outlet, heat wall, 12+12 membrane and 972 throat contracts remain unchanged. This is a
 contract synchronization failure, not mesh evidence; formal 006 and P1--P6 remain `NOT_PASSED`.
 
-Next ANSYS action: commit the reviewed 1076-face consumer/runner/profile lock, require clean
-inventory, and run exactly one official-MCP two-stage C7 retry. Stop before solver mode on the
-first failed assertion. Only after C7 closes may Windows Codex A continue the remaining complete
-P1 stage prerequisites. Do not use root-level ad-hoc mesh/solve scripts.
+The next clean 1076-contract retry reached Fluent and completed the surface mesh with maximum
+skewness `0.56680436`, after exact reconstruction of four inlets, one outlet and 972 throat hits.
+It then failed in `workflow.create_regions()` because v261 used
+`retain_dead_region_name=false` and collided while naming the twelve actuator-gap voids at
+`dead0`. Volume mesh, Student cell/node guards, mesh write and physics were not reached. The
+reviewed consumer now pins `retain_dead_region_name=True` with a fail-closed pre-execution guard.
+
+Next ANSYS action: commit the dead-region naming fix and its failed-run evidence, require clean
+synced inventory, and run exactly one official-MCP two-stage C7 retry. Stop before solver mode on
+the first failed assertion. Only after C7 closes may the remaining complete P1 prerequisites
+continue. Do not use root-level ad-hoc mesh/solve scripts.
 
 Next OpenFOAM action: Windows Codex B consumes only
 `rear_inlet_handoff_accepted_20260720.json`, revalidates the artifact hashes available on its

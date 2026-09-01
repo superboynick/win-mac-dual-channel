@@ -1699,6 +1699,25 @@
 - 关联 decision/annotation/run：AJM-P1-GEO-009；AJM-P1-MESH-002；本轮 producer/consumer 两条 run-index。
 - 状态：CLOSED_FAILURE_PRESERVED_STATIC_FIX_PENDING_CLEAN_RETRY
 
+## REAL-20260901-074：1076 契约进入 Fluent 后在十二空区的 dead0 命名处失败
+
+- UTC：2026-09-01T11:16:20Z--11:27:14Z
+- Stage/task：AJM-009 / AJM006 V03 clean 1076-contract C7 two-stage retry
+- Machine/operator：Windows ANSYS Student 2026 R1 / Codex via official MCP runner
+- run/job/profile：producer `AJM006-V03-CONTINUOUS-70ec3b99d924` / `ajm006-spaceclaim-v03-continuous-throat-pilot-v1`；consumer `AJM006-V03-CONTINUOUS-255f657e8b8d` / `ajm006-pyfluent-v03-continuous-mesh-pilot-v1`
+- 期望：接受签名的 1076-face predecessor，完成 exact semantic coverage、Watertight surface/volume mesh、唯一主流体区、十二 non-flow void exclusions、Student guards 与 mesh hash；任一失败均不得进入 solver。
+- 实际观察：producer `PROCESS_EXITED_0 / PASS_PARTIAL_CAD_CAPABILITY`。consumer 接受 predecessor 并启动 Fluent；1076 面全部导入，4 inlet、1 outlet、972 throat hits 与 0.075 mm throat sizing 闭合，surface mesh 在约 1.26 分钟完成，maximum skewness `0.56680436`。随后 `workflow.create_regions()` 失败；volume mesh、Student cell/node guard、mesh integrity/write/hash 与 physics 均未到达，`solver_mode=NOT_ENTERED`。
+- 原始错误短摘：`Topology region with name dead0 already exists`
+- 原始日志路径 + SHA-256：凝练目录 `logs/evidence/AJM006_V03_C7_CREATE_REGIONS_20260901T111613Z_255f657e8b8d/`；suite summary SHA `605a6028ba2ec4277b6e03754a69b3dc386101ca4ad915c1674326e80d7d59a0`；consumer report SHA `ee1edab937853d71802c543be1cb288edfb9c1d7ab5a399820a7100cf07aca8d`；完整外部 job 树由 producer/consumer manifests 索引。
+- 假设与最小区分实验：诊断 trace 明确记录 Create Regions pre-state 为 `number_of_flow_volumes=1`、`retain_dead_region_name=false`；v261 官方生成接口说明启用该字段会给 dead region 保留原始相邻区前缀。最小修复只固定 `retain_dead_region_name=True` 并在 task 执行前 fail-close 校验，不改 CAD、网格尺寸或 region 数量合同。
+- 结果：consumer SHA 更新为 `f7e530ddf59642d1a70bcbdb002d70921a6ac54bc760eb9b9fb8014f9a5fa021`，runner/profile 锁同步；51 个工作流测试、19 个语义契约测试、MCP policy `profiles=20 tools=5` 与项目 audit 均 PASS。runtime 修复尚需 clean retry。
+- 根因及置信度：高置信；失败点、pre-state 与 v261 参数语义相互一致。此次不是内存、磁盘、Student entity limit 或 CAD predecessor failure；但下一次体网格仍可能独立暴露 Student 上限或其他 postcondition。
+- 采取/拒绝的 workaround：采用官方 task 参数保留唯一 dead-region 名称；拒绝删除十二 actuator gaps、将 void 当流体、跳过 Create/Update Regions、进入 solver、或把 1037778 surface face count 当成最终 cell/node 计数。
+- 对 Gate/论文主张的影响：新增 1076 semantic import 与 surface-mesh runtime 证据，但没有可交付体网格或 physics；formal 006 与 P1--P6 保持 `NOT_PASSED`。
+- 下一步：提交并推送失败证据与命名修复；clean inventory 后只运行一次固定 official-MCP two-stage runner，并在首个失败 assertion 处停止。
+- 关联 decision/annotation/run：AJM-P1-GEO-009；AJM-P1-MESH-002；本轮 producer/consumer 两条 run-index。
+- 状态：CLOSED_FAILURE_PRESERVED_RETAIN_DEAD_NAMES_FIX_PENDING_CLEAN_RETRY
+
 ## 新条目模板
 
 ```text

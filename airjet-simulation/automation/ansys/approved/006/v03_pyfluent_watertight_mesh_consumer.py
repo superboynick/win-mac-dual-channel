@@ -2701,12 +2701,19 @@ try:
             )
         )
 
+    # The twelve actuator gaps are distinct non-flow voids.  Fluent's default
+    # dead-region naming can reuse ``dead0`` while materializing those regions,
+    # which makes Create Regions fail before Update Regions can classify them.
+    # Retaining the adjacent-region suffix keeps every generated name unique.
+    workflow.create_regions.retain_dead_region_name = True
     create_regions_pre_state = workflow.create_regions.arguments()
     trace_checkpoint(
         "create_regions_pre_execute_state",
         python_type=type(create_regions_pre_state).__name__,
         state=json_safe_trace_value(create_regions_pre_state),
     )
+    if create_regions_pre_state.get("retain_dead_region_name") is not True:
+        raise RuntimeError("CREATE_REGIONS_RETAIN_DEAD_NAMES_NOT_TRUE")
     workflow.create_regions()
     direct_region_state = observe_update_regions_argument_menu(
         workflow.update_regions.arguments

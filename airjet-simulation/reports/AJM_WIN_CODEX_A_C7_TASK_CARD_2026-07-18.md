@@ -44,6 +44,14 @@ Formal A execution checkpoint at `2026-07-18T10:08:00Z`:
 
 Current decision: escalate the unchanged `dead0` topology blocker to Mac for root-cause/design decision; do not repeat the same consumer route or enter solver mode without a reviewed source change.
 
+2026-09-01 clean 1076-contract checkpoint:
+
+- Signed head `8ffed0360ac383b1d7e8a8abb2f6d17a0f3a3416` produced job `AJM006-V03-CONTINUOUS-70ec3b99d924` and consumer `AJM006-V03-CONTINUOUS-255f657e8b8d` through the official MCP runner.
+- The consumer passed predecessor identity, native 1076-face import, 4/1 inlet/outlet reconstruction, 972 throat hits, local sizing and surface meshing; maximum surface skewness was `0.56680436`.
+- `workflow.create_regions()` failed because its observed pre-state retained the v261 default `retain_dead_region_name=false`, causing `Topology region with name dead0 already exists` across twelve excluded actuator-gap voids.
+- The reviewed source pins `workflow.create_regions.retain_dead_region_name = True`, verifies that exact pre-state, and updates the profile/runner SHA lock to `f7e530ddf59642d1a70bcbdb002d70921a6ac54bc760eb9b9fb8014f9a5fa021`.
+- Static closure: 51 workflow tests PASS, 19 semantic-contract tests PASS, MCP policy PASS (`profiles=20 tools=5`) and project audit PASS. Volume mesh and all P1--P6/physics claims remain unaccepted pending one clean retry.
+
 Mac remediation handoff:
 
 - Root cause is isolated to the pre-region inlet split: `sep_face_zone_by_region` creates implicit topology-region state before the Watertight `Create Regions` task, whose first generated void name then collides at `dead0`.
