@@ -158,8 +158,8 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.create_regions.retain_dead_region_name = True",
         '"CREATE_REGIONS_RETAIN_DEAD_NAMES_NOT_TRUE"',
         "workflow.create_regions()",
-        "workflow.update_regions.arguments.mesh_object = region_mesh_object",
-        "workflow.update_regions.arguments.mesh_object",
+        "workflow.update_regions.arguments(mesh_object=region_mesh_object)",
+        "update_regions_argument_state = workflow.update_regions.arguments()",
         '"update_regions_mesh_object_bound"',
         '"UPDATE_REGIONS_MESH_OBJECT_NOT_BOUND"',
         "workflow.update_regions()",
@@ -192,7 +192,7 @@ def test_mixed_region_route_is_explicit_and_ordered() -> None:
     )
     update_regions = SOURCE.index("workflow.update_regions()")
     bind_mesh_object = SOURCE.index(
-        "workflow.update_regions.arguments.mesh_object = region_mesh_object"
+        "workflow.update_regions.arguments(mesh_object=region_mesh_object)"
     )
     volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
     assert (
@@ -1425,19 +1425,11 @@ def test_update_regions_reads_generated_argument_menu_only() -> None:
         "observe_update_regions_argument_menu"
     ]
 
-    class Parameter:
-        def __init__(self, value):
-            self.value = value
-
-        def __call__(self):
-            return self.value
-
-    class ArgumentMenu:
-        region_current_list = Parameter(["fluid", "dead0"])
-        region_current_type_list = Parameter(["fluid", "dead"])
-        number_of_listed_regions = Parameter(2)
-
-    assert observe(ArgumentMenu()) == {
+    assert observe({
+        "region_current_list": ["fluid", "dead0"],
+        "region_current_type_list": ["fluid", "dead"],
+        "number_of_listed_regions": 2,
+    }) == {
         "region_current_list": {
             "read_ok": True,
             "python_type": "list",
@@ -1455,25 +1447,18 @@ def test_update_regions_reads_generated_argument_menu_only() -> None:
         },
     }
 
-    class BrokenParameter:
-        def __call__(self):
-            raise RuntimeError("menu read failed")
-
-    class BrokenMenu:
-        region_current_list = BrokenParameter()
-
-    broken = observe(BrokenMenu())
+    broken = observe({"region_current_list": None})
     assert broken["region_current_list"] == {
-        "read_ok": False,
-        "error_type": "RuntimeError",
-        "error": "menu read failed",
+        "read_ok": True,
+        "python_type": "NoneType",
+        "value": None,
     }
     assert broken["region_current_type_list"]["read_ok"] is False
-    assert broken["region_current_type_list"]["error_type"] == "AttributeError"
+    assert broken["region_current_type_list"]["error_type"] == "KeyError"
     assert broken["number_of_listed_regions"]["read_ok"] is False
 
 
-def test_update_regions_argument_menu_calls_are_attributes_not_calls() -> None:
+def test_update_regions_argument_menu_uses_state_snapshots() -> None:
     calls = [
         node
         for node in ast.walk(TREE)
@@ -1485,10 +1470,10 @@ def test_update_regions_argument_menu_calls_are_attributes_not_calls() -> None:
     for call in calls:
         assert len(call.args) == 1
         argument = call.args[0]
-        assert isinstance(argument, ast.Attribute)
-        assert argument.attr == "arguments"
-        assert not isinstance(argument.value, ast.Call)
-    assert "workflow.update_regions.arguments()" not in SOURCE
+        assert isinstance(argument, ast.Name) or isinstance(argument, ast.Call)
+    assert SOURCE.count("workflow.update_regions.arguments()") == 2
+    assert "workflow.update_regions.arguments(mesh_object=region_mesh_object)" in SOURCE
+    assert "workflow.update_regions.arguments(\n        mesh_object=region_mesh_object," in SOURCE
     assert "getattr(workflow.update_regions, name)" not in SOURCE
 
 

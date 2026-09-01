@@ -25,7 +25,7 @@ import run_v03_continuous_fluid_006 as stage1
 
 CONSUMER_PROFILE_ID = "ajm006-pyfluent-v03-continuous-mesh-pilot-v1"
 CONSUMER_SCRIPT = "006/v03_pyfluent_watertight_mesh_consumer.py"
-CONSUMER_SCRIPT_SHA256 = "fe6740647a3f0ab6095428e76f12bdb9ad3d3de5066c58182066f21ac49d9fe9"
+CONSUMER_SCRIPT_SHA256 = "836d68a25107dff4366752210c10a7877ef55062bbfccb980a5579aae73ef4bf"
 CONSUMER_REPORT = "v03_pyfluent_watertight_mesh_consumer.json"
 CASE_ID = stage1.CASE_ID
 RESULT_PATH = stage1.OUTPUT_ROOT / "V03_CONTINUOUS_MESH_RUN_SUMMARY.json"

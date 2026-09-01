@@ -2104,6 +2104,8 @@ for invariant in (
     '"POST_SURFACE_PRODUCT_SUFFIX_BLOCKS_NOT_CONTIGUOUS_ORDERED"',
     "observe_update_regions_argument_menu(",
     "workflow.update_regions.arguments",
+    "workflow.update_regions.arguments(mesh_object=region_mesh_object)",
+    "update_regions_argument_state = workflow.update_regions.arguments()",
     '"update_regions_argument_menu_state"',
 ):
     if invariant not in v03_mesh_source:
@@ -2138,15 +2140,15 @@ argument_menu_calls = [
 ]
 if len(argument_menu_calls) != 2 or any(
     len(node.args) != 1
-    or not isinstance(node.args[0], ast.Attribute)
-    or node.args[0].attr != "arguments"
-    or isinstance(node.args[0].value, ast.Call)
+    or not isinstance(node.args[0], (ast.Name, ast.Call))
     for node in argument_menu_calls
 ):
-    fail("V03 update-regions reads are not exact argument-menu attributes")
+    fail("V03 update-regions reads are not exact callable state snapshots")
+if v03_mesh_source.count("workflow.update_regions.arguments()") != 2:
+    fail("V03 update-regions callable snapshot count is not exact")
 for forbidden in (
     "getattr(workflow.update_regions, name)",
-    "workflow.update_regions.arguments()",
+    "workflow.update_regions.arguments.mesh_object",
     "range(1124, 1136)",
     "range(1136, 1147)",
     "range(1147, 1158)",
@@ -2205,7 +2207,7 @@ for guard_name in (
     "test_rebind_has_zero_exhaustive_post_surface_mapping_calls",
     "test_inlet_binding_executes_exactly_four_point_queries",
     "test_update_regions_reads_generated_argument_menu_only",
-    "test_update_regions_argument_menu_calls_are_attributes_not_calls",
+    "test_update_regions_argument_menu_uses_state_snapshots",
 ):
     if guard_name not in consumer_guard_names:
         fail("V03 C5 consumer regression guard missing: " + guard_name)

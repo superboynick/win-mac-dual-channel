@@ -1758,6 +1758,24 @@
 - 关联 decision/annotation/run：AJM-P1-MESH-002；本轮两条 run-index。
 - 状态：CLOSED_FAILURE_PRESERVED_ARGUMENT_CONTAINER_FIX_PENDING_CLEAN_RETRY
 
+## REAL-20260901-077：新 workflow 的 arguments 是 callable method 而非 legacy property
+
+- UTC：2026-09-01T12:12:56Z--12:20:39Z
+- Stage/task：AJM-009 / AJM006 V03 argument-container retry
+- Machine/operator：Windows ANSYS Student 2026 R1 / Codex via official MCP runner
+- run/job/profile：producer `AJM006-V03-CONTINUOUS-bb4ae6bedd41`；consumer `AJM006-V03-CONTINUOUS-001243954757`
+- 期望：通过 `arguments.mesh_object` 写入并回读 MeshObject。
+- 实际观察：producer、surface mesh 与 Create Regions 路径保持可达；consumer 在属性写入处以 `'method' object has no attribute 'mesh_object'` fail closed，未进入 Update Regions/volume mesh/solver。
+- 原始日志路径 + SHA-256：`logs/evidence/AJM006_V03_C7_ARGUMENT_METHOD_20260901T121256Z_001243954757/`；suite SHA `d7fa930fb3df6b8f47af71118d9dd49eac8d8665550bdb72065f7b7628629e18`；consumer report SHA `dacaaa997709098445641b1f9961b3e7048fe062f8c03a10f00b4526eb7b4d91`。
+- 假设与最小区分实验：26R1 默认启用 PyFluent new workflow；其动态 task interface 以 callable `arguments(key=value)` 写字典、`arguments()` 读快照。统一改用该接口设置 MeshObject、读取 region menu，并一次性提交 approved region arguments。
+- 结果：consumer SHA 更新为 `836d68a25107dff4366752210c10a7877ef55062bbfccb980a5579aae73ef4bf`；51 个 workflow tests、MCP policy `profiles=20 tools=5` 与项目 audit `required_files=175` 均 PASS，待 clean retry。
+- 根因及置信度：高置信；runtime 类型错误与安装的 `workflow_new.py` 多继承/动态 delegate 实现完全一致。
+- 采取/拒绝的 workaround：改用 active new-workflow callable API；拒绝改回 legacy 模式、绕过 region contract 或进入 solver。
+- 对 Gate/论文主张的影响：formal 006、volume mesh、P1--P6 仍 `NOT_PASSED`。
+- 下一步：测试/policy/audit、提交；再运行一次 callable-argument retry。
+- 关联 decision/annotation/run：AJM-P1-MESH-002；本轮两条 run-index。
+- 状态：CLOSED_FAILURE_PRESERVED_NEW_WORKFLOW_ARGUMENT_FIX_PENDING_CLEAN_RETRY
+
 ```text
 ## REAL-YYYYMMDD-NNN：标题
 - UTC：

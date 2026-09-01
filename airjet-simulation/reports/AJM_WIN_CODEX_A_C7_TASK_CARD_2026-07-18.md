@@ -67,6 +67,12 @@ Current decision: escalate the unchanged `dead0` topology blocker to Mac for roo
 - Installed PyFluent 0.40.2 code confirms child assignment on `PyArguments` invokes `set_state`; the reviewed source now writes `workflow.update_regions.arguments.mesh_object` and preserves read-back validation.
 - No volume mesh, Student guards, mesh hash or solver entry was reached.
 
+2026-09-01 new-workflow callable checkpoint:
+
+- Consumer `AJM006-V03-CONTINUOUS-001243954757` showed `arguments` is a method in the active 26R1 new workflow and rejected property-style child assignment.
+- The reviewed source now uses `arguments(key=value)` and `arguments()` snapshots for MeshObject and region fields; it does not switch to legacy mode or relax 1+12 classification.
+- Volume mesh and solver entry remain unaccepted.
+
 Mac remediation handoff:
 
 - Root cause is isolated to the pre-region inlet split: `sep_face_zone_by_region` creates implicit topology-region state before the Watertight `Create Regions` task, whose first generated void name then collides at `dead0`.

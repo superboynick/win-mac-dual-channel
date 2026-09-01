@@ -1660,25 +1660,37 @@ def observe_parameter(parameter: Any) -> dict[str, Any]:
     }
 
 
-def observe_update_regions_argument_menu(argument_menu: Any) -> dict[str, Any]:
-    """Read generated current-region fields from the task argument menu."""
+def observe_update_regions_argument_menu(argument_state: Any) -> dict[str, Any]:
+    """Read generated current-region fields from a task-argument snapshot."""
     field_names = (
         "region_current_list",
         "region_current_type_list",
         "number_of_listed_regions",
     )
     observations = {}
+    if not isinstance(argument_state, dict):
+        return {
+            name: {
+                "read_ok": False,
+                "error_type": "TypeError",
+                "error": "UPDATE_REGIONS_ARGUMENT_STATE_NOT_DICT",
+            }
+            for name in field_names
+        }
     for name in field_names:
-        try:
-            parameter = getattr(argument_menu, name)
-        except Exception as exc:
+        if name not in argument_state:
             observations[name] = {
                 "read_ok": False,
-                "error_type": type(exc).__name__,
-                "error": str(exc),
+                "error_type": "KeyError",
+                "error": name,
             }
             continue
-        observations[name] = observe_parameter(parameter)
+        value = argument_state[name]
+        observations[name] = {
+            "read_ok": True,
+            "python_type": type(value).__name__,
+            "value": json_safe_trace_value(value),
+        }
     return observations
 
 
@@ -2718,10 +2730,17 @@ try:
     region_mesh_object = result["diagnostics"][
         "post_surface_canonical_product_only"
     ]["observation"]["product_object"]
-    workflow.update_regions.arguments.mesh_object = region_mesh_object
-    update_regions_mesh_object_state = observe_parameter(
-        workflow.update_regions.arguments.mesh_object
-    )
+    workflow.update_regions.arguments(mesh_object=region_mesh_object)
+    update_regions_argument_state = workflow.update_regions.arguments()
+    if not isinstance(update_regions_argument_state, dict):
+        raise RuntimeError("UPDATE_REGIONS_ARGUMENT_STATE_NOT_DICT")
+    update_regions_mesh_object_state = {
+        "python_type": type(update_regions_argument_state.get("mesh_object")).__name__,
+        "read_ok": "mesh_object" in update_regions_argument_state,
+        "value": json_safe_trace_value(
+            update_regions_argument_state.get("mesh_object")
+        ),
+    }
     trace_checkpoint(
         "update_regions_mesh_object_bound",
         mesh_object=region_mesh_object,
@@ -2733,7 +2752,7 @@ try:
     ):
         raise RuntimeError("UPDATE_REGIONS_MESH_OBJECT_NOT_BOUND")
     direct_region_state = observe_update_regions_argument_menu(
-        workflow.update_regions.arguments
+        update_regions_argument_state
     )
     trace_checkpoint(
         "update_regions_argument_menu_state",
@@ -2752,21 +2771,13 @@ try:
     approved_update_arguments = pre_update_region_inventory[
         "approved_update_arguments"
     ]
-    workflow.update_regions.region_name_list = approved_update_arguments[
-        "region_name_list"
-    ]
-    workflow.update_regions.region_type_list = approved_update_arguments[
-        "region_type_list"
-    ]
-    workflow.update_regions.old_region_name_list = approved_update_arguments[
-        "old_region_name_list"
-    ]
-    workflow.update_regions.old_region_type_list = approved_update_arguments[
-        "old_region_type_list"
-    ]
+    workflow.update_regions.arguments(
+        mesh_object=region_mesh_object,
+        **approved_update_arguments,
+    )
     workflow.update_regions()
     post_region_state = observe_update_regions_argument_menu(
-        workflow.update_regions.arguments
+        workflow.update_regions.arguments()
     )
     if any(
         observation.get("read_ok") is not True

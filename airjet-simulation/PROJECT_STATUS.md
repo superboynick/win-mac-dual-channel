@@ -52,13 +52,13 @@ null names/types/count because its v261 `MeshObject` argument remained unbound. 
 change binds the already validated unique product mesh object before reading the menu and keeps the
 exact one-main-plus-twelve-void guard unchanged. No volume mesh or physics evidence exists yet.
 
-The first binding retry fail-closed because assigning `mesh_object` on the task object did not write
-the registered command-argument state; the argument-container value remained null. Installed
-PyFluent StateEngine code confirms that assignment must target
-`workflow.update_regions.arguments.mesh_object`. The reviewed source now uses that exact path and
-retains the runtime read-back guard.
+The first binding retry fail-closed because task-level assignment did not write the argument state.
+The next property-style attempt showed that Fluent 2026 R1's default new workflow exposes
+`arguments` as a callable method, not the legacy property. The reviewed source now uses the active
+API: `arguments(key=value)` for writes and `arguments()` for snapshots. MeshObject, generated region
+fields, and approved update lists all use this route with the exact 1+12 guard unchanged.
 
-Next ANSYS action: commit the corrected argument-container binding and its failed-run evidence, require clean
+Next ANSYS action: commit the callable-argument binding and its failed-run evidence, require clean
 synced inventory, and run exactly one official-MCP two-stage C7 retry. Stop before solver mode on
 the first failed assertion. Only after C7 closes may the remaining complete P1 prerequisites
 continue. Do not use root-level ad-hoc mesh/solve scripts.

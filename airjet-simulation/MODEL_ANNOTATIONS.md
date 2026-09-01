@@ -417,3 +417,8 @@ P1--P6 均未到达。
 argument-menu 回读为 null 并 fail closed。官方 PyFluent StateEngine 实现确认应写
 `workflow.update_regions.arguments.mesh_object`；exact 1+12 guard 保持不变，体网格与 physics
 仍未到达。
+
+**2026-09-01 new-workflow callable 复验**：consumer
+`AJM006-V03-CONTINUOUS-001243954757` 证明 26R1 active workflow 的 `arguments` 是 callable
+method，不支持 property-style child assignment。修复统一改用 `arguments(key=value)` 写入和
+`arguments()` 快照读取；1 fluid + 12 voids contract、体网格与 physics 状态均不变。
