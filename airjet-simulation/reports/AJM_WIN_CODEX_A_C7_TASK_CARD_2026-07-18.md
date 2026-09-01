@@ -73,6 +73,12 @@ Current decision: escalate the unchanged `dead0` topology blocker to Mac for roo
 - The reviewed source now uses `arguments(key=value)` and `arguments()` snapshots for MeshObject and region fields; it does not switch to legacy mode or relax 1+12 classification.
 - Volume mesh and solver entry remain unaccepted.
 
+2026-09-01 local-sizing interruption:
+
+- Consumer `AJM006-V03-CONTINUOUS-412cf4f0633b` passed 1076-face import, 4/1 queries and 972 throat hits, then stopped at `LOCAL_SIZING_LAST_CHILD_NOT_CREATED`.
+- Surface mesh and the corrected callable Update Regions path were not reached; the fix is unverified, not rejected.
+- No identical automatic retry is permitted before local-sizing child-state review.
+
 Mac remediation handoff:
 
 - Root cause is isolated to the pre-region inlet split: `sep_face_zone_by_region` creates implicit topology-region state before the Watertight `Create Regions` task, whose first generated void name then collides at `dead0`.

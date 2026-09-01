@@ -63,6 +63,12 @@ synced inventory, and run exactly one official-MCP two-stage C7 retry. Stop befo
 the first failed assertion. Only after C7 closes may the remaining complete P1 prerequisites
 continue. Do not use root-level ad-hoc mesh/solve scripts.
 
+That retry was interrupted earlier by `LOCAL_SIZING_LAST_CHILD_NOT_CREATED` after exact 1076-face,
+4/1 boundary and 972-throat observations. It did not reach surface mesh or the callable Update
+Regions path, so the argument fix remains unverified rather than failed. The next source action is
+to review the local-sizing child create/update state transition; no identical automatic retry is
+authorized.
+
 Next OpenFOAM action: Windows Codex B consumes only
 `rear_inlet_handoff_accepted_20260720.json`, revalidates the artifact hashes available on its
 host and continues source/tooling readiness. It must still reject AirJet solver execution

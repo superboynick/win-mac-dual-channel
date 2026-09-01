@@ -1776,6 +1776,23 @@
 - 关联 decision/annotation/run：AJM-P1-MESH-002；本轮两条 run-index。
 - 状态：CLOSED_FAILURE_PRESERVED_NEW_WORKFLOW_ARGUMENT_FIX_PENDING_CLEAN_RETRY
 
+## REAL-20260901-078：callable-argument 复跑被更早的 local-sizing child 创建失败截断
+
+- UTC：2026-09-01T12:28:52Z--12:37:04Z
+- Stage/task：AJM-009 / AJM006 V03 callable-argument clean retry
+- Machine/operator：Windows ANSYS Student 2026 R1 / Codex via official MCP runner
+- run/job/profile：producer `AJM006-V03-CONTINUOUS-8734ce0a510d`；consumer `AJM006-V03-CONTINUOUS-412cf4f0633b`
+- 期望：验证 new-workflow callable arguments 并继续 exact 1+12 region Gate。
+- 实际观察：producer exit 0；consumer 通过 1076-face import、4/1 boundary、972 throat hits 与 normal reversal，但在既有 0.075 mm local-sizing child 创建检查处停止；surface mesh 与 Update Regions 本轮未到达。
+- 原始错误短摘：`LOCAL_SIZING_LAST_CHILD_NOT_CREATED`
+- 原始日志路径 + SHA-256：`logs/evidence/AJM006_V03_C7_LOCAL_SIZING_20260901T122852Z_412cf4f0633b/`；suite SHA `2bc5cc9c908fd64d694e43cf4999dec6716f5510d9be8d41528b2e416c0a7ff3`；consumer report SHA `307d5f3bd4fe76ae18cee919eef6e13818071f2bfdc5607ed8021d87d01cad71`。
+- 结果：callable-argument 修复本轮既未验证也未否定；没有自动重复相同运行。
+- 根因及置信度：暂定工作流子任务创建的非确定性/状态时序问题；需基于 child-list 前后状态做单变量修复，不能归因于算力或 Student limit。
+- 对 Gate/论文主张的影响：C7、formal 006、P1--P6 保持 `NOT_PASSED`。
+- 下一步：审查 local-sizing child create/update 时序，静态修复后再允许一次 clean retry；并行获取合法外部许可/算力报价。
+- 关联 decision/annotation/run：AJM-P1-MESH-002；本轮两条 external job 由 evidence package 索引。
+- 状态：OPEN_LOCAL_SIZING_CHILD_STATE_REVIEW
+
 ```text
 ## REAL-YYYYMMDD-NNN：标题
 - UTC：

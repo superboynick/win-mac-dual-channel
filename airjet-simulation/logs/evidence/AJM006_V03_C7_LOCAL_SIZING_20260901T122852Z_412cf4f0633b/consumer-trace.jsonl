@@ -1,0 +1,18 @@
+{"checkpoint": "predecessor_validation_started", "details": {}, "utc": "2026-09-01T12:31:11.911484+00:00"}
+{"checkpoint": "predecessor_validation_completed", "details": {"predecessor_job_id": "AJM006-V03-CONTINUOUS-8734ce0a510d"}, "utc": "2026-09-01T12:31:11.963033+00:00"}
+{"checkpoint": "step_copy_started", "details": {"source_size": 1806619}, "utc": "2026-09-01T12:31:11.963539+00:00"}
+{"checkpoint": "step_copy_completed", "details": {"staged_size": 1806619}, "utc": "2026-09-01T12:31:11.965084+00:00"}
+{"checkpoint": "source_step_hash_started", "details": {}, "utc": "2026-09-01T12:31:11.965084+00:00"}
+{"checkpoint": "source_step_hash_completed", "details": {"sha256": "99c442272b90383d2bcff50056fb140158c7bdf8b740c4b433150c54349ad8a6"}, "utc": "2026-09-01T12:31:11.966624+00:00"}
+{"checkpoint": "staged_step_hash_started", "details": {}, "utc": "2026-09-01T12:31:11.968170+00:00"}
+{"checkpoint": "staged_step_hash_completed", "details": {"sha256": "99c442272b90383d2bcff50056fb140158c7bdf8b740c4b433150c54349ad8a6"}, "utc": "2026-09-01T12:31:11.969216+00:00"}
+{"checkpoint": "native_copy_started", "details": {"source_size": 6959114}, "utc": "2026-09-01T12:31:11.969759+00:00"}
+{"checkpoint": "native_copy_completed", "details": {"sha256": "df28ea4f39edfa5e14519fd9a8a7d67e4c93eb1a8f03942d916ea4a1bbb5209d", "staged_size": 6959114}, "utc": "2026-09-01T12:31:11.984726+00:00"}
+{"checkpoint": "boundary_role_points_completed", "details": {"actuator_gap_center_points": [[-7.25, -10.875000000000002, 1.795], [0.0, -10.875000000000002, 1.795], [7.25, -10.875000000000002, 1.795], [-7.25, -3.625, 1.795], [0.0, -3.625, 1.795], [7.25, -3.625, 1.795], [-7.25, 3.625, 1.795], [0.0, 3.625, 1.795], [7.25, 3.625, 1.795], [-7.25, 10.875000000000002, 1.795], [0.0, 10.875000000000002, 1.795], [7.25, 10.875000000000002, 1.795]], "expected_target_flow_volume_mm3": 469.4396438426366, "inlet_count": 4, "outlet_count": 1, "throat_count": 972}, "utc": "2026-09-01T12:31:11.996860+00:00"}
+{"checkpoint": "pyfluent_windows_platform_pinned", "details": {"os_name": "nt", "processor_architecture": "AMD64"}, "utc": "2026-09-01T12:31:11.996860+00:00"}
+{"checkpoint": "pinned_fluent_executable_verified", "details": {"executable_name": "fluent.exe"}, "utc": "2026-09-01T12:31:11.996860+00:00"}
+{"checkpoint": "fluent_launch_started", "details": {"start_timeout_seconds": 60}, "utc": "2026-09-01T12:31:11.996860+00:00"}
+{"checkpoint": "fluent_launch_completed", "details": {}, "utc": "2026-09-01T12:31:27.198863+00:00"}
+{"checkpoint": "import_face_zone_inventory_completed", "details": {"face_zone_count": 1076, "import_source": "NATIVE_SCDOCX_BOUND_TO_SIGNED_PREDECESSOR"}, "utc": "2026-09-01T12:32:01.359016+00:00"}
+{"checkpoint": "boundary_zone_queries_completed", "details": {"inlet_zone_hits": [1058, 1063, 1066, 1052], "outlet_zone_hits": [2], "throat_hit_count": 972, "throat_unique_zone_ids": [78]}, "utc": "2026-09-01T12:36:53.397164+00:00"}
+{"checkpoint": "imported_boundary_normals_reversed", "details": {"face_zone_count": 10}, "utc": "2026-09-01T12:36:54.060595+00:00"}
