@@ -411,3 +411,9 @@ void 的 `dead0` 名称冲突而失败。体网格、Student cell/node guard、m
 官方生成定义中该任务的 `MeshObject` 默认为空。最小修复只绑定已验证的唯一产品 mesh object，
 仍要求精确 1 个主流体区和 12 个 excluded voids。体网格、Student guards、mesh hash、physics 与
 P1--P6 均未到达。
+
+**2026-09-01 MeshObject 绑定复验**：consumer `AJM006-V03-CONTINUOUS-f0a860fd4f9e`
+再次完成 surface mesh 与 Create Regions，但 task-level `mesh_object` 赋值没有写入注册参数容器，
+argument-menu 回读为 null 并 fail closed。官方 PyFluent StateEngine 实现确认应写
+`workflow.update_regions.arguments.mesh_object`；exact 1+12 guard 保持不变，体网格与 physics
+仍未到达。

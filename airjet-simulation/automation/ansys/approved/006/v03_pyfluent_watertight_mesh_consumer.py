@@ -2718,7 +2718,7 @@ try:
     region_mesh_object = result["diagnostics"][
         "post_surface_canonical_product_only"
     ]["observation"]["product_object"]
-    workflow.update_regions.mesh_object = region_mesh_object
+    workflow.update_regions.arguments.mesh_object = region_mesh_object
     update_regions_mesh_object_state = observe_parameter(
         workflow.update_regions.arguments.mesh_object
     )

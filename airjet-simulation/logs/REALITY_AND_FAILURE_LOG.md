@@ -1739,6 +1739,25 @@
 - 关联 decision/annotation/run：AJM-P1-GEO-009；AJM-P1-MESH-002；本轮 producer/consumer 两条 run-index。
 - 状态：CLOSED_FAILURE_PRESERVED_UPDATE_REGIONS_BINDING_PENDING_CLEAN_RETRY
 
+## REAL-20260901-076：Update Regions 的 task-level MeshObject 赋值未进入参数容器
+
+- UTC：2026-09-01T11:59:20Z--12:07:36Z
+- Stage/task：AJM-009 / AJM006 V03 Update Regions binding retry
+- Machine/operator：Windows ANSYS Student 2026 R1 / Codex via official MCP runner
+- run/job/profile：producer `AJM006-V03-CONTINUOUS-542e9e1076c3`；consumer `AJM006-V03-CONTINUOUS-f0a860fd4f9e` / `ajm006-pyfluent-v03-continuous-mesh-pilot-v1`
+- 期望：把唯一产品 mesh object 绑定到 Update Regions，回读一致后检查 exact 1+12 region menu。
+- 实际观察：producer exit 0；surface mesh 与 Create Regions 再次成功。`workflow.update_regions.mesh_object = ...` 执行后，`workflow.update_regions.arguments.mesh_object` 回读仍为 null，guard 立即停止。
+- 原始错误短摘：`UPDATE_REGIONS_MESH_OBJECT_NOT_BOUND`
+- 原始日志路径 + SHA-256：`logs/evidence/AJM006_V03_C7_MESH_OBJECT_20260901T115920Z_f0a860fd4f9e/`；suite SHA `180d0455bc5b894a329038e3cace31ff939212dbfd89541274310f1ba21547aa`；consumer report SHA `ba33ca19e30fb2fb91d2355d8bc78a120ad36f54187771944732b5fea3ce33bc`。
+- 假设与最小区分实验：安装的官方 PyFluent 0.40.2 StateEngine 源码表明 command arguments 是注册的 `PyArguments` 容器；给该容器的 child 赋值才调用 `set_state`。把同一值改写到 `workflow.update_regions.arguments.mesh_object`，保留原回读 guard。
+- 结果：无效绑定已由 runtime 明确拒绝；reviewed consumer SHA 更新为 `fe6740647a3f0ab6095428e76f12bdb9ad3d3de5066c58182066f21ac49d9fe9`；32 个 consumer tests、19 个 runner tests、MCP policy `profiles=20 tools=5` 与项目 audit `required_files=175` 均 PASS，待 clean retry。
+- 根因及置信度：高置信；task-level assignment 创建/覆盖了本地属性，但没有写入已注册的 command-argument state。
+- 采取/拒绝的 workaround：改用官方参数容器 setter 路径并回读；拒绝删除 guard、直接伪造菜单或继续体网格。
+- 对 Gate/论文主张的影响：无新增体网格或 physics；formal 006 与 P1--P6 仍 `NOT_PASSED`。
+- 下一步：测试/policy/audit 后提交；clean inventory 后只做一次参数容器绑定复跑。
+- 关联 decision/annotation/run：AJM-P1-MESH-002；本轮两条 run-index。
+- 状态：CLOSED_FAILURE_PRESERVED_ARGUMENT_CONTAINER_FIX_PENDING_CLEAN_RETRY
+
 ```text
 ## REAL-YYYYMMDD-NNN：标题
 - UTC：

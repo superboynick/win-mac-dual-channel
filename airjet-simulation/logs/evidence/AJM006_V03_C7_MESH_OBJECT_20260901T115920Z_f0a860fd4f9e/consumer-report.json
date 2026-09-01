@@ -1,0 +1,719 @@
+{
+  "artifacts": {},
+  "assertions": {
+    "actuator_gap_exclusion": false,
+    "boundary_roles_reconstructed": true,
+    "boundary_semantics_preserved_1076": false,
+    "claim_boundaries": false,
+    "connected_fluid_cell_zone_graph": false,
+    "exact_native_and_step_byte_staging": true,
+    "flow_cell_zone_inventory": false,
+    "fluent_v261_meshing_health": true,
+    "mesh_integrity": false,
+    "mesh_write_hash": false,
+    "predecessor_identity": true,
+    "predecessor_immutable": true,
+    "region_classification": false,
+    "student_limit_guard": false,
+    "surface_mesh": true,
+    "target_flow_volume_matches_predecessor": false,
+    "throat_local_sizing_contract": true,
+    "throat_occupancy_full_972": false,
+    "throat_roles_reconstructed_972": true,
+    "volume_mesh": false,
+    "watertight_native_import": true
+  },
+  "boundary_conditions": "NOT_APPLIED",
+  "cht": "NOT_RUN",
+  "claim_scope": "V03_PRELIMINARY_PYFLUENT_MESH_PILOT_ONLY",
+  "diagnostic_trace": {
+    "relative_path": "v03_pyfluent_prelaunch_trace.jsonl",
+    "sha256": "f04232834fc5c1e883a7741b2e166f4dffb57e911a77e9bb03373bde9c0b29b7",
+    "size": 11793
+  },
+  "diagnostics": {
+    "post_surface_canonical_product_only": {
+      "observation": {
+        "global_zone_ids": [
+          3,
+          4,
+          5,
+          6,
+          8,
+          1102,
+          1103,
+          29401,
+          29402,
+          29403
+        ],
+        "objects": [
+          "product_continuous_fluid-ajm006_v03_fluid_continuous"
+        ],
+        "product_object": "product_continuous_fluid-ajm006_v03_fluid_continuous",
+        "product_zone_ids": [
+          3,
+          4,
+          5,
+          6,
+          8,
+          1102,
+          1103,
+          29401,
+          29402,
+          29403
+        ],
+        "zone_types": {
+          "1102": "wall",
+          "1103": "wall",
+          "29401": "wall",
+          "29402": "wall",
+          "29403": "wall",
+          "3": "wall",
+          "4": "wall",
+          "5": "wall",
+          "6": "wall",
+          "8": "wall"
+        }
+      },
+      "split_face_counts": {
+        "1102": 520710,
+        "1103": 62208,
+        "29401": 610,
+        "29402": 603,
+        "29403": 649,
+        "3": 726,
+        "4": 286,
+        "5": 91659,
+        "6": 239110,
+        "8": 121217
+      },
+      "trace_relative_path": "v03_pyfluent_prelaunch_trace.jsonl"
+    },
+    "post_surface_dual_object_partition": {
+      "observation": {
+        "geometry_objects": [
+          "origin-product_continuous_fluid-ajm006_v03_fluid_continuous"
+        ],
+        "global_zone_ids": [
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          78,
+          1052,
+          1058,
+          1063,
+          1066,
+          1073,
+          1076,
+          1102,
+          1103,
+          1121,
+          1122,
+          1123,
+          1124,
+          1125,
+          1126,
+          1127,
+          1128,
+          1129,
+          1130,
+          1131,
+          1132,
+          1133,
+          1134,
+          1135,
+          1136,
+          1137,
+          1138,
+          1139,
+          1140,
+          1141,
+          1142,
+          1143,
+          1144,
+          1145,
+          1146,
+          1147,
+          1148,
+          1149,
+          1150,
+          1151,
+          1152,
+          1153,
+          1154
+        ],
+        "mesh_objects": [
+          "product_continuous_fluid-ajm006_v03_fluid_continuous"
+        ],
+        "origin_object": "origin-product_continuous_fluid-ajm006_v03_fluid_continuous",
+        "origin_role_zone_ids": {
+          "HEAT_WALL": [
+            1076
+          ],
+          "INLET": [
+            1052,
+            1058,
+            1063,
+            1066
+          ],
+          "MEMBRANE_BOTTOM": [
+            9
+          ],
+          "MEMBRANE_TOP": [
+            7
+          ],
+          "ORIFICE_THROAT_WALL": [
+            78
+          ],
+          "OUTLET": [
+            2
+          ],
+          "WALL_CONTINUOUS_UNCLASSIFIED": [
+            1073
+          ]
+        },
+        "origin_role_zone_names": {
+          "HEAT_WALL": [
+            "ajm_heat_wall"
+          ],
+          "INLET": [
+            "ajm_inlet_004",
+            "ajm_inlet_001",
+            "ajm_inlet_002",
+            "ajm_inlet_003"
+          ],
+          "MEMBRANE_BOTTOM": [
+            "ajm_membrane_bottom"
+          ],
+          "MEMBRANE_TOP": [
+            "ajm_membrane_top"
+          ],
+          "ORIFICE_THROAT_WALL": [
+            "ajm_throat_wall"
+          ],
+          "OUTLET": [
+            "ajm_outlet"
+          ],
+          "WALL_CONTINUOUS_UNCLASSIFIED": [
+            "ajm_remaining_wall"
+          ]
+        },
+        "origin_zone_ids": [
+          2,
+          7,
+          9,
+          78,
+          1052,
+          1058,
+          1063,
+          1066,
+          1073,
+          1076
+        ],
+        "product_object": "product_continuous_fluid-ajm006_v03_fluid_continuous",
+        "product_role_counts": {
+          "HEAT_WALL": 1,
+          "INLET": 1,
+          "MEMBRANE_BOTTOM": 12,
+          "MEMBRANE_TOP": 12,
+          "ORIFICE_THROAT_WALL": 1,
+          "OUTLET": 1,
+          "WALL_CONTINUOUS_UNCLASSIFIED": 13
+        },
+        "product_role_zone_ids": {
+          "HEAT_WALL": [
+            8
+          ],
+          "INLET": [
+            3
+          ],
+          "MEMBRANE_BOTTOM": [
+            6,
+            1144,
+            1145,
+            1146,
+            1147,
+            1148,
+            1149,
+            1150,
+            1151,
+            1152,
+            1153,
+            1154
+          ],
+          "MEMBRANE_TOP": [
+            5,
+            1133,
+            1134,
+            1135,
+            1136,
+            1137,
+            1138,
+            1139,
+            1140,
+            1141,
+            1142,
+            1143
+          ],
+          "ORIFICE_THROAT_WALL": [
+            1103
+          ],
+          "OUTLET": [
+            4
+          ],
+          "WALL_CONTINUOUS_UNCLASSIFIED": [
+            1102,
+            1121,
+            1122,
+            1123,
+            1124,
+            1125,
+            1126,
+            1127,
+            1128,
+            1129,
+            1130,
+            1131,
+            1132
+          ]
+        },
+        "product_role_zone_names": {
+          "HEAT_WALL": [
+            "heat_wall"
+          ],
+          "INLET": [
+            "inlet"
+          ],
+          "MEMBRANE_BOTTOM": [
+            "membrane_bottom",
+            "membrane_bottom:1144",
+            "membrane_bottom:1145",
+            "membrane_bottom:1146",
+            "membrane_bottom:1147",
+            "membrane_bottom:1148",
+            "membrane_bottom:1149",
+            "membrane_bottom:1150",
+            "membrane_bottom:1151",
+            "membrane_bottom:1152",
+            "membrane_bottom:1153",
+            "membrane_bottom:1154"
+          ],
+          "MEMBRANE_TOP": [
+            "membrane_top",
+            "membrane_top:1133",
+            "membrane_top:1134",
+            "membrane_top:1135",
+            "membrane_top:1136",
+            "membrane_top:1137",
+            "membrane_top:1138",
+            "membrane_top:1139",
+            "membrane_top:1140",
+            "membrane_top:1141",
+            "membrane_top:1142",
+            "membrane_top:1143"
+          ],
+          "ORIFICE_THROAT_WALL": [
+            "orifice_throat_wall"
+          ],
+          "OUTLET": [
+            "outlet"
+          ],
+          "WALL_CONTINUOUS_UNCLASSIFIED": [
+            "fluid_continuous:1",
+            "fluid_continuous:1121",
+            "fluid_continuous:1122",
+            "fluid_continuous:1123",
+            "fluid_continuous:1124",
+            "fluid_continuous:1125",
+            "fluid_continuous:1126",
+            "fluid_continuous:1127",
+            "fluid_continuous:1128",
+            "fluid_continuous:1129",
+            "fluid_continuous:1130",
+            "fluid_continuous:1131",
+            "fluid_continuous:1132"
+          ]
+        },
+        "product_suffix_structure": {
+          "suffix_blocks": {
+            "MEMBRANE_BOTTOM": [
+              1144,
+              1145,
+              1146,
+              1147,
+              1148,
+              1149,
+              1150,
+              1151,
+              1152,
+              1153,
+              1154
+            ],
+            "MEMBRANE_TOP": [
+              1133,
+              1134,
+              1135,
+              1136,
+              1137,
+              1138,
+              1139,
+              1140,
+              1141,
+              1142,
+              1143
+            ],
+            "WALL_CONTINUOUS_UNCLASSIFIED": [
+              1121,
+              1122,
+              1123,
+              1124,
+              1125,
+              1126,
+              1127,
+              1128,
+              1129,
+              1130,
+              1131,
+              1132
+            ]
+          },
+          "suffix_end_zone_id": 1154,
+          "suffix_start_zone_id": 1121,
+          "suffix_zone_count": 34
+        },
+        "product_zone_ids": [
+          3,
+          4,
+          5,
+          6,
+          8,
+          1102,
+          1103,
+          1121,
+          1122,
+          1123,
+          1124,
+          1125,
+          1126,
+          1127,
+          1128,
+          1129,
+          1130,
+          1131,
+          1132,
+          1133,
+          1134,
+          1135,
+          1136,
+          1137,
+          1138,
+          1139,
+          1140,
+          1141,
+          1142,
+          1143,
+          1144,
+          1145,
+          1146,
+          1147,
+          1148,
+          1149,
+          1150,
+          1151,
+          1152,
+          1153,
+          1154
+        ]
+      },
+      "trace_relative_path": "v03_pyfluent_prelaunch_trace.jsonl"
+    },
+    "post_surface_product_only_after_geometry_delete": {
+      "observation": {
+        "global_zone_ids": [
+          3,
+          4,
+          5,
+          6,
+          8,
+          1102,
+          1103,
+          1121,
+          1122,
+          1123,
+          1124,
+          1125,
+          1126,
+          1127,
+          1128,
+          1129,
+          1130,
+          1131,
+          1132,
+          1133,
+          1134,
+          1135,
+          1136,
+          1137,
+          1138,
+          1139,
+          1140,
+          1141,
+          1142,
+          1143,
+          1144,
+          1145,
+          1146,
+          1147,
+          1148,
+          1149,
+          1150,
+          1151,
+          1152,
+          1153,
+          1154
+        ],
+        "objects": [
+          "product_continuous_fluid-ajm006_v03_fluid_continuous"
+        ],
+        "product_object": "product_continuous_fluid-ajm006_v03_fluid_continuous",
+        "product_zone_ids": [
+          3,
+          4,
+          5,
+          6,
+          8,
+          1102,
+          1103,
+          1121,
+          1122,
+          1123,
+          1124,
+          1125,
+          1126,
+          1127,
+          1128,
+          1129,
+          1130,
+          1131,
+          1132,
+          1133,
+          1134,
+          1135,
+          1136,
+          1137,
+          1138,
+          1139,
+          1140,
+          1141,
+          1142,
+          1143,
+          1144,
+          1145,
+          1146,
+          1147,
+          1148,
+          1149,
+          1150,
+          1151,
+          1152,
+          1153,
+          1154
+        ],
+        "zone_types": {
+          "1102": "wall",
+          "1103": "wall",
+          "1121": "wall",
+          "1122": "wall",
+          "1123": "wall",
+          "1124": "wall",
+          "1125": "wall",
+          "1126": "wall",
+          "1127": "wall",
+          "1128": "wall",
+          "1129": "wall",
+          "1130": "wall",
+          "1131": "wall",
+          "1132": "wall",
+          "1133": "wall",
+          "1134": "wall",
+          "1135": "wall",
+          "1136": "wall",
+          "1137": "wall",
+          "1138": "wall",
+          "1139": "wall",
+          "1140": "wall",
+          "1141": "wall",
+          "1142": "wall",
+          "1143": "wall",
+          "1144": "wall",
+          "1145": "wall",
+          "1146": "wall",
+          "1147": "wall",
+          "1148": "wall",
+          "1149": "wall",
+          "1150": "wall",
+          "1151": "wall",
+          "1152": "wall",
+          "1153": "wall",
+          "1154": "wall",
+          "3": "wall",
+          "4": "wall",
+          "5": "wall",
+          "6": "wall",
+          "8": "wall"
+        }
+      },
+      "trace_relative_path": "v03_pyfluent_prelaunch_trace.jsonl"
+    },
+    "post_surface_product_only_after_inlet_split": {
+      "observation": {
+        "global_zone_ids": [
+          3,
+          4,
+          5,
+          6,
+          8,
+          1102,
+          1103,
+          29401,
+          29402,
+          29403
+        ],
+        "objects": [
+          "product_continuous_fluid-ajm006_v03_fluid_continuous"
+        ],
+        "product_object": "product_continuous_fluid-ajm006_v03_fluid_continuous",
+        "product_zone_ids": [
+          3,
+          4,
+          5,
+          6,
+          8,
+          1102,
+          1103,
+          29401,
+          29402,
+          29403
+        ],
+        "zone_types": {
+          "1102": "wall",
+          "1103": "wall",
+          "29401": "wall",
+          "29402": "wall",
+          "29403": "wall",
+          "3": "wall",
+          "4": "wall",
+          "5": "wall",
+          "6": "wall",
+          "8": "wall"
+        }
+      },
+      "split_face_counts": {
+        "1102": 520710,
+        "1103": 62208,
+        "29401": 610,
+        "29402": 603,
+        "29403": 649,
+        "3": 726,
+        "4": 286,
+        "5": 91659,
+        "6": 239110,
+        "8": 121217
+      },
+      "trace_relative_path": "v03_pyfluent_prelaunch_trace.jsonl"
+    },
+    "post_surface_product_only_after_role_merge": {
+      "observation": {
+        "global_zone_ids": [
+          3,
+          4,
+          5,
+          6,
+          8,
+          1102,
+          1103
+        ],
+        "objects": [
+          "product_continuous_fluid-ajm006_v03_fluid_continuous"
+        ],
+        "product_object": "product_continuous_fluid-ajm006_v03_fluid_continuous",
+        "product_zone_ids": [
+          3,
+          4,
+          5,
+          6,
+          8,
+          1102,
+          1103
+        ],
+        "zone_types": {
+          "1102": "wall",
+          "1103": "wall",
+          "3": "wall",
+          "4": "wall",
+          "5": "wall",
+          "6": "wall",
+          "8": "wall"
+        }
+      },
+      "trace_relative_path": "v03_pyfluent_prelaunch_trace.jsonl"
+    }
+  },
+  "engineering_capability": "FAIL_PRELIMINARY_MESH_CAPABILITY",
+  "error": {
+    "message": "UPDATE_REGIONS_MESH_OBJECT_NOT_BOUND",
+    "traceback": "Traceback (most recent call last):\n  File \"D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-f0a860fd4f9e\\input\\v03_pyfluent_watertight_mesh_consumer.py\", line 2734, in <module>\n    raise RuntimeError(\"UPDATE_REGIONS_MESH_OBJECT_NOT_BOUND\")\nRuntimeError: UPDATE_REGIONS_MESH_OBJECT_NOT_BOUND\n",
+    "type": "RuntimeError"
+  },
+  "exact_product_geometry": "NOT_CLAIMED",
+  "formal_006_completion": false,
+  "fsi": "NOT_RUN",
+  "identity": {
+    "case_id": "AJM006-V03-CONTINUOUS",
+    "git_head": "06318655c6ef4f2047c903eac5bb15b7ecb4fc32",
+    "predecessor_job_id": "AJM006-V03-CONTINUOUS-542e9e1076c3",
+    "profile_contract_sha256": "25e926cd6f7e5428f068aa368cee0b5c45440a57c9be704726c6b37264cb51f2",
+    "profile_id": "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
+    "script_sha256": "d104bfa0afe3068193fa44ff41bff4482343e689b13d30e224868a0c9f764371"
+  },
+  "license_arguments_added": false,
+  "mesh_contract": {
+    "cad_import_source": "NATIVE_SCDOCX_BOUND_TO_SIGNED_PREDECESSOR",
+    "cad_one_zone_per": "face",
+    "dimension": "THREE",
+    "max_expected_flow_cell_zones": 1,
+    "mode": "MESHING",
+    "precision": "DOUBLE",
+    "processor_count": 1,
+    "product_version": "261",
+    "resolution_class": "STUDENT_COARSE_MAIN_FLOW_REGION_C5",
+    "student_cell_limit": 1000000,
+    "student_node_limit": 1000000,
+    "surface_max_size_mm": 0.75,
+    "surface_min_size_mm": 0.05,
+    "target_flow_volume_mesh_tolerance_mm3": 1.0,
+    "throat_local_size_mm": 0.075,
+    "ui_mode": "NO_GUI_OR_GRAPHICS",
+    "volume_max_size_mm": 0.75,
+    "wall_to_internal": false
+  },
+  "mesh_result": "FAIL_V03_WATERTIGHT_VOLUME_MESH",
+  "p1_mesh_gate": "NOT_RUN",
+  "p1_p6_gates": "NOT_RUN",
+  "p1_stage_gate": "NOT_RUN",
+  "physics": "NOT_RUN",
+  "probe": "v03_pyfluent_watertight_mesh_consumer",
+  "schema_version": 1,
+  "solution": "NOT_RUN",
+  "solver_initialization": "NOT_RUN",
+  "solver_iterations": 0,
+  "solver_mode": "NOT_ENTERED",
+  "status": "FAIL_PRELIMINARY_MESH_CAPABILITY",
+  "task": "AJM006_V03_PYFLUENT_WATERTIGHT_MESH_ONLY",
+  "visibility": "NOT_USER_OBSERVED"
+}

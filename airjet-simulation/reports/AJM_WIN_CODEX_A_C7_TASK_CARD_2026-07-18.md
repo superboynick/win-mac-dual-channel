@@ -60,6 +60,13 @@ Current decision: escalate the unchanged `dead0` topology blocker to Mac for roo
 - The v261 generated definition exposes `MeshObject` with an empty default. The reviewed follow-up binds the already validated unique product object before reading the menu; exact 1+12 classification remains mandatory.
 - Volume mesh, Student guards, mesh hash and solver entry remain unaccepted.
 
+2026-09-01 MeshObject binding runtime checkpoint:
+
+- Signed head `06318655c6ef4f2047c903eac5bb15b7ecb4fc32` produced consumer `AJM006-V03-CONTINUOUS-f0a860fd4f9e`.
+- Surface mesh and Create Regions succeeded again, but the task-level MeshObject assignment read back null from the registered argument menu and failed with `UPDATE_REGIONS_MESH_OBJECT_NOT_BOUND`.
+- Installed PyFluent 0.40.2 code confirms child assignment on `PyArguments` invokes `set_state`; the reviewed source now writes `workflow.update_regions.arguments.mesh_object` and preserves read-back validation.
+- No volume mesh, Student guards, mesh hash or solver entry was reached.
+
 Mac remediation handoff:
 
 - Root cause is isolated to the pre-region inlet split: `sep_face_zone_by_region` creates implicit topology-region state before the Watertight `Create Regions` task, whose first generated void name then collides at `dead0`.
