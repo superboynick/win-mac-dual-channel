@@ -52,6 +52,14 @@ Current decision: escalate the unchanged `dead0` topology blocker to Mac for roo
 - The reviewed source pins `workflow.create_regions.retain_dead_region_name = True`, verifies that exact pre-state, and updates the profile/runner SHA lock to `f7e530ddf59642d1a70bcbdb002d70921a6ac54bc760eb9b9fb8014f9a5fa021`.
 - Static closure: 51 workflow tests PASS, 19 semantic-contract tests PASS, MCP policy PASS (`profiles=20 tools=5`) and project audit PASS. Volume mesh and all P1--P6/physics claims remain unaccepted pending one clean retry.
 
+2026-09-01 retain-dead-name runtime checkpoint:
+
+- Signed head `010cbe627cc94c52fa6650020f77dd1a6884beb6` produced `AJM006-V03-CONTINUOUS-a712e60cefcf` and consumer `AJM006-V03-CONTINUOUS-02af10398b21`.
+- `Create Regions` completed successfully, closing the prior `dead0` collision. Fluent reported one fluid/solid region plus twelve voids after surface mesh and region identification completed in 0.04 minutes.
+- The next fail-closed assertion was `MIXED_REGION_STATE_NOT_EXACT_13`: Update Regions returned null current-name, current-type and listed-count fields before execution.
+- The v261 generated definition exposes `MeshObject` with an empty default. The reviewed follow-up binds the already validated unique product object before reading the menu; exact 1+12 classification remains mandatory.
+- Volume mesh, Student guards, mesh hash and solver entry remain unaccepted.
+
 Mac remediation handoff:
 
 - Root cause is isolated to the pre-region inlet split: `sep_face_zone_by_region` creates implicit topology-region state before the Watertight `Create Regions` task, whose first generated void name then collides at `dead0`.

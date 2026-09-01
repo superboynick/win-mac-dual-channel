@@ -2715,6 +2715,23 @@ try:
     if create_regions_pre_state.get("retain_dead_region_name") is not True:
         raise RuntimeError("CREATE_REGIONS_RETAIN_DEAD_NAMES_NOT_TRUE")
     workflow.create_regions()
+    region_mesh_object = result["diagnostics"][
+        "post_surface_canonical_product_only"
+    ]["observation"]["product_object"]
+    workflow.update_regions.mesh_object = region_mesh_object
+    update_regions_mesh_object_state = observe_parameter(
+        workflow.update_regions.arguments.mesh_object
+    )
+    trace_checkpoint(
+        "update_regions_mesh_object_bound",
+        mesh_object=region_mesh_object,
+        state=json_safe_trace_value(update_regions_mesh_object_state),
+    )
+    if (
+        update_regions_mesh_object_state.get("read_ok") is not True
+        or update_regions_mesh_object_state.get("value") != region_mesh_object
+    ):
+        raise RuntimeError("UPDATE_REGIONS_MESH_OBJECT_NOT_BOUND")
     direct_region_state = observe_update_regions_argument_menu(
         workflow.update_regions.arguments
     )

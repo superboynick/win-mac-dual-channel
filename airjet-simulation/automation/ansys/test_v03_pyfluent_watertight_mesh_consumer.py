@@ -158,6 +158,10 @@ def test_official_v261_watertight_calls_are_pinned() -> None:
         "workflow.create_regions.retain_dead_region_name = True",
         '"CREATE_REGIONS_RETAIN_DEAD_NAMES_NOT_TRUE"',
         "workflow.create_regions()",
+        "workflow.update_regions.mesh_object = region_mesh_object",
+        "workflow.update_regions.arguments.mesh_object",
+        '"update_regions_mesh_object_bound"',
+        '"UPDATE_REGIONS_MESH_OBJECT_NOT_BOUND"',
         "workflow.update_regions()",
         '"MIXED_1_MAIN_12_VOID_UPDATE_REGIONS"',
         "workflow.create_volume_mesh_wtm",
@@ -187,12 +191,16 @@ def test_mixed_region_route_is_explicit_and_ordered() -> None:
         "workflow.create_regions.retain_dead_region_name = True"
     )
     update_regions = SOURCE.index("workflow.update_regions()")
+    bind_mesh_object = SOURCE.index(
+        "workflow.update_regions.mesh_object = region_mesh_object"
+    )
     volume_mesh = SOURCE.index("workflow.create_volume_mesh_wtm")
     assert (
         describe
         < boundary_guard
         < retain_dead_names
         < create_regions
+        < bind_mesh_object
         < update_regions
         < volume_mesh
     )

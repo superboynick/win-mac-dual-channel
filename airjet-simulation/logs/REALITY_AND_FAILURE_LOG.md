@@ -1720,6 +1720,25 @@
 
 ## 新条目模板
 
+## REAL-20260901-075：Create Regions 已越过，Update Regions 因未绑定 MeshObject 返回空菜单
+
+- UTC：2026-09-01T11:42:39Z--11:50:49Z
+- Stage/task：AJM-009 / AJM006 V03 retain-dead-name C7 two-stage retry
+- Machine/operator：Windows ANSYS Student 2026 R1 / Codex via official MCP runner
+- run/job/profile：producer `AJM006-V03-CONTINUOUS-a712e60cefcf`；consumer `AJM006-V03-CONTINUOUS-02af10398b21` / `ajm006-pyfluent-v03-continuous-mesh-pilot-v1`
+- 期望：验证 dead-region name retention 后严格识别 1 main flow + 12 excluded voids，并继续到体网格 Gate；任何失败均不得进入 solver。
+- 实际观察：producer exit 0；consumer 完成 4 inlet、1 outlet、972 throat hits、0.075 mm local sizing 与 surface mesh。Fluent 报告 surface mesh 为 1 fluid/solid region + 12 voids、0.92 min、maximum skewness 0.57；Create Regions 的 region identification 在 0.04 min 完成，原 `dead0 already exists` 未再出现。随后 Update Regions 的三个生成菜单字段均为 null，严格 validator 以 `MIXED_REGION_STATE_NOT_EXACT_13` 停止；volume mesh、Student guards、mesh hash 与 solver 均未到达。
+- 原始错误短摘：`MIXED_REGION_STATE_NOT_EXACT_13`
+- 原始日志路径 + SHA-256：`logs/evidence/AJM006_V03_C7_UPDATE_REGIONS_20260901T114239Z_02af10398b21/`；suite summary SHA `c5d5e9ef3e43717d2f20e71cbd9ddd0a59753deb20283f7be6c74a41fd565205`；consumer report SHA `d8026e8b0228e514d5f69e465900a91c9bb6254071fc8e5ef2ac8b2a939731a0`。
+- 假设与最小区分实验：v261 本地官方生成定义表明 Update Regions 的 `MeshObject` 默认是空字符串；失败脚本未显式绑定。只把已通过 canonical product-only guard 的唯一产品对象绑定给 `workflow.update_regions.mesh_object`，在读取菜单前回读 fail-close 校验；不改几何、网格尺寸或 1+12 contract。
+- 结果：dead-name 修复获得 runtime 验证；新的首个阻断点已精确定位。reviewed consumer SHA 更新为 `d104bfa0afe3068193fa44ff41bff4482343e689b13d30e224868a0c9f764371`；32 个 consumer tests、19 个 runner tests、full-product semantic negative tests、MCP policy `profiles=20 tools=5` 与项目 audit `required_files=175` 均 PASS，待一次 clean retry。
+- 根因及置信度：中高置信；Create Regions 已明确成功，空字段与 Update Regions 的空 `MeshObject` 默认一致，但仍需 runtime 复跑确认字段会被填充。
+- 采取/拒绝的 workaround：显式绑定已验证对象并保留 exact-13 guard；拒绝接受 null 菜单、伪造 region list、放宽为任意数量、跳过 Update Regions 或进入 solver。
+- 对 Gate/论文主张的影响：只增加 Create Regions 成功的能力证据；formal 006 与 P1--P6 仍 `NOT_PASSED`。
+- 下一步：完成测试/policy/audit、提交推送、clean inventory，然后只运行一次固定 official-MCP retry。
+- 关联 decision/annotation/run：AJM-P1-GEO-009；AJM-P1-MESH-002；本轮 producer/consumer 两条 run-index。
+- 状态：CLOSED_FAILURE_PRESERVED_UPDATE_REGIONS_BINDING_PENDING_CLEAN_RETRY
+
 ```text
 ## REAL-YYYYMMDD-NNN：标题
 - UTC：

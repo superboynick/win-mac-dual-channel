@@ -404,3 +404,10 @@ void 的 `dead0` 名称冲突而失败。体网格、Student cell/node guard、m
 修复将 v261 的 `retain_dead_region_name` 固定为 `True` 并在执行前校验；状态更新为
 “surface mesh runtime PASS，dead-region naming 修复待 clean retry”，formal 006 与 P1--P6 仍
 `NOT_PASSED`。
+
+**2026-09-01 dead-name 修复 runtime**：consumer
+`AJM006-V03-CONTINUOUS-02af10398b21` 已成功完成 `Create Regions`，证明名称保留参数关闭了
+`dead0` 冲突。新阻断点是 `Update Regions` 的 current name/type/count 菜单均返回 null；v261
+官方生成定义中该任务的 `MeshObject` 默认为空。最小修复只绑定已验证的唯一产品 mesh object，
+仍要求精确 1 个主流体区和 12 个 excluded voids。体网格、Student guards、mesh hash、physics 与
+P1--P6 均未到达。

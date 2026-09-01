@@ -1,0 +1,2563 @@
+{
+  "case_id": "AJM006-V03-CONTINUOUS",
+  "ended_at": "2026-09-01T11:50:49.611490+00:00",
+  "error": {
+    "message": "unhandled errors in a TaskGroup (1 sub-exception)",
+    "traceback": "  + Exception Group Traceback (most recent call last):\n  |   File \"C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\automation\\ansys\\run_v03_continuous_mesh_006.py\", line 1337, in run_suite\n  |     async with stdio_client(parameters, errlog=errlog) as streams:\n  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  |   File \"C:\\Users\\admin\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\contextlib.py\", line 231, in __aexit__\n  |     await self.gen.athrow(value)\n  |   File \"C:\\Users\\admin\\AppData\\Local\\AirJetAnsysAutomation\\.venv\\Lib\\site-packages\\mcp\\client\\stdio\\__init__.py\", line 183, in stdio_client\n  |     anyio.create_task_group() as tg,\n  |     ^^^^^^^^^^^^^^^^^^^^^^^^^\n  |   File \"C:\\Users\\admin\\AppData\\Local\\AirJetAnsysAutomation\\.venv\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py\", line 815, in __aexit__\n  |     raise BaseExceptionGroup(\n  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)\n  +-+---------------- 1 ----------------\n    | Exception Group Traceback (most recent call last):\n    |   File \"C:\\Users\\admin\\AppData\\Local\\AirJetAnsysAutomation\\.venv\\Lib\\site-packages\\mcp\\client\\stdio\\__init__.py\", line 189, in stdio_client\n    |     yield read_stream, write_stream\n    |   File \"C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\automation\\ansys\\run_v03_continuous_mesh_006.py\", line 1338, in run_suite\n    |     async with ClientSession(\n    |                ^^^^^^^^^^^^^^\n    |   File \"C:\\Users\\admin\\AppData\\Local\\AirJetAnsysAutomation\\.venv\\Lib\\site-packages\\mcp\\shared\\session.py\", line 238, in __aexit__\n    |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)\n    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |   File \"C:\\Users\\admin\\AppData\\Local\\AirJetAnsysAutomation\\.venv\\Lib\\site-packages\\anyio\\_backends\\_asyncio.py\", line 815, in __aexit__\n    |     raise BaseExceptionGroup(\n    | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)\n    +-+---------------- 1 ----------------\n      | Traceback (most recent call last):\n      |   File \"C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\automation\\ansys\\run_v03_continuous_mesh_006.py\", line 1364, in run_suite\n      |     await run_submitted_stages(\n      |   File \"C:\\Users\\admin\\win-mac-dual-channel\\airjet-simulation\\automation\\ansys\\run_v03_continuous_mesh_006.py\", line 1292, in run_submitted_stages\n      |     raise RuntimeError(\"STAGE2_NOT_PROCESS_EXITED_0\")\n      | RuntimeError: STAGE2_NOT_PROCESS_EXITED_0\n      +------------------------------------\n",
+    "type": "ExceptionGroup"
+  },
+  "final_status": "FAIL_PRELIMINARY_V03_TWO_STAGE_MESH_SUITE",
+  "inventory": {
+    "ansys_root": "D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261",
+    "approved_profiles": [
+      "ajm005-pyfluent-t0-v1",
+      "ajm005-pymechanical-t0-v1",
+      "ajm005-spaceclaim-cad-t1-v1",
+      "ajm005-spaceclaim-cad-t1-v2",
+      "ajm005-spaceclaim-t0-v1",
+      "ajm005-workbench-connected-spaceclaim-t1-v1",
+      "ajm005-workbench-semantic-reconstruction-t1-v1",
+      "ajm005-workbench-semantic-reconstruction-t1-v2",
+      "ajm005-workbench-t0-v1",
+      "ajm005-workbench-transfer-t1-v1",
+      "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
+      "ajm006-spaceclaim-v02-parasolid-converter-v1",
+      "ajm006-spaceclaim-v02-preliminary-v1",
+      "ajm006-spaceclaim-v02-split-step-converter-v1",
+      "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
+      "ajm006-workbench-v02-native-mesh-conformality-observer-v1",
+      "ajm006-workbench-v02-native-topology-observer-v1",
+      "ajm006-workbench-v02-parasolid-topology-observer-v1",
+      "ajm006-workbench-v02-topology-observer-v1",
+      "ajm008-spaceclaim-p2-s0-equivalent-plate-v1"
+    ],
+    "automation_python": {
+      "exists": true,
+      "path": "C:\\Users\\admin\\AppData\\Local\\AirJetAnsysAutomation\\.venv\\Scripts\\python.exe"
+    },
+    "errors": [],
+    "executables": {
+      "fluent": {
+        "exists": true,
+        "file_version": "26.1.0",
+        "path": "D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261\\fluent\\ntbin\\win64\\fluent.exe",
+        "publisher_is_ansys": true,
+        "status": "Valid"
+      },
+      "mechanical": {
+        "exists": true,
+        "file_version": "26,2026,13,1",
+        "path": "D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261\\aisol\\bin\\winx64\\AnsysWBU.exe",
+        "publisher_is_ansys": true,
+        "status": "Valid"
+      },
+      "spaceclaim": {
+        "exists": true,
+        "file_version": "2026.1.53248.53377",
+        "path": "D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261\\scdm\\SpaceClaim.exe",
+        "publisher_is_ansys": true,
+        "status": "Valid"
+      },
+      "workbench": {
+        "exists": true,
+        "file_version": "26,01,00,2026020218",
+        "path": "D:\\ansys\\ANSYS Inc\\ANSYS Student\\v261\\Framework\\bin\\Win64\\RunWB2.exe",
+        "publisher_is_ansys": true,
+        "status": "Valid"
+      }
+    },
+    "git_head": "010cbe627cc94c52fa6650020f77dd1a6884beb6",
+    "license_data_read": false,
+    "packages": {
+      "ansys-fluent-core": "0.40.2",
+      "ansys-mechanical-core": "0.12.11",
+      "mcp": "1.28.1"
+    },
+    "profile_contract_sha256": {
+      "ajm005-pyfluent-t0-v1": "d0fe886329ab21253c31094b5d885ff36f39cb2cdc885ab32e373bd7587a38db",
+      "ajm005-pymechanical-t0-v1": "38933b907a07f40e8d9371c75a9b385b9da3b1772f86c40494fe296e4ddeafb0",
+      "ajm005-spaceclaim-cad-t1-v1": "23edb30504dd6e536c3ee8997b0ae4cbfe00c192a81333f5ddbb461fc8beff6e",
+      "ajm005-spaceclaim-cad-t1-v2": "564eb4a95bd24a64da3d946c43fe9246489bb2cc3b8a3da00fb209f8db07440c",
+      "ajm005-spaceclaim-t0-v1": "d12f008d081187f3611e2ce7e82fa97ff5e88c401af96ef20b2418d6b49b276a",
+      "ajm005-workbench-connected-spaceclaim-t1-v1": "2c05483c6a407afc87f8db16d5ae3713b2dce525401b4bfd939e80a0cae406a2",
+      "ajm005-workbench-semantic-reconstruction-t1-v1": "25677f3a3e39be5500d31b165b3161d77ded6f8538fa9e144e7f6b50f5fd57c9",
+      "ajm005-workbench-semantic-reconstruction-t1-v2": "87db6f52bd438eac016dcceaa0605231fa00d5e24988de572a1afc4fcce2db60",
+      "ajm005-workbench-t0-v1": "3c9d0fc83ceb3c834ea0b6cb9619b7dafa83bfb67230bb5b1b4f70f8dd508a9c",
+      "ajm005-workbench-transfer-t1-v1": "cdfe2887cbca1c45a05f2b1c222cfe8bdc85b9dde7482becf7aa547799fbeabc",
+      "ajm006-pyfluent-v03-continuous-mesh-pilot-v1": "1f2ce6b4ad2ab7cffb6f2fbc3033e2121ad5d2bb5c9cd33460242dcea91f5bfd",
+      "ajm006-spaceclaim-v02-parasolid-converter-v1": "13cc47fa3657c81197fa6a2c29c1bc350e3c424395b4c9e480446ba6013d5ea2",
+      "ajm006-spaceclaim-v02-preliminary-v1": "fcf6e5328aab0384a9fe9cee6008fa7e5334d869b6296fb72fe7662bfe66c82e",
+      "ajm006-spaceclaim-v02-split-step-converter-v1": "f68c6d732b472d2c01f84cae278611dcd8854f465b8987455d0cc19174cdc825",
+      "ajm006-spaceclaim-v03-continuous-throat-pilot-v1": "c525f5d53e8a72100232b4e30a88020ab54305769b5cd6c71629e09b5acf15e0",
+      "ajm006-workbench-v02-native-mesh-conformality-observer-v1": "434d46b92e5f70b03385d111c6f89b39510f1272daa9be80616eeec518215098",
+      "ajm006-workbench-v02-native-topology-observer-v1": "b9f006adc2191c8c2bf2e080cbe766af91fc98cff43f3e361242957d26c33e27",
+      "ajm006-workbench-v02-parasolid-topology-observer-v1": "d50101a5f4800378ec00eb4b92e7e20c12b0a3d2c2a33c33b553767f5c14d058",
+      "ajm006-workbench-v02-topology-observer-v1": "f89767b2359a04987b42d9fab53a0acbd4124696554aebdfc57a6e4d5d75abd7",
+      "ajm008-spaceclaim-p2-s0-equivalent-plate-v1": "0c3add8529a9b00e71e931591eea2d29ce311e0ec252de0a2dc1f76ade27eb10"
+    },
+    "ready": true,
+    "repo": "C:\\Users\\admin\\win-mac-dual-channel",
+    "schema_version": 2
+  },
+  "preflight": {
+    "execution_state_static": true,
+    "git_head": "010cbe627cc94c52fa6650020f77dd1a6884beb6",
+    "p1_p6_not_run": true,
+    "preflight_errors": [],
+    "preflight_ok": true,
+    "profile_found": true,
+    "profile_script_sha256_matches": true
+  },
+  "stage1": {
+    "cancellation_job_id": "AJM006-V03-CONTINUOUS-a712e60cefcf",
+    "cancellation_required": false,
+    "capability_status": "PASS",
+    "frozen_manifest_sha256": "3db1907530f5fe709b563a614a0db6a3f93a6c4f3af209b5179be8693c401470",
+    "job_state": {
+      "case_id": "AJM006-V03-CONTINUOUS",
+      "ended_at": "2026-09-01T11:44:32.081083+00:00",
+      "engine": "spaceclaim",
+      "exit_code": 0,
+      "git_head": "010cbe627cc94c52fa6650020f77dd1a6884beb6",
+      "job_directory": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-a712e60cefcf",
+      "job_id": "AJM006-V03-CONTINUOUS-a712e60cefcf",
+      "license_arguments_added": false,
+      "output_root_id": "p1_cad_006",
+      "phase": "PROCESS_EXITED_0",
+      "pid": 14624,
+      "predecessor_artifacts": [],
+      "predecessor_job_id": null,
+      "profile_contract_sha256": "c525f5d53e8a72100232b4e30a88020ab54305769b5cd6c71629e09b5acf15e0",
+      "profile_dependency_artifacts": [
+        {
+          "git_path": "airjet-simulation/automation/ansys/contracts/full_product_semantic_contract_v1.py",
+          "relative_path": "full_product_semantic_contract_v1.py",
+          "sha256": "a34440e9dc9936f081ebd58d72432b194a1d5ba29a1379079c91827cfd315666",
+          "size": 83143
+        },
+        {
+          "git_path": "airjet-simulation/automation/ansys/contracts/full_product_semantic_sidecar_v1.schema.json",
+          "relative_path": "full_product_semantic_sidecar_v1.schema.json",
+          "sha256": "75cd95525e5189a4ef11a979a5621a7dd8db96efeb59e209cede794bb129ea30",
+          "size": 11076
+        },
+        {
+          "git_path": "airjet-simulation/automation/ansys/contracts/test_full_product_semantic_contract_v1.py",
+          "relative_path": "test_full_product_semantic_contract_v1.py",
+          "sha256": "05aad0bc5ee74a783236bd6448face8f06776522ec4139108e570f0845817a81",
+          "size": 28606
+        },
+        {
+          "git_path": "airjet-simulation/automation/ansys/contracts/build_full_product_trusted_variants.py",
+          "relative_path": "build_full_product_trusted_variants.py",
+          "sha256": "646ad9ed8b3344e64a8a2669b866594c6dda7aea81444d241a452f058d295b70",
+          "size": 35168
+        },
+        {
+          "git_path": "airjet-simulation/automation/ansys/contracts/test_full_product_trusted_variants.py",
+          "relative_path": "test_full_product_trusted_variants.py",
+          "sha256": "b4691df9fc91744bd3f740f2cda76d42df3025a5d99567d39a36953aff8bac87",
+          "size": 17060
+        },
+        {
+          "git_path": "airjet-simulation/parameters/p1_model_form_variants.csv",
+          "relative_path": "p1_model_form_variants.csv",
+          "sha256": "012e8031258aa1d1b4e4f274b76e09fdb83e930ce29eac737d82db25a5bb67da",
+          "size": 6569
+        },
+        {
+          "git_path": "airjet-simulation/parameters/p1_layout_configuration_matrix.csv",
+          "relative_path": "p1_layout_configuration_matrix.csv",
+          "sha256": "70ff15d1fd4b6bb78973ad47c488dcb12aed797dcbed07a86c189c6952a879e1",
+          "size": 2056
+        },
+        {
+          "git_path": "airjet-simulation/parameters/p1_internal_geometry_rules.csv",
+          "relative_path": "p1_internal_geometry_rules.csv",
+          "sha256": "04197c9322ea29baca56ccd2b9afccecb25708be0dfc21c9fceef79564c01da2",
+          "size": 8755
+        },
+        {
+          "git_path": "airjet-simulation/parameters/p1_cad_parameter_map.csv",
+          "relative_path": "p1_cad_parameter_map.csv",
+          "sha256": "88d95dafc2ccaf063d14123da959b2e454b3dfa56b6c5a6d1a11b991b64ad9d3",
+          "size": 110221
+        },
+        {
+          "git_path": "airjet-simulation/parameters/p1_orifice_pattern_candidates.csv",
+          "relative_path": "p1_orifice_pattern_candidates.csv",
+          "sha256": "e2ea0e007a4cb7b25b6f2c7ba03e1cb6f60c19433d4c7664217b0e9727f32570",
+          "size": 6273
+        },
+        {
+          "git_path": "airjet-simulation/parameters/p1_vent_geometry_candidates.csv",
+          "relative_path": "p1_vent_geometry_candidates.csv",
+          "sha256": "54cc8b657d38453ba27b8ccb6c6863f085679b2fa61f0b5bd6528d1033c62f9f",
+          "size": 6870
+        },
+        {
+          "git_path": "airjet-simulation/parameters/p1_planform_exhaust_candidates.csv",
+          "relative_path": "p1_planform_exhaust_candidates.csv",
+          "sha256": "de560f672da729477a1bde727aec6e6fb20e2a684d31874ffa032b5c642a81db",
+          "size": 7993
+        },
+        {
+          "git_path": "airjet-simulation/parameters/p1_thickness_budget.csv",
+          "relative_path": "p1_thickness_budget.csv",
+          "sha256": "7635ca5962a5d2f300c55553d6ed979fa59c35c448e8af3cdcfa2cb13f441976",
+          "size": 4236
+        },
+        {
+          "git_path": "airjet-simulation/parameters/full_product_parameter_registry.csv",
+          "relative_path": "full_product_parameter_registry.csv",
+          "sha256": "b1c9d0a4e7ac2a655afc5c449d1b8867f6273af3ebac4cfcbec0be5c50e3425c",
+          "size": 11503
+        },
+        {
+          "git_path": "airjet-simulation/automation/ansys/contracts/v03_finite_throat_route_v1.json",
+          "relative_path": "v03_finite_throat_route_v1.json",
+          "sha256": "9e5125c4338f1771220e77c51e85432c21f749373f34324a3ab6f14ad80386bb",
+          "size": 6687
+        },
+        {
+          "git_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/campaign.json",
+          "relative_path": "campaign.json",
+          "sha256": "df601ada88c06b63cb390f98acf447f46aefd3c5d881b47b7874503dd801c9e7",
+          "size": 7673
+        },
+        {
+          "git_path": "airjet-simulation/automation/ansys/contracts/trusted_full_product_gen1/variant_02_m_3x4_7_0_r50_balanced.json",
+          "relative_path": "variant_02_m_3x4_7_0_r50_balanced.json",
+          "sha256": "17253b5ad35ecea541b9357e942eca6175a689517948f8b56cae254ebcc5b03a",
+          "size": 1781515
+        }
+      ],
+      "profile_dependency_manifest_sha256": "93f5c8d92eb186fb664353fbf3ef150ea452fe1445a4d18c74ad62748c4ab032",
+      "profile_id": "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
+      "reason": null,
+      "schema_version": 4,
+      "script_sha256": "8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0",
+      "started_at": "2026-09-01T11:42:46.848228+00:00"
+    },
+    "manifest": {
+      "file_count": 41,
+      "files": [
+        {
+          "relative_path": "job.json",
+          "sha256": "a3eb7ad360c07052f721301bc4c5d05c10588a8a84e600117f29c9c9dcbc7684",
+          "size": 5734
+        },
+        {
+          "relative_path": "product_continuous_fluid.scdocx",
+          "sha256": "7931b7058502773ee96af9fdccf631c3fcbe2395a3ff4c8da2262b038ca0d498",
+          "size": 6958932
+        },
+        {
+          "relative_path": "product_continuous_fluid.step",
+          "sha256": "6d85ba0fc6ce73ff0fa83f58618e7488bcbe4d84088446e44ff3a1f841fe33b0",
+          "size": 1806619
+        },
+        {
+          "relative_path": "stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "stdout.log",
+          "sha256": "a55b283a83c9917d96fa0db92e8d61c97b778ff49090e7315707d747284fb43a",
+          "size": 40026
+        },
+        {
+          "relative_path": "v03_continuous_fluid_producer.json",
+          "report_json": {
+            "assertions": {
+              "artifact_hashes": true,
+              "c016_candidate_boundary": true,
+              "claim_boundaries": true,
+              "complete_flow_path": true,
+              "explicit_throat_construction": true,
+              "gen1_target": true,
+              "input_contract": true,
+              "native_reopen_single_body": true,
+              "native_save": true,
+              "native_throat_inventory": true,
+              "physics_guards": true,
+              "preliminary_full_product_scope": true,
+              "round_trip_shape_fidelity": true,
+              "single_continuous_fluid_boolean": true,
+              "step_export": true,
+              "step_reopen_single_body": true,
+              "step_throat_inventory": true
+            },
+            "c016_candidate": {
+              "evidence_class": "C",
+              "parameter_id": "C016",
+              "product_fact": false,
+              "range_mm": [
+                0.05,
+                0.2
+              ],
+              "status": "cad_placeholder",
+              "uncertainty_scan": "REQUIRED_LATER_NOT_RUN",
+              "value_mm": 0.1
+            },
+            "claim_scope": "V03_CONTINUOUS_FLUID_GEOMETRY_PILOT_ONLY",
+            "engineering_capability": "PASS_PARTIAL_CAD_CAPABILITY",
+            "exact_product_geometry": "NOT_CLAIMED",
+            "external_native_attach": "NOT_PROVEN",
+            "files": {
+              "authoring_native": {
+                "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-a712e60cefcf\\v03_full_product_authoring.scdocx",
+                "sha256": "c82740b666ab7792f201bd5246cb6288a550c67a512d2f897a0aa4cc4ccf3d9d",
+                "size": 6964384
+              },
+              "continuous_native": {
+                "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-a712e60cefcf\\product_continuous_fluid.scdocx",
+                "sha256": "7931b7058502773ee96af9fdccf631c3fcbe2395a3ff4c8da2262b038ca0d498",
+                "size": 6958932
+              },
+              "continuous_step": {
+                "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-a712e60cefcf\\product_continuous_fluid.step",
+                "sha256": "6d85ba0fc6ce73ff0fa83f58618e7488bcbe4d84088446e44ff3a1f841fe33b0",
+                "size": 1806619
+              },
+              "native_reopen": {
+                "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-a712e60cefcf\\v03_native_reopen.json",
+                "sha256": "1335db49566bd3fe124986a6a9013667396ea5fba2dd3434eba2ca39b2f054c1",
+                "size": 533071
+              },
+              "source_chain": {
+                "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-a712e60cefcf\\v03_source_chain.json",
+                "sha256": "ad32c4fd53fe2f3df5187227f5d4736b61f2dba0d2cd657a6874eaa377d97ad1",
+                "size": 1614
+              },
+              "step_reimport": {
+                "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-a712e60cefcf\\v03_step_reimport.json",
+                "sha256": "d0d4acf0fc259f5c8c8393baacb839e2e2d1c4006a5fc15e5187c361389a5eef",
+                "size": 500939
+              },
+              "throat_inventory": {
+                "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-a712e60cefcf\\v03_throat_inventory.json",
+                "sha256": "9237ad4dcfb60a5067c94adaa51192e47563fbee248a6dd4ca854e96c4a73e9f",
+                "size": 1071138
+              }
+            },
+            "formal_006_completion": false,
+            "formal_convex_hull_contract": "NOT_RUN",
+            "full_variant_campaign": "NOT_RUN_1_OF_9_ONLY",
+            "geometry": {
+              "actual_membrane_area_porosity_pct": 8.11444531061139,
+              "all_cells_have_throats": true,
+              "boolean_volume_delta_mm3": 6.821210263296962e-13,
+              "candidate_target_minus_actual_porosity_pct": 1.8855546893886093,
+              "candidate_target_porosity_pct": 10.0,
+              "cell_count": 12,
+              "configuration_id": "M-3x4-7.0",
+              "continuous_before_save": {
+                "bbox_max_mm": [
+                  10.875000000000002,
+                  20.750000000000004,
+                  2.8
+                ],
+                "bbox_min_mm": [
+                  -10.875000000000002,
+                  -17.750000000000004,
+                  1.2675
+                ],
+                "face_count": 1076,
+                "is_closed": true,
+                "is_manifold": true,
+                "name": "AJM006_V03_FLUID_CONTINUOUS",
+                "piece_count": 1,
+                "volume_mm3": 469.4396438426365
+              },
+              "continuous_route_ok": true,
+              "expected_overlap_volume_mm3": 0.9542587685278997,
+              "expected_union_volume_mm3": 469.4396438426358,
+              "expected_xy_contract": {
+                "expected_count": 972,
+                "minimum_center_spacing_mm": 0.7006239999999995,
+                "pass": true,
+                "required_minimum_center_spacing_mm": 0.29,
+                "step_xy_tolerance_mm": 0.02,
+                "unique_count_rounded_9dp": 972
+              },
+              "group_counts": {
+                "FLUID_CONTINUOUS": 1,
+                "HEAT_WALL": 1,
+                "INLET": 4,
+                "MEMBRANE_BOTTOM": 12,
+                "MEMBRANE_TOP": 12,
+                "ORIFICE_THROAT_WALL": 972,
+                "OUTLET": 1
+              },
+              "group_required": {
+                "FLUID_CONTINUOUS": 1,
+                "HEAT_WALL": 1,
+                "INLET": 4,
+                "MEMBRANE_BOTTOM": 12,
+                "MEMBRANE_TOP": 12,
+                "ORIFICE_THROAT_WALL": 972,
+                "OUTLET": 1
+              },
+              "group_semantics_ok": true,
+              "native_analytic_volume_delta_mm3": 3.0127011996228248e-12,
+              "native_reopen_summary": {
+                "body_count": 1,
+                "body_fingerprint": {
+                  "bbox_max_mm": [
+                    10.875000000000002,
+                    20.750000000000004,
+                    2.8
+                  ],
+                  "bbox_min_mm": [
+                    -10.875000000000002,
+                    -17.750000000000004,
+                    1.2675
+                  ],
+                  "face_count": 1076,
+                  "is_closed": true,
+                  "is_manifold": true,
+                  "name": "AJM006_V03_FLUID_CONTINUOUS",
+                  "piece_count": 1,
+                  "volume_mm3": 469.43964384263637
+                },
+                "group_counts": {
+                  "FLUID_CONTINUOUS": 1,
+                  "HEAT_WALL": 1,
+                  "INLET": 4,
+                  "MEMBRANE_BOTTOM": 12,
+                  "MEMBRANE_TOP": 12,
+                  "ORIFICE_THROAT_WALL": 972,
+                  "OUTLET": 1
+                },
+                "open_success": true
+              },
+              "native_route_ok": true,
+              "native_route_volume_tolerance_mm3": 0.08,
+              "native_throat_inventory": {
+                "accepted_area_model_counts": {
+                  "CONSTRUCTION_OVERLAP_EXTENDED": 0,
+                  "EFFECTIVE_0P100_MM": 972,
+                  "STEP_KERNEL_OTHER_AREA": 0
+                },
+                "area_tolerance_mm2": 0.001,
+                "candidate_face_count": 972,
+                "expected_center_z_mm": 1.5675,
+                "expected_construction_lateral_area_mm2": 0.10995574287564266,
+                "expected_construction_length_mm": 0.13999999999999987,
+                "expected_diameter_mm": 0.25,
+                "expected_effective_lateral_area_mm2": 0.07853981633974472,
+                "expected_length_mm": 0.09999999999999987,
+                "expected_radius_mm": 0.125,
+                "expected_z_max_mm": 1.6175,
+                "expected_z_min_mm": 1.5175,
+                "geometry_tolerance_mm": 0.002,
+                "observed_candidate_area_range_mm2": [
+                  0.07853981633974463,
+                  0.07853981633974585
+                ],
+                "observed_candidate_center_z_range_mm": [
+                  1.5675000000000001,
+                  1.5675000000000001
+                ],
+                "observed_candidate_edge_count_histogram": {
+                  "2": 972
+                },
+                "pass": true,
+                "xy_inventory": {
+                  "actual_count": 972,
+                  "expected_count": 972,
+                  "matched_count": 972,
+                  "max_xy_delta_mm": 1.7763568394002505e-15,
+                  "missing_count": 0,
+                  "one_to_one_complete": true,
+                  "tolerance_mm": 0.002,
+                  "unexpected_count": 0
+                }
+              },
+              "numerical_overlap_mm": 0.02,
+              "orifice_count": 972,
+              "orifice_diameter_mm": 0.25,
+              "perimeter_boolean_overlap_mm": 0.05,
+              "perimeter_boolean_overlap_raw_mm3": 1.3392000000000013,
+              "perimeter_boolean_overlap_union_volume_delta_mm3": 0.0,
+              "preferred_porosity_guard_pct": [
+                8.0,
+                12.0
+              ],
+              "premerge_downstream": {
+                "bbox_max_mm": [
+                  10.875000000000002,
+                  20.750000000000004,
+                  1.5175000000000003
+                ],
+                "bbox_min_mm": [
+                  -10.875000000000002,
+                  -14.5,
+                  1.2675
+                ],
+                "face_count": 6,
+                "is_closed": true,
+                "is_manifold": true,
+                "name": "AJM006_V03_FLUID_DOWNSTREAM_PREMERGE",
+                "piece_count": 1,
+                "volume_mm3": 191.67187500000006
+              },
+              "premerge_upstream": {
+                "bbox_max_mm": [
+                  10.875000000000002,
+                  14.5,
+                  2.8
+                ],
+                "bbox_min_mm": [
+                  -10.875000000000002,
+                  -17.750000000000004,
+                  1.4975
+                ],
+                "face_count": 2042,
+                "is_closed": true,
+                "is_manifold": true,
+                "name": "AJM006_V03_FLUID_UPSTREAM_PREMERGE",
+                "piece_count": 1,
+                "volume_mm3": 278.72202761116364
+              },
+              "route_analytic_volume_mm3": 469.4396438426395,
+              "source_variant_id": "M-3x4-7.0__R50_BALANCED",
+              "step_analytic_volume_delta_mm3": 4.035882739117369e-12,
+              "step_boundary_counts": {
+                "HEAT_WALL": 1,
+                "INLET": 4,
+                "MEMBRANE_BOTTOM": 12,
+                "MEMBRANE_TOP": 12,
+                "ORIFICE_THROAT_WALL": 972,
+                "OUTLET": 1
+              },
+              "step_reimport_summary": {
+                "body_count": 1,
+                "body_fingerprint": {
+                  "bbox_max_mm": [
+                    10.875,
+                    20.75,
+                    2.8
+                  ],
+                  "bbox_min_mm": [
+                    -10.875,
+                    -17.75,
+                    1.2675
+                  ],
+                  "face_count": 1076,
+                  "is_closed": true,
+                  "is_manifold": true,
+                  "name": "\u5b9e\u4f53",
+                  "piece_count": 1,
+                  "volume_mm3": 469.43964384264353
+                },
+                "boundary_counts": {
+                  "HEAT_WALL": 1,
+                  "INLET": 4,
+                  "MEMBRANE_BOTTOM": 12,
+                  "MEMBRANE_TOP": 12,
+                  "ORIFICE_THROAT_WALL": 972,
+                  "OUTLET": 1
+                },
+                "comparison_deltas": {
+                  "max_bbox_delta_mm": 3.552713678800501e-15,
+                  "max_volume_delta_mm3": 7.048583938740194e-12
+                },
+                "comparison_tolerances": {
+                  "bbox_tolerance_mm": 0.02,
+                  "comparison_basis": "INDEPENDENT_ROUTE_ANALYTIC",
+                  "face_count_required": false,
+                  "names_required": false,
+                  "native_to_step_volume_delta_diagnostic_only": true,
+                  "route_analytic_volume_tolerance_mm3": 0.03,
+                  "throat_xy_tolerance_mm": 0.02,
+                  "volume_absolute_tolerance_mm3": 0.08,
+                  "volume_relative_tolerance": 1e-05
+                },
+                "open_success": true
+              },
+              "step_route_ok": true,
+              "step_route_volume_tolerance_mm3": 0.03,
+              "step_throat_inventory": {
+                "accepted_area_model_counts": {
+                  "CONSTRUCTION_OVERLAP_EXTENDED": 0,
+                  "EFFECTIVE_0P100_MM": 972,
+                  "STEP_KERNEL_OTHER_AREA": 0
+                },
+                "area_tolerance_mm2": 0.001,
+                "candidate_face_count": 972,
+                "expected_center_z_mm": 1.5675,
+                "expected_construction_lateral_area_mm2": 0.10995574287564266,
+                "expected_construction_length_mm": 0.13999999999999987,
+                "expected_diameter_mm": 0.25,
+                "expected_effective_lateral_area_mm2": 0.07853981633974472,
+                "expected_length_mm": 0.09999999999999987,
+                "expected_radius_mm": 0.125,
+                "expected_z_max_mm": 1.6175,
+                "expected_z_min_mm": 1.5175,
+                "geometry_tolerance_mm": 0.005,
+                "observed_candidate_area_range_mm2": [
+                  0.07853981633974487,
+                  0.07853981633974487
+                ],
+                "observed_candidate_center_z_range_mm": [
+                  1.5675,
+                  1.5675
+                ],
+                "observed_candidate_edge_count_histogram": {
+                  "2": 972
+                },
+                "pass": true,
+                "xy_inventory": {
+                  "actual_count": 972,
+                  "expected_count": 972,
+                  "matched_count": 972,
+                  "max_xy_delta_mm": 1.7763568394002505e-15,
+                  "missing_count": 0,
+                  "one_to_one_complete": true,
+                  "tolerance_mm": 0.02,
+                  "unexpected_count": 0
+                }
+              },
+              "throat_counts_by_cell": {
+                "1": 81,
+                "10": 81,
+                "11": 81,
+                "12": 81,
+                "2": 81,
+                "3": 81,
+                "4": 81,
+                "5": 81,
+                "6": 81,
+                "7": 81,
+                "8": 81,
+                "9": 81
+              },
+              "throat_inventory_before_save": {
+                "accepted_area_model_counts": {
+                  "CONSTRUCTION_OVERLAP_EXTENDED": 0,
+                  "EFFECTIVE_0P100_MM": 972,
+                  "STEP_KERNEL_OTHER_AREA": 0
+                },
+                "area_tolerance_mm2": 0.001,
+                "candidate_face_count": 972,
+                "expected_center_z_mm": 1.5675,
+                "expected_construction_lateral_area_mm2": 0.10995574287564266,
+                "expected_construction_length_mm": 0.13999999999999987,
+                "expected_diameter_mm": 0.25,
+                "expected_effective_lateral_area_mm2": 0.07853981633974472,
+                "expected_length_mm": 0.09999999999999987,
+                "expected_radius_mm": 0.125,
+                "expected_z_max_mm": 1.6175,
+                "expected_z_min_mm": 1.5175,
+                "geometry_tolerance_mm": 0.002,
+                "observed_candidate_area_range_mm2": [
+                  0.07853981633974463,
+                  0.07853981633974585
+                ],
+                "observed_candidate_center_z_range_mm": [
+                  1.5675000000000001,
+                  1.5675000000000001
+                ],
+                "observed_candidate_edge_count_histogram": {
+                  "2": 972
+                },
+                "pass": true,
+                "xy_inventory": {
+                  "actual_count": 972,
+                  "expected_count": 972,
+                  "matched_count": 972,
+                  "max_xy_delta_mm": 1.7763568394002505e-15,
+                  "missing_count": 0,
+                  "one_to_one_complete": true,
+                  "tolerance_mm": 0.002,
+                  "unexpected_count": 0
+                }
+              },
+              "throat_length_evidence_class": "C",
+              "throat_length_mm": 0.09999999999999987,
+              "throat_length_range_mm": [
+                0.05,
+                0.2
+              ],
+              "vent_rear_support": {
+                "cell_footprint_y_min_mm": -14.5,
+                "rear_inlet_ids": [
+                  "V01",
+                  "V02"
+                ],
+                "rear_support_extension_mm": 3.25,
+                "supported_plenum_y_min_mm": -17.75,
+                "vent_boxes_mm": {
+                  "V01": [
+                    -6.5,
+                    -17.75,
+                    -4.800000000000001,
+                    -3.6499999999999995
+                  ],
+                  "V02": [
+                    3.4999999999999996,
+                    -17.75,
+                    5.199999999999999,
+                    -3.4499999999999993
+                  ],
+                  "V03": [
+                    -6.6000000000000005,
+                    -1.75,
+                    -4.8,
+                    12.75
+                  ],
+                  "V04": [
+                    3.75,
+                    -1.5499999999999998,
+                    5.35,
+                    13.350000000000001
+                  ]
+                }
+              },
+              "vent_riser_overlap_mm": 0.001
+            },
+            "geometry_representation": "SINGLE_CONTINUOUS_FLUID_BODY_WITH_972_EXPLICIT_FINITE_THROATS",
+            "identity": {
+              "case_id": "AJM006-V03-CONTINUOUS",
+              "dependency_manifest_sha256": "93f5c8d92eb186fb664353fbf3ef150ea452fe1445a4d18c74ad62748c4ab032",
+              "git_head": "010cbe627cc94c52fa6650020f77dd1a6884beb6",
+              "profile_contract_sha256": "c525f5d53e8a72100232b4e30a88020ab54305769b5cd6c71629e09b5acf15e0",
+              "profile_id": "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
+              "script_sha256": "8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0"
+            },
+            "license_arguments_added": false,
+            "mesh": "NOT_RUN",
+            "native_named_selection_transfer": "NOT_PROVEN",
+            "native_parameterization": "NOT_PROVEN",
+            "p1_p6_gates": "NOT_RUN",
+            "p1_stage_gate": "NOT_RUN",
+            "physics": "NOT_RUN",
+            "pilot_result": "PASS_PRELIMINARY_V03_FINITE_THROAT_GEOMETRY",
+            "probe": "v03_continuous_fluid_producer",
+            "pyfluent": "NOT_RUN",
+            "schema_version": 1,
+            "script_api": "V261",
+            "status": "PASS_PARTIAL_CAD_CAPABILITY",
+            "task": "AJM006_V03_CONTINUOUS_FLUID_FULL_PRODUCT_PILOT",
+            "top_plenum_planform": "PRELIMINARY_CELL_FOOTPRINT_BLOCK_WITH_VENT_RISER_UNION",
+            "trusted_production_profile_binding": "NOT_RUN_PRELIMINARY_PROFILE",
+            "visibility": "NOT_USER_OBSERVED",
+            "workbench": "NOT_RUN"
+          },
+          "sha256": "e89e363ec71775b71f83f5bc324dbf4df24b391da70f8fd68439f13e845619c6",
+          "size": 16043
+        },
+        {
+          "relative_path": "v03_full_product_authoring.scdocx",
+          "sha256": "c82740b666ab7792f201bd5246cb6288a550c67a512d2f897a0aa4cc4ccf3d9d",
+          "size": 6964384
+        },
+        {
+          "relative_path": "v03_native_reopen.json",
+          "sha256": "1335db49566bd3fe124986a6a9013667396ea5fba2dd3434eba2ca39b2f054c1",
+          "size": 533071
+        },
+        {
+          "relative_path": "v03_source_chain.json",
+          "sha256": "ad32c4fd53fe2f3df5187227f5d4736b61f2dba0d2cd657a6874eaa377d97ad1",
+          "size": 1614
+        },
+        {
+          "relative_path": "v03_step_reimport.json",
+          "sha256": "d0d4acf0fc259f5c8c8393baacb839e2e2d1c4006a5fc15e5187c361389a5eef",
+          "size": 500939
+        },
+        {
+          "relative_path": "v03_throat_inventory.json",
+          "sha256": "9237ad4dcfb60a5067c94adaa51192e47563fbee248a6dd4ca854e96c4a73e9f",
+          "size": 1071138
+        },
+        {
+          "relative_path": "input/v03_continuous_fluid_producer.py",
+          "sha256": "8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0",
+          "size": 63603
+        },
+        {
+          "relative_path": "input/dependencies/build_full_product_trusted_variants.py",
+          "sha256": "646ad9ed8b3344e64a8a2669b866594c6dda7aea81444d241a452f058d295b70",
+          "size": 35168
+        },
+        {
+          "relative_path": "input/dependencies/campaign.json",
+          "sha256": "df601ada88c06b63cb390f98acf447f46aefd3c5d881b47b7874503dd801c9e7",
+          "size": 7673
+        },
+        {
+          "relative_path": "input/dependencies/dependency-manifest.json",
+          "sha256": "93f5c8d92eb186fb664353fbf3ef150ea452fe1445a4d18c74ad62748c4ab032",
+          "size": 4757
+        },
+        {
+          "relative_path": "input/dependencies/full_product_parameter_registry.csv",
+          "sha256": "b1c9d0a4e7ac2a655afc5c449d1b8867f6273af3ebac4cfcbec0be5c50e3425c",
+          "size": 11503
+        },
+        {
+          "relative_path": "input/dependencies/full_product_semantic_contract_v1.py",
+          "sha256": "a34440e9dc9936f081ebd58d72432b194a1d5ba29a1379079c91827cfd315666",
+          "size": 83143
+        },
+        {
+          "relative_path": "input/dependencies/full_product_semantic_sidecar_v1.schema.json",
+          "sha256": "75cd95525e5189a4ef11a979a5621a7dd8db96efeb59e209cede794bb129ea30",
+          "size": 11076
+        },
+        {
+          "relative_path": "input/dependencies/p1_cad_parameter_map.csv",
+          "sha256": "88d95dafc2ccaf063d14123da959b2e454b3dfa56b6c5a6d1a11b991b64ad9d3",
+          "size": 110221
+        },
+        {
+          "relative_path": "input/dependencies/p1_internal_geometry_rules.csv",
+          "sha256": "04197c9322ea29baca56ccd2b9afccecb25708be0dfc21c9fceef79564c01da2",
+          "size": 8755
+        },
+        {
+          "relative_path": "input/dependencies/p1_layout_configuration_matrix.csv",
+          "sha256": "70ff15d1fd4b6bb78973ad47c488dcb12aed797dcbed07a86c189c6952a879e1",
+          "size": 2056
+        },
+        {
+          "relative_path": "input/dependencies/p1_model_form_variants.csv",
+          "sha256": "012e8031258aa1d1b4e4f274b76e09fdb83e930ce29eac737d82db25a5bb67da",
+          "size": 6569
+        },
+        {
+          "relative_path": "input/dependencies/p1_orifice_pattern_candidates.csv",
+          "sha256": "e2ea0e007a4cb7b25b6f2c7ba03e1cb6f60c19433d4c7664217b0e9727f32570",
+          "size": 6273
+        },
+        {
+          "relative_path": "input/dependencies/p1_planform_exhaust_candidates.csv",
+          "sha256": "de560f672da729477a1bde727aec6e6fb20e2a684d31874ffa032b5c642a81db",
+          "size": 7993
+        },
+        {
+          "relative_path": "input/dependencies/p1_thickness_budget.csv",
+          "sha256": "7635ca5962a5d2f300c55553d6ed979fa59c35c448e8af3cdcfa2cb13f441976",
+          "size": 4236
+        },
+        {
+          "relative_path": "input/dependencies/p1_vent_geometry_candidates.csv",
+          "sha256": "54cc8b657d38453ba27b8ccb6c6863f085679b2fa61f0b5bd6528d1033c62f9f",
+          "size": 6870
+        },
+        {
+          "relative_path": "input/dependencies/test_full_product_semantic_contract_v1.py",
+          "sha256": "05aad0bc5ee74a783236bd6448face8f06776522ec4139108e570f0845817a81",
+          "size": 28606
+        },
+        {
+          "relative_path": "input/dependencies/test_full_product_trusted_variants.py",
+          "sha256": "b4691df9fc91744bd3f740f2cda76d42df3025a5d99567d39a36953aff8bac87",
+          "size": 17060
+        },
+        {
+          "relative_path": "input/dependencies/v03_finite_throat_route_v1.json",
+          "sha256": "9e5125c4338f1771220e77c51e85432c21f749373f34324a3ab6f14ad80386bb",
+          "size": 6687
+        },
+        {
+          "relative_path": "input/dependencies/variant_02_m_3x4_7_0_r50_balanced.json",
+          "sha256": "17253b5ad35ecea541b9357e942eca6175a689517948f8b56cae254ebcc5b03a",
+          "size": 1781515
+        },
+        {
+          "relative_path": "temp/ElectronicsDatabaseAddIn.log",
+          "sha256": "75cf735df76801e6da31602923fbfc3531ea6410e5c942d025c1291cd98270fd",
+          "size": 7958
+        },
+        {
+          "relative_path": "temp/tmp56BE.tmp",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/.ansys/.ansys.rnd",
+          "sha256": "3d0f840c662852490c68853cce1a0c53ff9c7df8be78a9cb4f9327241ae55b39",
+          "size": 1024
+        },
+        {
+          "relative_path": "temp/.ansys/aclcleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/.ansys/ansyscl.LAPTOP-LCCLM2HI.log",
+          "sha256": "af8ab8a15f30338b1b022b33f1e9ffbcead734354307dfd3f3b316594e9bd8f6",
+          "size": 4201
+        },
+        {
+          "relative_path": "temp/.ansys/licdebug.LAPTOP-LCCLM2HI.ALI_UTIL.261.out",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/.ansys/licdebug.LAPTOP-LCCLM2HI.SPACECLAIM.261.out",
+          "sha256": "43bc02160175648f9ac36dc95cdc3b5d68f6481546d0be67ce6b4efb097fe139",
+          "size": 1419
+        },
+        {
+          "relative_path": "temp/ActivePIMgrClient/MutexLocks/be98bda0-a530-4ad4-8f8f-9d7c4eab34f6 Plugin 14624",
+          "sha256": "b76875c50ef704dbbf7f02c982445971d1bbd61aebe2e4b28ddc58a1d66317d5",
+          "size": 12
+        },
+        {
+          "relative_path": "temp/ActivePIMgrClient/MutexLocks/be98bda0-a530-4ad4-8f8f-9d7c4eab34f6 WaitList 14624",
+          "sha256": "b76875c50ef704dbbf7f02c982445971d1bbd61aebe2e4b28ddc58a1d66317d5",
+          "size": 12
+        },
+        {
+          "relative_path": "temp/ActivePIMgrClient/MutexLocks/be98bda0-a530-4ad4-8f8f-9d7c4eab34f6 WaitListData14624",
+          "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+          "size": 4
+        },
+        {
+          "relative_path": "temp/Ansys/RunningCADs/LAPTOP-LCCLM2HI/v261/14624.direct",
+          "sha256": "ebb423476aed9491d6414cc4d9db202ce54e8578d217dc2c65f893aff2b87c80",
+          "size": 117
+        }
+      ],
+      "job_id": "AJM006-V03-CONTINUOUS-a712e60cefcf",
+      "phase": "PROCESS_EXITED_0",
+      "total_size": 20117011
+    },
+    "reached_terminal": true,
+    "report": {
+      "assertions": {
+        "artifact_hashes": true,
+        "c016_candidate_boundary": true,
+        "claim_boundaries": true,
+        "complete_flow_path": true,
+        "explicit_throat_construction": true,
+        "gen1_target": true,
+        "input_contract": true,
+        "native_reopen_single_body": true,
+        "native_save": true,
+        "native_throat_inventory": true,
+        "physics_guards": true,
+        "preliminary_full_product_scope": true,
+        "round_trip_shape_fidelity": true,
+        "single_continuous_fluid_boolean": true,
+        "step_export": true,
+        "step_reopen_single_body": true,
+        "step_throat_inventory": true
+      },
+      "c016_candidate": {
+        "evidence_class": "C",
+        "parameter_id": "C016",
+        "product_fact": false,
+        "range_mm": [
+          0.05,
+          0.2
+        ],
+        "status": "cad_placeholder",
+        "uncertainty_scan": "REQUIRED_LATER_NOT_RUN",
+        "value_mm": 0.1
+      },
+      "claim_scope": "V03_CONTINUOUS_FLUID_GEOMETRY_PILOT_ONLY",
+      "engineering_capability": "PASS_PARTIAL_CAD_CAPABILITY",
+      "exact_product_geometry": "NOT_CLAIMED",
+      "external_native_attach": "NOT_PROVEN",
+      "files": {
+        "authoring_native": {
+          "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-a712e60cefcf\\v03_full_product_authoring.scdocx",
+          "sha256": "c82740b666ab7792f201bd5246cb6288a550c67a512d2f897a0aa4cc4ccf3d9d",
+          "size": 6964384
+        },
+        "continuous_native": {
+          "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-a712e60cefcf\\product_continuous_fluid.scdocx",
+          "sha256": "7931b7058502773ee96af9fdccf631c3fcbe2395a3ff4c8da2262b038ca0d498",
+          "size": 6958932
+        },
+        "continuous_step": {
+          "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-a712e60cefcf\\product_continuous_fluid.step",
+          "sha256": "6d85ba0fc6ce73ff0fa83f58618e7488bcbe4d84088446e44ff3a1f841fe33b0",
+          "size": 1806619
+        },
+        "native_reopen": {
+          "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-a712e60cefcf\\v03_native_reopen.json",
+          "sha256": "1335db49566bd3fe124986a6a9013667396ea5fba2dd3434eba2ca39b2f054c1",
+          "size": 533071
+        },
+        "source_chain": {
+          "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-a712e60cefcf\\v03_source_chain.json",
+          "sha256": "ad32c4fd53fe2f3df5187227f5d4736b61f2dba0d2cd657a6874eaa377d97ad1",
+          "size": 1614
+        },
+        "step_reimport": {
+          "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-a712e60cefcf\\v03_step_reimport.json",
+          "sha256": "d0d4acf0fc259f5c8c8393baacb839e2e2d1c4006a5fc15e5187c361389a5eef",
+          "size": 500939
+        },
+        "throat_inventory": {
+          "path": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-a712e60cefcf\\v03_throat_inventory.json",
+          "sha256": "9237ad4dcfb60a5067c94adaa51192e47563fbee248a6dd4ca854e96c4a73e9f",
+          "size": 1071138
+        }
+      },
+      "formal_006_completion": false,
+      "formal_convex_hull_contract": "NOT_RUN",
+      "full_variant_campaign": "NOT_RUN_1_OF_9_ONLY",
+      "geometry": {
+        "actual_membrane_area_porosity_pct": 8.11444531061139,
+        "all_cells_have_throats": true,
+        "boolean_volume_delta_mm3": 6.821210263296962e-13,
+        "candidate_target_minus_actual_porosity_pct": 1.8855546893886093,
+        "candidate_target_porosity_pct": 10.0,
+        "cell_count": 12,
+        "configuration_id": "M-3x4-7.0",
+        "continuous_before_save": {
+          "bbox_max_mm": [
+            10.875000000000002,
+            20.750000000000004,
+            2.8
+          ],
+          "bbox_min_mm": [
+            -10.875000000000002,
+            -17.750000000000004,
+            1.2675
+          ],
+          "face_count": 1076,
+          "is_closed": true,
+          "is_manifold": true,
+          "name": "AJM006_V03_FLUID_CONTINUOUS",
+          "piece_count": 1,
+          "volume_mm3": 469.4396438426365
+        },
+        "continuous_route_ok": true,
+        "expected_overlap_volume_mm3": 0.9542587685278997,
+        "expected_union_volume_mm3": 469.4396438426358,
+        "expected_xy_contract": {
+          "expected_count": 972,
+          "minimum_center_spacing_mm": 0.7006239999999995,
+          "pass": true,
+          "required_minimum_center_spacing_mm": 0.29,
+          "step_xy_tolerance_mm": 0.02,
+          "unique_count_rounded_9dp": 972
+        },
+        "group_counts": {
+          "FLUID_CONTINUOUS": 1,
+          "HEAT_WALL": 1,
+          "INLET": 4,
+          "MEMBRANE_BOTTOM": 12,
+          "MEMBRANE_TOP": 12,
+          "ORIFICE_THROAT_WALL": 972,
+          "OUTLET": 1
+        },
+        "group_required": {
+          "FLUID_CONTINUOUS": 1,
+          "HEAT_WALL": 1,
+          "INLET": 4,
+          "MEMBRANE_BOTTOM": 12,
+          "MEMBRANE_TOP": 12,
+          "ORIFICE_THROAT_WALL": 972,
+          "OUTLET": 1
+        },
+        "group_semantics_ok": true,
+        "native_analytic_volume_delta_mm3": 3.0127011996228248e-12,
+        "native_reopen_summary": {
+          "body_count": 1,
+          "body_fingerprint": {
+            "bbox_max_mm": [
+              10.875000000000002,
+              20.750000000000004,
+              2.8
+            ],
+            "bbox_min_mm": [
+              -10.875000000000002,
+              -17.750000000000004,
+              1.2675
+            ],
+            "face_count": 1076,
+            "is_closed": true,
+            "is_manifold": true,
+            "name": "AJM006_V03_FLUID_CONTINUOUS",
+            "piece_count": 1,
+            "volume_mm3": 469.43964384263637
+          },
+          "group_counts": {
+            "FLUID_CONTINUOUS": 1,
+            "HEAT_WALL": 1,
+            "INLET": 4,
+            "MEMBRANE_BOTTOM": 12,
+            "MEMBRANE_TOP": 12,
+            "ORIFICE_THROAT_WALL": 972,
+            "OUTLET": 1
+          },
+          "open_success": true
+        },
+        "native_route_ok": true,
+        "native_route_volume_tolerance_mm3": 0.08,
+        "native_throat_inventory": {
+          "accepted_area_model_counts": {
+            "CONSTRUCTION_OVERLAP_EXTENDED": 0,
+            "EFFECTIVE_0P100_MM": 972,
+            "STEP_KERNEL_OTHER_AREA": 0
+          },
+          "area_tolerance_mm2": 0.001,
+          "candidate_face_count": 972,
+          "expected_center_z_mm": 1.5675,
+          "expected_construction_lateral_area_mm2": 0.10995574287564266,
+          "expected_construction_length_mm": 0.13999999999999987,
+          "expected_diameter_mm": 0.25,
+          "expected_effective_lateral_area_mm2": 0.07853981633974472,
+          "expected_length_mm": 0.09999999999999987,
+          "expected_radius_mm": 0.125,
+          "expected_z_max_mm": 1.6175,
+          "expected_z_min_mm": 1.5175,
+          "geometry_tolerance_mm": 0.002,
+          "observed_candidate_area_range_mm2": [
+            0.07853981633974463,
+            0.07853981633974585
+          ],
+          "observed_candidate_center_z_range_mm": [
+            1.5675000000000001,
+            1.5675000000000001
+          ],
+          "observed_candidate_edge_count_histogram": {
+            "2": 972
+          },
+          "pass": true,
+          "xy_inventory": {
+            "actual_count": 972,
+            "expected_count": 972,
+            "matched_count": 972,
+            "max_xy_delta_mm": 1.7763568394002505e-15,
+            "missing_count": 0,
+            "one_to_one_complete": true,
+            "tolerance_mm": 0.002,
+            "unexpected_count": 0
+          }
+        },
+        "numerical_overlap_mm": 0.02,
+        "orifice_count": 972,
+        "orifice_diameter_mm": 0.25,
+        "perimeter_boolean_overlap_mm": 0.05,
+        "perimeter_boolean_overlap_raw_mm3": 1.3392000000000013,
+        "perimeter_boolean_overlap_union_volume_delta_mm3": 0.0,
+        "preferred_porosity_guard_pct": [
+          8.0,
+          12.0
+        ],
+        "premerge_downstream": {
+          "bbox_max_mm": [
+            10.875000000000002,
+            20.750000000000004,
+            1.5175000000000003
+          ],
+          "bbox_min_mm": [
+            -10.875000000000002,
+            -14.5,
+            1.2675
+          ],
+          "face_count": 6,
+          "is_closed": true,
+          "is_manifold": true,
+          "name": "AJM006_V03_FLUID_DOWNSTREAM_PREMERGE",
+          "piece_count": 1,
+          "volume_mm3": 191.67187500000006
+        },
+        "premerge_upstream": {
+          "bbox_max_mm": [
+            10.875000000000002,
+            14.5,
+            2.8
+          ],
+          "bbox_min_mm": [
+            -10.875000000000002,
+            -17.750000000000004,
+            1.4975
+          ],
+          "face_count": 2042,
+          "is_closed": true,
+          "is_manifold": true,
+          "name": "AJM006_V03_FLUID_UPSTREAM_PREMERGE",
+          "piece_count": 1,
+          "volume_mm3": 278.72202761116364
+        },
+        "route_analytic_volume_mm3": 469.4396438426395,
+        "source_variant_id": "M-3x4-7.0__R50_BALANCED",
+        "step_analytic_volume_delta_mm3": 4.035882739117369e-12,
+        "step_boundary_counts": {
+          "HEAT_WALL": 1,
+          "INLET": 4,
+          "MEMBRANE_BOTTOM": 12,
+          "MEMBRANE_TOP": 12,
+          "ORIFICE_THROAT_WALL": 972,
+          "OUTLET": 1
+        },
+        "step_reimport_summary": {
+          "body_count": 1,
+          "body_fingerprint": {
+            "bbox_max_mm": [
+              10.875,
+              20.75,
+              2.8
+            ],
+            "bbox_min_mm": [
+              -10.875,
+              -17.75,
+              1.2675
+            ],
+            "face_count": 1076,
+            "is_closed": true,
+            "is_manifold": true,
+            "name": "\u5b9e\u4f53",
+            "piece_count": 1,
+            "volume_mm3": 469.43964384264353
+          },
+          "boundary_counts": {
+            "HEAT_WALL": 1,
+            "INLET": 4,
+            "MEMBRANE_BOTTOM": 12,
+            "MEMBRANE_TOP": 12,
+            "ORIFICE_THROAT_WALL": 972,
+            "OUTLET": 1
+          },
+          "comparison_deltas": {
+            "max_bbox_delta_mm": 3.552713678800501e-15,
+            "max_volume_delta_mm3": 7.048583938740194e-12
+          },
+          "comparison_tolerances": {
+            "bbox_tolerance_mm": 0.02,
+            "comparison_basis": "INDEPENDENT_ROUTE_ANALYTIC",
+            "face_count_required": false,
+            "names_required": false,
+            "native_to_step_volume_delta_diagnostic_only": true,
+            "route_analytic_volume_tolerance_mm3": 0.03,
+            "throat_xy_tolerance_mm": 0.02,
+            "volume_absolute_tolerance_mm3": 0.08,
+            "volume_relative_tolerance": 1e-05
+          },
+          "open_success": true
+        },
+        "step_route_ok": true,
+        "step_route_volume_tolerance_mm3": 0.03,
+        "step_throat_inventory": {
+          "accepted_area_model_counts": {
+            "CONSTRUCTION_OVERLAP_EXTENDED": 0,
+            "EFFECTIVE_0P100_MM": 972,
+            "STEP_KERNEL_OTHER_AREA": 0
+          },
+          "area_tolerance_mm2": 0.001,
+          "candidate_face_count": 972,
+          "expected_center_z_mm": 1.5675,
+          "expected_construction_lateral_area_mm2": 0.10995574287564266,
+          "expected_construction_length_mm": 0.13999999999999987,
+          "expected_diameter_mm": 0.25,
+          "expected_effective_lateral_area_mm2": 0.07853981633974472,
+          "expected_length_mm": 0.09999999999999987,
+          "expected_radius_mm": 0.125,
+          "expected_z_max_mm": 1.6175,
+          "expected_z_min_mm": 1.5175,
+          "geometry_tolerance_mm": 0.005,
+          "observed_candidate_area_range_mm2": [
+            0.07853981633974487,
+            0.07853981633974487
+          ],
+          "observed_candidate_center_z_range_mm": [
+            1.5675,
+            1.5675
+          ],
+          "observed_candidate_edge_count_histogram": {
+            "2": 972
+          },
+          "pass": true,
+          "xy_inventory": {
+            "actual_count": 972,
+            "expected_count": 972,
+            "matched_count": 972,
+            "max_xy_delta_mm": 1.7763568394002505e-15,
+            "missing_count": 0,
+            "one_to_one_complete": true,
+            "tolerance_mm": 0.02,
+            "unexpected_count": 0
+          }
+        },
+        "throat_counts_by_cell": {
+          "1": 81,
+          "10": 81,
+          "11": 81,
+          "12": 81,
+          "2": 81,
+          "3": 81,
+          "4": 81,
+          "5": 81,
+          "6": 81,
+          "7": 81,
+          "8": 81,
+          "9": 81
+        },
+        "throat_inventory_before_save": {
+          "accepted_area_model_counts": {
+            "CONSTRUCTION_OVERLAP_EXTENDED": 0,
+            "EFFECTIVE_0P100_MM": 972,
+            "STEP_KERNEL_OTHER_AREA": 0
+          },
+          "area_tolerance_mm2": 0.001,
+          "candidate_face_count": 972,
+          "expected_center_z_mm": 1.5675,
+          "expected_construction_lateral_area_mm2": 0.10995574287564266,
+          "expected_construction_length_mm": 0.13999999999999987,
+          "expected_diameter_mm": 0.25,
+          "expected_effective_lateral_area_mm2": 0.07853981633974472,
+          "expected_length_mm": 0.09999999999999987,
+          "expected_radius_mm": 0.125,
+          "expected_z_max_mm": 1.6175,
+          "expected_z_min_mm": 1.5175,
+          "geometry_tolerance_mm": 0.002,
+          "observed_candidate_area_range_mm2": [
+            0.07853981633974463,
+            0.07853981633974585
+          ],
+          "observed_candidate_center_z_range_mm": [
+            1.5675000000000001,
+            1.5675000000000001
+          ],
+          "observed_candidate_edge_count_histogram": {
+            "2": 972
+          },
+          "pass": true,
+          "xy_inventory": {
+            "actual_count": 972,
+            "expected_count": 972,
+            "matched_count": 972,
+            "max_xy_delta_mm": 1.7763568394002505e-15,
+            "missing_count": 0,
+            "one_to_one_complete": true,
+            "tolerance_mm": 0.002,
+            "unexpected_count": 0
+          }
+        },
+        "throat_length_evidence_class": "C",
+        "throat_length_mm": 0.09999999999999987,
+        "throat_length_range_mm": [
+          0.05,
+          0.2
+        ],
+        "vent_rear_support": {
+          "cell_footprint_y_min_mm": -14.5,
+          "rear_inlet_ids": [
+            "V01",
+            "V02"
+          ],
+          "rear_support_extension_mm": 3.25,
+          "supported_plenum_y_min_mm": -17.75,
+          "vent_boxes_mm": {
+            "V01": [
+              -6.5,
+              -17.75,
+              -4.800000000000001,
+              -3.6499999999999995
+            ],
+            "V02": [
+              3.4999999999999996,
+              -17.75,
+              5.199999999999999,
+              -3.4499999999999993
+            ],
+            "V03": [
+              -6.6000000000000005,
+              -1.75,
+              -4.8,
+              12.75
+            ],
+            "V04": [
+              3.75,
+              -1.5499999999999998,
+              5.35,
+              13.350000000000001
+            ]
+          }
+        },
+        "vent_riser_overlap_mm": 0.001
+      },
+      "geometry_representation": "SINGLE_CONTINUOUS_FLUID_BODY_WITH_972_EXPLICIT_FINITE_THROATS",
+      "identity": {
+        "case_id": "AJM006-V03-CONTINUOUS",
+        "dependency_manifest_sha256": "93f5c8d92eb186fb664353fbf3ef150ea452fe1445a4d18c74ad62748c4ab032",
+        "git_head": "010cbe627cc94c52fa6650020f77dd1a6884beb6",
+        "profile_contract_sha256": "c525f5d53e8a72100232b4e30a88020ab54305769b5cd6c71629e09b5acf15e0",
+        "profile_id": "ajm006-spaceclaim-v03-continuous-throat-pilot-v1",
+        "script_sha256": "8f23d7d7dd66efcf06909341a45a76caccd6732cbf11fa1f54157699d55228b0"
+      },
+      "license_arguments_added": false,
+      "mesh": "NOT_RUN",
+      "native_named_selection_transfer": "NOT_PROVEN",
+      "native_parameterization": "NOT_PROVEN",
+      "p1_p6_gates": "NOT_RUN",
+      "p1_stage_gate": "NOT_RUN",
+      "physics": "NOT_RUN",
+      "pilot_result": "PASS_PRELIMINARY_V03_FINITE_THROAT_GEOMETRY",
+      "probe": "v03_continuous_fluid_producer",
+      "pyfluent": "NOT_RUN",
+      "schema_version": 1,
+      "script_api": "V261",
+      "status": "PASS_PARTIAL_CAD_CAPABILITY",
+      "task": "AJM006_V03_CONTINUOUS_FLUID_FULL_PRODUCT_PILOT",
+      "top_plenum_planform": "PRELIMINARY_CELL_FOOTPRINT_BLOCK_WITH_VENT_RISER_UNION",
+      "trusted_production_profile_binding": "NOT_RUN_PRELIMINARY_PROFILE",
+      "visibility": "NOT_USER_OBSERVED",
+      "workbench": "NOT_RUN"
+    },
+    "submit_attempted": true,
+    "submit_result": "RECEIVED",
+    "submitted": true
+  },
+  "stage2": {
+    "cancellation": {
+      "attempted": false,
+      "confirmed_terminal": true,
+      "terminal_phase": "FAILED_PROCESS"
+    },
+    "cancellation_job_id": "AJM006-V03-CONTINUOUS-02af10398b21",
+    "cancellation_required": false,
+    "capability_status": "FAIL",
+    "job_state": {
+      "case_id": "AJM006-V03-CONTINUOUS",
+      "ended_at": "2026-09-01T11:50:48.978662+00:00",
+      "engine": "pyfluent",
+      "exit_code": 2,
+      "git_head": "010cbe627cc94c52fa6650020f77dd1a6884beb6",
+      "job_directory": "D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-02af10398b21",
+      "job_id": "AJM006-V03-CONTINUOUS-02af10398b21",
+      "license_arguments_added": false,
+      "output_root_id": "p1_cad_006",
+      "phase": "FAILED_PROCESS",
+      "pid": 27080,
+      "predecessor_artifacts": [
+        {
+          "relative_path": "v03_continuous_fluid_producer.json",
+          "sha256": "e89e363ec71775b71f83f5bc324dbf4df24b391da70f8fd68439f13e845619c6",
+          "size": 16043
+        },
+        {
+          "relative_path": "product_continuous_fluid.scdocx",
+          "sha256": "7931b7058502773ee96af9fdccf631c3fcbe2395a3ff4c8da2262b038ca0d498",
+          "size": 6958932
+        },
+        {
+          "relative_path": "product_continuous_fluid.step",
+          "sha256": "6d85ba0fc6ce73ff0fa83f58618e7488bcbe4d84088446e44ff3a1f841fe33b0",
+          "size": 1806619
+        },
+        {
+          "relative_path": "v03_native_reopen.json",
+          "sha256": "1335db49566bd3fe124986a6a9013667396ea5fba2dd3434eba2ca39b2f054c1",
+          "size": 533071
+        },
+        {
+          "relative_path": "v03_step_reimport.json",
+          "sha256": "d0d4acf0fc259f5c8c8393baacb839e2e2d1c4006a5fc15e5187c361389a5eef",
+          "size": 500939
+        },
+        {
+          "relative_path": "v03_throat_inventory.json",
+          "sha256": "9237ad4dcfb60a5067c94adaa51192e47563fbee248a6dd4ca854e96c4a73e9f",
+          "size": 1071138
+        },
+        {
+          "relative_path": "v03_source_chain.json",
+          "sha256": "ad32c4fd53fe2f3df5187227f5d4736b61f2dba0d2cd657a6874eaa377d97ad1",
+          "size": 1614
+        }
+      ],
+      "predecessor_job_id": "AJM006-V03-CONTINUOUS-a712e60cefcf",
+      "profile_contract_sha256": "1f2ce6b4ad2ab7cffb6f2fbc3033e2121ad5d2bb5c9cd33460242dcea91f5bfd",
+      "profile_dependency_artifacts": [],
+      "profile_dependency_manifest_sha256": null,
+      "profile_id": "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
+      "reason": null,
+      "schema_version": 4,
+      "script_sha256": "f7e530ddf59642d1a70bcbdb002d70921a6ac54bc760eb9b9fb8014f9a5fa021",
+      "started_at": "2026-09-01T11:44:36.140859+00:00"
+    },
+    "manifest": {
+      "file_count": 69,
+      "files": [
+        {
+          "relative_path": "fluent-20260901-194445-20848.trn",
+          "sha256": "c006aa92fd25de3f9c14d2ebc59d3e6fd4569cbf7577fa2f316720adf60cafca",
+          "size": 21929
+        },
+        {
+          "relative_path": "job.json",
+          "sha256": "e625d17104ea2cef87687d4956019f7f79f1b9f78f6ab4b2c1e1b4f86d2b2493",
+          "size": 2243
+        },
+        {
+          "relative_path": "stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "stdout.log",
+          "sha256": "b52b923337b21465f2a30f932388821433ba7952566f8e971d856c2c2f045b23",
+          "size": 19668
+        },
+        {
+          "relative_path": "v03_pyfluent_launch_stack.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "v03_pyfluent_prelaunch_trace.jsonl",
+          "sha256": "22924dc9f0636b1528fcfcc6daaa37b50f2b9cdce128f852f075fe3378cb4d3f",
+          "size": 11927
+        },
+        {
+          "relative_path": "v03_pyfluent_watertight_mesh_consumer.json",
+          "report_json": {
+            "artifacts": {},
+            "assertions": {
+              "actuator_gap_exclusion": false,
+              "boundary_roles_reconstructed": true,
+              "boundary_semantics_preserved_1076": false,
+              "claim_boundaries": false,
+              "connected_fluid_cell_zone_graph": false,
+              "exact_native_and_step_byte_staging": true,
+              "flow_cell_zone_inventory": false,
+              "fluent_v261_meshing_health": true,
+              "mesh_integrity": false,
+              "mesh_write_hash": false,
+              "predecessor_identity": true,
+              "predecessor_immutable": true,
+              "region_classification": false,
+              "student_limit_guard": false,
+              "surface_mesh": true,
+              "target_flow_volume_matches_predecessor": false,
+              "throat_local_sizing_contract": true,
+              "throat_occupancy_full_972": false,
+              "throat_roles_reconstructed_972": true,
+              "volume_mesh": false,
+              "watertight_native_import": true
+            },
+            "boundary_conditions": "NOT_APPLIED",
+            "cht": "NOT_RUN",
+            "claim_scope": "V03_PRELIMINARY_PYFLUENT_MESH_PILOT_ONLY",
+            "diagnostic_trace": {
+              "relative_path": "v03_pyfluent_prelaunch_trace.jsonl",
+              "sha256": "22924dc9f0636b1528fcfcc6daaa37b50f2b9cdce128f852f075fe3378cb4d3f",
+              "size": 11927
+            },
+            "diagnostics": {
+              "post_surface_canonical_product_only": {
+                "observation": {
+                  "global_zone_ids": [
+                    3,
+                    4,
+                    5,
+                    6,
+                    8,
+                    1102,
+                    1103,
+                    29401,
+                    29402,
+                    29403
+                  ],
+                  "objects": [
+                    "product_continuous_fluid-ajm006_v03_fluid_continuous"
+                  ],
+                  "product_object": "product_continuous_fluid-ajm006_v03_fluid_continuous",
+                  "product_zone_ids": [
+                    3,
+                    4,
+                    5,
+                    6,
+                    8,
+                    1102,
+                    1103,
+                    29401,
+                    29402,
+                    29403
+                  ],
+                  "zone_types": {
+                    "1102": "wall",
+                    "1103": "wall",
+                    "29401": "wall",
+                    "29402": "wall",
+                    "29403": "wall",
+                    "3": "wall",
+                    "4": "wall",
+                    "5": "wall",
+                    "6": "wall",
+                    "8": "wall"
+                  }
+                },
+                "split_face_counts": {
+                  "1102": 520710,
+                  "1103": 62208,
+                  "29401": 610,
+                  "29402": 603,
+                  "29403": 649,
+                  "3": 726,
+                  "4": 286,
+                  "5": 91659,
+                  "6": 239110,
+                  "8": 121217
+                },
+                "trace_relative_path": "v03_pyfluent_prelaunch_trace.jsonl"
+              },
+              "post_surface_dual_object_partition": {
+                "observation": {
+                  "geometry_objects": [
+                    "origin-product_continuous_fluid-ajm006_v03_fluid_continuous"
+                  ],
+                  "global_zone_ids": [
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    78,
+                    1052,
+                    1058,
+                    1063,
+                    1066,
+                    1073,
+                    1076,
+                    1102,
+                    1103,
+                    1121,
+                    1122,
+                    1123,
+                    1124,
+                    1125,
+                    1126,
+                    1127,
+                    1128,
+                    1129,
+                    1130,
+                    1131,
+                    1132,
+                    1133,
+                    1134,
+                    1135,
+                    1136,
+                    1137,
+                    1138,
+                    1139,
+                    1140,
+                    1141,
+                    1142,
+                    1143,
+                    1144,
+                    1145,
+                    1146,
+                    1147,
+                    1148,
+                    1149,
+                    1150,
+                    1151,
+                    1152,
+                    1153,
+                    1154
+                  ],
+                  "mesh_objects": [
+                    "product_continuous_fluid-ajm006_v03_fluid_continuous"
+                  ],
+                  "origin_object": "origin-product_continuous_fluid-ajm006_v03_fluid_continuous",
+                  "origin_role_zone_ids": {
+                    "HEAT_WALL": [
+                      1076
+                    ],
+                    "INLET": [
+                      1052,
+                      1058,
+                      1063,
+                      1066
+                    ],
+                    "MEMBRANE_BOTTOM": [
+                      9
+                    ],
+                    "MEMBRANE_TOP": [
+                      7
+                    ],
+                    "ORIFICE_THROAT_WALL": [
+                      78
+                    ],
+                    "OUTLET": [
+                      2
+                    ],
+                    "WALL_CONTINUOUS_UNCLASSIFIED": [
+                      1073
+                    ]
+                  },
+                  "origin_role_zone_names": {
+                    "HEAT_WALL": [
+                      "ajm_heat_wall"
+                    ],
+                    "INLET": [
+                      "ajm_inlet_004",
+                      "ajm_inlet_001",
+                      "ajm_inlet_002",
+                      "ajm_inlet_003"
+                    ],
+                    "MEMBRANE_BOTTOM": [
+                      "ajm_membrane_bottom"
+                    ],
+                    "MEMBRANE_TOP": [
+                      "ajm_membrane_top"
+                    ],
+                    "ORIFICE_THROAT_WALL": [
+                      "ajm_throat_wall"
+                    ],
+                    "OUTLET": [
+                      "ajm_outlet"
+                    ],
+                    "WALL_CONTINUOUS_UNCLASSIFIED": [
+                      "ajm_remaining_wall"
+                    ]
+                  },
+                  "origin_zone_ids": [
+                    2,
+                    7,
+                    9,
+                    78,
+                    1052,
+                    1058,
+                    1063,
+                    1066,
+                    1073,
+                    1076
+                  ],
+                  "product_object": "product_continuous_fluid-ajm006_v03_fluid_continuous",
+                  "product_role_counts": {
+                    "HEAT_WALL": 1,
+                    "INLET": 1,
+                    "MEMBRANE_BOTTOM": 12,
+                    "MEMBRANE_TOP": 12,
+                    "ORIFICE_THROAT_WALL": 1,
+                    "OUTLET": 1,
+                    "WALL_CONTINUOUS_UNCLASSIFIED": 13
+                  },
+                  "product_role_zone_ids": {
+                    "HEAT_WALL": [
+                      8
+                    ],
+                    "INLET": [
+                      3
+                    ],
+                    "MEMBRANE_BOTTOM": [
+                      6,
+                      1144,
+                      1145,
+                      1146,
+                      1147,
+                      1148,
+                      1149,
+                      1150,
+                      1151,
+                      1152,
+                      1153,
+                      1154
+                    ],
+                    "MEMBRANE_TOP": [
+                      5,
+                      1133,
+                      1134,
+                      1135,
+                      1136,
+                      1137,
+                      1138,
+                      1139,
+                      1140,
+                      1141,
+                      1142,
+                      1143
+                    ],
+                    "ORIFICE_THROAT_WALL": [
+                      1103
+                    ],
+                    "OUTLET": [
+                      4
+                    ],
+                    "WALL_CONTINUOUS_UNCLASSIFIED": [
+                      1102,
+                      1121,
+                      1122,
+                      1123,
+                      1124,
+                      1125,
+                      1126,
+                      1127,
+                      1128,
+                      1129,
+                      1130,
+                      1131,
+                      1132
+                    ]
+                  },
+                  "product_role_zone_names": {
+                    "HEAT_WALL": [
+                      "heat_wall"
+                    ],
+                    "INLET": [
+                      "inlet"
+                    ],
+                    "MEMBRANE_BOTTOM": [
+                      "membrane_bottom",
+                      "membrane_bottom:1144",
+                      "membrane_bottom:1145",
+                      "membrane_bottom:1146",
+                      "membrane_bottom:1147",
+                      "membrane_bottom:1148",
+                      "membrane_bottom:1149",
+                      "membrane_bottom:1150",
+                      "membrane_bottom:1151",
+                      "membrane_bottom:1152",
+                      "membrane_bottom:1153",
+                      "membrane_bottom:1154"
+                    ],
+                    "MEMBRANE_TOP": [
+                      "membrane_top",
+                      "membrane_top:1133",
+                      "membrane_top:1134",
+                      "membrane_top:1135",
+                      "membrane_top:1136",
+                      "membrane_top:1137",
+                      "membrane_top:1138",
+                      "membrane_top:1139",
+                      "membrane_top:1140",
+                      "membrane_top:1141",
+                      "membrane_top:1142",
+                      "membrane_top:1143"
+                    ],
+                    "ORIFICE_THROAT_WALL": [
+                      "orifice_throat_wall"
+                    ],
+                    "OUTLET": [
+                      "outlet"
+                    ],
+                    "WALL_CONTINUOUS_UNCLASSIFIED": [
+                      "fluid_continuous:1",
+                      "fluid_continuous:1121",
+                      "fluid_continuous:1122",
+                      "fluid_continuous:1123",
+                      "fluid_continuous:1124",
+                      "fluid_continuous:1125",
+                      "fluid_continuous:1126",
+                      "fluid_continuous:1127",
+                      "fluid_continuous:1128",
+                      "fluid_continuous:1129",
+                      "fluid_continuous:1130",
+                      "fluid_continuous:1131",
+                      "fluid_continuous:1132"
+                    ]
+                  },
+                  "product_suffix_structure": {
+                    "suffix_blocks": {
+                      "MEMBRANE_BOTTOM": [
+                        1144,
+                        1145,
+                        1146,
+                        1147,
+                        1148,
+                        1149,
+                        1150,
+                        1151,
+                        1152,
+                        1153,
+                        1154
+                      ],
+                      "MEMBRANE_TOP": [
+                        1133,
+                        1134,
+                        1135,
+                        1136,
+                        1137,
+                        1138,
+                        1139,
+                        1140,
+                        1141,
+                        1142,
+                        1143
+                      ],
+                      "WALL_CONTINUOUS_UNCLASSIFIED": [
+                        1121,
+                        1122,
+                        1123,
+                        1124,
+                        1125,
+                        1126,
+                        1127,
+                        1128,
+                        1129,
+                        1130,
+                        1131,
+                        1132
+                      ]
+                    },
+                    "suffix_end_zone_id": 1154,
+                    "suffix_start_zone_id": 1121,
+                    "suffix_zone_count": 34
+                  },
+                  "product_zone_ids": [
+                    3,
+                    4,
+                    5,
+                    6,
+                    8,
+                    1102,
+                    1103,
+                    1121,
+                    1122,
+                    1123,
+                    1124,
+                    1125,
+                    1126,
+                    1127,
+                    1128,
+                    1129,
+                    1130,
+                    1131,
+                    1132,
+                    1133,
+                    1134,
+                    1135,
+                    1136,
+                    1137,
+                    1138,
+                    1139,
+                    1140,
+                    1141,
+                    1142,
+                    1143,
+                    1144,
+                    1145,
+                    1146,
+                    1147,
+                    1148,
+                    1149,
+                    1150,
+                    1151,
+                    1152,
+                    1153,
+                    1154
+                  ]
+                },
+                "trace_relative_path": "v03_pyfluent_prelaunch_trace.jsonl"
+              },
+              "post_surface_product_only_after_geometry_delete": {
+                "observation": {
+                  "global_zone_ids": [
+                    3,
+                    4,
+                    5,
+                    6,
+                    8,
+                    1102,
+                    1103,
+                    1121,
+                    1122,
+                    1123,
+                    1124,
+                    1125,
+                    1126,
+                    1127,
+                    1128,
+                    1129,
+                    1130,
+                    1131,
+                    1132,
+                    1133,
+                    1134,
+                    1135,
+                    1136,
+                    1137,
+                    1138,
+                    1139,
+                    1140,
+                    1141,
+                    1142,
+                    1143,
+                    1144,
+                    1145,
+                    1146,
+                    1147,
+                    1148,
+                    1149,
+                    1150,
+                    1151,
+                    1152,
+                    1153,
+                    1154
+                  ],
+                  "objects": [
+                    "product_continuous_fluid-ajm006_v03_fluid_continuous"
+                  ],
+                  "product_object": "product_continuous_fluid-ajm006_v03_fluid_continuous",
+                  "product_zone_ids": [
+                    3,
+                    4,
+                    5,
+                    6,
+                    8,
+                    1102,
+                    1103,
+                    1121,
+                    1122,
+                    1123,
+                    1124,
+                    1125,
+                    1126,
+                    1127,
+                    1128,
+                    1129,
+                    1130,
+                    1131,
+                    1132,
+                    1133,
+                    1134,
+                    1135,
+                    1136,
+                    1137,
+                    1138,
+                    1139,
+                    1140,
+                    1141,
+                    1142,
+                    1143,
+                    1144,
+                    1145,
+                    1146,
+                    1147,
+                    1148,
+                    1149,
+                    1150,
+                    1151,
+                    1152,
+                    1153,
+                    1154
+                  ],
+                  "zone_types": {
+                    "1102": "wall",
+                    "1103": "wall",
+                    "1121": "wall",
+                    "1122": "wall",
+                    "1123": "wall",
+                    "1124": "wall",
+                    "1125": "wall",
+                    "1126": "wall",
+                    "1127": "wall",
+                    "1128": "wall",
+                    "1129": "wall",
+                    "1130": "wall",
+                    "1131": "wall",
+                    "1132": "wall",
+                    "1133": "wall",
+                    "1134": "wall",
+                    "1135": "wall",
+                    "1136": "wall",
+                    "1137": "wall",
+                    "1138": "wall",
+                    "1139": "wall",
+                    "1140": "wall",
+                    "1141": "wall",
+                    "1142": "wall",
+                    "1143": "wall",
+                    "1144": "wall",
+                    "1145": "wall",
+                    "1146": "wall",
+                    "1147": "wall",
+                    "1148": "wall",
+                    "1149": "wall",
+                    "1150": "wall",
+                    "1151": "wall",
+                    "1152": "wall",
+                    "1153": "wall",
+                    "1154": "wall",
+                    "3": "wall",
+                    "4": "wall",
+                    "5": "wall",
+                    "6": "wall",
+                    "8": "wall"
+                  }
+                },
+                "trace_relative_path": "v03_pyfluent_prelaunch_trace.jsonl"
+              },
+              "post_surface_product_only_after_inlet_split": {
+                "observation": {
+                  "global_zone_ids": [
+                    3,
+                    4,
+                    5,
+                    6,
+                    8,
+                    1102,
+                    1103,
+                    29401,
+                    29402,
+                    29403
+                  ],
+                  "objects": [
+                    "product_continuous_fluid-ajm006_v03_fluid_continuous"
+                  ],
+                  "product_object": "product_continuous_fluid-ajm006_v03_fluid_continuous",
+                  "product_zone_ids": [
+                    3,
+                    4,
+                    5,
+                    6,
+                    8,
+                    1102,
+                    1103,
+                    29401,
+                    29402,
+                    29403
+                  ],
+                  "zone_types": {
+                    "1102": "wall",
+                    "1103": "wall",
+                    "29401": "wall",
+                    "29402": "wall",
+                    "29403": "wall",
+                    "3": "wall",
+                    "4": "wall",
+                    "5": "wall",
+                    "6": "wall",
+                    "8": "wall"
+                  }
+                },
+                "split_face_counts": {
+                  "1102": 520710,
+                  "1103": 62208,
+                  "29401": 610,
+                  "29402": 603,
+                  "29403": 649,
+                  "3": 726,
+                  "4": 286,
+                  "5": 91659,
+                  "6": 239110,
+                  "8": 121217
+                },
+                "trace_relative_path": "v03_pyfluent_prelaunch_trace.jsonl"
+              },
+              "post_surface_product_only_after_role_merge": {
+                "observation": {
+                  "global_zone_ids": [
+                    3,
+                    4,
+                    5,
+                    6,
+                    8,
+                    1102,
+                    1103
+                  ],
+                  "objects": [
+                    "product_continuous_fluid-ajm006_v03_fluid_continuous"
+                  ],
+                  "product_object": "product_continuous_fluid-ajm006_v03_fluid_continuous",
+                  "product_zone_ids": [
+                    3,
+                    4,
+                    5,
+                    6,
+                    8,
+                    1102,
+                    1103
+                  ],
+                  "zone_types": {
+                    "1102": "wall",
+                    "1103": "wall",
+                    "3": "wall",
+                    "4": "wall",
+                    "5": "wall",
+                    "6": "wall",
+                    "8": "wall"
+                  }
+                },
+                "trace_relative_path": "v03_pyfluent_prelaunch_trace.jsonl"
+              }
+            },
+            "engineering_capability": "FAIL_PRELIMINARY_MESH_CAPABILITY",
+            "error": {
+              "message": "MIXED_REGION_STATE_NOT_EXACT_13",
+              "traceback": "Traceback (most recent call last):\n  File \"D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-02af10398b21\\input\\v03_pyfluent_watertight_mesh_consumer.py\", line 2730, in <module>\n    pre_update_region_inventory = validate_mixed_region_state(\n                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\AirJet_P1\\AJM-P1-CAD-006\\AJM006-V03-CONTINUOUS\\AJM006-V03-CONTINUOUS-02af10398b21\\input\\v03_pyfluent_watertight_mesh_consumer.py\", line 1699, in validate_mixed_region_state\n    raise RuntimeError(\"MIXED_REGION_STATE_NOT_EXACT_13\")\nRuntimeError: MIXED_REGION_STATE_NOT_EXACT_13\n",
+              "type": "RuntimeError"
+            },
+            "exact_product_geometry": "NOT_CLAIMED",
+            "formal_006_completion": false,
+            "fsi": "NOT_RUN",
+            "identity": {
+              "case_id": "AJM006-V03-CONTINUOUS",
+              "git_head": "010cbe627cc94c52fa6650020f77dd1a6884beb6",
+              "predecessor_job_id": "AJM006-V03-CONTINUOUS-a712e60cefcf",
+              "profile_contract_sha256": "1f2ce6b4ad2ab7cffb6f2fbc3033e2121ad5d2bb5c9cd33460242dcea91f5bfd",
+              "profile_id": "ajm006-pyfluent-v03-continuous-mesh-pilot-v1",
+              "script_sha256": "f7e530ddf59642d1a70bcbdb002d70921a6ac54bc760eb9b9fb8014f9a5fa021"
+            },
+            "license_arguments_added": false,
+            "mesh_contract": {
+              "cad_import_source": "NATIVE_SCDOCX_BOUND_TO_SIGNED_PREDECESSOR",
+              "cad_one_zone_per": "face",
+              "dimension": "THREE",
+              "max_expected_flow_cell_zones": 1,
+              "mode": "MESHING",
+              "precision": "DOUBLE",
+              "processor_count": 1,
+              "product_version": "261",
+              "resolution_class": "STUDENT_COARSE_MAIN_FLOW_REGION_C5",
+              "student_cell_limit": 1000000,
+              "student_node_limit": 1000000,
+              "surface_max_size_mm": 0.75,
+              "surface_min_size_mm": 0.05,
+              "target_flow_volume_mesh_tolerance_mm3": 1.0,
+              "throat_local_size_mm": 0.075,
+              "ui_mode": "NO_GUI_OR_GRAPHICS",
+              "volume_max_size_mm": 0.75,
+              "wall_to_internal": false
+            },
+            "mesh_result": "FAIL_V03_WATERTIGHT_VOLUME_MESH",
+            "p1_mesh_gate": "NOT_RUN",
+            "p1_p6_gates": "NOT_RUN",
+            "p1_stage_gate": "NOT_RUN",
+            "physics": "NOT_RUN",
+            "probe": "v03_pyfluent_watertight_mesh_consumer",
+            "schema_version": 1,
+            "solution": "NOT_RUN",
+            "solver_initialization": "NOT_RUN",
+            "solver_iterations": 0,
+            "solver_mode": "NOT_ENTERED",
+            "status": "FAIL_PRELIMINARY_MESH_CAPABILITY",
+            "task": "AJM006_V03_PYFLUENT_WATERTIGHT_MESH_ONLY",
+            "visibility": "NOT_USER_OBSERVED"
+          },
+          "sha256": "d8026e8b0228e514d5f69e465900a91c9bb6254071fc8e5ef2ac8b2a939731a0",
+          "size": 17988
+        },
+        {
+          "relative_path": "input/v03_pyfluent_watertight_mesh_consumer.py",
+          "sha256": "f7e530ddf59642d1a70bcbdb002d70921a6ac54bc760eb9b9fb8014f9a5fa021",
+          "size": 148782
+        },
+        {
+          "relative_path": "input/predecessor/predecessor-manifest.json",
+          "sha256": "97bf1f116901ceb9bae569d8ce84b386e4688891fb646e83bd2935e37c021764",
+          "size": 1918
+        },
+        {
+          "relative_path": "input/predecessor/product_continuous_fluid.scdocx",
+          "sha256": "7931b7058502773ee96af9fdccf631c3fcbe2395a3ff4c8da2262b038ca0d498",
+          "size": 6958932
+        },
+        {
+          "relative_path": "input/predecessor/product_continuous_fluid.step",
+          "sha256": "6d85ba0fc6ce73ff0fa83f58618e7488bcbe4d84088446e44ff3a1f841fe33b0",
+          "size": 1806619
+        },
+        {
+          "relative_path": "input/predecessor/v03_continuous_fluid_producer.json",
+          "sha256": "e89e363ec71775b71f83f5bc324dbf4df24b391da70f8fd68439f13e845619c6",
+          "size": 16043
+        },
+        {
+          "relative_path": "input/predecessor/v03_native_reopen.json",
+          "sha256": "1335db49566bd3fe124986a6a9013667396ea5fba2dd3434eba2ca39b2f054c1",
+          "size": 533071
+        },
+        {
+          "relative_path": "input/predecessor/v03_source_chain.json",
+          "sha256": "ad32c4fd53fe2f3df5187227f5d4736b61f2dba0d2cd657a6874eaa377d97ad1",
+          "size": 1614
+        },
+        {
+          "relative_path": "input/predecessor/v03_step_reimport.json",
+          "sha256": "d0d4acf0fc259f5c8c8393baacb839e2e2d1c4006a5fc15e5187c361389a5eef",
+          "size": 500939
+        },
+        {
+          "relative_path": "input/predecessor/v03_throat_inventory.json",
+          "sha256": "9237ad4dcfb60a5067c94adaa51192e47563fbee248a6dd4ca854e96c4a73e9f",
+          "size": 1071138
+        },
+        {
+          "relative_path": "input/staging/product_continuous_fluid.scdocx",
+          "sha256": "7931b7058502773ee96af9fdccf631c3fcbe2395a3ff4c8da2262b038ca0d498",
+          "size": 6958932
+        },
+        {
+          "relative_path": "input/staging/product_continuous_fluid.step",
+          "sha256": "6d85ba0fc6ce73ff0fa83f58618e7488bcbe4d84088446e44ff3a1f841fe33b0",
+          "size": 1806619
+        },
+        {
+          "relative_path": "temp/Ans.ConnectorService.28152.txt",
+          "sha256": "44f1bbc5b4c9e9a4c445554c93b8eb354c641a9c4aacb5f4f568182c63a471e2",
+          "size": 4
+        },
+        {
+          "relative_path": "temp/ElectronicsDatabaseAddIn.log",
+          "sha256": "e8b0c2981be38a22cd0b0a2bb9812444fe99e25e7d719212fced48f98a053ea5",
+          "size": 616956
+        },
+        {
+          "relative_path": "temp/.ansys/.ansys.rnd",
+          "sha256": "c295cd9727be31cb9112a42537d01f3139b6dfc7d3bfb88772cca1827fcbbf3a",
+          "size": 1024
+        },
+        {
+          "relative_path": "temp/.ansys/aclcleanup.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/.ansys/ansyscl.LAPTOP-LCCLM2HI.log",
+          "sha256": "0781ee40eed658b5aeb9643ea9ac0c2978a3ac000c30f4c4ed735ca5ab5f15df",
+          "size": 12674
+        },
+        {
+          "relative_path": "temp/.ansys/licdebug.LAPTOP-LCCLM2HI.ALI_UTIL.261.out",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/.ansys/licdebug.LAPTOP-LCCLM2HI.DISCOVERY.261.out",
+          "sha256": "448e9709c190c68a696dc5570197a7a36e49ce8eea7af2a6709105ea179088bb",
+          "size": 642
+        },
+        {
+          "relative_path": "temp/.ansys/licdebug.LAPTOP-LCCLM2HI.FLUENT.261.out",
+          "sha256": "9895e8f7a0b89f41a20a64617e9be3d1bebded7edd9c4a201a4cc85e8efe410b",
+          "size": 2714
+        },
+        {
+          "relative_path": "temp/.ansys/licdebug.LAPTOP-LCCLM2HI.GRANTA_SIM_MAT_DATA.261.out",
+          "sha256": "8704157de01f1cfc84bb3212ec7606c275d8edd4466723df6952eadfbf552d6e",
+          "size": 358
+        },
+        {
+          "relative_path": "temp/ActivePIMgrClient/MutexLocks/be98bda0-a530-4ad4-8f8f-9d7c4eab34f6 Plugin 28152",
+          "sha256": "b76875c50ef704dbbf7f02c982445971d1bbd61aebe2e4b28ddc58a1d66317d5",
+          "size": 12
+        },
+        {
+          "relative_path": "temp/ActivePIMgrClient/MutexLocks/be98bda0-a530-4ad4-8f8f-9d7c4eab34f6 WaitList 28152",
+          "sha256": "b76875c50ef704dbbf7f02c982445971d1bbd61aebe2e4b28ddc58a1d66317d5",
+          "size": 12
+        },
+        {
+          "relative_path": "temp/ActivePIMgrClient/MutexLocks/be98bda0-a530-4ad4-8f8f-9d7c4eab34f6 WaitListData28152",
+          "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+          "size": 4
+        },
+        {
+          "relative_path": "temp/Ansys/RunningCADs/LAPTOP-LCCLM2HI/v261/28152.plugin",
+          "sha256": "cb9859b35d2464bfe7984d14bcab6596b96dbc115e052f2bbf6e75d9d6ff487c",
+          "size": 108
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Graphite/Database/repo/HEAD",
+          "sha256": "f6f2b945f6c411b02ba3da9c7ace88dcf71b6af65ba2e0d89aa82900042b5a10",
+          "size": 23
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Graphite/Database/repo/config",
+          "sha256": "95075f639cc7337d91c6c3a033cef55d91d1117731b16be5f985cdff0ffdc6a6",
+          "size": 104
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Graphite/Database/repo/description",
+          "sha256": "85ab6c163d43a17ea9cf7788308bca1466f1b0a8d1cc92e26e9bf63da4062aee",
+          "size": 73
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Graphite/Database/repo/hooks/README.sample",
+          "sha256": "7319d7f1803fda2b3416143e426b9ec4c3c3c817c75188b2b82cb3e68ff293ab",
+          "size": 177
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Graphite/Database/repo/info/exclude",
+          "sha256": "fdb7dc7be17051c3c5067cdf2b8fdf2ca3a8daf2b5e91f34c6ce1ff3a94c5f6a",
+          "size": 113
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Journals/01-9\u6708-2026 19.44.58_28152.scjournal",
+          "sha256": "87fa3dd4391e6e10d34a55dac400f16b879e337644a308db709e5329311d6072",
+          "size": 55448
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/20260901-194512-LiveEngine.txt",
+          "sha256": "1dd297d8dec688211a1f7803b8ec613af7ed07fc567b4b2ff1a0a8c3a345ba1e",
+          "size": 5288
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/20260901-194512-LivePost.txt",
+          "sha256": "ada6f6e0c54f9a2f0205c98b34515f0d5f504825dba52d1be624e8dfc584d02e",
+          "size": 740
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Ansys Discovery_2026_9_1_28152.log",
+          "sha256": "f104073e17af0692acda9d558f7cff66cc88e653676db4edc6d8c834e54f6042",
+          "size": 624941
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Application.log",
+          "sha256": "c5464443d50014dae76b70720ee7d4cd2d24f19e3cb896abef16296375512316",
+          "size": 669070
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/ASim.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/ASimCad.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/DataRepository.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/DatabaseInstance.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/Director.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/GLSL.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/Graphite.dbg",
+          "sha256": "274c51c30a207c58a8e1d8eadaaea3dbda4ec710416ece96f14422bc6d615f2a",
+          "size": 226
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/GrpcMessages.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/NodeTypeInfo.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/Ogl.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/OglDebug.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/PolyMeshConverter.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/Vis.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/assert.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/error.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/gtm.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/messages.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/output.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/std.cerr.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/std.cout.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/tracing.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Logs/Graphite/Client/updateloop.dbg",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Refine/Graphite.Database/repo/HEAD",
+          "sha256": "f6f2b945f6c411b02ba3da9c7ace88dcf71b6af65ba2e0d89aa82900042b5a10",
+          "size": 23
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Refine/Graphite.Database/repo/config",
+          "sha256": "95075f639cc7337d91c6c3a033cef55d91d1117731b16be5f985cdff0ffdc6a6",
+          "size": 104
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Refine/Graphite.Database/repo/description",
+          "sha256": "85ab6c163d43a17ea9cf7788308bca1466f1b0a8d1cc92e26e9bf63da4062aee",
+          "size": 73
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Refine/Graphite.Database/repo/hooks/README.sample",
+          "sha256": "7319d7f1803fda2b3416143e426b9ec4c3c3c817c75188b2b82cb3e68ff293ab",
+          "size": 177
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Refine/Graphite.Database/repo/info/exclude",
+          "sha256": "fdb7dc7be17051c3c5067cdf2b8fdf2ca3a8daf2b5e91f34c6ce1ff3a94c5f6a",
+          "size": 113
+        },
+        {
+          "relative_path": "temp/Discovery/20260901.1944.28152/Refine/Projects/analysis.gmap",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "size": 0
+        }
+      ],
+      "job_id": "AJM006-V03-CONTINUOUS-02af10398b21",
+      "phase": "FAILED_PROCESS",
+      "total_size": 21869563
+    },
+    "reached_terminal": true,
+    "submit_attempted": true,
+    "submit_result": "RECEIVED",
+    "submitted": true
+  },
+  "started_at": "2026-09-01T11:42:39.721699+00:00",
+  "task": "AJM006_V03_TWO_STAGE_CONTINUOUS_MESH_SUITE"
+}
